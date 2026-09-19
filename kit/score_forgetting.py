@@ -4,6 +4,8 @@
     python score_forgetting.py generate --model /path/to/hf-model --out /work/forgetting/NAME
     python score_forgetting.py score    --responses responses.jsonl --out DIR      # no GPU: re-score saved answers
     python score_forgetting.py compare  --base BASE/forgetting.json --after RUN/forgetting.json --out DIR
+    python score_forgetting.py agree    --a DIR1 --b DIR2 --out DIR      # two scorings of ONE model: how repeatable is this machine?
+    python score_forgetting.py summarize --root DIR --base base-1 --out DIR   # every scored model against the untrained one
 
 What it measures. 300 questions fixed in advance: 100 grade-school maths (GSM8K), 100 general
 knowledge multiple choice (MMLU), 100 instruction-following prompts (an IFEval-style subset). One
@@ -11,13 +13,19 @@ greedy answer each, thinking disabled, at most 2,048 new tokens: the same prompt
 decoding and scoring code as the nine-panel matrix in our own harness, of which these are the three
 panels under the registered floor (a trained model may lose at most 3 per 100 on each).
 
-**Compare only results scored on the same machine.** Greedy decoding under a batched engine is
-repeatable on one machine and NOT across machines: scoring the same untrained model twice on one
-GPU gave 297 of 300 identical answers and no changed verdict, while two different machines with the
-same GPU model agreed on about 90 answers and flipped 10 to 13 verdicts, moving a panel by up to 3
-points (receipt 204). The floor is 3 points, so a cross-machine comparison cannot resolve it.
-`generate` therefore records a machine fingerprint, and `compare` answers NOT_COMPARABLE unless both
-results carry the same one. Score the untrained model on every machine you score trained models on.
+**Two rules for a comparison that means anything** (receipts 204 and 209).
+
+1. *Deterministic decoding.* "Greedy" decoding under vLLM's batched, compiled engine is NOT repeatable,
+   even on one machine in one container: three pairs of scorings of one untrained model agreed on 297,
+   179 and 98 of 300 answers, with 0, 5 and 7 verdicts changed. With compilation and CUDA graphs off, a
+   fixed seed and batch-invariant kernels, two pairs agreed on 300 of 300. That mode is the default here.
+2. *Same machine.* Across machines, even with the same GPU model, 10 to 13 verdicts of 300 changed and
+   a panel moved by up to 3 points, which is the size of the floor being checked.
+
+`generate` records a fingerprint of the machine AND the decoding mode; `compare` and `summarize` answer
+NOT_COMPARABLE unless both results carry the same one. Score the untrained model, in the same mode,
+on every machine you score trained models on. The `repeatable` pilot of the K1a campaign proves it
+each time by scoring the untrained model twice.
 
 `generate` needs vLLM and one GPU. `score` and `compare` need only the Python standard library.
 Nothing is overwritten: an existing output directory is refused.
@@ -71,8 +79,8 @@ def model_identity(model: Path) -> dict:
     return {"path": str(model), "files": files, "weight_files": len(weights), "weight_bytes": sum(p.stat().st_size for p in weights)}
 
 
-def machine_fingerprint() -> dict:
-    """What has to be equal for two scorings to be comparable: the physical GPU and the software."""
+def machine_fingerprint(deterministic: bool = True) -> dict:
+    """What has to be equal for two scorings to be comparable: the physical GPU, the software, and the decoding mode."""
     import platform, socket, subprocess                                      # noqa: E401,PLC0415
     try:
         smi = subprocess.run(["nvidia-smi", "--query-gpu=name,uuid,driver_version", "--format=csv,noheader"],
@@ -87,8 +95,8 @@ def machine_fingerprint() -> dict:
             versions[name] = None
     visible = __import__("os").environ.get("CUDA_VISIBLE_DEVICES")
     fingerprint = {"hostname": socket.gethostname(), "gpus": sorted(line.strip() for line in smi), "cuda_visible_devices": visible,
-                   "versions": versions, "python": platform.python_version()}
-    fingerprint["id"] = hashlib.sha256(json.dumps({k: fingerprint[k] for k in ("gpus", "cuda_visible_devices", "versions")},
+                   "versions": versions, "python": platform.python_version(), "deterministic": deterministic}
+    fingerprint["id"] = hashlib.sha256(json.dumps({k: fingerprint[k] for k in ("gpus", "cuda_visible_devices", "versions", "deterministic")},
                                                   sort_keys=True).encode()).hexdigest()[:16]
     return fingerprint
 
@@ -123,7 +131,8 @@ def grade(members: list, responses: dict) -> dict:
 def write_result(out: Path, *, panels: dict, panel_sha: str, extra: dict) -> dict:
     result = {"schema": SCHEMA, "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "panel_file_sha256": panel_sha, "decoding": DECODING, "panels": panels,
-              "total": {"n": sum(p["n"] for p in panels.values()), "correct": sum(p["correct"] for p in panels.values())}, **extra}
+              "total": {"n": sum(p["n"] for p in panels.values()), "correct": sum(p["correct"] for p in panels.values())},
+              "total_correct": sum(p["correct"] for p in panels.values()), **extra}
     (out / "forgetting.json").write_text(json.dumps(result, indent=1, sort_keys=True))
     for name, p in panels.items():
         print("%-10s %3d of %3d correct | %3d parsed | median %d chars" % (name, p["correct"], p["n"], p["parsed"], p["median_output_chars"]))
@@ -137,12 +146,20 @@ def cmd_generate(args) -> int:
     if not (model / "config.json").is_file():
         raise SystemExit("not a HuggingFace model directory: %s" % model)
     out = fresh_dir(Path(args.out))
+    import os                                                               # noqa: PLC0415
+    # Deterministic by default (KIT_DETERMINISTIC=0 turns it off, and the result then refuses comparison with a deterministic one).
+    # Without it, two scorings of ONE model on ONE machine agreed on as few as 98 of 300 answers and flipped up to 7 verdicts; with it, 300 of 300.
+    deterministic = os.environ.get("KIT_DETERMINISTIC", "1") == "1"
+    eager = batch_invariant = deterministic     # eager: no torch.compile, no CUDA graphs, so cold and warm runs execute the same kernels
+    if batch_invariant:                      # must be set before vLLM is imported; asks for kernels whose result does not depend on batching
+        os.environ["VLLM_BATCH_INVARIANT"] = "1"
+        os.environ.setdefault("VLLM_ATTENTION_BACKEND", "FLASH_ATTN")       # the mode refuses to start without a named backend
     from transformers import AutoTokenizer                                  # noqa: PLC0415
     from vllm import LLM, SamplingParams                                    # noqa: PLC0415
     import vllm                                                             # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, m["prompt"]) for m in members]
-    llm = LLM(model=str(model), enable_lora=False, **ENGINE)
+    llm = LLM(model=str(model), enable_lora=False, **ENGINE, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **DECODING))
     responses, rows = {}, []
     for member, output in zip(members, outputs):
@@ -153,8 +170,8 @@ def cmd_generate(args) -> int:
     (out / "responses.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     truncated = sum(r["finish_reason"] == "length" for r in rows)
     write_result(out, panels=grade(members, responses), panel_sha=digest,
-                 extra={"mode": "generate", "model": model_identity(model), "engine": {**ENGINE, "vllm": vllm.__version__},
-                        "machine": machine_fingerprint(), "truncated_at_max_tokens": truncated})
+                 extra={"mode": "generate", "model": model_identity(model), "engine": {**ENGINE, "vllm": vllm.__version__, "batch_invariant": batch_invariant, "eager": eager, "deterministic": deterministic},
+                        "machine": machine_fingerprint(deterministic), "truncated_at_max_tokens": truncated})
     return 0
 
 
@@ -210,6 +227,72 @@ def cmd_compare(args) -> int:
     return {"PASS": 0, "FAIL": 1, "NOT_COMPARABLE": 2}[verdict]
 
 
+OUR_UNTRAINED_TOTAL = 251            # Qwen3-8B on our harness (91 / 72 / 88); two other machines gave 250 and 251 (receipt 204)
+
+
+def _responses(directory: Path) -> dict:
+    return {(r["panel"], r["id"]): r["response"] for r in (json.loads(line) for line in (directory / "responses.jsonl").read_text().splitlines() if line.strip())}
+
+
+def cmd_agree(args) -> int:
+    a_dir, b_dir = Path(args.a), Path(args.b)
+    a, b = (json.loads((d / "forgetting.json").read_text()) for d in (a_dir, b_dir))
+    ra, rb = _responses(a_dir), _responses(b_dir)
+    if set(ra) != set(rb) or a["panel_file_sha256"] != b["panel_file_sha256"]:
+        raise SystemExit("the two scorings do not cover the same questions")
+    out = fresh_dir(Path(args.out))
+    changed = sum(a["panels"][p]["per_member"][m] != b["panels"][p]["per_member"][m] for p in a["panels"] for m in a["panels"][p]["per_member"])
+    result = {"schema": SCHEMA, "mode": "agree", "questions": len(ra), "identical_answers": sum(ra[k] == rb[k] for k in ra), "changed_verdicts": changed,
+              "total_a": a["total_correct"], "total_b": b["total_correct"], "distance_from_our_untrained_total": abs(a["total_correct"] - OUR_UNTRAINED_TOTAL),
+              "same_machine": (a.get("machine") or {}).get("id") is not None and (a.get("machine") or {}).get("id") == (b.get("machine") or {}).get("id"),
+              "panels_a": {p: v["correct"] for p, v in a["panels"].items()}, "panels_b": {p: v["correct"] for p, v in b["panels"].items()}}
+    result["same_machine_flag"] = int(result["same_machine"])
+    (out / "agreement.json").write_text(json.dumps(result, indent=1, sort_keys=True))
+    print(json.dumps(result, indent=1))
+    return 0
+
+
+def _latest(root: Path) -> dict:
+    """{'base-1': Path('.../base-1-a2'), ...}: the highest attempt of every scored directory under root."""
+    found: dict = {}
+    for directory in sorted(p for p in root.iterdir() if (p / "forgetting.json").is_file()):
+        name, _, attempt = directory.name.rpartition("-a")
+        key, number = (name, int(attempt)) if name and attempt.isdigit() else (directory.name, 0)
+        if key not in found or number > found[key][0]:
+            found[key] = (number, directory)
+    return {key: directory for key, (_, directory) in found.items()}
+
+
+def cmd_summarize(args) -> int:
+    scored = _latest(Path(args.root))
+    if args.base not in scored:
+        raise SystemExit("no scoring named %s under %s (found %s)" % (args.base, args.root, sorted(scored)))
+    base = json.loads((scored[args.base] / "forgetting.json").read_text())
+    out = fresh_dir(Path(args.out))
+    rows = []
+    for name, directory in sorted(scored.items()):
+        if name.startswith("base"):
+            continue
+        after = json.loads((directory / "forgetting.json").read_text())
+        same = (base.get("machine") or {}).get("id") is not None and (base.get("machine") or {}).get("id") == (after.get("machine") or {}).get("id")
+        changes = {p: after["panels"][p]["correct"] - base["panels"][p]["correct"] for p in base["panels"]}
+        lost = {p: sum(base["panels"][p]["per_member"][m] and not after["panels"][p]["per_member"][m] for m in base["panels"][p]["per_member"]) for p in base["panels"]}
+        verdict = "NOT_COMPARABLE" if not same else ("PASS" if min(changes.values()) >= FLOOR_PER_100 else "FAIL")
+        rows.append({"model": name, "same_machine": same, "scores": {p: after["panels"][p]["correct"] for p in after["panels"]}, "changes": changes, "lost": lost,
+                     "median_output_chars": {p: after["panels"][p]["median_output_chars"] for p in after["panels"]}, "verdict": verdict})
+    report = {"schema": SCHEMA, "mode": "summarize", "floor_per_100": FLOOR_PER_100, "base": {"name": args.base, "scores": {p: v["correct"] for p, v in base["panels"].items()},
+              "median_output_chars": {p: v["median_output_chars"] for p, v in base["panels"].items()}, "machine": base.get("machine")}, "models": rows}
+    (out / "forgetting-report.json").write_text(json.dumps(report, indent=1, sort_keys=True))
+    panels = list(base["panels"])
+    lines = ["# Forgetting report", "", "Untrained model (%s): %s. Floor: a trained model may lose at most %d per 100 on each panel, judged only against an untrained model scored on the same machine."
+             % (args.base, ", ".join("%s %d" % (p, base["panels"][p]["correct"]) for p in panels), -FLOOR_PER_100), "",
+             "| model | " + " | ".join(panels) + " | verdict |", "|---|" + "---|" * (len(panels) + 1)]
+    lines += ["| %s | %s | %s |" % (r["model"], " | ".join("%d (%+d)" % (r["scores"][p], r["changes"][p]) for p in panels), r["verdict"]) for r in rows]
+    (out / "forgetting-report.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Score a saved model for forgetting on three general panels.")
     sub = parser.add_subparsers(dest="action", required=True)
@@ -217,8 +300,10 @@ def main(argv=None) -> int:
     s = sub.add_parser("score"); s.add_argument("--responses", required=True); s.add_argument("--out", required=True)
     c = sub.add_parser("compare"); c.add_argument("--base", required=True); c.add_argument("--after", required=True); c.add_argument("--out", required=True)
     c.add_argument("--allow-different-machines", action="store_true", help="judge anyway; recorded in the result")
+    a = sub.add_parser("agree"); a.add_argument("--a", required=True); a.add_argument("--b", required=True); a.add_argument("--out", required=True)
+    z = sub.add_parser("summarize"); z.add_argument("--root", required=True); z.add_argument("--base", default="base-1"); z.add_argument("--out", required=True)
     args = parser.parse_args(argv)
-    return {"generate": cmd_generate, "score": cmd_score, "compare": cmd_compare}[args.action](args)
+    return {"generate": cmd_generate, "score": cmd_score, "compare": cmd_compare, "agree": cmd_agree, "summarize": cmd_summarize}[args.action](args)
 
 
 if __name__ == "__main__":

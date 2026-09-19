@@ -7,5 +7,7 @@ kit/panels/general-v1.jsonl contains 300 evaluation prompts selected from three 
   - IFEval (Zhou et al., 2023), Apache License 2.0.
 They are evaluation prompts. Do not train on them.
 
+kit/beds/finqa.py reads, and does not include, FinQA (Chen et al., 2021; github.com/czyssrs/FinQA), MIT License.
+
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.

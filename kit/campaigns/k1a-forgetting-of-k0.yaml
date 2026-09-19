@@ -1,0 +1,69 @@
+# Package K1a: did the K0 models forget? Scores the untrained model twice, then each K0 checkpoint,
+# on 300 fixed questions, all on ONE GPU of ONE machine (cross-machine scoring drifts by up to 3 points
+# a panel, the size of the floor being checked: receipt 204).
+#
+#   export KIT=/work/continual-learning-kit/kit WORK=/work/sdpo-work MODEL_DIR=/work/models/Qwen3-8B
+#   python $KIT/runner.py plan    $KIT/campaigns/k1a-forgetting-of-k0.yaml
+#   python $KIT/runner.py prepare $KIT/campaigns/k1a-forgetting-of-k0.yaml --all      # no GPU: checks every model is on disk
+#   python $KIT/runner.py run     $KIT/campaigns/k1a-forgetting-of-k0.yaml --all      # one GPU, about 25 minutes
+#
+# If your K0 run directories have other names, edit the five `requires` and `--model` paths below.
+schema: kit-campaign.v1
+name: k1a-forgetting-of-k0
+workdir_env: WORK
+rows:
+  - id: base-1
+    pilot: true
+    prepare:
+      - ["bash", "-c", "test -f \"$MODEL_DIR/config.json\" && ls \"$MODEL_DIR\"/*.safetensors > /dev/null"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/base-1-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$MODEL_DIR\" --out \"$OUT\""]
+    bars:
+      # ours is 251 of 300; two other machines gave 250 and 251. Far outside this band means the setup differs.
+      - {name: untrained-total, source: "{env.OUT}/forgetting.json", key: total_correct, min: 245, max: 257}
+  - id: base-2
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/base-2-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$MODEL_DIR\" --out \"$OUT\""]
+    bars:
+      - {name: scored, source: "{env.OUT}/forgetting.json", key: total_correct, min: 1}
+  - id: repeatable
+    pilot: true
+    needs: [base-1, base-2]
+    env: {OUT: "{work}/forgetting/repeatable-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" agree --a \"$(ls -d {work}/forgetting/base-1-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/forgetting/base-2-a* | sort -V | tail -1)\" --out \"$OUT\""]
+    bars:
+      # on one machine two scorings of one model must be (nearly) identical: ours were 297 of 300 with no changed verdict
+      - {name: identical-answers, source: "{env.OUT}/agreement.json", key: identical_answers, min: 295}
+      - {name: changed-verdicts, source: "{env.OUT}/agreement.json", key: changed_verdicts, max: 0}
+      - {name: same-machine, source: "{env.OUT}/agreement.json", key: same_machine_flag, min: 1}
+  - id: run3-seed43
+    requires: ["{work}/runs/run3-seed43/hf-step17/config.json"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/run3-seed43-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/run3-seed43/hf-step17", "--out", "{env.OUT}"]
+    bars: &scored
+      - {name: scored, source: "{env.OUT}/forgetting.json", key: total_correct, min: 1}
+  - id: run3-seed44
+    requires: ["{work}/runs/run3-seed44/hf-step17/config.json"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/run3-seed44-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/run3-seed44/hf-step17", "--out", "{env.OUT}"]
+    bars: *scored
+  - id: dose40-seed42
+    requires: ["{work}/runs/dose40-seed42/hf-step40/config.json"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed42-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed42/hf-step40", "--out", "{env.OUT}"]
+    bars: *scored
+  - id: dose40-seed43
+    requires: ["{work}/runs/dose40-seed43/hf-step40/config.json"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed43-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed43/hf-step40", "--out", "{env.OUT}"]
+    bars: *scored
+  - id: dose40-seed44
+    requires: ["{work}/runs/dose40-seed44/hf-step40/config.json"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed44-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed44/hf-step40", "--out", "{env.OUT}"]
+    bars: *scored
+  - id: report
+    env: {OUT: "{work}/forgetting/report-a{attempt}"}
+    command: ["python", "{kit}/score_forgetting.py", "summarize", "--root", "{work}/forgetting", "--base", "base-1", "--out", "{env.OUT}"]
+    bars:
+      - {name: written, source: "{env.OUT}/forgetting-report.json", key: floor_per_100, max: 0}
