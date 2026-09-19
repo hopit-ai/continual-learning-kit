@@ -1,0 +1,30 @@
+# The smallest campaign that exercises the gate: one pilot, one big row. Runs on a laptop in a second.
+#   WORK=/tmp/toy python kit/runner.py prepare kit/campaigns/toy.yaml --all   # IO, no GPU
+#   WORK=/tmp/toy python kit/runner.py run     kit/campaigns/toy.yaml --all
+schema: kit-campaign.v1
+name: toy
+workdir_env: WORK
+rows:
+  - id: pilot
+    pilot: true
+    command: ["python3", "{kit}/toy/fake_train.py"]
+    env:
+      OUT: "{work}/runs/pilot-{attempt}"
+      START_RECORD: "{work}/campaign/toy/pilot/attempt-{attempt}/start.json"
+      STEPS: "2"
+      BASE: "0.58"
+    bars:
+      - {name: calibration, source: "{env.OUT}/metrics.jsonl", key: "val/acc", where: {step: 0}, agg: first, min: 0.555, max: 0.600}
+      - {name: signal, source: "{env.OUT}/metrics.jsonl", key: "train/signal", agg: max, min: 0.000001}
+  - id: big
+    # IO first: `runner.py prepare` fetches this on a CPU machine; `run` refuses until it is there.
+    prepare:
+      - ["python3", "-c", "import pathlib; p = pathlib.Path('{work}/data/big-inputs.txt'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text('ready')"]
+    requires: ["{work}/data/big-inputs.txt"]
+    command: ["python3", "{kit}/toy/fake_train.py"]
+    env:
+      OUT: "{work}/runs/big-{attempt}"
+      START_RECORD: "{work}/campaign/toy/big/attempt-{attempt}/start.json"
+      STEPS: "17"
+    bars:
+      - {name: finished, source: "{env.OUT}/metrics.jsonl", key: "train/score", agg: last, min: 0.0}

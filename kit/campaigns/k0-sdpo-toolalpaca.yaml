@@ -1,0 +1,44 @@
+# Package K0 as a campaign: the same six runs as kit/README-partner.md, with the pilot gate in code.
+# SDPO_DIR, MODEL_DIR and (on 80 GB cards) NGPU=8 come from your shell, exactly as in the README.
+#   export KIT=/work/continual-learning-kit/kit WORK=/work/sdpo-work SDPO_DIR=/work/SDPO MODEL_DIR=/work/models/Qwen3-8B NGPU=8
+#   python $KIT/runner.py plan $KIT/campaigns/k0-sdpo-toolalpaca.yaml
+#   python $KIT/runner.py run  $KIT/campaigns/k0-sdpo-toolalpaca.yaml --all
+schema: kit-campaign.v1
+name: k0-sdpo-toolalpaca
+workdir_env: WORK
+rows:
+  - id: smoke
+    pilot: true
+    # IO before any GPU is held: the data conversion is CPU work, and the model must already be on disk.
+    prepare:
+      - ["bash", "-c", "cd \"$SDPO_DIR\" && test -f datasets/tooluse/train.parquet -a -f datasets/tooluse/test.parquet || PYTHONPATH=\"$SDPO_DIR\" python data/preprocess.py --data_source datasets/tooluse"]
+      - ["bash", "-c", "test -f \"$MODEL_DIR/config.json\" && ls \"$MODEL_DIR\"/*.safetensors > /dev/null"]
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "smoke-a{attempt}", STEPS: "2"}
+    bars:
+      - {name: calibration, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 0}, agg: first, min: 0.555, max: 0.600}
+      - {name: teacher-signal, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "self_distillation/success_group_fraction", agg: max, min: 0.000001}
+  - id: run3-seed43
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "run3-seed43-a{attempt}", SEED: "43", STEPS: "17"}
+    bars: &finished17
+      - {name: final-validation, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 17}, agg: last, min: 0.0}
+      - {name: no-length-collapse, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: min, min: 16}
+  - id: run3-seed44
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "run3-seed44-a{attempt}", SEED: "44", STEPS: "17"}
+    bars: *finished17
+  - id: dose40-seed42
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "dose40-seed42-a{attempt}", SEED: "42", STEPS: "40", TEST_FREQ: "5"}
+    bars: &finished40
+      - {name: final-validation, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 40}, agg: last, min: 0.0}
+      - {name: no-length-collapse, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: min, min: 16}
+  - id: dose40-seed43
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "dose40-seed43-a{attempt}", SEED: "43", STEPS: "40", TEST_FREQ: "5"}
+    bars: *finished40
+  - id: dose40-seed44
+    command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
+    env: {NAME: "dose40-seed44-a{attempt}", SEED: "44", STEPS: "40", TEST_FREQ: "5"}
+    bars: *finished40

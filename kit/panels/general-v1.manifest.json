@@ -1,0 +1,36 @@
+{
+ "base_model": "Qwen/Qwen3-8B@b968826d9c46dd6066d109eabc6255188de91218",
+ "decoding": {
+  "answers_per_member": 1,
+  "dtype": "bfloat16",
+  "enable_thinking": false,
+  "gpu_memory_utilization": 0.85,
+  "max_model_len": 4096,
+  "max_tokens": 2048,
+  "repetition_penalty": 1.0,
+  "temperature": 0.0,
+  "tensor_parallel_size": 1,
+  "top_k": -1,
+  "top_p": 1.0
+ },
+ "members": {
+  "ifeval": 100,
+  "knowledge": 100,
+  "math": 100
+ },
+ "name": "general-v1",
+ "our_base_correct": {
+  "ifeval": 88,
+  "knowledge": 72,
+  "math": 91
+ },
+ "schema": "kit-forgetting-panel.v1",
+ "sha256": "ce5743ef03f59f57b18231ccd88aee66f0350c8fe3fce8a4abaeb816dd00a1e6",
+ "source_bundle": "outputs/r100-frozen-panels/astra-native-attempt1/bundle",
+ "source_manifest_sha256": "c016fcfc36541a68de971ba8347292314f8189792ea038deddd60620be165a4c",
+ "sources": {
+  "ifeval": "IFEval (Apache-2.0)",
+  "knowledge": "MMLU (MIT licence)",
+  "math": "GSM8K (MIT licence)"
+ }
+}
