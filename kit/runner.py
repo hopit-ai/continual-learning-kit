@@ -9,8 +9,8 @@
 
 The rule this file enforces: **no row runs big unless the same experiment ran small first and
 passed a bar written in advance.** A row marked `pilot: true` is judged against its `bars` when it
-finishes. Every later row needs every earlier pilot's latest verdict to be PASS (or names its own
-`needs`), and is REFUSED otherwise: nothing is launched, exit code 2.
+finishes. Every later row needs every earlier pilot's latest verdict to be PASS, plus any rows it names
+in `needs`, and is REFUSED otherwise: nothing is launched, exit code 2.
 
 **All IO happens before a GPU is held.** A row may list `prepare` commands (downloads, format
 conversions, tokenising, anything that needs no GPU) and `requires` paths (the model directory, the
@@ -79,8 +79,8 @@ def load_campaign(path: Path) -> dict:
         for command in row.get("prepare") or []:
             if not isinstance(command, list) or not command:
                 raise CampaignError("row %s: each prepare entry must be a non-empty command list" % row["id"])
-        needs = row.get("needs")
-        row["needs"] = list(seen_pilots) if needs is None else list(needs)
+        # every earlier pilot is ALWAYS required; a row's own `needs` adds to that, it never replaces it
+        row["needs"] = list(dict.fromkeys(list(seen_pilots) + list(row.get("needs") or [])))
         unknown = [n for n in row["needs"] if n not in ids[:ids.index(row["id"])]]
         if unknown:
             raise CampaignError("row %s needs rows that do not come before it: %s" % (row["id"], unknown))
