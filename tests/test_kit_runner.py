@@ -158,3 +158,25 @@ def test_k0_campaign_matches_the_partner_instructions(work, monkeypatch):
     band = rows["smoke"]["bars"][0]
     assert (band["min"], band["max"], band["where"]) == (0.555, 0.600, {"step": 0})
     assert band["source"] == str(work / "runs" / "smoke-a1" / "metrics.jsonl")
+
+
+def test_no_kit_tool_reads_json_lines_with_splitlines():
+    """str.splitlines() also breaks on the Unicode line separators (code points 0x2028, 0x2029, 0x85), which a model can
+    write INSIDE an answer; the kit writes answers with ensure_ascii=False. One such character would split a record in two
+    and crash the reader on the partner's machine. Found 20 September while reviewing the K3 beds."""
+    import re as _re
+    record = json.dumps({"response": "one" + chr(0x2028) + "two" + chr(0x85) + "three"}, ensure_ascii=False) + "\n"
+    assert len(record.splitlines()) > 1 and len([x for x in record.split("\n") if x]) == 1      # the hazard, and the fix
+    offenders = []
+    for path in sorted((ROOT / "kit").rglob("*.py")):
+        for number, line in enumerate(path.read_text().split("\n"), 1):
+            if ".splitlines()" in line and _re.search(r"json\.loads|responses|\.jsonl", line):
+                offenders.append("%s:%d" % (path.relative_to(ROOT), number))
+    assert offenders == [], offenders
+
+
+def test_the_runner_reads_a_metrics_line_that_contains_a_unicode_line_separator(work, tmp_path):
+    source = tmp_path / "metrics.jsonl"
+    source.write_text(json.dumps({"step": 1, "note": "a" + chr(0x2028) + "b", "data": {"x": 3.0}}, ensure_ascii=False) + "\n")
+    judged = runner.judge_bar({"name": "x", "source": str(source), "key": "x", "min": 1})
+    assert judged["ok"] and judged["value"] == 3.0

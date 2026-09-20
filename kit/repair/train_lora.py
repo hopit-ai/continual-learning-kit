@@ -54,7 +54,7 @@ def main(argv=None) -> int:
     random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tokenizer = AutoTokenizer.from_pretrained(args.model)
-    rows = [json.loads(line) for line in Path(args.data).read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in Path(args.data).read_text().split("\n") if line.strip()]
     rows = [r for r in rows if str(r.get("target", "")).strip()]
     if len(rows) < 2:
         raise SystemExit("need at least two examples with a non-empty target")

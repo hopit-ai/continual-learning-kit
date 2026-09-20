@@ -1,0 +1,3912 @@
+{
+ "counts": {
+  "databases": 44,
+  "heldout": 100,
+  "train": 640
+ },
+ "databases": {
+  "academic": {
+   "bytes": 122880,
+   "sha256": "9ca59ebaa830731011a222885480e4b9f9d49c3e36849dee25b769fb74f296c2"
+  },
+  "aircraft": {
+   "bytes": 45056,
+   "sha256": "2b92973e99d8348a324e318fd4d62645ebe428e7346b51277e78385d1ad3b1ef"
+  },
+  "bike_1": {
+   "bytes": 1785856,
+   "sha256": "f5ae0e24e3a9d860a38ec6256828e3b9e37691c80931ef554adc202f8eb2950c"
+  },
+  "candidate_poll": {
+   "bytes": 20480,
+   "sha256": "7df58984f9d9796538716294ba0dda9f48a4a54907f03a3859285aa4b5cf8dc5"
+  },
+  "city_record": {
+   "bytes": 36864,
+   "sha256": "112ff582c4552d8b35a0a70205fb7d8562f18c6a231b86fe8ac19beebebc4d4b"
+  },
+  "climbing": {
+   "bytes": 20480,
+   "sha256": "f2d3893fc5e79943ffad120b59522358b90ef077a989fb40c7c5fbbe16bfccd9"
+  },
+  "company_office": {
+   "bytes": 28672,
+   "sha256": "4514dd10d9257ccaa08acff4d272595b6d92819575c736393f89e72f956c9915"
+  },
+  "csu_1": {
+   "bytes": 102400,
+   "sha256": "c66e85b742a4941118aab88183c4be7f3e238f9d2558a5e68f8818c504e2710d"
+  },
+  "culture_company": {
+   "bytes": 28672,
+   "sha256": "d73d31db2c91dadeb67b8ed0c9366fbbe7658774dfa110161c168ee13e781820"
+  },
+  "customer_deliveries": {
+   "bytes": 61440,
+   "sha256": "e4d269a357190432d3f0b154070dccf1cc5f7f7715571c1597e2fdd9ee47d485"
+  },
+  "customers_campaigns_ecommerce": {
+   "bytes": 36864,
+   "sha256": "7f7ae5bbe53359854f5c18656d5878713e88b1a364dfba05670149bcc00f3544"
+  },
+  "decoration_competition": {
+   "bytes": 28672,
+   "sha256": "31cd2ac964594fd188e91bc9fe4d9b3bed3d05983d45d58c9c4c7ad911733ed2"
+  },
+  "device": {
+   "bytes": 28672,
+   "sha256": "870dbe835b44d96a5b961fb81885a1660088410c8fe712008f8a40691ce81d00"
+  },
+  "e_learning": {
+   "bytes": 28672,
+   "sha256": "dc06b485f9e041c8af060593fb31746ad1f97b07543ca69a94560dd6c89f3d1b"
+  },
+  "election": {
+   "bytes": 28672,
+   "sha256": "9446dd051f33eb9e009c287564f900d61e18893f4307623326edd5170dd2034b"
+  },
+  "flight_1": {
+   "bytes": 36864,
+   "sha256": "1b2414f44c04f84bbe30b4dee2eac4c0f24eb39829d694a40e779e8eb069cd01"
+  },
+  "formula_1": {
+   "bytes": 2940928,
+   "sha256": "fb6dad97c0a4da22f01bdf817a77fe8f6b6559554661ff0120b40cb81b8c3b68"
+  },
+  "game_1": {
+   "bytes": 20480,
+   "sha256": "b988661bebc7b34de11e3c1a5cd70b8f9d431bbc5c6ee191e688a7889944be0b"
+  },
+  "game_injury": {
+   "bytes": 28672,
+   "sha256": "5c4ab959ae9249dbdd075b639b740e5fa3397f25645904d80479b886d34238be"
+  },
+  "geo": {
+   "bytes": 57344,
+   "sha256": "becb9fc6faf0d87b2b396100d962ed6d9de0fd4e5e03ad102bacec73529ffbc8"
+  },
+  "hr_1": {
+   "bytes": 69632,
+   "sha256": "5e3358561f210b2f75d9ced5eafc13744c773f3f27eb8e0967afddd21fb25350"
+  },
+  "icfp_1": {
+   "bytes": 12288,
+   "sha256": "e616296ac28a94dc686047a34ee57b8e058c959a8fb0170a8d8e59db3853368a"
+  },
+  "insurance_and_eClaims": {
+   "bytes": 36864,
+   "sha256": "62d20c5b8e7c6af8ba844ae523cefe91779d3a1f0a096a784524390d96863595"
+  },
+  "insurance_fnol": {
+   "bytes": 53248,
+   "sha256": "e52f4ba1301a45ea367ac56138ada91c5cabecf7b18454bfea80c59743547f6f"
+  },
+  "local_govt_and_lot": {
+   "bytes": 65536,
+   "sha256": "6b3f0b4d537e6a784df4c0b17445ae891075a099fcdc172024524ed6e4dc8005"
+  },
+  "mountain_photos": {
+   "bytes": 28672,
+   "sha256": "3f61a547dcc356913fb34095f9533d20c3710ad4eb3740f507115c4fd44ce32f"
+  },
+  "movie_1": {
+   "bytes": 24576,
+   "sha256": "71b33287968e5238593ea7154e4e38a03be3680ff84bf338d9cbb3206cf6ea3e"
+  },
+  "music_2": {
+   "bytes": 49152,
+   "sha256": "1d2ab9310c84c5acb0c2b30f0ba52898d73a86a89c721131032260c827bdf8b9"
+  },
+  "perpetrator": {
+   "bytes": 20480,
+   "sha256": "752ddb2c9d1024d92caa25afe441afa337028f8dd947373aec15b82ed53a35b6"
+  },
+  "pilot_record": {
+   "bytes": 28672,
+   "sha256": "dd48d8266693a1ea33b2af4fba49787a0d36bb35686d8497da5ea72bc82edd4e"
+  },
+  "riding_club": {
+   "bytes": 45056,
+   "sha256": "7c7870709414fdfc72a2e8725da16d293555267f87e1a006c9e83b375ec892bd"
+  },
+  "school_bus": {
+   "bytes": 28672,
+   "sha256": "90c6e1580bb10f8daf10f88240265eca20589d7c863112ab0b4dfa2ac3def875"
+  },
+  "scientist_1": {
+   "bytes": 28672,
+   "sha256": "073d55c8f3c44afde950e389860e7a64c81ade0ff407ee44e092f9658eb8d461"
+  },
+  "ship_1": {
+   "bytes": 20480,
+   "sha256": "41d181f77e213f55a8ad8d17ab904870b24706dd6f145ce3972cda5601ef4afe"
+  },
+  "shop_membership": {
+   "bytes": 36864,
+   "sha256": "50b9361db2f9bedff4bc0546fe00b3d68d36afb94d8e7fbe0f974e4b7170b27f"
+  },
+  "station_weather": {
+   "bytes": 36864,
+   "sha256": "2cf7d26e0036e3059a3a03e347e3aa0d63b38952e899d08fd92c5a90a6e69bb7"
+  },
+  "store_product": {
+   "bytes": 45056,
+   "sha256": "f36004a47e0a221b56b5eab99198f0f234161399f745545b9a39338ca77a64ba"
+  },
+  "storm_record": {
+   "bytes": 28672,
+   "sha256": "049c32b9dbe9973e4a054e53359ef3b3ff48d28c846ca9a59b9fa1a79f1d3c17"
+  },
+  "swimming": {
+   "bytes": 36864,
+   "sha256": "1670e8ffa96ee64266eba1b012dd3d24d4a81edbac1b11ea51e1898293a82c1a"
+  },
+  "theme_gallery": {
+   "bytes": 28672,
+   "sha256": "0acbd0525f6ccfae9eba0bcd03e64c9ab50921cfe8ea3ad5509ad1b287f5f785"
+  },
+  "tracking_share_transactions": {
+   "bytes": 36864,
+   "sha256": "cce24123ba7cdb3b4c440370a1c31568f924a229c116dd54c5d202d320a6337e"
+  },
+  "wine_1": {
+   "bytes": 69632,
+   "sha256": "1d43afbeb3001d09dc86aeff6baa44bc5cd88df0509377a5b93c0af5b436e967"
+  },
+  "workshop_paper": {
+   "bytes": 28672,
+   "sha256": "e7f99a71637ace76f3e61a636bccd9fabe268ad3139c0f4bbad1946ac5054412"
+  },
+  "yelp": {
+   "bytes": 61440,
+   "sha256": "7627aa28b6e564f3a7599ae76babce8f174954aaa691f0814917506a42742908"
+  }
+ },
+ "heldout": [
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4903",
+   "prompt_sha256": "f2dd3267b26eca14a0bd29fb63659e5e8619793860812365c67e90e96caaa630"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-26",
+   "prompt_sha256": "744ef6c5bb9a0bb7403a12e77452cba9e87cfd51899e16aa40ffdf476c4c7f36"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5079",
+   "prompt_sha256": "b7e2c6090b08acb73558f87ca4b4f3ab79f7a329cad62dbe09b467f52a412c90"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5195",
+   "prompt_sha256": "95a73763ad76cce65a5879b2541dd66e18a553e55952e4ddc87301611dff02bc"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-895",
+   "prompt_sha256": "800467edf53dccf8e10b0e94e0a920e3a1df8d6a1851f6c51498d37d2e8ed824"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1304",
+   "prompt_sha256": "e6a595e87995f25e308735c61a05639ecbbb655afd8289f7b1251564336ac410"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-480",
+   "prompt_sha256": "335902be9d6c9cf5c04b13358fe02ba01b82bfa3964395a8b2e3e7bc67d557d4"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3780",
+   "prompt_sha256": "a5d5c7850b43f1d26a3a30a9b1bb4163037cb5b79a10ea9fe6adcbdda8c1b0ef"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-930",
+   "prompt_sha256": "e6e9dd66948c6204cfce8970d46a5a73c21e1edb1e80a116f210258294151646"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6997",
+   "prompt_sha256": "fa6abcb38026de77fca715631a3dd4711063889a1c682eb5606e216856a2cf35"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-250",
+   "prompt_sha256": "00a082bf9c26ef9f1e6792c3bc88a2d9269960ea0986112076e076496da3a2fa"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-376",
+   "prompt_sha256": "a7e0a4229708f4fbaed167e33b6262b8956f1696abac2afd7482179362cc1164"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-435",
+   "prompt_sha256": "aded56fa63bfdaf0c71e4cb6ecf51829fa3a62817f13afc658016a1993499e1f"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6048",
+   "prompt_sha256": "4ddfc45feda98a833dbc9c5028676c54db3d11ed3c62c17fa7571e2f42524931"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1175",
+   "prompt_sha256": "02ba039443ce453ec4f9e822f51f72d4aaa0a929cb326f74fc5d361eef1a6b26"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-444",
+   "prompt_sha256": "b9ab787d95281d462b5979ccd87b1afb879ac385d0dc551e3e6e55ab2ce54735"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6362",
+   "prompt_sha256": "35ce33d7f423e4584174b75f92e2c9f2f57911e6db1c76b97a46434d60a10a89"
+  },
+  {
+   "db": "customers_campaigns_ecommerce",
+   "id": "spider-train_spider-customers_campaigns_ecommerce-4625",
+   "prompt_sha256": "400a7695fe8aca04870111a4918357ff8611702d1b2f5eba80318b7a7bd9fd50"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3494",
+   "prompt_sha256": "3671664d648e12ba342fdcba192cb8d9b011ea3fdc7d443a194bda6b7e772fdd"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-131",
+   "prompt_sha256": "ea2be2fcf034b5759e253669af15575c3ec5c5d95eba294db54d8cbd2f78587c"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4900",
+   "prompt_sha256": "db8f290f2843f66e02e9a7fcda49d01fbaf77cbd57a87d65aa43e75e63bb5b99"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6505",
+   "prompt_sha256": "b1f2d7c77d8d00b64e77ac62d23cbb1f781716f6a327a4f049a86a96ff2627ce"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1670",
+   "prompt_sha256": "8973757b1f3346bd518ed08c1f878920e6f4786201cb3f0f3f8a6763eec1a1a4"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3435",
+   "prompt_sha256": "8b5b8ff63d8f3248613c82bd20caf60ea774bedbe8ca6e3c2edb470fb0f7cea0"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-506",
+   "prompt_sha256": "a9692a92d48e873959be91dcca84da3cfef2b25df219ae97d6ebec020e6b0e36"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6269",
+   "prompt_sha256": "32ff7e8deccec12a8ade3ad3bf64d3b76d1fe6c66ced90e8738d6b50c06a8a82"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5076",
+   "prompt_sha256": "455c195454a074ae7ce27c5dae1017ef29a952c297d61eb51b25a56523111fe4"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6039",
+   "prompt_sha256": "17e5851b66f198837474b84c5e6a47fd25894bc198f14ed1e172871393895d6a"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2377",
+   "prompt_sha256": "dcccf5f3caa6cdeab90b7804be3c70469846ef335b716853860ec8adcb601da4"
+  },
+  {
+   "db": "station_weather",
+   "id": "spider-train_spider-station_weather-3160",
+   "prompt_sha256": "f1e372cd047b5f61ad27ea4efc606a35b845eea10770a0c14a1c13b34b33534d"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-138",
+   "prompt_sha256": "f5195b65ca4945d4308cb52b5ff11f0e52c236791648c0ab2e24e913875c8a7f"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1188",
+   "prompt_sha256": "459ffd7ad382095a6df5077e16d9228d88adec9b866510c78d80b4892f88283b"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-905",
+   "prompt_sha256": "0e8af3b2c88773b96fbe00d64cca2986a6f5dc91895f8ba158919cf99aef1f80"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5074",
+   "prompt_sha256": "75ece8b53e95014e53b698968464970dc72571652273f8a26779480385673edf"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3452",
+   "prompt_sha256": "5780182702e244aca55cadcc82d15f796e7bd3d6ac82511812034b994cfe59bf"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1184",
+   "prompt_sha256": "bf784588f54f19c9869a836e11140b1bcd32daeb53bcc51419cf0c4069200582"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-927",
+   "prompt_sha256": "18c339dcc45ff07853a60047137b2981bf65597c8d7aea257c9255d735e865ba"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2782",
+   "prompt_sha256": "9bc78453c0ca019ec9308e5440f763a965577056daf013e42df14852818be4c9"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-529",
+   "prompt_sha256": "47421f87f1d0df5a987579fac5b9d417e95c4b982cc5a4385b551c0ca7218982"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-541",
+   "prompt_sha256": "3eff006311619ebb73b3083dacd5f99b6e9f06250c62e03527d29715a3022dc8"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-357",
+   "prompt_sha256": "12261b284d4fcdaea2250c675a8360f685674c09276145a0de8501136a65ca7c"
+  },
+  {
+   "db": "customers_campaigns_ecommerce",
+   "id": "spider-train_spider-customers_campaigns_ecommerce-4630",
+   "prompt_sha256": "cbf463a9363f9892aeb91836e83377978e6e71d186bce38c6f3d45b364a631c8"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6527",
+   "prompt_sha256": "4c6de9787fa8dff8a368c246fd8b2b6d55e569ad020fecf641d13fdc65620fba"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2742",
+   "prompt_sha256": "3a86def6683927fc33d7eb1b82d20da135d8800330709083740199218012f859"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-419",
+   "prompt_sha256": "24dd6aff4d506eb8a81322da22d7cd138741dcc7ba2c58e7ac262ec6c756fbbb"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2517",
+   "prompt_sha256": "95a1c822cfa3792add2548cbea08469443597f7f9ef10ac56f4eae1ee039af52"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3415",
+   "prompt_sha256": "b209bdc09a2e8768d0e7a2d3fbea99b29ee8945c45587e394c238c1aee9a6a32"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6032",
+   "prompt_sha256": "8abee6f38940a88b4696e25e476eb946fb64d358dc211462bc749fd1a005c3b1"
+  },
+  {
+   "db": "mountain_photos",
+   "id": "spider-train_spider-mountain_photos-3724",
+   "prompt_sha256": "c907a507acce0b5a3a53f3783e48ace1176faede220d877079968ae2d1657cdf"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5436",
+   "prompt_sha256": "137a50a6e04bec94ca01b79e701f1627eff4b27d329f6657d1fa6890adf954a2"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1259",
+   "prompt_sha256": "322011840a8241e6aed960e6b99d2bf77e9bdb3fec42c537eb27b0c07a6ef5f4"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6969",
+   "prompt_sha256": "1315c3ea5cd1d22b27d7a4f72a30723399e4cfc015a7978baa47c4a42d17277f"
+  },
+  {
+   "db": "riding_club",
+   "id": "spider-train_spider-riding_club-1735",
+   "prompt_sha256": "8174a5df0676a8db69fbb8da482cd952ebaf6dfad3d1984f62aa11c37de0036b"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5846",
+   "prompt_sha256": "8ac2cffb6084998d24e872d3fd99aa7f82d6e2a84ae7aa3ff73f479f53c8f513"
+  },
+  {
+   "db": "climbing",
+   "id": "spider-train_spider-climbing-1143",
+   "prompt_sha256": "866d14b4f0384f3bb7142a8b7c71004496368ae94101fa419d8ae579f1b0c0b5"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5220",
+   "prompt_sha256": "34103e6beb45bbcfc2831a6d0ebe71587cad3b2ec94db32354f43b2d4c6d0594"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4553",
+   "prompt_sha256": "b0d4195ce77822a7e8240b4a6663cf0b89ee104f838867c59ad9fbbf37ef7d6b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-265",
+   "prompt_sha256": "ca90b311177774c600e1ca9f13666365a3bc41aeae6e662a9d0174827f728569"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5230",
+   "prompt_sha256": "6beef8a13976495236c167b99b92506ca6aa8ddcd42670c02af941d6baa6571a"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-387",
+   "prompt_sha256": "1a7bdf77cf79b489e24c79d09e3e5b1b461730ab8795f91a44a5632054a0a674"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-550",
+   "prompt_sha256": "814eac1a0add1485e369c28f8635592aeff95fbd82038fe028c247ddd164ac4b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-247",
+   "prompt_sha256": "e3b0b6d217c98e442067bf1fb82b50c2de63bc1ee31d393a21f93c3a32450931"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-170",
+   "prompt_sha256": "3dd9f00e559287f8a4102c5142d3350d8f023c06ea1a0fa5a5bb587f06c7a458"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3827",
+   "prompt_sha256": "a6f5b33d75df846fc9f36458054797bfabc651667a0e32a611a7683f0a1baf4c"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2713",
+   "prompt_sha256": "808fdc6d4124e5886f7a36890a39d403ed0b7824d43f2d69fa10e9970c9db4be"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5817",
+   "prompt_sha256": "f9c1d73e2c74636c3624283b68c9338cf54b433969705fb1759ba8809c11c900"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-421",
+   "prompt_sha256": "b56ff187cbde4d5eb37d36c9b44eb43d3e1021b81a2c125cee990cfc1e4d7e5b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-212",
+   "prompt_sha256": "d5602f734b4fc00ad4896c7573d931eb9298fce96a1cc1bff6d342bf9dd0c073"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2756",
+   "prompt_sha256": "c2e6736f0a2f87ba2f1514652f64875a7edeac78e3d910fc104d0709bc35cc7b"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2410",
+   "prompt_sha256": "e3080307923d5fb65b363b8cb88ae339568a413e3829f55ea0aeb92d267df362"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-165",
+   "prompt_sha256": "47f99ac3d169e05da81df7c69bcd1a03565ef278b0f2007e4057967dc35bf560"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-499",
+   "prompt_sha256": "658e52fd0147ffe4da97cfd29bc95f9ff62daa6bd501cf832d0d3f7a62459bbf"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1344",
+   "prompt_sha256": "156503a501b24fca0e55e0ef372c47043e8cbe27446e8dc711fc8525f50cb705"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-456",
+   "prompt_sha256": "9a939f4681e832bbd2a9d8998eb995002d6069b97b7c5a1ffbfe906921c21afc"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1278",
+   "prompt_sha256": "2cf7d9fbb47198496d462f8566115e4a7c86836cb2144609efc7fee882ff4e1f"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5847",
+   "prompt_sha256": "9ebf80e0071a72a86ff3a66a50bed9e0dcd2f7c6100e6bbb8de97ad5cf8ed4e4"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1391",
+   "prompt_sha256": "60fd1c4bb7a8b3ce42d5aa1a71d403cfcd0385fda389f8527881643da1c025ec"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2883",
+   "prompt_sha256": "73a7d64bd633a39e19f18181bb8dec51b669e7a2afe98cf4c7b4427783c30c5b"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2904",
+   "prompt_sha256": "8a743c70bf22ca9aa5929b2b3cf51f20261b5a13d9fffebbe93b54bc0c988bee"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-3",
+   "prompt_sha256": "6141b36a36844c715b8740f8676c70443bc06bb649ec27e40ab27abd5456f164"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1668",
+   "prompt_sha256": "f5c22edfbd7c0371cf91077066cfe33e4730bbdb5e25b9b7caf170b10f67fe18"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2167",
+   "prompt_sha256": "33ea48484e691e0175d2f568559e40ec47170d6e00ba65ff7ab8dd8f7a2b4fdc"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4924",
+   "prompt_sha256": "4f3fd47f5f7feda7327f9ad7aaf44fc6fa02b33ce81745a1758494796394b224"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6049",
+   "prompt_sha256": "49dbb740b2a902df50608c8f0dbfbf3bd4b764bc50f9fa02396db63bf8730678"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-167",
+   "prompt_sha256": "e4c972aed038f770eb7c271b78a32139422b022a554da3110ac86ceac0c099af"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-514",
+   "prompt_sha256": "6a2b161777853df5327e1adfd6877d1ab51f73adbb68d003a897d09b0785d06d"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1380",
+   "prompt_sha256": "c1b05b498814ad995ed5b6e3774c8ed70ca1ee9fef6abe142035e3ea3bd71bb3"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1280",
+   "prompt_sha256": "9fdca8624bd0c4317d2bac9791197986d58e23056df03c485f4b1339e6f200e8"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-240",
+   "prompt_sha256": "30584e2a40ac4619bcc9d9882e62cbe545cebaa357c893a4c80dea5758a43403"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3425",
+   "prompt_sha256": "86d830b8167ad06dc4132f78af57a7c392f5d1bd600bfeb0ca5ee147adcf1769"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2865",
+   "prompt_sha256": "4444a79751435fa3dbea15ef89a422410a67c0167796cce42b58847b6e47b5c4"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5086",
+   "prompt_sha256": "8000ade071a90f030bccc32f2aa690d9680fa6de5f8ec6dfaf1d3260ac718948"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-347",
+   "prompt_sha256": "ccd283acdaa9bd4bef02381dd78ead61841eb984b577558ad9e40dee5693a0b4"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1394",
+   "prompt_sha256": "615c89bcb307fd27f9f1ddcac2caa7457f38626ebd2a40d0706f976efe0ebb60"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-78",
+   "prompt_sha256": "42b3daac54aa8024674356a763b915414a22163b5b8c3ac75d63611c31ee0ef7"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1382",
+   "prompt_sha256": "a8e7d058d06c05905450b54b9457d5104e575a13b8926eab5e1e419e05dfd6a6"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5077",
+   "prompt_sha256": "487669e226cb83183abe9cd4765621792c91893a7e470b4ff253c6ae990338b7"
+  },
+  {
+   "db": "local_govt_and_lot",
+   "id": "spider-train_spider-local_govt_and_lot-4848",
+   "prompt_sha256": "ee18daf46609c4ec666a01018c9047b381f43e335849b0de655e7162ac5375cf"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-206",
+   "prompt_sha256": "bc32964f94bf0e89ebf45a4beb64b42d67f9239f68915d744d7e573320ea599d"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-374",
+   "prompt_sha256": "0d888a97e93f273376af9c1604c4fef29a5b3e66c2e95778ef77ff460b40bf3e"
+  }
+ ],
+ "instruction_sha256": "13aea9cfec8b50b49a6d4528ea60f7d2e86cd2d0c80e315f95af4016c909f684",
+ "schema": "kit-bed-spider-split.v1",
+ "source": {
+  "bundle": "outputs/r100-frozen-panels/astra-native-attempt1/bundle",
+  "files": {
+   "manifest.json": "c016fcfc36541a68de971ba8347292314f8189792ea038deddd60620be165a4c",
+   "model_inputs/h1.jsonl": "e0cd924f6b8bd7a9a74c300032f4561ec87072152ec1ae4b4cf4895e9d165f80",
+   "model_inputs/sql_schedule.jsonl": "921be9fc43e987a096b456a14b598bdc324837e3fb5140de7f02c72cc5e52fca",
+   "prompt_records.jsonl": "8dfc630c0287eb3b31c6d99587b969235ab403ffdbd3a3ee5e9cb656178aea69",
+   "scorer_inputs/h1.jsonl": "7e21751cd0993965dc3c151b3c21821df612c809c29a0c40426a732c12d09382",
+   "scorer_inputs/sql_train_items.jsonl": "c4c5cff8ff6523bb14f8d0bbe7f9db745187dec1f5b725c302fcde44e1891f4c"
+  },
+  "group": "group1",
+  "manifest_sha256": "9b16dd66fce20eeda61444c75c43966cc10c3fa3ee6fa838174e6d6fbd0c7c9b",
+  "panel": "h1"
+ },
+ "spider": {
+  "archive_sha256": "00636695dabed6b5f4b8328a16b13e069a2f16591d5efcce57660669c85b121b",
+  "license": "CC BY-SA 4.0",
+  "official_page": "https://yale-lily.github.io/spider",
+  "repository": "https://github.com/taoyds/spider",
+  "repository_commit": "b7b5b8c890cd30e35427348bb9eb8c6d1350ca7c"
+ },
+ "train": [
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3490",
+   "prompt_sha256": "bcedb74f05e4c29ad0c073901340463019b3d6b6d5e27e2553efdde939a08fbf"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1651",
+   "prompt_sha256": "e3aaf281e6fc86a4a8c4bb13d51b21afa58860deac162ba9398d10d36baffac3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-384",
+   "prompt_sha256": "e000d2db9843a87f01af3161c72b2c3c9757ff5ea75a560e94a88043c8d8ed1d"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5986",
+   "prompt_sha256": "70e3485829bf9c583a0d815d8533921227152f2909a7888a8597716c725d7b2a"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-120",
+   "prompt_sha256": "4f188b70a62253fd49a0c48bc682976377e7c9ce93f3e16f2ee45bd439780eaa"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-403",
+   "prompt_sha256": "86d182d2fd8a238c4f03ef5ab406ebffe8614dcb9acd9e2998b2e9d720a614ea"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2213",
+   "prompt_sha256": "32d74a846ba5ef9f4fd26cadfa48cd88d1de58aaa855d42a1c77919e7b9ec80c"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1422",
+   "prompt_sha256": "3e12515181998d0bde4b775ea0003e12299db7374ef26f9b1275d063b3ab3ba1"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-183",
+   "prompt_sha256": "eca06ff8a36b2e6967b57921f087b59f337382b46c4acf9294304f6f2e51dd8b"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4831",
+   "prompt_sha256": "bf5bb75a5faffd0ecf46ee6985390f5794b0998ed9c60325bed86b4da33e091c"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6487",
+   "prompt_sha256": "7a8f9595d9b056e6e2a0ec8135041e31e5a04eb4d3f013026a67006feb8a0dae"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3527",
+   "prompt_sha256": "be7a2083442862e3ae1c7aeabed1bcca84be3014c80319d60629ed7568593527"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3492",
+   "prompt_sha256": "3fcee66d89f4b14df34cb33ed684dd1f01323366f0daf8f685827af0c655f7ac"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3795",
+   "prompt_sha256": "4ec4a58c6cffd1606048a503fcde1e024c6e0e19699e90d5b7c20ece595d7172"
+  },
+  {
+   "db": "pilot_record",
+   "id": "spider-train_spider-pilot_record-2097",
+   "prompt_sha256": "66f0c8cdc7044a05736ac6d1dc1c39472d97902c9609d26f60965d8864226b04"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5196",
+   "prompt_sha256": "0f4110123ddca3de7c8636ac569941fdb60237338045d215ab60ccf8f74395ac"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-28",
+   "prompt_sha256": "780a3460003692dec20d06af191929cef7ecd6afcd14dc398f41b650dbb4b3e5"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2901",
+   "prompt_sha256": "13fd5132a2b20b6f0d61426241a41f27e707a62c0ca2645db99656cba0d25f1a"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5243",
+   "prompt_sha256": "9c560d716cfa4eabdf2b3ad898ed318c8d0c707e39f24050ba53e190d1984da1"
+  },
+  {
+   "db": "customer_deliveries",
+   "id": "spider-train_spider-customer_deliveries-2855",
+   "prompt_sha256": "e73ca6349b3fcd709806f7d6b4b5353cb59ff2ff9210c360e5cb316a8d4339e0"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4570",
+   "prompt_sha256": "4bb1c29fb27d8fc2f667829e30f315cf42223ff65e9640c4878ccb6a01c1e789"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6306",
+   "prompt_sha256": "b901195ebb95957d089b4b65a20733d7d69b6a8e0d068efab244595c54664021"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2435",
+   "prompt_sha256": "96db618af9a3cd0296c63bdd3319f0fa02a57df2f51e7d9fe1c3aaa8a3488884"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3477",
+   "prompt_sha256": "8976bde8d17794e42795fd597f0b29638bc9dcd2df01ef50645325f786885eea"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1177",
+   "prompt_sha256": "76cc2a4d00711003e084b0d2d76c6128c8d88637086b0787bebec1f43b83cf30"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-41",
+   "prompt_sha256": "dda7cbaeb66e2afecb9f25a8da3c5f4564dd74e76dc27bdd6d46b3920d5b3f71"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5212",
+   "prompt_sha256": "1f3d97c1b7dae9f3632d0dd33a3e8ecd888fc6939e40451a9ba5f6d2d0bc7373"
+  },
+  {
+   "db": "mountain_photos",
+   "id": "spider-train_spider-mountain_photos-3714",
+   "prompt_sha256": "e39cbacf1c05a5cf5848e46a2ada976c189d41292b55f2ec67e6777e4c3ca9d9"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1295",
+   "prompt_sha256": "99e0efd658e700c8b5bf1a730c1f9b4ad35ed9a39c13121df57fbe4f4bbad86e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-56",
+   "prompt_sha256": "04f40b0c266de183ff173b3b130801560a019b901840ccacfa97411499281453"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-46",
+   "prompt_sha256": "ab7ea78c59385dc5caea2fe56b28edadb3ecfee684efabc5f410cf0e3cd2c7c1"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1218",
+   "prompt_sha256": "701a4ffde4c9f270464fbf64476fc28417932749c671068df9ce473e4a123c5b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-113",
+   "prompt_sha256": "f228905b201e9bc34e99f7d0aa2370a6d1e08a8e68cd10485428ab026d43e2bc"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1328",
+   "prompt_sha256": "8ff27c6eaac4a614c20bdf2d4f5970e24dc264c8a38058a242434b1918698ea7"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1189",
+   "prompt_sha256": "3639accc6f6a0120f1659e9d9f1559b5ddc7d01af67215e76f7f99037dab85ef"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5819",
+   "prompt_sha256": "812a1e20d1ab3950beb3b3c0ebfb6b593dfeff5ca6db135566d85512c02bf3fa"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-354",
+   "prompt_sha256": "ed7ba64a70abc20ab8219afc8d87112519f5ba721dac5b55f5e9c8f649fc0ebc"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-282",
+   "prompt_sha256": "dd6f14e8a650ce4b19f8310cd1a09f754a0e10e63ce2158b9fadad68991d1c84"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1325",
+   "prompt_sha256": "c7874f964642500e2d82ec75f739934e8086b9d845537c724b7eb4968d7b83b7"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-253",
+   "prompt_sha256": "4543b4b14ea23ea652712492d55765bd2b8f36ee0d0eee277b6cd92553c0744e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-390",
+   "prompt_sha256": "7eab6730aa2f877a528590935b8d6caaa904f7d8be61805d8f0e410459a822ca"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6224",
+   "prompt_sha256": "c62859feb69b5cc11a630b31151528112bda16ac7f101ebea98c464bd5ec21a2"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2875",
+   "prompt_sha256": "d1b3e0b613b030fc537fde361f79003607adbd03813c27526524e006abda77b4"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-125",
+   "prompt_sha256": "ef94219fc202792abe7e7c4d288432f024dbc861134a9abfd734e7ee05cdcc3e"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4928",
+   "prompt_sha256": "2bf882597668d08cb7fe787e6a058d9953cbfe0c6908a0e68b61b30842335628"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2719",
+   "prompt_sha256": "d03e2dd928096d62d30de9150b5c643491ed390def825d9ee66904879b8d54bf"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2722",
+   "prompt_sha256": "ee65eaf22b284596a235ffd86c5d11a17915583be07471c0ade2cb0ba60b2ff9"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6472",
+   "prompt_sha256": "df438b5b23b4184973cda877edeb3e087adc8ddd224540d9a0c937b71a20136f"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6503",
+   "prompt_sha256": "7a6a20af5a4efec8519775d956bd931938f2c921ebbacbfa92a1ad213345db4f"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-515",
+   "prompt_sha256": "e63c0917b94ecc9e88f98faaea3d3c1565a6faff3d8674d34c4d07cf9f752165"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6558",
+   "prompt_sha256": "371e20f044069fd54dde8a53f6e1ab066d022201aaa1c5835825ab5bf3218499"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6356",
+   "prompt_sha256": "4a788009950298437a2a3ba7fe3c205339e3d549ffcf54b9fd04af15367f485a"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2721",
+   "prompt_sha256": "9c242fe4d93a806ddf7678cfdcd33c59425ee282bf76f74320653beff16f12d7"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1159",
+   "prompt_sha256": "be0e29d519cbbc582c754697c5b446d4140aa1561aca38a1efdf9e52635d8add"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2783",
+   "prompt_sha256": "fce0804f5bc3a8083067774ab6e56ff77c40db04bc5fb21aadd814e7595e6a57"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-275",
+   "prompt_sha256": "4c72d1f69f6cf41db4cf27f4914bec2fca1cb3770a37a32457d378b68d6e2e25"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-359",
+   "prompt_sha256": "c8bb78904062a78685242de2f6fa995f6d5f983b8c19a128ea2c3f320a1a143d"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1686",
+   "prompt_sha256": "1cabbf6b5deb84e34c8d811340b67711d8a88b90ab97bff4a98c6ac02d720d55"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-422",
+   "prompt_sha256": "d908e421ab0d9918c95a1930b7940b47efcd45d1229e12b8a778b860f85d576d"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-335",
+   "prompt_sha256": "1c6ae6dd298cc515d8e0c60f70704961b566443ac9f6773ed0fd340e990ce68a"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1137",
+   "prompt_sha256": "bb1d4944c5734d8295dc0869a10cd60570f2d1e8acd8cb4fe8f5166f4a592e8c"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3406",
+   "prompt_sha256": "4bab592c1b172d1ab5cf97ad45ad8def58fd61ab7819f8e4b3f02f9321180592"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2427",
+   "prompt_sha256": "954a94d807170383acaf29afa739c7d986c945d87948ff8f279e2514896c9dd1"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2733",
+   "prompt_sha256": "5677cc27fe4499aed7613dbbc82ff1cdc22b022f61877547e50b361478a53e47"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-132",
+   "prompt_sha256": "bf34aeeeb04b30fab88b3a81b1d12f0e51df58c76ae4fbafbd6ef3789669e8ab"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-298",
+   "prompt_sha256": "7c347d5a85c2b04cab7ce77ad1a5b0d83f0a13b4ced9aea065726711daa4da0a"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-187",
+   "prompt_sha256": "3ed75c5e95ff7d79f2eb87eee7f42167bd0d9991fe22f1d0e7b75a5f6e462169"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3836",
+   "prompt_sha256": "4726c8853a40e13419a43f98a5f601edc6fe8941721965ee8576a074b7ddd5da"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6596",
+   "prompt_sha256": "bfd9105e158400230b0f28ccd274de58e7ccba6cf6637d271c0c3cef947c26ff"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2430",
+   "prompt_sha256": "87d5f0792ff69c73b298b81134700ceccb11d063d9257f196abdac52804ee9f6"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4820",
+   "prompt_sha256": "bb57a82645cd32bda819c0d539581133db700e2a3583f15b88b185e6393330e8"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2794",
+   "prompt_sha256": "80d5b9fca805040c977f027da46bdb83eaaec65052f1e636496364013aca5b4b"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6024",
+   "prompt_sha256": "e64ba899aa208283da850c4f51e15e4c9be7ba4eac44bc40e4731319d5a026c7"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1546",
+   "prompt_sha256": "aa6cbfc6a021ca1a2f369a2a2b9b342293e2499c2fdcbc013926bc181f8d71af"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-396",
+   "prompt_sha256": "91ea66a62928ceaf59de89137f4862e23859894461e82132e45c6aaa7fd56800"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-420",
+   "prompt_sha256": "df1e35d4f843059752383f8dea7a5b9956543e5a8f70cc3d7e405e41ecdb2b9c"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1146",
+   "prompt_sha256": "fbb932f0d2644e18eba681bbb3f0af8817bc33d34a1f7ff88e5f40636106f283"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2873",
+   "prompt_sha256": "48748966953e6228fb02e10f868e7101851fd35fa817e2d5a756bbe004ae25ba"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-912",
+   "prompt_sha256": "406eea562eb661ad3107ebf8240d639624e1c97cae92ff7b904c11c27c0ed7f4"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-319",
+   "prompt_sha256": "110addc099105091162b853bc2b0b95ab7b3c0593d6f505be4186b06d7117df4"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-361",
+   "prompt_sha256": "707bd2684689263ed47be12f0c602005f349db3f3babf7a71a3eca69cf56b3f0"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-290",
+   "prompt_sha256": "34f3ab599149026d54cc31fb8f4f7e777a88b23d27aa832b82c73e56c883a8ac"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1292",
+   "prompt_sha256": "4ee58339bda4b14ebd799e648df5d5019c030f81784d8138b5c726584857e8b4"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2307",
+   "prompt_sha256": "43ab8a7632b0c97e5a61e9f90b346ff5d94efa3101f2a15c5c4675f59a5bae00"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6494",
+   "prompt_sha256": "3d5982d9e1ad7e7510fc14530d6b3092329fe8956a27c55a1416e102e6f1f1de"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2474",
+   "prompt_sha256": "e2a38879baa3acec46fac8b4caa35f76f828bdb16584aca919d4919b376fcb26"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-340",
+   "prompt_sha256": "a672c2be2c2b72e27fb9f6795b2c69fa95e4b11e073bc046737cbc0703a6dcbe"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4832",
+   "prompt_sha256": "c761b7712dfdd879b673afe7c4dedf2c90de90b110d46a904459febacb883594"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2324",
+   "prompt_sha256": "391a18a0caafa8e6f5024aef81f2a333b82606b4b6f650e5505ba360b33d5504"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-77",
+   "prompt_sha256": "ec922c219596988e168279032ed92be524fef765be22f6e70592a1d224456c9f"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2381",
+   "prompt_sha256": "3c939da6a6da7ee7b4451130ddbbe45355ef2ad3e89dd2305e11c4c867720bed"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2482",
+   "prompt_sha256": "ba928e2570c4c3498eb62afa1cf151b4d3a7cc5d9bd688694228dbf1a56cc973"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2524",
+   "prompt_sha256": "612c14d4bb019b77652e9d4337376185f9c777fba393c5a5b31f8fe733e835a9"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1300",
+   "prompt_sha256": "23f3f2a0eea5db487b38d1d86829dae5955d0ca0a1f0ec14bd825a727748617e"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3774",
+   "prompt_sha256": "8942a23071276d87e27c42cae22e14e4148f6ace5f937739e9425a21a17f79a5"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-393",
+   "prompt_sha256": "809eca9eb49892d5ada04860db292bf24ccbc0cafa9913487e59b2277595a32f"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5180",
+   "prompt_sha256": "d1f16a929a476c3eac6c72f214ecfd531467a9e4da560a5d4cd844bb724f7ad6"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5874",
+   "prompt_sha256": "b194b7b42b86ebc1d1ddb221f82f583778814159638dc3cfb72816307c21123b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-133",
+   "prompt_sha256": "a3b6d3338a035cecf1ce3c2db90a1b0431ce44e5949fb7f381427ed2d5ed0b3d"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6976",
+   "prompt_sha256": "82a594a1207caa3959c1280b3a46967ee23602c3f43bb64e92d74507d3463ce6"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2448",
+   "prompt_sha256": "bcfc77815d7133d3f4c16510a86af010db2aff9efeb397af0b3f6d8d99a1fb6a"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2413",
+   "prompt_sha256": "8c82a3f173e9a495f86946a247c90629b5ca6c32b66e1c7b5a6e2f79d5377178"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6002",
+   "prompt_sha256": "416e416bd55c5a3818a8ebd66a303ef54c93e08adeb645abc523630550bcb483"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-79",
+   "prompt_sha256": "5cecb7a9fabb0aae5190b363c28ab31c220e39604af8865f9692b343f3b1315b"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3800",
+   "prompt_sha256": "7634c92361a0eeae703e52975b09ce82d896569dbb585561c06cf638bbe337b4"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1307",
+   "prompt_sha256": "f7c1ed4c3d1f7d54052db56c8fe3c62f9672b88936a4a281be17d28cdaac7b61"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6497",
+   "prompt_sha256": "087a46d9556694b3b2c71883f7d9cd83d5e758ee20780a47f7ccc60e32d59ddc"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2915",
+   "prompt_sha256": "4d1bcf6e3b5a6c5a198264dce5c0aaa8095d00f5f1f777ec625edb75946f8180"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4939",
+   "prompt_sha256": "463b501b78c85d938e7cd5ab195a7c7e9e7fda4922945eeff699710a56e7a37e"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-914",
+   "prompt_sha256": "4af23cff2c78325b3477826c05eb057ff2e27aa15a7208ba459eb9f7745655e5"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5083",
+   "prompt_sha256": "a85956a50601863d2bd0d30a79e5a511ad4b239b59a0f8a7c32776e66865829b"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4821",
+   "prompt_sha256": "c44ecc85a8c220d59ffaac01ec79bc22a11786462e5d730bf63f0ccd7b6e551d"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2702",
+   "prompt_sha256": "fcca7fdc084ea2e9dba372cd588f38edb6948c5c612c2afe10b24052b5ad8635"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1682",
+   "prompt_sha256": "bb867457265ec9cdfcf7a096edd923a2fc1f7851f43eb0399d675d1b7f35c774"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2367",
+   "prompt_sha256": "de18809060cd5885678a9c86022734a9a68d3f22593ba4a19d55f3f2d34799e4"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6492",
+   "prompt_sha256": "5013de2968497ed79be5a07d4cd1c6a2c85a1d1c17aef8e7898038a9993b6f4a"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3772",
+   "prompt_sha256": "4b3c3af9717393de9abeb955a0ed8a52330d23df8d280cd395aafa8505e9d93d"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-375",
+   "prompt_sha256": "e44a2f7b0f1d7ada002dc2488adf6ae05f7dd7a32035eac13b44293da9dafd84"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2415",
+   "prompt_sha256": "0642a0b9b7632be80efb129190ce5926cbb4d1b9d6c9261a63c6b2f9396cbb6b"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-909",
+   "prompt_sha256": "6efa4425cf8c5e33fe4ba6e9ab9e185539f20c24dd1f1812c2b22905d24d6ccd"
+  },
+  {
+   "db": "riding_club",
+   "id": "spider-train_spider-riding_club-1733",
+   "prompt_sha256": "f5349ca3e1387e2fc76b408c289b199ec19c71378b5e7a56983c1868035a4bbd"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-105",
+   "prompt_sha256": "3b56233cc59d147ef9a4b8807ba4b6fd901622e3a0ce650ea4a5323913740ae3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-45",
+   "prompt_sha256": "92c282df9352c5dacd1b227de360fe6938749ca23034a629e5bec0ea43073422"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-418",
+   "prompt_sha256": "5c59f13fb8659adb5d48e8940287a2124049c8013b60cd5e9243877e4983e308"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-110",
+   "prompt_sha256": "d67151c9efe86042761e318328679c024d23e87814fe6939ac3c8c8cab171f7e"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5231",
+   "prompt_sha256": "dd8b2556dd3d4998756418dc097582d93f54d7fd848ff08ed013dbfa11f113b9"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6243",
+   "prompt_sha256": "f091f80f8a4db8e8ea6707560911a569a13963432b201fd09d6268a5457ba385"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-214",
+   "prompt_sha256": "01385bfbfc71599a6ac0773325169c96f5136d85eccf39a888b6b53b7feba7ed"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1262",
+   "prompt_sha256": "23a812ae5c5565fa4f18af7025dc007fef7e82491a8225ea9a49d6717d397a8e"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6054",
+   "prompt_sha256": "2a947008548ab1f57a2da30d1185f31aa8f2e62ff0d8bbca8f607438ba080272"
+  },
+  {
+   "db": "decoration_competition",
+   "id": "spider-train_spider-decoration_competition-4498",
+   "prompt_sha256": "61d096db080beaad4e7e45168b763f0cace027dc19f2d7fd2404e1432856cea9"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4797",
+   "prompt_sha256": "4275972453b44ccbf617f54f91c8abbdbe0c9a1cf7484654ad70f227762a919d"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5630",
+   "prompt_sha256": "cfaae9bffa062060f61e0e819491d47ac80452494b02d49f51ada5a59b011b92"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5214",
+   "prompt_sha256": "ec8a6e3764f458c48097d15b294c91aa20f952704c07e8249a0bc83388d73c82"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1284",
+   "prompt_sha256": "1432ce64558fa5ce8fcd3543fe5e31664e096424e0a268e0219ab5265c775727"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2323",
+   "prompt_sha256": "06f78d814094152099623af2af989dbcfcfd3e9906baffe361ebc681953f9216"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2181",
+   "prompt_sha256": "e2f29106f92effc3f52d240e3c1231b9f3a3f7c1546f53b032e0426f62711894"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-410",
+   "prompt_sha256": "dd4d328055f0e7906a325f817aeb9f45e94999d0247b80bf485b4da9f6e5352f"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2894",
+   "prompt_sha256": "56d656d5aecb00ba53a23dfb0d2f36226c6cf0aa5e32058c9ac57dea3daa5edc"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-66",
+   "prompt_sha256": "6a1cad98220ccd3c3f9d85d9a399a60ec2d9329f0994f69749795533864546fa"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5244",
+   "prompt_sha256": "d2bbfab0ef6f497c5f7fd582163f5057d40b4e7eae5eaa6c787a390cf9b24c3b"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1364",
+   "prompt_sha256": "ea5bbe98d5286150f4df82bf9758aa8ea4a9d7d0f1bb0831a5049ca954810841"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-150",
+   "prompt_sha256": "681d77781b7d921d0e93f9845b57b34e2dbc4cacb76009461739ca75b04a2049"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5413",
+   "prompt_sha256": "b4867c65477278a7400f251c4b32f8624fe862b0266c750f7ca90f7d77a84f3a"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-432",
+   "prompt_sha256": "76352bc0651ecfe51cbc8751f9cc8cccb597c6a7eae59953c4298b19fc4436f5"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6246",
+   "prompt_sha256": "a3188f17af46e6be17098d0945cf451aac23669210e32b4d9bd03b650ebc6608"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-913",
+   "prompt_sha256": "69c37058074080c40b1a5fb256d2080402079195e32ba056abc77eef6c127aad"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5056",
+   "prompt_sha256": "301171e4986805bfb4f950a38d040f1f45ee86b93f9641f2c15af5f633a64db6"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1337",
+   "prompt_sha256": "587a257f8cf7839557b43b73489b7b7655f66d85980a062aea93507a6e5a4bef"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-536",
+   "prompt_sha256": "ae3709df869800b62d6a7b5e88966cc8b44067888511a384404d7e6777b87527"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-407",
+   "prompt_sha256": "ae9ed44d5a1f047612fbb489b2ac2d42e6976af0d7649b25503e40781d7588c7"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6507",
+   "prompt_sha256": "d93e47a18cb80ffcc469e52b090c699145ca446bf59324122c11657c15b24e83"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5815",
+   "prompt_sha256": "dbd2dbd1104f781959d57f60e70331a94d11a21d11267f5972e9bf0cf7062d3f"
+  },
+  {
+   "db": "climbing",
+   "id": "spider-train_spider-climbing-1135",
+   "prompt_sha256": "5f84e19db70529be9ca325c18d6c45821d19b57b742493b5f51a0a00871070b0"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5827",
+   "prompt_sha256": "4a2fc7ef6dbb87c7e874c4ac5654e621534ead369b63a3e9eee1fb635d4c572f"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5088",
+   "prompt_sha256": "609726e735e2adffe4da4d066d3146b3c0fbbbb04f490844e9282904f9019f4f"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5173",
+   "prompt_sha256": "b42663e938d28bb568f7854c5561dfd8f3b1f37ffe46abe0b40d72751440069a"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-201",
+   "prompt_sha256": "4c56c5e600ee7b5b21e3703b77143bf598da890f53c3ddef696df1128fcb4197"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5084",
+   "prompt_sha256": "630eb95feca10cfbf7940fff3c054ef99274762604baf17c2f1968a467452358"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-128",
+   "prompt_sha256": "7b80e6b142e6de578a6c61f824fa440d56a91335e370b8877c66161bee49bc62"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2156",
+   "prompt_sha256": "6985bb78ee581a842b0e9c91d39248c861f80caeb472fa7f9c169b720c3f8128"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-490",
+   "prompt_sha256": "cccd0aaf8716f65973722799f34e867de2d0797ed7a7d6633080ff9140d8d9f4"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2521",
+   "prompt_sha256": "7b30f705c111eed3c459101e91f2c8bd5879b218725c26a6738a5d80b0f05c1f"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1196",
+   "prompt_sha256": "05dc61decc6f58de646ea404cdb66b1e914b836694ad5754d4bd4deabeaa69de"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-450",
+   "prompt_sha256": "c2bdd56abb043ea412f6a5184fa7b407e3273b37d7656db1cb0d920e4e0ab29b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-523",
+   "prompt_sha256": "7930281d3c845991f758421f75495b8fc5a28cd50bde2917d6228b068f243149"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6541",
+   "prompt_sha256": "b9a4db7f1e1d806aff9cecd1549cdf94ed63e5be4aeabb5346686166668fca81"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3848",
+   "prompt_sha256": "78f6008f296bde2abfeeb65f0d43e6abc31f63caafae6809fb2f1f9defa5b9b7"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3769",
+   "prompt_sha256": "0988bc536272dd49bee3c6f579b7a4f643553c55d56186cf4940082ea6323875"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1212",
+   "prompt_sha256": "c0eee098cb83e8935016802c90acf43a991cc1a399a16c3cb672bbd9a11d6e7d"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-560",
+   "prompt_sha256": "87d3953846ee3f32af7953f214856b4fe5b43bb024a71bdc4c6b08783ee12265"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1309",
+   "prompt_sha256": "a8fa02557db9cd1ec5ceed3f3b06d79202433d31498e883af1026ea58430e0e3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-259",
+   "prompt_sha256": "393c4c3e4a22dd895aa10f9530c6f335e7e7dc72317bd12291fa61e469f6e935"
+  },
+  {
+   "db": "climbing",
+   "id": "spider-train_spider-climbing-1148",
+   "prompt_sha256": "dddc4fb38440b8feb95d5f33ec8b6bc2958a217cbf80b4d544204f5dae001243"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6234",
+   "prompt_sha256": "45f71a1b6ac944b7b551fa0a91ff1d7f8fc8802dc535263fa2bb0846cd92142f"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2170",
+   "prompt_sha256": "d68413e361e8bc1985df1ff7f45ea7571d73f0c64aa11f6eeab9bf14c12f70e6"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-149",
+   "prompt_sha256": "1bddb96d1be8192ba10d3583630815ff9e6d195e654aed42b70d92fefba01401"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1242",
+   "prompt_sha256": "49722ad0b2f4407f70344433113bc59fb9e8f85def41780ea1fe49dc04386555"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3408",
+   "prompt_sha256": "0e8435fd3695e01e32a958e2be8954926d973b18a586f9e794217c4af108d1f5"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2199",
+   "prompt_sha256": "dc483911b80c2db324c37eb8c8d84aae944b7ac25565fc3be4f2b58fae6c7587"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3832",
+   "prompt_sha256": "efd8bf5a752df32917fc1a791a5fe956e4e6cc7e6399f068dff67337082b33d9"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6225",
+   "prompt_sha256": "43fb033ec1ea998b6f31a1806d320485ac6ec4f02a3fc462042de74dc4b1255d"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1292",
+   "prompt_sha256": "c58ac987a261935535852d74b0aa3d49b7b95a860b7d20996563097d32db663d"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2451",
+   "prompt_sha256": "2b0675420b4f05ba527e4c6e85ef00bac3faad0bd1b61a8c086e0878efd3755c"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6551",
+   "prompt_sha256": "623cb32ec07c4d8b0201dd26492b41d4b6d3a3b4b501d6c9d76ab254127fbae6"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-435",
+   "prompt_sha256": "039f030ee7a8b5d7e5e6b9bae2c87eca7fbe017b7e165ce6837aa0e255b1f602"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1353",
+   "prompt_sha256": "9b3cfc1ba92f2e6aafa933a662581668b55fadf7a81be7d5555ecc8ea7ab0fe8"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-39",
+   "prompt_sha256": "bcaa3cdf3d4d0e4ff514de751fee90e07424a57f441c8d27e3d1b6a32a6e9961"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2877",
+   "prompt_sha256": "3006f7b8784e0f0d484a63720e0bddd8f2929cbdb68ca1fcef87077f08ee6e71"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4841",
+   "prompt_sha256": "cfd9219b2f1a5359e927294567eaa14644047d94914f341db00a178974923736"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2402",
+   "prompt_sha256": "39d2885ce3f25e59941ee6875e944862cf8093a8e42dfc86af6b59ca3dc3e83f"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-136",
+   "prompt_sha256": "c0c5b5a364a044a4c886129622184b568d8a4776a5e433103ac43fddc21d2d09"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-194",
+   "prompt_sha256": "fedf9bf5ba9a83c8f0d8bf79f1c8adb538ccf51642ca4eaa771cd34f276056a8"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2161",
+   "prompt_sha256": "9b4d510793a2f1a098cb16c245792f9b98bd427229c752f8e83064f5a606ded0"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5194",
+   "prompt_sha256": "3975ace9875bfb3f6256bcff9d03f2d3b2deb83abaab29f01ef09c7c00909f68"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5976",
+   "prompt_sha256": "6c0eda20a085c44834bc62e5aa62050bdb9706537fba70fd7baeff5042502a2c"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2168",
+   "prompt_sha256": "23b1c9159423acf838be53541033d744901e436e3e23aab13dc3e9915c2be813"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3497",
+   "prompt_sha256": "d2e9b6561cc8cf27af933c5562036787bc43ef76db35cd6ff68d2775859928cc"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4555",
+   "prompt_sha256": "cce83dde109db5ca84203c1f8fd0db6fb9f3ff8f6aba028495676b6b9d263a26"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2350",
+   "prompt_sha256": "9bda4eee24b82b192ac4ed26314904452d59c19d7b73f24bd99391e469960df7"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6535",
+   "prompt_sha256": "bf622f05d039f8d1e4d7c538a1d40031cfc7339925bb9280181c8f8d160f60f5"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1316",
+   "prompt_sha256": "8a8327d5d9937e013e5f85b2647f6d68259260fa6efdea44e94fe2e86ad499c0"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2801",
+   "prompt_sha256": "a31a4f5343899165306f3e3e0b9d0f18908d5916751c4d95d7042ea2562fef50"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-230",
+   "prompt_sha256": "7e045c08410abb2ed9a1221971c37eda5bed46354ba73c6e5ce4e0a6abcbb43b"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6553",
+   "prompt_sha256": "90bb61a07a5a1b34dfbea80bd34d0768e5d7b68c7c4b0c252b91f4f8ad2fa4df"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2188",
+   "prompt_sha256": "2871014caef67423fcabea06609226435c3498d4442f400576682079835933f6"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2485",
+   "prompt_sha256": "f3731834330bece3e2530c77410fbbd40417cd54fea976257f8da8fa749face5"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-212",
+   "prompt_sha256": "7a112f050d6d543aaed77ee0e09bbaeab6fdb85159a12c36d23f83acd336f701"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1536",
+   "prompt_sha256": "7191c929a8dd39c677faa0945202fdb9017f0e5f70b6bd56f1a05133519883a2"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-211",
+   "prompt_sha256": "1d980049081307f9c93da89b02e9d1166f23ec32a283294a4fa098569055ba64"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6548",
+   "prompt_sha256": "ab41fa5b14ead66f66bfb5b9d34d3e59bcfcd46d0b8e027a6eb1135d9a71f251"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1683",
+   "prompt_sha256": "2820bf14cd665eb81a140bbc7505041da9a17a529a5440a5ca54f2aead8049dd"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6023",
+   "prompt_sha256": "80668e8b1a0d86c454ca40756f68fd42f149446e46a7cf57f35d227e6b278ade"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-384",
+   "prompt_sha256": "e0017733c0a7388ca2b199953058b1c215fb2542fcb3b13012e8fce9ff3ffd05"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2425",
+   "prompt_sha256": "1b8966783755f493a7bb0e0fa8e20db45d9ac30e3728ae9fdf816bfbb94103d3"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1140",
+   "prompt_sha256": "6c6093fe4ff2f5f88af984ae5d320413841205ed38d15a8ebfef9ae021676488"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-357",
+   "prompt_sha256": "a4096b77b77f46e13d73df9fed7dedb5e360276679516ed81ce24ba91bfe8558"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1269",
+   "prompt_sha256": "ed0db9b4d6703f65b112220f57803cdfce4e288186d589e39b440dcd42a4a509"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-429",
+   "prompt_sha256": "0844fbafac99de31b8b65f76fe4e7068c58f69a4a9ee2a23402fe80f7bed7a98"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5616",
+   "prompt_sha256": "f69b60a8ea95fdfd3d83cf35c3a65029a9dbed5c632568e8600d49a52f1c2afb"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-90",
+   "prompt_sha256": "d2e8eeedabe8bba6fc685de365096d3dc80c9f17841ae911eaf051071a52a0ab"
+  },
+  {
+   "db": "station_weather",
+   "id": "spider-train_spider-station_weather-3167",
+   "prompt_sha256": "247b2f70e98c4c432992577759414770aac0427403b8fb463b879d958928dc35"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1649",
+   "prompt_sha256": "2b87115fe01e9ca16e297f3462a8017f2d737d571d86bf7c5cd93507f5067d8f"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2334",
+   "prompt_sha256": "8735bb3fb8874eabdd55d7395ef4d33a16b082f578c32fe45f3b00990e9da2d9"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2798",
+   "prompt_sha256": "0dd1094f81d04a09c395ec4d924f2823fe96fccd5dbdde77fb117b0857ddefbf"
+  },
+  {
+   "db": "riding_club",
+   "id": "spider-train_spider-riding_club-1721",
+   "prompt_sha256": "1cd621f85a3e3480336f6108b72c3897b02ba341bf995c83697682eabf0ebe4d"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2154",
+   "prompt_sha256": "075d8455619927c39cb5b6a53098220578627e5fc728417099132aa4e0232fef"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5408",
+   "prompt_sha256": "4ff660488fdf71244e83513777186dc18901f3fada47c56879920fa3cc6d6006"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1270",
+   "prompt_sha256": "cb1267ec87c9b3c25d8e7eef1d64d1fe83f5b9411007e6798194dd2994519639"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2184",
+   "prompt_sha256": "9c87b3a935f77eb183105cc39c293b22c31f352cebdacb99f8234b108ae3220e"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2382",
+   "prompt_sha256": "832ccee57c9a99dcb153179362bf371f4d516cd12ded42090d01ca120258d491"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2216",
+   "prompt_sha256": "90ac67371a1a70ee4375e5e0c93dffbd9f1654b190d9217b476ada3187e899be"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-509",
+   "prompt_sha256": "0fd74412eb436c262b2be1d99f619f9a0360b14bb7dd1e4c7ceefeb89ad5c5c6"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5207",
+   "prompt_sha256": "c6568005342da3b5837077f0c72f64f81ed8dad4e3c452a1f16a32898f25bc9d"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6550",
+   "prompt_sha256": "7a12bedcd7946b1f824af89d7b6c5dd1d2ed7c0b257e78251518110cfffb924a"
+  },
+  {
+   "db": "local_govt_and_lot",
+   "id": "spider-train_spider-local_govt_and_lot-4850",
+   "prompt_sha256": "065950e8ba73fac44f2b6d9946b742c916b750ee5a57bb4256c37d57214a7580"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-123",
+   "prompt_sha256": "7814a9f8a795f1286d6b1c6dce25afc2b403b2750525ad19f53b80d9b598ebf9"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3420",
+   "prompt_sha256": "c0eeef1bcc2c4aac86207c388adbb7f9a5d2ea47f7239b9e683c28bdff7d07ef"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4576",
+   "prompt_sha256": "519b982e603d4b6a0b75c99a998bbf651f6988a1a47778d3323cfaca9989023f"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4798",
+   "prompt_sha256": "2fb158ab8b82757d4abf054a98f026b85bcc9e695d03606f656f74f728c44177"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2353",
+   "prompt_sha256": "c06a6b40252bd6a67086a14088501cad13eaebeb2f32c7d417d659e6bcaa9b89"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6240",
+   "prompt_sha256": "c72f79cde281908f1905c02f35554a4d84d99ff9e05c59b7c447fb221845e4cc"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6036",
+   "prompt_sha256": "1f335e7e95356ba0ef8f1a60be5e3a399d82f70f6dae2722ff1c73c6f7ffe7aa"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6274",
+   "prompt_sha256": "5fd995fdf77ecee8d83a5896119ce45e7f53b91e2b1eeabe8a75e313c088d5f7"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6984",
+   "prompt_sha256": "7b83fcf6b49ee379b735504bb1ff7842e3c36a692221a0753ec7021fb0d9f851"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-330",
+   "prompt_sha256": "abfde508034d2d3362c88a3254f385624f742dd4de2189a88331433f89626508"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2193",
+   "prompt_sha256": "ec823dc444f4010ec80e10cb503da1ca3b23e97aa88830d650d199d384df6a3f"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6286",
+   "prompt_sha256": "2875df26a60f7d792c8e19111e8ebe2022db9570baea0bbc0c87b915ab1fea31"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6575",
+   "prompt_sha256": "87c2aee004bdec07580c08010e878a145e6179e8e28146b0b991de99c7dddba8"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2918",
+   "prompt_sha256": "0fa756141c54da3c9073886a71874fd8a1a05f223e58adc107976f2df765fd00"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6589",
+   "prompt_sha256": "3a4a2b3cebacad71631f65a71f6eccbdd9f35c4a6e857c071820bc4dceab0d56"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5628",
+   "prompt_sha256": "0e96309c52eaaa63d9fc3642d692b31f559002edbd29d5277685647c7bbd6dae"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6477",
+   "prompt_sha256": "88ed9f5f2b5f245348363c550306c9815fb4b1608bb3944297f5b5304186bd06"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2732",
+   "prompt_sha256": "2ded9dd686e5b2420374a1d6342cd6ca7b6a4c4f3103d486ba34849990759282"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6009",
+   "prompt_sha256": "a4a1f9277579c7b8211544d613483d54f6e4b1a5b9ab8ecfd0bfc0beec5f75a2"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-141",
+   "prompt_sha256": "137b12255e7f15d0f1c13cda48ee45d1450c15a81c6a30382a161ddd95b3048f"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1238",
+   "prompt_sha256": "155ec8604ebe6943d2f5094a84d7e7dc1ebbe4ab1d59c0e4caa8053e5db3336e"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2704",
+   "prompt_sha256": "0fded3e08caa58c0b5aa921ccf4b922b1d994db7acf0761a2c926036d287164e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-418",
+   "prompt_sha256": "c486808b78a4c30318bb8d5375037508908ee324512f37cec79db31c0f7d7975"
+  },
+  {
+   "db": "station_weather",
+   "id": "spider-train_spider-station_weather-3158",
+   "prompt_sha256": "d4ed17cce1230373e05d4a3303802cb15ff29302925cb338cfd2bf6f1d11b942"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2180",
+   "prompt_sha256": "c5a1802100ee737eaa5879becde0e6ab9af9259ec963a60c95a965425f0f29ca"
+  },
+  {
+   "db": "riding_club",
+   "id": "spider-train_spider-riding_club-1727",
+   "prompt_sha256": "757b7eb9afda31f266caca987dbc9d7f5d5c619b0838b0043b2cfc18477cad02"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5617",
+   "prompt_sha256": "b417e6dfea842c1d8f493a79da07a313a9f73b04429a57382fe26cb1046849a6"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-436",
+   "prompt_sha256": "da19b307f33f6ac50359fd5adca76a8c8018b59ab393e9c1e83d7ff09a82766d"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1233",
+   "prompt_sha256": "b40cf880cd2c059bed5ad136cd5cf44b2fdb223ac33d2c18ac7a4a86bd30b701"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-386",
+   "prompt_sha256": "853154c41a9300b3a744570f881b08e43974f5ee76a61a7a96f26c6bf25afe2b"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-187",
+   "prompt_sha256": "ffe3e9710124c7dc5ab8bfa9b0922f050cbd2a7bd13fa3a4bd04f7c75c150daf"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-326",
+   "prompt_sha256": "da68129fab5fa0162f634ade03f7c97198038b8ebebb3b827e415a87a268ef9d"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6555",
+   "prompt_sha256": "fd1611c7329523fe650f0abfc6fd5745dc5f8f9060de8a3679a97d40153abbe2"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1415",
+   "prompt_sha256": "5e48cd503b3478e2f8f3c5b04b7c9c9dc20af37a64f1a6588a85de55d24a9dce"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-372",
+   "prompt_sha256": "0b74fb015a17131f462862de1d8b2d70e9e084985ac4c98efca345977c6ab009"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6568",
+   "prompt_sha256": "0ca3d9726f4f3f982794c2119e50ad4e6cec74a64a45e3fa88fa18b167ee3058"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-303",
+   "prompt_sha256": "faa2f7a50b94bddea8764bc104a1dbeb88e1121d48a7a4e389a8044ec88a7179"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5997",
+   "prompt_sha256": "847dfa0292b85547271910eae9d63d3deb53c52dacc6e4775b4950669fb938d4"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6301",
+   "prompt_sha256": "50389f5bd2538f170b82bb30875583480695c044d9f205e075df4485edfe0c66"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-242",
+   "prompt_sha256": "18f12ae2e3b0ab883e6a9951324509faca3236c0353dafb42b6b581e6c6af257"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-87",
+   "prompt_sha256": "01d4551bc0cbc32107af3cce603ea77a60beb32f800bce9bde2ea047cd9992d4"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-452",
+   "prompt_sha256": "0aba0673dfa1696b127233b74e4bb1a9f205881104a7397766913bbb5174b5f8"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2502",
+   "prompt_sha256": "6b8f4ea0bfb008de62e048b8530107806149ee22348b4c8a96d9b4b8aa35cd39"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-4",
+   "prompt_sha256": "6533bff1247c2abc9f0bd16ce51231059082885d801226c0d8de35ba3e039cd3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-442",
+   "prompt_sha256": "d5c36a4b227caef45b9c79cf44932e996cd003320dedec314bfc78c325fc9fe4"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-34",
+   "prompt_sha256": "47bcef448426e16c6c7462bc858c20ba1318fed1bcece196f4af9cd7c5834e41"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1658",
+   "prompt_sha256": "0013f2f04e82461d5c87d826155998690ddcb79a22e51f5f0444c2a04bfc410a"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6989",
+   "prompt_sha256": "082e65a0bbea5e21f56c3e2109705c1234b7ee33bcab259cc9a77024700bd626"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4914",
+   "prompt_sha256": "d6cd387d6dfe2040042f26c25b8f31b832e5c19257a6632ab247cd1cbceb0152"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5193",
+   "prompt_sha256": "d1038a7754259aeacd85957d389263b41619d1714d83c108810a824af88aa0da"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6351",
+   "prompt_sha256": "082e4af646fef8e3217480e95e38f32fe43a4f377841633b26d201808d17dcec"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1370",
+   "prompt_sha256": "c39c16900a87ff38431641853efda1d3af08508363fc437861add124a961e2a5"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2900",
+   "prompt_sha256": "c6981e373d04c22db4d39301008a3b92d8cf6d1cd47b1b757275d5512bb0c990"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4567",
+   "prompt_sha256": "150c65bcdfa800eba66d1fb10ecd5d003b67917f4ea49d2686a0b82ba60433f4"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5845",
+   "prompt_sha256": "f8261330a376b11e6e907cf815387036c468b02585eb3618d84b5827f07e6e52"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1289",
+   "prompt_sha256": "a406812c09cce118d11e4bb9c1d75465a7d6fbd0c03140c7abb65737514b615f"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6511",
+   "prompt_sha256": "c8ddb0040605dc72f83fd77de28a9ac275cd4c1568e1ce75283f46b67fd8f5ad"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6266",
+   "prompt_sha256": "a621aac193dbc9c82243dc8a298f2947dade160befb05fbf534280a59150b30f"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1156",
+   "prompt_sha256": "fdba8e979ec2394b4a02a85519f9b5453589b34871c74219e88b8a5af3428dc6"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-197",
+   "prompt_sha256": "30691996ad88749effeae3e08c502216a71f585baa15810c55e319d273d297aa"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6280",
+   "prompt_sha256": "8485e70eaee5af9e10d5cb0dede38de0918139e399268b15837f52c0d427b704"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2232",
+   "prompt_sha256": "1d5e274684ecd01a68a0d805684155d4a283dd9a5bbc5277a8339054975ee949"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-488",
+   "prompt_sha256": "f8760d800f958375445229348bc22708a96514981f1d47fddb289d79bffb0bd6"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1514",
+   "prompt_sha256": "cc88c186698f36036523e8dfde591f0c75280a016bcf077e2609510a494e142a"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6235",
+   "prompt_sha256": "b989c9c79ad9f182e29ac7d95614e06adec38f5ab110e9ab15816c3a85d69ae4"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6502",
+   "prompt_sha256": "351c3f27d54600b463f414d123d2f250ef30af22db0632ad0f597587c3d77b0a"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6531",
+   "prompt_sha256": "59db0b5152bcaa2d8ff9d9c2d653ee46707612223b5090522486b86dc5e22192"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1531",
+   "prompt_sha256": "62d63ef41503e718423c4009495a4ef0291b69c8d664abacb4080fbfa33d79d1"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6302",
+   "prompt_sha256": "8dc4e9dc3de25ec4bdf5beb7ac73bb25f17c024ff28d85a392cc4f6af11d36bb"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6223",
+   "prompt_sha256": "e932a6b3af456d1f9493af8ac39d3ff38f13ccfc60bc9833bf0ed13959af03ae"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2696",
+   "prompt_sha256": "1c521c66c5b56197c3509c18719fb5e83aedd4a31b29c84ae5c028adfa0ac843"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-399",
+   "prompt_sha256": "f5c5542d9d101adf883d8618b9c98929c9ee1ff92e3da9881867e4b43ddaeeec"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2372",
+   "prompt_sha256": "74e2280befded50132bc41ec6cfc5789ea4ce6d79f9aea6b6c8547725d994370"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-180",
+   "prompt_sha256": "ba275a0a1e71a455249b387a16b20501b7acc47906699c202688d70cf7399109"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4546",
+   "prompt_sha256": "2f91991b97a669dc4e0f55cde703529ea260b721645c6193099aacf08fcce2be"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2531",
+   "prompt_sha256": "12102cdc18c18550ea7619cfb61bb0ed0346d0c93516a4b0e297fc3748cdc3da"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2384",
+   "prompt_sha256": "bc992758c60e2a5e61ab18ebbd9e8912b9c968fe33413f7eef2715d59205a4c3"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1256",
+   "prompt_sha256": "3139ace65a250dca7091de3160444761e59fb964b2b0c50def7b0cf7bc0a6744"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-108",
+   "prompt_sha256": "895a9376682cb715aaa09db8d070db8adc577650c1a8c25891de3890cea86496"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1537",
+   "prompt_sha256": "eb2881870e0345d5332321006547f46cd6090b4db9025079d2ac7a1614e7ecb9"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5627",
+   "prompt_sha256": "f34a79f2037f648c7f16513977a34327ed6fa41159630f6d9fc763f2571b858e"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-428",
+   "prompt_sha256": "597ddc9b275f901ce3f4c2fcc927c2e5fed7566f4a7010e1b97d214fbe11e4df"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1339",
+   "prompt_sha256": "e1145b4a234d37eaa9ad7bf2a2c7d7fb344980b715a54e9572ed884374dc5734"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2368",
+   "prompt_sha256": "a9d37b173b8c00051ca54e903d4368c8324a1e67fd05477f22d32320671ff931"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1363",
+   "prompt_sha256": "ceb2a106c2019f836889634ea83a4840642a214637f307615458212142d98704"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1403",
+   "prompt_sha256": "2c01b00437894e616d4021bf7577fd06e69a0f7b989d1e960c56bd6a871e99c5"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1280",
+   "prompt_sha256": "9abf363d8f1a656439f193a1b78854b56f1f60dad3ebc91d78bc3a3c60541213"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-170",
+   "prompt_sha256": "372a77d0f2364a40263308772c1d31dfa40d65210c435c98f2f22b47ac7ee77f"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-218",
+   "prompt_sha256": "9a76e5f6d6e04425ee1160f56550d724e5f94967b9cd36e8571c12de4d211555"
+  },
+  {
+   "db": "station_weather",
+   "id": "spider-train_spider-station_weather-3172",
+   "prompt_sha256": "d2983db18f0ca36fd0105e3dca8a48d3dabaf3a2bfcf169453930e655cf042e7"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1378",
+   "prompt_sha256": "22c78a41140cb19e6a595f41181c841bbf51a7457b83759786e459f6a0da17f7"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3784",
+   "prompt_sha256": "16894cd03e8480e64d6b044aab079c6748d6416115583f5edb9679e993e99e9d"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-182",
+   "prompt_sha256": "3e92399e4c66957f9dc172171dc20b19df7a621ea35bf2bfb7cea83bf01d8105"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2218",
+   "prompt_sha256": "d8f056dd5fd3f9b8af588e65d31a9df8b994a466ce814e26a759f9daedab38fc"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2797",
+   "prompt_sha256": "e67ef2d73cd3fec5fdf720f83eb938bcd139ca0c3014041816c068fdc88f9b54"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-926",
+   "prompt_sha256": "be2912386773918be060c3fa5744ff96440321e848fa9855757866bb5f335d5b"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2192",
+   "prompt_sha256": "ae24343b1351856a756b69693b23985ca4a46cf2f7a469bd149202fa70f8ba52"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-459",
+   "prompt_sha256": "e15a328646f7b34e02a0dcb81d3ec2e1eef2448adf7db197a1e255a29903a1ec"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5421",
+   "prompt_sha256": "ff3b7bb2868f8e6ded257777cd004e192d4fbf04a11e010bbaa8db59e2cd7d7b"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3434",
+   "prompt_sha256": "4cb1ffc9fead077e325ad0fa5ac504794099b1f00c95a799a08bff8f0326abe4"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5973",
+   "prompt_sha256": "d602b018f771fa18e99ffbac2639a1b62e0d0f0cec6848dab0f9ed3251748dff"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-141",
+   "prompt_sha256": "9a8069682187225ba8e87f6e4235f028d90e75eaa674f167a2c4f0b4c02931b7"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6593",
+   "prompt_sha256": "bffaa662883708e5915b4601c54adcfc09da1b00ad19c671e432fdab7b8dcb98"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4905",
+   "prompt_sha256": "ab85a2e8bf5156c061b562f866d2e15c7187dc87b4bd65f3c5f78c3800194e31"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6016",
+   "prompt_sha256": "70fbd46a5e33adae8125118f982d5cd1b9d00edfd18bd22b81062e6f9438b95c"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-362",
+   "prompt_sha256": "207a90cd863884aa425a3ae60e5f9071b9af64e375b70aa895265bd1a887b532"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6569",
+   "prompt_sha256": "5813ae072fbe6c4cd18a5c8c7a7ff235273310e3aaf4598d18f71dfab1cae645"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5089",
+   "prompt_sha256": "4c77a446aa9794a5df70338a2053a78faf1546aecc379be62923db5cf65eae1c"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1336",
+   "prompt_sha256": "09eee379e070a1f4e7c84f27f9506cefba0f62e621f5e3d25020de81ad3fd41f"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-378",
+   "prompt_sha256": "8aabb3ea62d14d8cda607b82c5202f353fd02249129f1c08c7735dbaf745452e"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2878",
+   "prompt_sha256": "22c9e0189f633e8383c9f75cc9546c645fa9f435fa852796bb9e2e2e83a7ed96"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5218",
+   "prompt_sha256": "f896b2531b37cfb546989c3f826060a5f12df3d297e7a656fc64c4a461936dbb"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3508",
+   "prompt_sha256": "aa98f624c42a96d2d72261129282d303461bb8740eea767bdc0939b52fdfeed0"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-464",
+   "prompt_sha256": "5304083d03447017a971f16e457d7fa5b2bd5b7611aacb3a2f946d03fa340ed6"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2509",
+   "prompt_sha256": "c54138b902e14121b33eb46b9df708655ffa72ec770638df446bb000cfe30a5f"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2182",
+   "prompt_sha256": "f3798949a2d91d70c787708a86dae5944728f7d89e4c79feadf95563a66fb2bc"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3419",
+   "prompt_sha256": "9ab561e94c6746de0d9eeaf7a974cf32b4c12696191f74e07d01f69aeaef312a"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6585",
+   "prompt_sha256": "2b5765052da9200b2ac7b99cb451b9dca477889eead27ab20a04ac91432049bf"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1314",
+   "prompt_sha256": "70e6d328a6c9be16deb61b7ae970691d72c30e330d8cea5786dfa7abb748af4e"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4571",
+   "prompt_sha256": "70cbf3a8206e0563f70c974a1bd90ff9bc07ce1afacd746a597afe78c35b0398"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-468",
+   "prompt_sha256": "eaa7d3a59a66fb62b4902c9fefaf8aeed961ad6a0cc021670ccebfe1f91fd94e"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1152",
+   "prompt_sha256": "3e3c6fb79b831032d82c16f15ef354068eb4f297c9510153df76d842d65b8ddc"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-76",
+   "prompt_sha256": "1e9ef4c2e5eecb5657bc6effdcb8d8b53524fee2e8ca59bf73058a65c43667d6"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1134",
+   "prompt_sha256": "56b9e41be2de46412f11a0058512072e3bd49c546b1b692cc5762fe714555677"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-439",
+   "prompt_sha256": "aa43f1f7806bf841cef492f9a619776a2ae488f9092dc8222ff83f36ef8b093b"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2769",
+   "prompt_sha256": "1b4ce7e3cf0b5ba03d09c13205be26c888fa9d00d8415350443b71699032fb2e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-471",
+   "prompt_sha256": "ca772ab41647269d7335361580f4db687c879997c3728a556bd50b37ef113622"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5440",
+   "prompt_sha256": "280179d55d7be92ee724cf3b7b32f8decc8887044485bd321758851f9bd1de0a"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1406",
+   "prompt_sha256": "5a3fe77f902f7cbe8fa6135f5285c6c6ce2d11d28b5fbcbb7f82675ed8f5908e"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6491",
+   "prompt_sha256": "3a6b5c5aa026d98d4625648e7eb98dc623ade25b2ccc52e2713c3d7e0e739cc7"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6985",
+   "prompt_sha256": "b94405409c3ca42066c187325eaa6a6c2e131fb0f1dcea07522c3f96c6ed0f0a"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2462",
+   "prompt_sha256": "0dba8d147cdf163d2bae9eafe1259e6eb28cce375c071fa2396d3e41b38d4b9d"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5631",
+   "prompt_sha256": "1d54c42631a1d6c6874aeab7a1c8b8513cec0ef553927d9b03421a612a507d98"
+  },
+  {
+   "db": "pilot_record",
+   "id": "spider-train_spider-pilot_record-2089",
+   "prompt_sha256": "5f84f679765e5faba860f0474dd21bc42d0dd3afdfe0a4da9eeabc84485a7396"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1252",
+   "prompt_sha256": "caac1bda3e724a23704e113ae8b53c7e75206efc20cb87e50aec9b5d96749ea0"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6559",
+   "prompt_sha256": "811b4a93e22d987693b1dde42d6a67eaf8acfbc194987ed1f9ec7df8e9cd94c7"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2741",
+   "prompt_sha256": "a38d13698b9c37c21ed83580c68d3d2e7fca704f00624fe39272ca05fe0216ce"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-354",
+   "prompt_sha256": "d740369ef398a1d6c76885b92d0e229a60b085dc95b7d519a1dcf60c1bc9c752"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5983",
+   "prompt_sha256": "16f1448cc4dd80b6de8e0d0764fe46efedf777ac74253e2ed53dd32167da194c"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-352",
+   "prompt_sha256": "691b7f5ab6012e35f496715585cd3fc8b7c864a7250e8b3b3a249f6d42b66f34"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2400",
+   "prompt_sha256": "e63d8bd38b4020aa45d0dc83bc83e0584afd854a6d2e4d2183998bfdda98a897"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2863",
+   "prompt_sha256": "0cc1f9b4fb0b9197819b3193b9e97b27a6eb2689668d622876ae4e83e003a98e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-558",
+   "prompt_sha256": "5093a17a46221460c02e9948d980916c3ad8302c6e00c446ebcdbdd7b7f96117"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-367",
+   "prompt_sha256": "cadd79a4090b233df828cafe5e3555cb56e7719692b08ddfdd64fefbeeb95962"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2757",
+   "prompt_sha256": "a3708f003052c8bf5b8ad6e248e6b3fbcd612f29739530aba1cedcd29daa2a5b"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3826",
+   "prompt_sha256": "0a6066ddff3d5dd47cd4793c42cdf0bad46a0ae109a150c4f649b3ead12c83e0"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5226",
+   "prompt_sha256": "5dc3463e1e774a75eacdb6a106e3ea0d89bebcbfc0b940cb484273ebe7dbfe60"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4913",
+   "prompt_sha256": "bddc64f43483f9ddcbd5720eaefc1e5f652bfdefe6382b0363e9387739005c3e"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3843",
+   "prompt_sha256": "9b1dd133e1895a19de616962f966fe3166329b89f75e1bf904cfb5e8ad62bb80"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1210",
+   "prompt_sha256": "023f5728bede5533707a2be3ec33965180eee9d684ebac9b744c9d76816ec183"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-409",
+   "prompt_sha256": "71c7bd7141c6182335c591d788d32d1df9d179f1f84dfa9d45d7a313620630c6"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3411",
+   "prompt_sha256": "99e18e043aede06efee22bdfe9d28d2003fd83b51b075cfe9fdf6f0ea41e152d"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1674",
+   "prompt_sha256": "432cfb12c42d93dec2e2bc2b9ef2df82c5329083c72079d0d3309586a921d5ec"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-389",
+   "prompt_sha256": "65c7e7ddc3a0a2bf0c0337484c9006d5c3d70c9d7e751050bbd43abc6bb06ff1"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5176",
+   "prompt_sha256": "1ebc06b79d38e8458926357901a1af39b23a5fd288bc2572f1932b2be267ea7d"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2358",
+   "prompt_sha256": "6bfa577631f2c84596229f733a9b2d55d74db77aa8393c61c6ed6c6b77d2cab8"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5416",
+   "prompt_sha256": "be08ebffa74cb5a1274da7f2d8ed8afc88dbad0f8d91e76ebb0bd36e32b114c5"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4927",
+   "prompt_sha256": "64cc46da3c948fc110dcf000e5bf90b12654f26652df74d4e6233035dd96cfd3"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6570",
+   "prompt_sha256": "f2ff9cf84ab752dbcb68b9f9b91633746baf4de2dfab08fb51e4c9e8ff22dd33"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-183",
+   "prompt_sha256": "fa403225ba6a4091b066635b1130583b14f33ca49721cacb2dfb7a31cc69e6c4"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2206",
+   "prompt_sha256": "f86c93a106d4e4d4d0f646bb75f404446f3a16d57374aa3eb978cbdde6e5a106"
+  },
+  {
+   "db": "riding_club",
+   "id": "spider-train_spider-riding_club-1724",
+   "prompt_sha256": "cb88469478230dc28575e6e7529f63507c421216018706766529bfc7cf7d193b"
+  },
+  {
+   "db": "decoration_competition",
+   "id": "spider-train_spider-decoration_competition-4492",
+   "prompt_sha256": "402f44c2be3000b80053ecf4c31f46341866cadc0e6beb9c7f0ac7316c585a9a"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4559",
+   "prompt_sha256": "d1c435d4d9ab7a23762cde642b618198421892967717cf3ace09cc8dbd157ace"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6001",
+   "prompt_sha256": "ba46af209eae0a99ac3358055147e7cad8840d8d33e79be179435c799409b13d"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5881",
+   "prompt_sha256": "fc93483d8c1fe6c05a7efaff5218365ce77e25d5230f04f0b059ef1e6e97153d"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-169",
+   "prompt_sha256": "9cf54c17ca9cc76fb346ed77c646e834cb5614b609a2f9b8c511f48481d4514a"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4835",
+   "prompt_sha256": "24d7238c58a12b33740fda6adfc41ed17d3604589b007e1e49702830d3e3c271"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2528",
+   "prompt_sha256": "aea813a7316478a9e3da467401f90213b290e5559807a35ded5454a9d1ad807e"
+  },
+  {
+   "db": "customer_deliveries",
+   "id": "spider-train_spider-customer_deliveries-2850",
+   "prompt_sha256": "52ca41c8ce8a2d3fc25f65625898afe228989e757bcb13a0e7e39f373ba27b3e"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1274",
+   "prompt_sha256": "b3a141d7ad1f1c2b3550b4f93a77955b6f383fe0655227243d74ebae5211568c"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1275",
+   "prompt_sha256": "3ac5278758a29daaff7f246ccffe362a42474565ffff81bd0d99ec0ac4189065"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6250",
+   "prompt_sha256": "95faa3a684e217747f009c58b9a2c10f763e6856508e119d933536b031787048"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-473",
+   "prompt_sha256": "f0eada4e7a23d148e6963f860ecf1afdb3fb3794955c46509abe59416861dc09"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6565",
+   "prompt_sha256": "aadae1a6fa915bfd10749525dd094726608d777ad295ce9ec614e27eee6f2dce"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1226",
+   "prompt_sha256": "673be516d0ebc31f79d9a45c1f2fee4622785348c42d288751d29d3528dccba9"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4578",
+   "prompt_sha256": "2c6a6070bfc016c6e6cf9ac79345ce949a9c11afe17e7aee85c3dbf32b2d37cf"
+  },
+  {
+   "db": "local_govt_and_lot",
+   "id": "spider-train_spider-local_govt_and_lot-4846",
+   "prompt_sha256": "33ccc69b9937117567790d47c334b4cf2e89a4a5ef42b72bfac5f37a1c61c9a4"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2359",
+   "prompt_sha256": "6cceb0b1433cdd5f5a9b2ffa15e05105f9ee6f0ff4f23b6555378386aceaa772"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-24",
+   "prompt_sha256": "5e69b29c7d6ca34b75f58548ee9e8954aa120f859950e9d3ea5582eb91b3498d"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2160",
+   "prompt_sha256": "631f9b19dc929046a3171892fe0ca387b30d5891a0411a537c742eb39554cfa3"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5183",
+   "prompt_sha256": "a3945985192d50f79f86dbc11789b4a20f1a3b7b6dbceb8d04ab444c6b9f17c2"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1186",
+   "prompt_sha256": "05fb200b365f78093678bfbb39949d68e0a9792708c22a4c033ac30696c7bc03"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3811",
+   "prompt_sha256": "324342f8143ec6074285d9f77e5206d4e63b25c94bb44e4ae9274c8f09a3c5ad"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2304",
+   "prompt_sha256": "965b9c57df0dd350ca97cdd1c3686e0807d9be99d2cd9b583a9d5f4f55fd400a"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2899",
+   "prompt_sha256": "ac009a55d148d0e0df5f4f840c00568026a6cbab9758b65382f28cdd688d3012"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-104",
+   "prompt_sha256": "dcba00236e776ce9e3859116118f11ed859b965606e354bc771e04cd4e489cbf"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2311",
+   "prompt_sha256": "34a185e3b02a2486548e2acaecfe23a9bcc76fd7cca5df00a5b1d36bf80837f9"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1400",
+   "prompt_sha256": "229bdc7cb085d25640c2fb363a8a74ed3b8af36085ff6bd599ca6b59f2ecac66"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6577",
+   "prompt_sha256": "fe51f25f7d75b509e2736d8ff098b9d47fe011174aef150f5d7f07287d7942c1"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5619",
+   "prompt_sha256": "4ee1ae09289fcf0cdae5e2d00bfb1c129d36225b8e8f855195dc6c30809f78b7"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-153",
+   "prompt_sha256": "e74ee3c89f2d558b330fa0eb4331a13f9c7bf7ccf760f90324ef3888418f7951"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5187",
+   "prompt_sha256": "691fc4ecd3cdf43d305bdf3e6aed5be3f1d57047e31d70d78a37f60e8118eb1d"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-410",
+   "prompt_sha256": "550d618d8b39f83a43e2e2933bce5ac4aaa28adff7492f94768cd1b794d9a5d8"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3842",
+   "prompt_sha256": "f6a772bb49a0ccb54914c8171b5bba9979d7e5c1793e83463724eea4440ef681"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5828",
+   "prompt_sha256": "0663669463622f23e9ff07baf67f477ce7ecbfdf214408e4ca07884e8ed3778c"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-352",
+   "prompt_sha256": "5e7084a44ae7d11aca4abf2cb8b0f3907c12484dc40c7e112695d67c24e7c0f9"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5235",
+   "prompt_sha256": "c97939fcc10c5ae7b8d59e63392b3e5ce5780d5e40f9c3267504fce2ca648b73"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-374",
+   "prompt_sha256": "43680a78de583623ea4a69b2e18abd799270f7f6d0062cf33fbf9823bbfabe2b"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1141",
+   "prompt_sha256": "a496df8228cc984a8cfe87afc08ec50b96a4002ea67ca40d519be46b5f102e78"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4825",
+   "prompt_sha256": "812450f791e8b6412232f28ffbc02581683bce6f7c678d1109e34439d3057496"
+  },
+  {
+   "db": "customers_campaigns_ecommerce",
+   "id": "spider-train_spider-customers_campaigns_ecommerce-4624",
+   "prompt_sha256": "77658975549c431fc00749b4df404f429eaad7ec7edb1b99e4b07d12389b1b96"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-446",
+   "prompt_sha256": "9a1e59f6cdaa070d9abb6f7f1cfcc4a1e5d07d8d61aa08b66c952cbf3372dfb5"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2308",
+   "prompt_sha256": "f165067ed21a62baa6f9459f01b75cddc7c63d3d78dad365669c02795e52b8db"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5234",
+   "prompt_sha256": "1c56e4cc93a3ae5618ad87bbfd89cb30275edbf6b92e72a05a152d2b764faff0"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6251",
+   "prompt_sha256": "a143a7472aa0d71ce58256125c03a0172e5604f160a144c70465d2568c857d79"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-112",
+   "prompt_sha256": "6bb26eaaa8c6152dc5354f8326fea7d6c07b11b7560c41996756621371c4844f"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5192",
+   "prompt_sha256": "f54f80e6584ec9cd88b34ac73518cc0221c9e2aeed64fc4af48788c553654ce6"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-163",
+   "prompt_sha256": "a6a22af12a2ae990cbcd10cae21acf6158085d76b6058acb86bd86a9f40130b5"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5085",
+   "prompt_sha256": "324e83fdc6e770adda31b0939d905ecfcd434dbe211be70d86062dea1913dd4d"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1225",
+   "prompt_sha256": "2cc76d53cc20e82dd28db18c64c0ace28e74bea5807b06f3485541916c44bb5e"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1399",
+   "prompt_sha256": "028c272685cc851f24df9ec601481e6bc40cd3635bda5dccce9a933a0933bb02"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5842",
+   "prompt_sha256": "a363a7e3345245008e38bb8f49f7be82ef4007b9453efef7cc3974a4b69427c5"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-74",
+   "prompt_sha256": "1debb464460f62897f60a0795b1e071b2e38596477503e41d190a1e100df6268"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3479",
+   "prompt_sha256": "191c5505193b4225700f464c447558d92c4d5276cd146695980224d33b814753"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6349",
+   "prompt_sha256": "acafde20ce8b0cc439a9632ff56dd9d7d7e70700e3e96ddce92964f84f79b8a9"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1402",
+   "prompt_sha256": "bfb04d9e653e8a1115288b32595853da684d932a3fe22247400e4ef878910b9f"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-406",
+   "prompt_sha256": "5db615178f2938ab896faa66b2c5155ffe351a335ad945b483b914870f7d8360"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-19",
+   "prompt_sha256": "62c6865a6575045f98a7fcf1f22ca1898f0af8952afb19f5c4ea55ff1b2663f9"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-440",
+   "prompt_sha256": "46e2a86458203011fc381cbb49358577a4962bd58524023446b2d57c6fbf96c0"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5184",
+   "prompt_sha256": "9860ec88e1de5bc312ec8777a758292e025a63f828f2d30b01e6cb085cac0941"
+  },
+  {
+   "db": "store_product",
+   "id": "spider-train_spider-store_product-4938",
+   "prompt_sha256": "ffd50571bd1fe9a9e66bb39a423af098f82db8f8254b235d7ded2d843618d4f2"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-117",
+   "prompt_sha256": "a5a2c6d8a33107d58ef8b900c176b01ccd03b59618d544391699c689633982df"
+  },
+  {
+   "db": "customer_deliveries",
+   "id": "spider-train_spider-customer_deliveries-2848",
+   "prompt_sha256": "c1dd97d682751db7567b3e12f69809c23a29d63562343aed5e3ab07e97b93fa8"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6547",
+   "prompt_sha256": "1a6a06c8c6ff60927ff9c8e8a8c754eef30dd86b287b7340c5121a9e2de797f3"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5429",
+   "prompt_sha256": "851528654bac621f459c6d57da4a145ef3b7cfebfcce2836ec58edec0ff3b0c6"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1145",
+   "prompt_sha256": "c672fd010e54492c115ea30017a5a64b715661488fb31aa3d949e112cf10c0db"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6572",
+   "prompt_sha256": "2784b76988142705287eca33d9382d8caa5fdfd6370d941d4fb3489c44017845"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-165",
+   "prompt_sha256": "9acb4f0138e7c352e7335eab307624d6b989870c2199d5f3a0ae495b0495d3f9"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1397",
+   "prompt_sha256": "0f4cbbae6c103dbd4a82088b6827f6c4e78098ac99c74b3d175ad0d8fca85baf"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-916",
+   "prompt_sha256": "1c701031384689b8d949bb93e4088ddc6614e3a37dd9c22eee3771bde15c8f34"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-186",
+   "prompt_sha256": "aba2b093ce7f1791276a0662361ec05a5c3f11da3f3ffa6206b3fe1b59981cfb"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-401",
+   "prompt_sha256": "10ef6e55cdda3de68a26ae7af9fa338aaa06fdac18e81bac3c30f8c0edbfa143"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2516",
+   "prompt_sha256": "841c12cfc122e895fc67e8b989c993da57df89e3eced5b1a223b311fb29c5290"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-213",
+   "prompt_sha256": "ceeab3cd90afd0bc186b3d16b6721b41d2128d0f328584a7e0b467c0ecc8c6ef"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-458",
+   "prompt_sha256": "c8c58cb3837a528f2078266c2963e2752fee9a45b37785434514a63e1aed6b81"
+  },
+  {
+   "db": "perpetrator",
+   "id": "spider-train_spider-perpetrator-2322",
+   "prompt_sha256": "9d2b0e638a7138d4170a2af8fef6734101935dfe0e45e22c13a6bc180d6d17e1"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2339",
+   "prompt_sha256": "ac9a40ad41ac69471d4cbd065f15b8856de512b4bc6606424b26d41e3d24dee3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-367",
+   "prompt_sha256": "e15045c64c75c3e8672693ee329b1f23c5ab785a928af1d153ff0f56751a5470"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-29",
+   "prompt_sha256": "0c3f90d07b211a74f984dab58111f10e633d15fbfd87eb1c64c69f0fd3cd3a16"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-485",
+   "prompt_sha256": "c8f78448355feb820ea1b4b5324d9ae18a56c3a5326ea9c925c0f9fd113b3ab3"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-188",
+   "prompt_sha256": "b8e620d88677439b4c51afd04324d554d6ad7e6cdd23b94d964cd55c1515d14f"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1296",
+   "prompt_sha256": "34946ac5d9efd7c986130788e602c7af2bd21eda0124e9b566d2717dbc098524"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-923",
+   "prompt_sha256": "cf46b0faca603553a00535bb39d5728ce10f54d13cd512347187326b61d07aa1"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-432",
+   "prompt_sha256": "a8ca8f5b6cd628f2dbada3064636d5f891fa145297bb2ecc91fb86112864beb0"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1223",
+   "prompt_sha256": "0251d87e4a6d25dcf090b685f29e11616ee85c859be7ce3d16ed86916a0c8df8"
+  },
+  {
+   "db": "climbing",
+   "id": "spider-train_spider-climbing-1130",
+   "prompt_sha256": "fcf7bd6756ee42ee6d9aa148193e872ea902ee5fb707888351687f4cdd050d30"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1264",
+   "prompt_sha256": "16547f93236afbe2c0f5e54fdb955f82becf20de9e682929c8f7dfcd011b5005"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6361",
+   "prompt_sha256": "139fe27dbf217d87bb66abfa226194541332efb0c2ad7262ca83464ce5589824"
+  },
+  {
+   "db": "storm_record",
+   "id": "spider-train_spider-storm_record-2697",
+   "prompt_sha256": "6ae2facec5b01ced766162b58b79386e19e44f9254d020f26613c384b533418b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-118",
+   "prompt_sha256": "7552ceed66b2917a2653fc1f55f09c0aac2777ea774870103cf621f3e8340aad"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6359",
+   "prompt_sha256": "324cfabb420b6965910d746aa17c072975498e16a8f8dd4ebbb916c23455fbf1"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2385",
+   "prompt_sha256": "7bdae6f13cbcf4c8fe0c2e84049d09b88900d03ce565fef83aed45c506f3f6b8"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6524",
+   "prompt_sha256": "bf4da842eccb9d1be025d41fed33fd24211bb824d64a07ef993cd515dd8cf860"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1410",
+   "prompt_sha256": "8ee956321bcb268ec7e962420e9507951927a01b5e54f8863c714f34ddeade6b"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-190",
+   "prompt_sha256": "5318c6e1d70a222626704855aa5f6d626a5562f3e1cac029a00f8f80217cc177"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2390",
+   "prompt_sha256": "7958d71acdb57d4a9b639fdaebefd5b19cbd9565174b5316805ced56162766e0"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2355",
+   "prompt_sha256": "4f2d33dcef236856f0e56f392969c5f576761254c1d5dd306a076c39be7b6a9d"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2483",
+   "prompt_sha256": "1fb6abbe17b901015ccea1286ee356456a8085bdbfa198d34bd87459668fefc5"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-286",
+   "prompt_sha256": "f231981502a5a1db4da701a855aefa3f185ec4e746ccaf99405bf94fc90d6f4e"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6034",
+   "prompt_sha256": "9cc5fd4db922e407c820373b181108082f6c9c197bdf1930573d74d6ad6435b6"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2520",
+   "prompt_sha256": "ffe5eec6700825e55a476bab8aff16ca7195bc40f5666e6fee524c49ec4f5d3b"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2496",
+   "prompt_sha256": "80104ccf20d1487050f1e6ff2274a8752a2f8c6ce7b0341a1ed4cfd529dc0852"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2795",
+   "prompt_sha256": "46ed0d85192b49e20fb74b84c6b54f044d04259d8c15c94c26555bcd6f321c8a"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-348",
+   "prompt_sha256": "eb50fd423d656c48d6127d5334856f95ef2eccde8b0c42a5a4c79727953f20ee"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-917",
+   "prompt_sha256": "1f5f7592a870bc2505a66a92d3993a269c5b7087830dacfd71b55b4cf9a29c70"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3511",
+   "prompt_sha256": "23800da9e37e48a0c4a53d703b091011af85c5b1b6f51159aea288a7dadbab91"
+  },
+  {
+   "db": "culture_company",
+   "id": "spider-train_spider-culture_company-6987",
+   "prompt_sha256": "1a08338001058b14057da9fbbd748202c41e04c286d0dd8bcd54e346037fecc3"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1302",
+   "prompt_sha256": "e66fcd165d951969a7f1f5a017c4fe753b9ec5d90c9df1ca912e4e86084abd43"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-124",
+   "prompt_sha256": "cd2b5af218ed6f95e6497339e20f2310f7cd8d75f8189e751ac538b149e95d23"
+  },
+  {
+   "db": "customer_deliveries",
+   "id": "spider-train_spider-customer_deliveries-2847",
+   "prompt_sha256": "154329874d5df3faacf04a594fd247db9d0dc20dffd2ceaf76619958d47eff28"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-539",
+   "prompt_sha256": "a164fced2d88b04f053403e74ea4c987e90b2b3b4a24a1784ac32033fafa1d2a"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1656",
+   "prompt_sha256": "f10e42b70f493e3c4d00e781c21121be2954847be82d03bd3a2ee7c86f3c7a7c"
+  },
+  {
+   "db": "local_govt_and_lot",
+   "id": "spider-train_spider-local_govt_and_lot-4854",
+   "prompt_sha256": "68c27e76ff8f6b77e9401a5b7567088e1c229dfac78998712d38c720857a37e4"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5830",
+   "prompt_sha256": "e11925a756a65b5874fe3ffeb02f1dff00167e62fe3b322a410a9a04bad6074e"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-424",
+   "prompt_sha256": "776c68ee8b6774e9768f902c15a8519efcd8fdabcdd038231ae0b60f40a0f0bf"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2399",
+   "prompt_sha256": "afbed12fb50a09d13fdd79df1d78d82738f2f6c4a1ca916df38e52b39dd9a99b"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1187",
+   "prompt_sha256": "c6bcc81431002c6a2d5fd0f7e063f525f8cffa1beedc6164ded70d957816b8de"
+  },
+  {
+   "db": "mountain_photos",
+   "id": "spider-train_spider-mountain_photos-3723",
+   "prompt_sha256": "eaf2c981b8d02aadeeda998e28439775368ec8c2a05fe19c07948121dc2d0ae5"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-289",
+   "prompt_sha256": "70b8662959758d0b5ae692f0f8b7144e17bc340f5fd4c62b38aae93f4d36761d"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-5994",
+   "prompt_sha256": "6529f181f32c6125319ddd153d48d90d4e3e1fc40550ca9efe8783fb412c9e85"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3440",
+   "prompt_sha256": "519cd66a2e5f7be398c6df2897a074f47d974c0e60d94f6d2751aae84b55c0fe"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-368",
+   "prompt_sha256": "f47ddbba7334bdc2aced8d45e67968a68765e764c278f827268f2c99a116c270"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1527",
+   "prompt_sha256": "21cf35356d028c5ff22c1e322a26166ba59d0bf19518cf099a958ecacc1c57ea"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-417",
+   "prompt_sha256": "efab5e3bfe6f8186a8eed22c60ba4e5611261301a7c789492700c70f45571559"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5065",
+   "prompt_sha256": "66dd26a94ad4d894448579e5b717ebe424d1b25633b000c81aa8fe33d9069d15"
+  },
+  {
+   "db": "game_1",
+   "id": "spider-train_spider-game_1-6015",
+   "prompt_sha256": "a067f96326a9c48058ad858950937ff585c2175c6e318dfebc7c93f0801836a6"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-525",
+   "prompt_sha256": "55e6689b45b800a4fde9f158b176cb71c6139d311741aba5d71f394c1b040689"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-474",
+   "prompt_sha256": "d2dfd366d50619551568d282a70b36efc92a0426a89973517025595586855a15"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-416",
+   "prompt_sha256": "6945694e32ff0b272433de1da545abbd3830936b805166369d8662a14664bd4c"
+  },
+  {
+   "db": "local_govt_and_lot",
+   "id": "spider-train_spider-local_govt_and_lot-4847",
+   "prompt_sha256": "09f03b1ba530426c368c3163a5159440d311c55a15fb7ced067288436ecc64cb"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2475",
+   "prompt_sha256": "b7b426f971f30f82b72df02cb7f55b763c2314475a20094f5b3367d47375672f"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1392",
+   "prompt_sha256": "69135408c49c0f3d27d097308879c60b74861c771d2d5bfcea40241137c034ae"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6220",
+   "prompt_sha256": "85d3187cbac1bf2cf0a058911eae87c926d4757320329dc403689cf49da82108"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-371",
+   "prompt_sha256": "236d430692292ad013dca724e1ccfb1e72253332bbe0a13acb3d295785b878ca"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-325",
+   "prompt_sha256": "9c6e149c91df94d0a1ef93999adc41c3c2c19c7f7802694eee38189ca603bc92"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3507",
+   "prompt_sha256": "2d3b8aeef90c20b29e99ab25b45c6f4d3f90cff6b00134718edd15bf2feffd82"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2176",
+   "prompt_sha256": "51b3091a9942eaec736fa95759472af58d5f3e90d67c2db7d9625da6e4e22a1d"
+  },
+  {
+   "db": "aircraft",
+   "id": "spider-train_spider-aircraft-4822",
+   "prompt_sha256": "ab00f44f13118d4fb15bffa6da550ef98bb2d617a8f2fe84f919bfa88b5b4924"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4556",
+   "prompt_sha256": "c97bb4e3c9491c898f3c4aa6aa31b88e1f4d0d3c2f65a72d8367bb82ea590519"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1409",
+   "prompt_sha256": "aff40a648aa59b6c2f4cf4f82d3a5cc0beb9955aea8295e385903b2f2c75fbf2"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2790",
+   "prompt_sha256": "1856e3ccc1518835c068186d70476136f0776b07f9a98df756b9449ce8776adb"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-206",
+   "prompt_sha256": "2fa94c48bf786b1206a1fac33ae416861376426cc1fa6ae04c699d08f3dad73f"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2205",
+   "prompt_sha256": "bca7b72106fcb0bc836735db9507c7812fd7f348327e3752393b4225ee11b243"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5229",
+   "prompt_sha256": "85f7e99fcd9f6781f46a9bac47321e128dad8da0fe5c02c53655a577f9d13b0d"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-272",
+   "prompt_sha256": "6246947a368f1870c97ebc196b48d6717dbd1209cbdbd7238df23a6b94b09b25"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2777",
+   "prompt_sha256": "23d670653834904b091a59ac06b2d259e57cb0833f63b9aaa1a836b1386496b3"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1335",
+   "prompt_sha256": "2d57c3e9ad73254a3156349c55e496fa7310029adc743011bf5f7a344f1014dd"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5203",
+   "prompt_sha256": "97e91ae6c04bbc92f128c6cfa97d1633cca13e0cdb35c55937acfc0c206535ae"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1413",
+   "prompt_sha256": "9bcc83afdfea98c406cda023e3d02245ef166d8fcd4229be91702bd370489e5b"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3466",
+   "prompt_sha256": "009a77a437fc1861a1f6c2f356a7516324387e6caa80f8a357c3978707f24c82"
+  },
+  {
+   "db": "device",
+   "id": "spider-train_spider-device-5058",
+   "prompt_sha256": "d3a9d629768a1f0064c67413ef38391303859c8d10d6ea388c77094b684c7c06"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5248",
+   "prompt_sha256": "5cdc8cfb5b3bce1ab050bef763655776bf850e7306412ad4374b3d8052c601da"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6272",
+   "prompt_sha256": "0c29a36152d10e4cb663ff1bf1b0f0cffeda9c6a1351b7cab9a7f61c14726691"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-126",
+   "prompt_sha256": "be3eba144b2417b9c9dcf4affb154a59d90c7fa8fd927074623650c0cca5e897"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3776",
+   "prompt_sha256": "5d23f49ac5bc7a9510cc1a380e5ef2cfc1dbb131f901f6d04cb42fa582baea09"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5426",
+   "prompt_sha256": "faed6b0799f1c9d553653697a5ebedca6068f98e249ecae1d33cde5d5358c6b8"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-239",
+   "prompt_sha256": "fb17dc7cc4a02061639f3e8416658255d27eab91f38eeee9d9868f09d021ce29"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1245",
+   "prompt_sha256": "9a898af24d5724450298a211243721abc8d5e9239e7e6d4024bf5e3e96fdb2e3"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2374",
+   "prompt_sha256": "866b2be84fff9a09bddb9eeb3e2a58889b9700925f3ded74628c985454bee226"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-270",
+   "prompt_sha256": "dedbb034a9d5305b0b323c88a0afa66137b56b03c268075b48c35e0dfb76ffce"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1513",
+   "prompt_sha256": "2c986231bc20cfba72b74447e000f9a73cdd906c5c1c35ccaded5229f2038fa9"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-177",
+   "prompt_sha256": "8bd5e2af5c86fe15e9ed64e5bf9301e0292975415447c09a7d3d80f11e95a21b"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-502",
+   "prompt_sha256": "6ec887debe18062d791e863139bd288a35f0a8eff7fa0439958334b8109c95bc"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-383",
+   "prompt_sha256": "91edfa63aaef989570f04f8425efa5c3f9949234c46f9aba68428f0dd4a3d503"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-196",
+   "prompt_sha256": "b086a153aed9f36f57e6734c3a11b014556758c6f90954f22e6ed00b7a4e914f"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-121",
+   "prompt_sha256": "c85eb783f3e3e765c8262c0cebc579976ea8bbcc07ee62b797fb58f16690ed96"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3495",
+   "prompt_sha256": "ac82b3e4551bcc55e9df3e973bbd36101ced83eaf99d1206fc6280780f470d4a"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5258",
+   "prompt_sha256": "fbd8c7039b2eda91a0c8a14a261a76d82b589d7e907e2e4be6b25a7b90b14717"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1664",
+   "prompt_sha256": "3c60d7aa068b7b9f55ac9ac1eb01ba22f66e448804c057e51ed92072b686f07d"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5414",
+   "prompt_sha256": "279deeeb856d1b659fedb0d49d833e562f1dcd18457d748f8d7ae148e27bc3db"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2201",
+   "prompt_sha256": "870e21af32b0ce521f26b36714168a15aeb5d1f2e6f86b313abb77f8716462b1"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-174",
+   "prompt_sha256": "8c71718d627f00661cde707a3e83e17bfe1713df2cb4f178a0b6cd7a0d8b0164"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3806",
+   "prompt_sha256": "de0505c0487da82dc0daf5c38f5ef5adeacf45cb7686f670648445b549a27b91"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6526",
+   "prompt_sha256": "f1ab6c86d4deda0470269d6157c424ca982b923fef625ff9061127649fa66801"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-383",
+   "prompt_sha256": "eb4fa793f8b6fcfac60af0e9e2679917b4d9ac08dcaaee19ca13a69b0ad4fd2d"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1157",
+   "prompt_sha256": "a35a990539e535984598a35d935de864bdc2a9ae2b9cd33d0ec169e0ee1f013c"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3454",
+   "prompt_sha256": "3fedebae2c98078fdf7429645638152e3de298af261b47bc98cfcc150d3d833e"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3528",
+   "prompt_sha256": "c7a150c08ca4aeca4b8a1ef880d7eb367d97ea0c7392100e1c8c2e2d6ddb18f6"
+  },
+  {
+   "db": "bike_1",
+   "id": "spider-train_spider-bike_1-162",
+   "prompt_sha256": "b09a6340e5678a4cbefe0473f68875319eb274e29ceed04816d5598b8988f58d"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2407",
+   "prompt_sha256": "5add82b172e4d75ebca1b54f5fdeab7247d014798546f499f07e052f583f2036"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-10",
+   "prompt_sha256": "5302c28a6cab1ab8a32147df6d14d26aa844b957c08032d661a1894ee8b9c531"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1277",
+   "prompt_sha256": "2ad02312737b77c3f37c6d0f0054bc5fbb1f04634d0b1eed5ec2fd6ac9ec6335"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3468",
+   "prompt_sha256": "993f1e912c0baa51f135301b14f90807067938051567249ca58508294632f1d0"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5877",
+   "prompt_sha256": "bd3dbdef324c4c98ebcfefaa66a0267db12afaf04ac6c6eb8b0b75be491c70b4"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-159",
+   "prompt_sha256": "33bbe494a7a278e1a056ccd420d73c6850f0b8aa80e5330e940d26af27b62fa3"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-235",
+   "prompt_sha256": "d6ed84f810d5f0e6ff1bc0878a498571a57229bebe378ec5947cef373af51b7d"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6350",
+   "prompt_sha256": "46a00e550e173189e76070abcad6aad3c9df178f82fd87310c1840c647b82805"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2743",
+   "prompt_sha256": "d937f9488f2275ca8bbe9f8eed59c3ff8621536a34a896a9631e4e997fd09c01"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5829",
+   "prompt_sha256": "80b0b3ff1e41c65f52aa11e50203952829ec1a773ec1c44504a7191e237bddcb"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4579",
+   "prompt_sha256": "09054b259d28eeaf93a4c6f418300cebd53ac782edef08ff6500a77ffa9de0f4"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1276",
+   "prompt_sha256": "55b7a6cb892d8908d52abeae5ed36688785e8f9ffc4384a2535ca7865395aca1"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-362",
+   "prompt_sha256": "465b2294a1af70b6af2207ae5fd053a0673202cedd878f278a3207a41d12c262"
+  },
+  {
+   "db": "candidate_poll",
+   "id": "spider-train_spider-candidate_poll-2406",
+   "prompt_sha256": "1b341edf52900209523c6f0632f1ab7fa8ed997639ebb55483ec6f7d3aad1699"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3486",
+   "prompt_sha256": "1709d10ad9194dbb35ce6474cb75e009133dc3c9f47625016ae17a8322940afa"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2469",
+   "prompt_sha256": "c3c1212b69363700c6937462e077dc463d5761608d4a5ae8e94fc1a764578785"
+  },
+  {
+   "db": "insurance_and_eClaims",
+   "id": "spider-train_spider-insurance_and_eClaims-1517",
+   "prompt_sha256": "641ac4fc52f024e465583e857644e3aa59d261d4aaab3930641ab05d42cb0485"
+  },
+  {
+   "db": "insurance_fnol",
+   "id": "spider-train_spider-insurance_fnol-899",
+   "prompt_sha256": "46078e8ded1e7e58118d47ead8d362b429c9c77309edcc70cf1a36bdc84fa4ea"
+  },
+  {
+   "db": "theme_gallery",
+   "id": "spider-train_spider-theme_gallery-1680",
+   "prompt_sha256": "f8ff0fd419b799ade1cebad8e24eebaf3c1ee82d28c8bc2090e07d73abf11b72"
+  },
+  {
+   "db": "e_learning",
+   "id": "spider-train_spider-e_learning-3799",
+   "prompt_sha256": "07166481472f2c52a6b7e1437fc795a9c79faea107bc461a903fb4b26b2bb126"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6499",
+   "prompt_sha256": "b1bdd70f8e2d7498e626b380a36de3ef7d31185921c8169c72f6f6d5502f8eeb"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-258",
+   "prompt_sha256": "8f845ad009969e970b78f89f2b67e7e2e3a93438642517b995fe27da3a91adba"
+  },
+  {
+   "db": "company_office",
+   "id": "spider-train_spider-company_office-4548",
+   "prompt_sha256": "cb4acb9ff45dd2b3d73a1987ba902d92d9ace1eb1bb87030084a0be03403ab21"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6537",
+   "prompt_sha256": "45399abab317a4ba615f4849aef9c7e137d7886aba8a7561a7595090a567c656"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2734",
+   "prompt_sha256": "d26fe7163b535a9a23b3c99610cdab856a3bacf4907e65bfb3276f07b12a1e08"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-453",
+   "prompt_sha256": "c060d9056fef9cbdb48db38d7fff5c736736a8aa1bdad893ae35a4416348d4ff"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-129",
+   "prompt_sha256": "cc37f9d65d2aa74597881f1ef77b8d8f260593d28e8801386a8e1da405553464"
+  },
+  {
+   "db": "academic",
+   "id": "spider-train_others-academic-1291",
+   "prompt_sha256": "f221b5ba0f0996034bf5b939d631fc472018fb4ab7039fb127f171d9e31783b5"
+  },
+  {
+   "db": "game_injury",
+   "id": "spider-train_spider-game_injury-1283",
+   "prompt_sha256": "f8c589ceab633a59bf372d79273d7b9694069ceb27586929e92e5e53145b06c8"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1193",
+   "prompt_sha256": "61d3d9668d3f973da5526a284d64cdabf40f4669f8acbe666b503552fd58bd8c"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-249",
+   "prompt_sha256": "46209a07d7ca15e8925aa0dca55ea5912226c3823fbbb6a5a8229970d5fa818e"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-297",
+   "prompt_sha256": "8609b2d1dd9556372950c448cd9d433cc06d619eb980b5e7b4a71eafede4be8a"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-327",
+   "prompt_sha256": "d758baf57fcd8b6f556dd32515a6c0366b9c7daa9c47135916547caa1acaaa36"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6576",
+   "prompt_sha256": "fa1d8290c9d0e7b070cfa26fedd3a13d4a0ba396f7812143476a8f8c501f6505"
+  },
+  {
+   "db": "scientist_1",
+   "id": "spider-train_spider-scientist_1-6512",
+   "prompt_sha256": "3630bb79f7b32de70d528e4c4efbf8063747c74235bd26848ebe625ac600334e"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-398",
+   "prompt_sha256": "452a1b6136e4486aa2daee065fb20c5651ae16cc89916632139312b1207a8eee"
+  },
+  {
+   "db": "city_record",
+   "id": "spider-train_spider-city_record-6289",
+   "prompt_sha256": "b29683301d0b2cdcd4bd946c6e31e95be18e506b47c28415811cb7b822bf1fb9"
+  },
+  {
+   "db": "flight_1",
+   "id": "spider-train_spider-flight_1-401",
+   "prompt_sha256": "4b4c60e1bbee7ad60c06e0f730d2c731ef5bca0ce50f47f47055b2f135e2286e"
+  },
+  {
+   "db": "icfp_1",
+   "id": "spider-train_spider-icfp_1-2909",
+   "prompt_sha256": "20981853f129853a6f2eac2e83ea02155862487ae12266ac9d84fc6607b90426"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2183",
+   "prompt_sha256": "c21aa7f2ffb0ddafb227b6eb208335b6e081b5bdbd081c195f380f73d055d77d"
+  },
+  {
+   "db": "election",
+   "id": "spider-train_spider-election-2735",
+   "prompt_sha256": "9b474bc3e531f173e3801870cf014e2e8cd53f1610236d5b9d5044e3abcba37f"
+  },
+  {
+   "db": "ship_1",
+   "id": "spider-train_spider-ship_1-6257",
+   "prompt_sha256": "974e34a0e9f1cbe2a81b9bb47a0a8e19fc32d39a024789799585de2ec82dcb51"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-544",
+   "prompt_sha256": "d3994aee8d983dc7e98546637f84babc94a9540ff2e9b53a92caff9ba94ca4ee"
+  },
+  {
+   "db": "csu_1",
+   "id": "spider-train_spider-csu_1-2363",
+   "prompt_sha256": "6d124daca84c3749e735dfe8406ec5490b8d5cfe9d29f1581ed78d323b09f6f1"
+  },
+  {
+   "db": "tracking_share_transactions",
+   "id": "spider-train_spider-tracking_share_transactions-5849",
+   "prompt_sha256": "6909a18b830b3e7a385e9d6829f21f8ccf53920a08be61ee3a9fc90689be2618"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-481",
+   "prompt_sha256": "3d33c51b62899d4954d13f10a296efa0f4f4b4f0029cdc2552f9bc450f414b13"
+  },
+  {
+   "db": "formula_1",
+   "id": "spider-train_spider-formula_1-2185",
+   "prompt_sha256": "cd2fdaaef7dd5e30be45991acdcb1c8624a4519d079744fb31cab624c25bf892"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-393",
+   "prompt_sha256": "9ea7ec153c22f73a68aee31e7be7a30ea50db04dc8a49e031a1b0e3823f13d5b"
+  },
+  {
+   "db": "shop_membership",
+   "id": "spider-train_spider-shop_membership-5423",
+   "prompt_sha256": "cbfd577b541245f4752bd6877e9ee7f7cbfbb4ce0e83b0e9218281ba8106ae34"
+  },
+  {
+   "db": "hr_1",
+   "id": "spider-train_spider-hr_1-3463",
+   "prompt_sha256": "fde64c7f8eea71cd84705414010c3b8e319405b1b2c326241ac30411f8ac4954"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5259",
+   "prompt_sha256": "f5b15d25747b2e196737022ef82624cd8a4b1a2b112f223d7f0bc387814504e2"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6598",
+   "prompt_sha256": "8409192afe272bc5a0bc6db897597535c6fe4027950558c3063394b12694613e"
+  },
+  {
+   "db": "workshop_paper",
+   "id": "spider-train_spider-workshop_paper-5822",
+   "prompt_sha256": "f945c606c93e05333239b3bd9a7a69fedc645d5450e73d78d52083017f1b82de"
+  },
+  {
+   "db": "school_bus",
+   "id": "spider-train_spider-school_bus-6357",
+   "prompt_sha256": "77eae767f6992ee096dd00fe71a34be983f2d3165afbab2d577b73323c0c9f57"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2494",
+   "prompt_sha256": "a2cb82a85a94a98c309f3b313de758339c250db0d5988a41f570b15eea0f4939"
+  },
+  {
+   "db": "swimming",
+   "id": "spider-train_spider-swimming-5623",
+   "prompt_sha256": "36800863b2c7bfbdb1aa26379f2d95a7cebef5ba31f22f362d18d5a25c50f0bb"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-556",
+   "prompt_sha256": "2026d4b7219c844d3777f74f4719ec495312e2419673f8b7ae7af4dfc2091560"
+  },
+  {
+   "db": "yelp",
+   "id": "spider-train_others-yelp-1235",
+   "prompt_sha256": "8147d9dcdcea5a11c11da3f1826cafc703b84a163fe7423c539499e18c6bf739"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2523",
+   "prompt_sha256": "0e92e207d68c4e6db79eef4af1f4d8ae4f5e1cf3261b4d5f2bfa8634ba2aa672"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2443",
+   "prompt_sha256": "546f8689ae1869d0a5e6d9b8ba61e523c811c3ef40870d775a89da6bbdcc60f9"
+  },
+  {
+   "db": "wine_1",
+   "id": "spider-train_spider-wine_1-6528",
+   "prompt_sha256": "633efc4619a1487a40a4cbd50005aa16a8320ded9f84a4f47e0fd084f416a801"
+  },
+  {
+   "db": "geo",
+   "id": "spider-train_others-geo-482",
+   "prompt_sha256": "e0478919d3f6d39847b8e68ecfed809931b1439b27631eed8a82ebf2e0c20158"
+  },
+  {
+   "db": "music_2",
+   "id": "spider-train_spider-music_2-5186",
+   "prompt_sha256": "35e0b794c4603ff9d69b744e121e67636929b6f90665e7d1eec441ac258ee546"
+  },
+  {
+   "db": "movie_1",
+   "id": "spider-train_spider-movie_1-2529",
+   "prompt_sha256": "562ed5040a9f60250a7a16f87c01057a3dccda85207cf42034e33e1dbcd02d75"
+  }
+ ]
+}

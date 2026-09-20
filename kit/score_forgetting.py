@@ -59,7 +59,7 @@ def load_panel(path: Path = PANEL_FILE) -> tuple[list, str]:
     manifest = json.loads(path.with_suffix(".manifest.json").read_text())
     if manifest["sha256"] != digest:
         raise SystemExit("panel file does not match its manifest: %s" % path)
-    return [json.loads(line) for line in text.splitlines() if line.strip()], digest
+    return [json.loads(line) for line in text.split("\n") if line.strip()], digest
 
 
 def fresh_dir(path: Path) -> Path:
@@ -178,7 +178,7 @@ def cmd_generate(args) -> int:
 def cmd_score(args) -> int:
     members, digest = load_panel()
     responses = {}
-    for line in Path(args.responses).read_text().splitlines():
+    for line in Path(args.responses).read_text().split("\n"):
         if line.strip():
             row = json.loads(line)
             key = (row["panel"], row.get("id") or row.get("member_id"))
@@ -231,7 +231,7 @@ OUR_UNTRAINED_TOTAL = 251            # Qwen3-8B on our harness (91 / 72 / 88); t
 
 
 def _responses(directory: Path) -> dict:
-    return {(r["panel"], r["id"]): r["response"] for r in (json.loads(line) for line in (directory / "responses.jsonl").read_text().splitlines() if line.strip())}
+    return {(r["panel"], r["id"]): r["response"] for r in (json.loads(line) for line in (directory / "responses.jsonl").read_text().split("\n") if line.strip())}
 
 
 def cmd_agree(args) -> int:

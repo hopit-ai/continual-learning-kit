@@ -30,7 +30,7 @@ def main(argv=None) -> int:
     out = Path(args.out)
     if out.exists():
         raise SystemExit("refusing to overwrite %s" % out)
-    rows = [json.loads(line) for line in Path(args.prompts).read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in Path(args.prompts).read_text().split("\n") if line.strip()]
     from transformers import AutoTokenizer                                  # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     rendered = [render(tokenizer, row["prompt"]) for row in rows]

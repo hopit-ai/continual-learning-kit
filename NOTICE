@@ -7,6 +7,9 @@ kit/panels/general-v1.jsonl contains 300 evaluation prompts selected from three 
   - IFEval (Zhou et al., 2023), Apache License 2.0.
 They are evaluation prompts. Do not train on them.
 
+kit/beds/spider.py reads, and does not include, Spider 1.0 (Yu et al., 2018), CC BY-SA 4.0; kit/beds/spider-split-v1.json holds
+only question ids and hashes. kit/beds/gsm8k.py reads, and does not include, GSM8K, MIT License.
+
 kit/beds/finqa.py reads, and does not include, FinQA (Chen et al., 2021; github.com/czyssrs/FinQA), MIT License.
 
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO

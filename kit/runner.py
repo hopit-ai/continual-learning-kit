@@ -208,7 +208,7 @@ def write_durably(path: Path, payload: dict) -> None:
 # ------------------------------------------------------------------------------------ bars
 def _values(source: Path, key: str, where: dict | None) -> list:
     text = source.read_text()
-    records = [json.loads(line) for line in text.splitlines() if line.strip()] if source.suffix == ".jsonl" else [json.loads(text)]
+    records = [json.loads(line) for line in text.split("\n") if line.strip()] if source.suffix == ".jsonl" else [json.loads(text)]
     out = []
     for record in records:
         if where and any(record.get(field) != wanted for field, wanted in where.items()):

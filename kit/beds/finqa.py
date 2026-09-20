@@ -190,7 +190,7 @@ def cmd_prepare(args) -> int:
 
 def cmd_score(args) -> int:
     items = {item["id"]: item for item in load(Path(args.finqa_root), args.split)}
-    rows = [json.loads(line) for line in Path(args.responses).read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in Path(args.responses).read_text().split("\n") if line.strip()]
     missing = set(items) - {r["id"] for r in rows}
     if missing:
         raise SystemExit("%d items have no response, e.g. %s" % (len(missing), sorted(missing)[:3]))
