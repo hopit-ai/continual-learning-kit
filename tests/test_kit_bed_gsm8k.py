@@ -1,5 +1,10 @@
 """kit/beds/gsm8k.py: the contamination guard, the scoring rule, the reward function's shape, and no gold in feedback.
 
+The scoring rule changed on 20 September 2026, before the K3 campaign ran: the mark is the FIRST NUMBER
+in the LAST `Answer:` line, so `Answer: 18 eggs` and `Answer: $18.00` are 18, and an `Answer:` line with
+no number in it is a format failure rather than a wrong answer. The tests state both halves of that
+trade: the answers it now accepts, and the answer it now marks wrongly (`Answer: 3 out of 18` is 3).
+
 The test that matters here is the contamination one. 100 of the 300 members of the forgetting panel are
 GSM8K questions, so a training set built without a guard -- or with a guard that quietly matches nothing
 because the panel's wording moved -- trains on the measure and nothing downstream looks wrong. So the
@@ -70,21 +75,36 @@ def write_split(root: Path, split: str, rows: list) -> Path:
 @pytest.mark.parametrize("prediction, gold, want", [
     ("18", "18", True), ("18.0", "18", True), ("18", "18.0", True), ("18.00", "18.000", True),
     ("$18", "18", True), ("$ 18.", "18", True), ("1,800", "1800", True), ("-5", "-5", True), ("+7", "7", True),
+    # the change: the units, the currency and the words around the number no longer decide the mark
+    ("18 eggs", "18", True), ("$18.00", "18", True), ("18 loaves of bread", "18", True), ("1,800 km", "1800", True),
     ("18", "19", False), ("180", "18", False), ("18.5", "18", False), ("", "18", False),
-    ("eighteen", "18", False), ("18 eggs", "18", False), ("nan", "18", False), ("Infinity", "18", False),
+    ("18 eggs", "19", False), ("eighteen", "18", False), ("nan", "18", False), ("Infinity", "18", False),
 ])
 def test_the_scoring_rule(prediction, gold, want):
     assert gsm8k.is_correct(gsm8k.extract_answer("Answer: " + prediction), gold) is want
 
 
-def test_the_last_answer_line_wins_and_only_a_missing_one_is_a_format_failure():
+def test_the_mark_is_the_first_number_in_the_last_answer_line():
     assert gsm8k.extract_answer("Answer: 3\non reflection that was wrong.\nAnswer: 18") == "18"
+    assert gsm8k.extract_answer("Answer: 18 eggs") == "18"
+    assert gsm8k.extract_answer("Answer: $18.00") == "18.00"
+    assert gsm8k.extract_answer("Answer: 1,800 km") == "1,800"
+    # the stated cost of the rule: the first number is the mark even when it is not the answer
+    assert gsm8k.extract_answer("Answer: 3 out of 18") == "3"
+    assert gsm8k.compute_score("gsm8k", "Answer: 3 out of 18", "18")["score"] == 0.0
+    assert gsm8k.compute_score("gsm8k", "Answer: 3 out of 18", "3")["score"] == 1.0
+
+
+def test_a_line_with_no_number_and_a_missing_line_are_both_format_failures():
     assert gsm8k.extract_answer("the baker sold 18 loaves") is None
-    missing = gsm8k.compute_score("gsm8k", "the baker sold 18 loaves", "18")
-    assert missing["score"] == 0.0 and missing["incorrect_format"] == 1 and "Answer:" in missing["feedback"]
-    # a line that is there but is not a number is wrong, NOT a format failure: the line was written
-    wordy = gsm8k.compute_score("gsm8k", "Answer: eighteen loaves", "18")
-    assert wordy["score"] == 0.0 and wordy["incorrect_format"] == 0 and "single number" in wordy["feedback"]
+    assert gsm8k.extract_answer("Answer: eighteen loaves") is None
+    for solution in ("the baker sold 18 loaves", "Answer: eighteen loaves", "Answer: none"):
+        result = gsm8k.compute_score("gsm8k", solution, "18")
+        assert result["score"] == 0.0 and result["incorrect_format"] == 1, solution
+        assert "Answer:" in result["feedback"] and result["pred"] == ""
+    # an answer the rule CAN mark is never a format failure, right or wrong
+    for solution in ("Answer: 18", "Answer: 12 eggs"):
+        assert gsm8k.compute_score("gsm8k", solution, "18")["incorrect_format"] == 0, solution
 
 
 def test_the_reward_function_has_the_reference_shape():

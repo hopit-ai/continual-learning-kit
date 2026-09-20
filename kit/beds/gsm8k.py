@@ -23,12 +23,23 @@ THE HELD-OUT SET. The bed needs a measure of the new skill that is not the forge
 from the test items that are NOT panel members. It is disjoint from the panel by construction and does
 not move when the file order does.
 
-THE SCORING RULE, fixed before any model was scored. The instruction asks for the final answer alone on
-the last line as `Answer: <number>`; the LAST such line is read, commas, currency signs and a trailing
-full stop are removed, and the comparison is numeric, so `Answer: 18`, `Answer: 18.0`, `Answer: $18.`
-and `Answer: 1,800` against a gold of `1800` all compare as the numbers they are. A line that is not a
-bare number after that cleaning (`Answer: 18 eggs`) scores zero: writing the number alone is part of
-what the bed asks for. Only a MISSING `Answer:` line is reported as a format failure.
+THE SCORING RULE, fixed before any model was scored, and CHANGED on 20 September 2026 before the K3
+campaign ran. The instruction still asks for the final answer alone on the last line as
+`Answer: <number>`, but the mark is now the FIRST NUMBER in the LAST `Answer:` line, whatever else the
+line carries: `Answer: 18 eggs` and `Answer: $18.00` are both 18, and `Answer: 1,800` against a gold of
+`1800` still compares as the number it is. The comparison remains numeric and exact.
+
+Why it changed. The old rule required the line to be a bare number after cleaning and scored
+`Answer: 18 eggs` zero, which measured obedience to the format as much as arithmetic -- and this bed is
+now one half of a forgetting experiment, where a model that learns SQL and loses the habit of writing
+the unit-free line would read as a model that has forgotten how to add. Marking the first number
+measures the arithmetic. The cost is stated rather than hidden: `Answer: 3 out of 18` is marked as 3,
+so a model that writes its answer second is marked wrong, and a model that writes a stray number first
+is marked on that number.
+
+An `Answer:` line with no number in it at all (`Answer: eighteen`) is a FORMAT FAILURE, and so is a
+response with no `Answer:` line: both are answers this rule cannot mark, and both are counted as
+`incorrect_format` rather than as wrong arithmetic.
 
     python gsm8k.py prepare --gsm8k-root /path/to/gsm8k --out /work/data/gsm8k   # CPU, before any GPU is held
     python gsm8k.py score   --gsm8k-root ... --split heldout --responses responses.jsonl
@@ -65,6 +76,9 @@ INSTRUCTION = ("Solve the problem. Work through it step by step, then give the f
                "in the form `Answer: <number>`.")
 ANSWER_LINE = re.compile(r"answer\s*[:=]\s*(.+)", re.I)
 NUMERIC = re.compile(r"[-+]?(?:\d+(?:\.\d+)?|\.\d+)")
+# The number to mark, found inside whatever else the answer line says. Thousands separators are part of
+# the token -- `1,800` is one number, not `1` followed by `800` -- and are removed before it is parsed.
+FIRST_NUMBER = re.compile(r"[-+]?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)")
 
 
 # ------------------------------------------------------------------------------------ text and numbers
@@ -95,13 +109,16 @@ def to_number(text):
 
 
 def extract_answer(response: str):
-    """The model's final answer: the text of the LAST `Answer:` line. None means the format was not followed."""
+    """The model's final answer: the FIRST number in the LAST `Answer:` line.
+
+    `Answer: 18 eggs` -> '18'; `Answer: $18.00` -> '18.00'; `Answer: 3 out of 18` -> '3'. None means
+    there was no `Answer:` line, or the line carried no number: neither can be marked.
+    """
     lines = [m.group(1) for m in ANSWER_LINE.finditer(response or "")]
     if not lines:
         return None
-    last = lines[-1].strip().strip("`*\"'").strip()
-    last = last.rstrip(".").strip()
-    return last or None
+    found = FIRST_NUMBER.search(lines[-1])
+    return found.group(0) if found else None
 
 
 def is_correct(prediction, gold) -> bool:
@@ -243,13 +260,10 @@ def compute_score(data_source: str, solution_str: str, ground_truth: str, extra_
     prediction = extract_answer(solution_str)
     if prediction is None:
         return {"score": 0.0, "acc": 0.0, "pred": "", "incorrect_format": 1,
-                "feedback": "No final answer was found. End with a last line of the form `Answer: <number>`."}
+                "feedback": "No final number was found. End with a last line of the form `Answer: <number>`."}
     correct = is_correct(prediction, ground_truth)
     if correct:
         feedback = ""
-    elif to_number(prediction) is None:
-        feedback = ("The last line was not a single number. End with a last line of the form `Answer: <number>`, "
-                    "with no units, words or working after the number.")
     else:
         feedback = ("The final answer is not correct. Re-read the problem, check each arithmetic step, and make sure "
                     "the last line is the quantity the problem asks for.")
