@@ -18,7 +18,13 @@
 #            TRAIN_FILE  absolute .parquet of trainer rows (a bed's prepare, or kit/mix.py)
 #            VAL_FILE    absolute .parquet the reader can load; validation itself is off by default
 # Optional:  STEPS=60 SAVE_FREQ=$STEPS TEST_FREQ=-1 SEED= NGPU=8 TP=2 OFFLOAD=0 KL=0 KL_COEF=0.001
-#            TASK=datasets/spider_sql WORK=$PWD/k3-work DRY_RUN=0
+#            TASK=datasets/spider_sql WORK=$PWD/k3-work DRY_RUN=0 FILE_LOG=0
+#
+# FILE_LOG=1 adds `file` to trainer.logger, so the per-step metrics land in $OUT/metrics.jsonl (the
+# path this script already exports as VERL_FILE_LOGGER_PATH) and a campaign can put a bar on a
+# per-step number -- K1c gates its 1.7B rows on a response-length floor, which K3 had no file to read.
+# It changes ONE argv value and only when set; with it unset the command below is byte for byte what
+# K3 ran, which tests/test_kit_run_grpo.py and tests/test_kit_k1c.py both pin.
 #
 # SPIDER_ROOT, if set, is exported so the reward workers can reach the Spider databases: ray starts
 # its workers from this process, so they inherit this environment. If you run against an EXTERNAL
@@ -45,7 +51,11 @@ KL_COEF="${KL_COEF:-0.001}"
 TASK="${TASK:-datasets/spider_sql}"
 WORK="${WORK:-$PWD/k3-work}"
 DRY_RUN="${DRY_RUN:-0}"
+FILE_LOG="${FILE_LOG:-0}"
 REWARD="${REWARD:-$KIT/beds/rewards.py}"
+
+[[ "$FILE_LOG" == "0" || "$FILE_LOG" == "1" ]] || { echo "FILE_LOG must be 0 or 1, not $FILE_LOG" >&2; exit 2; }
+if [[ "$FILE_LOG" == "1" ]]; then LOGGER="[console,file]"; else LOGGER="[console]"; fi
 
 OUT="$WORK/runs/$NAME"
 if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
@@ -78,7 +88,7 @@ ARGV=(
   "trainer.val_before_train=False"
   "actor_rollout_ref.actor.checkpoint.save_contents=[model]"
   "trainer.resume_mode=disable"
-  "trainer.logger=[console]"
+  "trainer.logger=$LOGGER"
   "trainer.project_name=r99-reference-runtime"
   "trainer.group_name=$NAME"
   "vars.dir=$SDPO_DIR"
