@@ -11,7 +11,24 @@
 #            MODEL_DIR  local snapshot of Qwen/Qwen3-8B at revision b968826d9c46...
 #            NAME       a fresh name per run (never reuse one; outputs are never overwritten)
 # Optional:  STEPS=17 TEST_FREQ=17 SEED= NGPU=4 (8 on 80 GB cards) TP=2 OFFLOAD=0 WORK=$PWD/sdpo-work DRY_RUN=0
+#
+# K4a arms (docs/phase2/k4a/feasibility.md). Each is ONE declared override and nothing else; with
+# none of them set the argv below is byte for byte what K0 ran. AT MOST ONE PER RUN -- two is a
+# refusal (exit 2), because a run that changed two things answers neither question:
+#            FEEDBACK=1  the authors' own switch: the teacher is shown the checker's mismatch
+#                        message, which names the expected actions and arguments. The student's own
+#                        prompt and the validation prompt never see it.
+#            SOFT=1      a partial-credit TRAINING reward (kit/beds/tooluse_soft.py). In SDPO the
+#                        reward only picks which sibling attempt is shown to the teacher as a worked
+#                        example, so this means "when nothing is exactly right, show the closest
+#                        near-miss". The validation score stays the authors' strict all-or-nothing
+#                        one, because that metric reads `acc`, which the wrapper copies unchanged.
+#            TEMP=1.2    hotter training sampling. Validation samples at val_kwargs.temperature=0.6
+#                        whatever this is set to. It also rescales the logits in every log-prob
+#                        forward, teacher included: see the feasibility note before using it.
 set -euo pipefail
+
+KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 : "${SDPO_DIR:?set SDPO_DIR to the pinned lasgroup/SDPO checkout}"
 : "${MODEL_DIR:?set MODEL_DIR to the Qwen3-8B snapshot directory}"
@@ -24,9 +41,33 @@ TP="${TP:-2}"
 OFFLOAD="${OFFLOAD:-0}"
 WORK="${WORK:-$PWD/sdpo-work}"
 DRY_RUN="${DRY_RUN:-0}"
+FEEDBACK="${FEEDBACK:-0}"
+SOFT="${SOFT:-0}"
+TEMP="${TEMP:-}"
 
 OUT="$WORK/runs/$NAME"
 if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
+
+# One run is one arm. Counted BEFORE the dry run, so a bad combination is caught without a GPU.
+[[ "$FEEDBACK" == "0" || "$FEEDBACK" == "1" ]] || { echo "FEEDBACK must be 0 or 1, not $FEEDBACK" >&2; exit 2; }
+[[ "$SOFT" == "0" || "$SOFT" == "1" ]] || { echo "SOFT must be 0 or 1, not $SOFT" >&2; exit 2; }
+if [[ -n "$TEMP" ]]; then
+  [[ "$TEMP" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "TEMP must be a positive number, not $TEMP" >&2; exit 2; }
+fi
+ARMS=()
+if [[ "$FEEDBACK" == "1" ]]; then ARMS+=("FEEDBACK=1"); fi
+if [[ "$SOFT" == "1" ]]; then ARMS+=("SOFT=1"); fi
+if [[ -n "$TEMP" ]]; then ARMS+=("TEMP=$TEMP"); fi
+if (( ${#ARMS[@]} > 1 )); then
+  echo "refusing to run ${#ARMS[@]} arms at once (${ARMS[*]}): one run is one arm, so that a difference" >&2
+  echo "in the result can be attributed to one change. Run them separately." >&2
+  exit 2
+fi
+ARM="${ARMS[0]:-none}"
+
+if [[ "$FEEDBACK" == "1" ]]; then FB=True; else FB=False; fi
+# The reward function verl loads. K0's is the authors' own, inside the pinned checkout.
+if [[ "$SOFT" == "1" ]]; then REWARD="$KIT/beds/tooluse_soft.py"; else REWARD="$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"; fi
 
 ARGV=(
   python -m verl.trainer.main_ppo --config-name sdpo
@@ -55,14 +96,14 @@ ARGV=(
   "vars.task=datasets/tooluse"
   "vars.log_dir=$OUT/tool-sdpo/logs"
   "vars.ckpt_dir=$OUT/tool-sdpo"
-  "custom_reward_function.path=$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"
+  "custom_reward_function.path=$REWARD"
   "custom_reward_function.name=compute_score"
   "actor_rollout_ref.actor.self_distillation.teacher_regularization=ema"
   "actor_rollout_ref.actor.self_distillation.teacher_update_rate=0.05"
   "actor_rollout_ref.actor.self_distillation.alpha=0.5"
   "actor_rollout_ref.actor.self_distillation.distillation_topk=100"
   "actor_rollout_ref.actor.self_distillation.distillation_add_tail=True"
-  "actor_rollout_ref.actor.self_distillation.include_environment_feedback=False"
+  "actor_rollout_ref.actor.self_distillation.include_environment_feedback=$FB"
   "actor_rollout_ref.actor.self_distillation.dont_reprompt_on_self_success=True"
   "trainer.total_training_steps=$STEPS"
   "actor_rollout_ref.rollout.val_kwargs.n=16"
@@ -88,12 +129,17 @@ if [[ -n "$SEED" ]]; then
   )
 fi
 
+# The VARIATION arm. K0's argv does not mention temperature at all (verl's default is 1.0), so an
+# unset TEMP appends nothing and the command above stays byte for byte K0's.
+if [[ -n "$TEMP" ]]; then ARGV+=("actor_rollout_ref.rollout.temperature=$TEMP"); fi
+
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
 
 if [[ -e "$OUT" ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
 for f in train.parquet test.parquet; do
   [[ -f "$SDPO_DIR/datasets/tooluse/$f" ]] || { echo "missing $f: run data/preprocess.py first" >&2; exit 2; }
 done
+[[ -f "$REWARD" ]] || { echo "missing reward function $REWARD" >&2; exit 2; }
 mkdir -p "$OUT/env" "$OUT/tool-sdpo/logs"
 
 # What the run was: recorded before it starts, so a crash still leaves an identity behind.
@@ -110,14 +156,50 @@ export VLLM_USE_V1=1 WANDB_MODE=disabled
 export PYTHONPATH="$SDPO_DIR:${PYTHONPATH:-}"
 export VERL_FILE_LOGGER_PATH="$OUT/metrics.jsonl"
 
+STARTED=$(date -u +%s)
 cd "$SDPO_DIR"
+set +e
 "${ARGV[@]}" 2>&1 | tee "$OUT/console.log"
+STATUS=${PIPESTATUS[0]}
+set -e
 date -u +%FT%TZ > "$OUT/env/finished-at.txt"
 
 # actor save -> a HuggingFace model we can score for retention; the reference's own merger.
+MERGED=0
 CKPT="$OUT/tool-sdpo/global_step_$STEPS/actor"
-if [[ -d "$CKPT" ]]; then
+if [[ "$STATUS" == "0" && -d "$CKPT" ]]; then
+  set +e
   python -m verl.model_merger merge --backend fsdp --local_dir "$CKPT" --target_dir "$OUT/hf-step$STEPS" \
     2>&1 | tee "$OUT/merge.log"
+  set -e
+  # A merge that produced nothing must still reach the summary below: `merged: 0` is what a
+  # campaign's bar reads, and a run that stopped here would leave no summary at all.
+  if [[ -f "$OUT/hf-step$STEPS/config.json" ]]; then
+    MERGED=1
+  else
+    echo "the merge left no model at $OUT/hf-step$STEPS: see $OUT/merge.log" >&2
+  fi
 fi
-echo "done: $OUT"
+
+# One small JSON of numbers, so a campaign row can gate on what this run actually produced. It says
+# which arm ran, so a report cannot silently attribute an arm's result to the wrong command.
+cat > "$OUT/run-summary.json" <<JSON
+{
+ "schema": "kit-sdpo-run.v1",
+ "name": "$NAME",
+ "arm": "$ARM",
+ "steps": $STEPS,
+ "test_freq": $TEST_FREQ,
+ "returncode": $STATUS,
+ "merged": $MERGED,
+ "feedback": $FEEDBACK,
+ "soft": $SOFT,
+ "temperature": "${TEMP:-default}",
+ "n_gpus": $NGPU,
+ "seconds": $(( $(date -u +%s) - STARTED )),
+ "reward_function": "$REWARD",
+ "merged_dir": "$OUT/hf-step$STEPS"
+}
+JSON
+echo "done: $OUT (arm $ARM, returncode $STATUS, merged $MERGED)"
+exit "$STATUS"
