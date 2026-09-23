@@ -37,9 +37,16 @@ measures the arithmetic. The cost is stated rather than hidden: `Answer: 3 out o
 so a model that writes its answer second is marked wrong, and a model that writes a stray number first
 is marked on that number.
 
+CHANGED AGAIN on 23 September 2026 (receipt 222), before any GSM8K training run had reported: a response
+with no `Answer:` line but a `\boxed{...}` is marked on the FIRST NUMBER in the LAST `\boxed{}`. Asked for
+`Answer: <number>`, the untrained Qwen3-8B wrote `\boxed{440}` instead in 69 of 300 held-out answers, 68 of
+them right (receipt 221); under the old rule they were format failures, and a model trained on that
+reward would learn to write `Answer:` before it learned any arithmetic. The `Answer:` line, when present,
+still decides, because it is the form the instruction asks for.
+
 An `Answer:` line with no number in it at all (`Answer: eighteen`) is a FORMAT FAILURE, and so is a
-response with no `Answer:` line: both are answers this rule cannot mark, and both are counted as
-`incorrect_format` rather than as wrong arithmetic.
+response with neither an `Answer:` line nor a `\boxed{}` with a number in it: those are answers this rule
+cannot mark, and they are counted as `incorrect_format` rather than as wrong arithmetic.
 
     python gsm8k.py prepare --gsm8k-root /path/to/gsm8k --out /work/data/gsm8k   # CPU, before any GPU is held
     python gsm8k.py score   --gsm8k-root ... --split heldout --responses responses.jsonl
@@ -75,6 +82,7 @@ PANEL_PROMPT_SUFFIX = '\n\nSolve step by step, then end your response with "Answ
 INSTRUCTION = ("Solve the problem. Work through it step by step, then give the final answer alone on the last line "
                "in the form `Answer: <number>`.")
 ANSWER_LINE = re.compile(r"answer\s*[:=]\s*(.+)", re.I)
+BOXED = re.compile(r"\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}")   # the LaTeX final-answer form models write unasked; one nested brace level, as in \boxed{18 \text{ eggs}}
 NUMERIC = re.compile(r"[-+]?(?:\d+(?:\.\d+)?|\.\d+)")
 # The number to mark, found inside whatever else the answer line says. Thousands separators are part of
 # the token -- `1,800` is one number, not `1` followed by `800` -- and are removed before it is parsed.
@@ -109,15 +117,20 @@ def to_number(text):
 
 
 def extract_answer(response: str):
-    """The model's final answer: the FIRST number in the LAST `Answer:` line.
+    """The model's final answer: the FIRST number in the LAST `Answer:` line, or, when that line carries no
+    number or is absent, the FIRST number in the LAST `\\boxed{...}`.
 
-    `Answer: 18 eggs` -> '18'; `Answer: $18.00` -> '18.00'; `Answer: 3 out of 18` -> '3'. None means
-    there was no `Answer:` line, or the line carried no number: neither can be marked.
+    `Answer: 18 eggs` -> '18'; `Answer: $18.00` -> '18.00'; `Answer: 3 out of 18` -> '3'; `\\boxed{440}` with
+    no `Answer:` line -> '440'. None means neither form was there, or the one found carried no number.
     """
     lines = [m.group(1) for m in ANSWER_LINE.finditer(response or "")]
-    if not lines:
-        return None
-    found = FIRST_NUMBER.search(lines[-1])
+    found = FIRST_NUMBER.search(lines[-1]) if lines else None
+    if found:
+        return found.group(0)
+    # No `Answer:` line, or one with no number in it (models write `### Final Answer:` and then a boxed
+    # number on the next line): the last `\\boxed{}` with a number decides instead.
+    boxed = [m.group(1) for m in BOXED.finditer(response or "")]
+    found = FIRST_NUMBER.search(boxed[-1]) if boxed else None
     return found.group(0) if found else None
 
 

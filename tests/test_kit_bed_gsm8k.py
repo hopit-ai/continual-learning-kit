@@ -363,3 +363,17 @@ def test_where_the_panel_questions_sit_in_a_local_gsm8k():
         % (len(in_test), gsm8k.PANEL_MATH_MEMBERS))
     heldout = gsm8k.held_out(test, questions)
     assert len(heldout) == gsm8k.HELD_OUT_N and gsm8k.contaminated(heldout, questions) == []
+
+
+def test_a_boxed_final_answer_is_marked_when_there_is_no_answer_line():
+    """Receipt 221: the untrained 8B wrote `\\boxed{440}` instead of `Answer: 440` in 69 of 300 answers, 68 right.
+    Those are arithmetic, not format failures. The `Answer:` line still wins when both are present."""
+    for solution, gold, correct in ((r"work $$\boxed{18}$$", "18", True), (r"$$\boxed{18 \text{ eggs}}$$", "18", True),
+                                    (r"\boxed{\\$18.00}", "18", True), (r"\boxed{17}", "18", False),
+                                    (r"first \boxed{3} then \boxed{18}", "18", True)):
+        result = gsm8k.compute_score("gsm8k", solution, gold)
+        assert result["incorrect_format"] == 0 and result["score"] == (1.0 if correct else 0.0), solution
+    assert gsm8k.compute_score("gsm8k", r"\boxed{18} ... Answer: 17", "18")["score"] == 0.0     # the asked-for line decides
+    assert gsm8k.compute_score("gsm8k", "### Final Answer:\n$$\n\\boxed{18}\n$$", "18")["score"] == 1.0   # the form the 8B wrote
+    assert gsm8k.compute_score("gsm8k", r"\boxed{eighteen}", "18")["incorrect_format"] == 1
+    assert gsm8k.compute_score("gsm8k", r"\boxed{}", "18")["incorrect_format"] == 1
