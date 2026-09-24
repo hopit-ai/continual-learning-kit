@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import re
@@ -57,6 +58,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SCHEMA = "kit-k1c-report.v1"
+HERE = Path(__file__).resolve().parent
 VAL_KEY = "val-core/tooluse/acc/mean@16"
 COMPARATOR_PREFIX = "dose40-seed"
 A_ARMS = ("full", "lora")
@@ -126,17 +128,74 @@ def latest_dirs(directory: Path) -> dict:
     return {stem: path for stem, (_, path) in found.items()}
 
 
-def latest_files(directory: Path, filename: str) -> dict:
-    """{stem: parsed json} for the highest attempt of every <stem>-aN folder holding `filename`."""
+def latest_files_found(directory: Path, filename: str) -> dict:
+    """{stem: (path, parsed json)} for the highest attempt of every <stem>-aN folder holding `filename`.
+
+    The PATH is carried beside the result because kit/density.py needs it: a scoring's token counts
+    may live in the `responses.jsonl` written beside it rather than inside it.
+    """
     out = {}
     for stem, path in latest_dirs(directory).items():
         target = path / filename
         if target.is_file():
             try:
-                out[stem] = json.loads(target.read_text(encoding="utf-8"))
+                out[stem] = (target, json.loads(target.read_text(encoding="utf-8")))
             except json.JSONDecodeError:
                 continue
     return out
+
+
+def latest_files(directory: Path, filename: str) -> dict:
+    """{stem: parsed json} for the highest attempt of every <stem>-aN folder holding `filename`."""
+    return {stem: result for stem, (_path, result) in latest_files_found(directory, filename).items()}
+
+
+# ------------------------------------------------------- intelligence density (plan 4c, row Q13)
+def _load_density():
+    """kit/density.py, loaded by path from this file's own directory, the way kit/beds/rewards.py
+    loads a bed: nothing here needs the kit installed, on sys.path or in the working directory. A
+    copy of the kit without the file still reports -- every density is then unknown, and an unknown
+    density is never a refusal."""
+    path = HERE / "density.py"
+    if not path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("kit_density_for_k1c", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+density = _load_density()
+DENSITY_BAR = density.BAR if density else 1.5
+NO_TOKENS = ("No scoring read here carried token counts -- neither `output_tokens_total` in the "
+             "result nor a `responses.jsonl` beside it -- so every figure in this table is `-`. "
+             "Nothing else in this report depends on them.")
+PART_A_NOTE = ("Part A is left out: ToolAlpaca is scored from the trainer's own validation dumps "
+               "and writes no `bed-score.json`, so there is no held-out scoring here to read a "
+               "token count from.")
+
+
+def cost(found, *, panel=None):
+    """Tokens per correct answer for one (path, result) pair, or None when its tokens are absent."""
+    if density is None or not found:
+        return None
+    path, result = found
+    try:
+        return density.tokens_per_correct(result, Path(path), panel=panel)
+    except density.DensityError:
+        return None
+
+
+def compare_cost(trained, untrained) -> dict:
+    """{untrained, trained, ratio, bar, verdict} for one cell of the density table."""
+    if density is None:
+        return {"untrained": None, "trained": None, "ratio": None, "bar": DENSITY_BAR,
+                "verdict": "unknown"}
+    return density.compare(trained, untrained, bar=DENSITY_BAR)
+
+
+def show_cost(value, digits: int = 1) -> str:
+    return density.show(value, digits) if density else "-"
 
 
 # --------------------------------------------------------------------------- the strict measurements
@@ -446,6 +505,50 @@ def build_part_b(runs: dict, panels: dict, scores: dict, sql_alone: dict | None)
                            "there is no bed on which a coding task can be learned alone."}
 
 
+def build_density(b_runs: dict, panels: dict, scores: dict) -> dict:
+    """What a correct answer costs in Part B, per job and seed, against the untrained model.
+
+    Plan section 4c and research row Q13: the job's own bed and the general panels, at the untrained
+    Qwen3-1.7B and after the job was learned alone, with the ratio between them against the bar. A
+    scoring that carries no token counts is unknown here and changes nothing else in this report.
+    Part A has no bed-score.json at all, and says so rather than showing an empty row.
+    """
+    base_panels_found = panels.get("base17b")
+    panel_names = sorted(((base_panels_found or (None, {}))[1].get("panels") or {}))
+    untrained_panels = {name: cost(base_panels_found, panel=name) for name in panel_names}
+    untrained = {job: cost(scores.get("base17b-%s" % job)) for job in sorted(B_JOBS)}
+    measured = sum(1 for cell in list(untrained.values()) + list(untrained_panels.values())
+                   if cell is not None)
+    jobs: dict = {}
+    for point in sorted(b_runs):
+        match = B_POINT.match(point)
+        if not match:
+            continue
+        job, seed = match["job"], int(match["seed"])
+        bed = B_JOBS[job]
+        trained = cost(scores.get("%s-%s" % (point, bed)))
+        after = panels.get("%s-forget" % point)
+        row = {"bed": compare_cost(trained, untrained.get(job)),
+               "panels": {name: compare_cost(cost(after, panel=name), untrained_panels[name])
+                          for name in panel_names}}
+        measured += sum(1 for cell in [trained] + [cost(after, panel=name) for name in panel_names]
+                        if cell is not None)
+        jobs.setdefault(job, {"bed": bed, "seeds": {}})["seeds"][seed] = row
+    for job, block in jobs.items():
+        ordered = [block["seeds"][seed] for seed in sorted(block["seeds"])]
+        block["ratio"] = {"bed": spread([row["bed"]["ratio"] for row in ordered]),
+                          "panels": {name: spread([row["panels"][name]["ratio"] for row in ordered])
+                                     for name in panel_names}}
+        block["untrained"] = {"bed": (untrained.get(job) or {}).get("tokens_per_correct"),
+                              "panels": {name: (untrained_panels[name] or {}).get("tokens_per_correct")
+                                         for name in panel_names}}
+    return {"bar": DENSITY_BAR, "definition": "output tokens over the whole held-out set, divided "
+                                              "by the correct answers",
+            "measured": measured, "available": int(measured > 0),
+            "note": None if measured else NO_TOKENS, "part_a_note": PART_A_NOTE,
+            "jobs": {job: jobs[job] for job in sorted(jobs)}}
+
+
 def build(runs_dir: Path, forgetting: Path, evaluations: Path, k0: Path, k3: Path | None = None, *,
           allow_different_machines: bool = False) -> dict:
     if not runs_dir.is_dir():
@@ -458,8 +561,10 @@ def build(runs_dir: Path, forgetting: Path, evaluations: Path, k0: Path, k3: Pat
         raise K1cReportError(
             "no K1c runs under %s: expected <arm>-seed<S>-aN for %s (Part A) or <job>-seed<S>-aN for "
             "%s (Part B)" % (runs_dir, ", ".join(A_ARMS), ", ".join(sorted(B_JOBS))))
-    panels = latest_files(forgetting, "forgetting.json")
-    scores = latest_files(evaluations, "bed-score.json")
+    panels_found = latest_files_found(forgetting, "forgetting.json")
+    scores_found = latest_files_found(evaluations, "bed-score.json")
+    panels = {stem: result for stem, (_path, result) in panels_found.items()}
+    scores = {stem: result for stem, (_path, result) in scores_found.items()}
     machines = fingerprints(panels, scores)
     comparable = len(machines) == 1 and machines[0] is not None
     if (panels or scores) and not comparable and not allow_different_machines:
@@ -482,6 +587,7 @@ def build(runs_dir: Path, forgetting: Path, evaluations: Path, k0: Path, k3: Pat
         "eval_dir": str(evaluations.resolve()), "comparator_report": str(k0.resolve()),
         "k3_report": str(Path(k3).resolve()) if k3 else None,
         "part_a": part_a, "part_b": part_b,
+        "density": build_density(b_runs, panels_found, scores_found),
         "pilots": {name: {"means": run["means"], "validations": run["validations"],
                           "summary": run["summary"], "flags": run["flags"]}
                    for name, run in pilots.items()},
@@ -501,6 +607,38 @@ def _fmt(value, pattern="%.4f"):
 
 def _pct(value, digits):
     return ("%%.%df%%%%" % digits) % (100 * value) if _finite(value) else "-"
+
+
+def render_density(report: dict) -> list:
+    """One table: what a correct answer costs in Part B, per job and seed, against the untrained model."""
+    block = report.get("density") or {}
+    lines = ["", "## What a correct answer costs (tokens per correct answer)", "",
+             "Plan section 4c, research row Q13. Tokens per correct answer is the output tokens over "
+             "the whole held-out set divided by the correct answers, so it is a cost per task and not "
+             "a length. A trained model may spend at most %.1f times the untrained model's on the bed "
+             "it learned and on the general panel; over the bar the gain is reported at cost."
+             % block.get("bar", DENSITY_BAR), "",
+             block.get("part_a_note") or PART_A_NOTE, ""]
+    if not block.get("measured"):
+        lines += [block.get("note") or NO_TOKENS, ""]
+    lines += ["| job | seed | bed or panel | untrained | after learning it alone | ratio | verdict |",
+              "|---|---|---|---|---|---|---|"]
+    for job in sorted(block.get("jobs") or {}):
+        entry = block["jobs"][job]
+        for seed in sorted(entry["seeds"]):
+            row = entry["seeds"][seed]
+            for name, cell in [(entry["bed"], row["bed"])] + sorted(row["panels"].items()):
+                lines.append("| %s | %s | %s | %s | %s | %s | %s |" % (
+                    job, seed, name, show_cost(cell["untrained"]), show_cost(cell["trained"]),
+                    show_cost(cell["ratio"], 2), cell["verdict"]))
+        ratios = entry.get("ratio") or {"bed": spread([]), "panels": {}}
+        for name, summary in [(entry["bed"], ratios["bed"])] + sorted(ratios["panels"].items()):
+            mean = summary["mean"]
+            lines.append("| **%s** | mean of %d | %s | | | **%s** (sd %s) | %s |" % (
+                job, summary["n"], name, show_cost(mean, 2),
+                "-" if summary["sd"] is None else show_cost(summary["sd"], 2),
+                density.verdict(mean, bar=DENSITY_BAR) if density else "unknown"))
+    return lines
 
 
 def render(report: dict) -> str:
@@ -666,6 +804,8 @@ def render(report: dict) -> str:
                 _fmt(run["means"].get("response_tokens"), "%.1f"),
                 _fmt(run["means"].get("entropy"), "%.3f"), _fmt(run["means"].get("score"), "%.3f"),
                 _fmt(first.get("accuracy_logged"))))
+
+    lines += render_density(report)
 
     everything = []
     for part in (a["arms"], b["jobs"]):

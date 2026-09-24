@@ -599,20 +599,47 @@ def _run(root: Path, name: str, *, summary_name: str, steps: int, arm: str, lora
     return run
 
 
-def _panels(root: Path, name: str, correct=(90, 80, 82), machine="m1") -> None:
+#: Output tokens per answer: flat, except that FinQA's answers grow sixteen-fold once it has been
+#: learned -- the shape plan 4c's density bar exists to catch, a gain bought at cost.
+PER_ANSWER = 50
+VERBOSE_JOB = "finqa"
+PANEL_QUESTIONS = 100
+
+
+def _tokens_rows(directory: Path, total: int, n: int, panel=None) -> None:
+    rows = [{"id": "q%d" % i, "output_tokens": total // n} for i in range(n)]
+    if panel is not None:
+        rows = [dict(row, panel=panel) for row in rows]
+    with (directory / "responses.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write("".join(json.dumps(row) + "\n" for row in rows))
+
+
+def _panels(root: Path, name: str, correct=(90, 80, 82), machine="m1", tokens=None) -> None:
     directory = root / name
     directory.mkdir(parents=True)
-    panels = {n: {"correct": c, "n": 100} for n, c in zip(("maths", "knowledge", "instructions"), correct)}
+    names = ("maths", "knowledge", "instructions")
+    panels = {n: {"correct": c, "n": 100} for n, c in zip(names, correct)}
+    if tokens == "result":
+        for block in panels.values():
+            block["output_tokens_total"] = PANEL_QUESTIONS * PER_ANSWER
     (directory / "forgetting.json").write_text(json.dumps(
         {"panels": panels, "total_correct": sum(correct), "machine": {"id": machine}}))
+    if tokens == "responses":
+        for panel in names:
+            _tokens_rows(directory, PANEL_QUESTIONS * PER_ANSWER, PANEL_QUESTIONS, panel=panel)
 
 
-def _bed_score(root: Path, name: str, n: int, correct: int, machine="m1") -> None:
+def _bed_score(root: Path, name: str, n: int, correct: int, machine="m1", tokens=None,
+               per_answer=PER_ANSWER) -> None:
     directory = root / name
     directory.mkdir(parents=True)
-    (directory / "bed-score.json").write_text(json.dumps(
-        {"n": n, "correct": correct, "accuracy": correct / n, "incorrect_format": 0,
-         "machine": {"id": machine}}))
+    payload = {"n": n, "correct": correct, "accuracy": correct / n, "incorrect_format": 0,
+               "machine": {"id": machine}}
+    if tokens == "result":
+        payload["output_tokens_total"] = n * per_answer
+    (directory / "bed-score.json").write_text(json.dumps(payload))
+    if tokens == "responses":
+        _tokens_rows(directory, n * per_answer, n)
 
 
 def _k0_report(path: Path, seeds=A_SEEDS) -> Path:
@@ -635,22 +662,30 @@ def _k3_report(path: Path, seeds=(0, 1, 2)) -> Path:
 
 @pytest.fixture()
 def tree(tmp_path):
+    return _tree(tmp_path)
+
+
+def _tree(tmp_path, tokens=None):
+    """The K1c work tree. `tokens` says where the output-token counts live, if anywhere: "result"
+    puts them in the scoring, "responses" in the responses.jsonl beside it, None nowhere at all."""
     runs, forgetting, evaluations = tmp_path / "runs", tmp_path / "forgetting", tmp_path / "eval"
     runs.mkdir()
-    _panels(forgetting, "base8b-a1")
+    _panels(forgetting, "base8b-a1", tokens=tokens)
     for arm in A_ARMS:
         for seed in A_SEEDS:
             _run(runs, "%s-seed%d-a1" % (arm, seed), summary_name="run-summary.json", steps=40,
                 arm=arm, lora=1 if arm == "lora" else 0, fold_changed=10 if arm == "lora" else 0)
-            _panels(forgetting, "%s-seed%d-forget-a1" % (arm, seed))
-    _panels(forgetting, "base17b-a1")
+            _panels(forgetting, "%s-seed%d-forget-a1" % (arm, seed), tokens=tokens)
+    _panels(forgetting, "base17b-a1", tokens=tokens)
     for job in B_JOBS:
         for seed in B_SEEDS:
             _run(runs, "%s-seed%d-a1" % (job, seed), summary_name="train-summary.json", steps=40, arm=job)
-            _panels(forgetting, "%s-seed%d-forget-a1" % (job, seed))
-            _bed_score(evaluations, "%s-seed%d-%s-a1" % (job, seed, job), n=300, correct=100)
-    _bed_score(evaluations, "base17b-finqa-a1", n=1147, correct=60)
-    _bed_score(evaluations, "base17b-gsm8k-a1", n=300, correct=20)
+            _panels(forgetting, "%s-seed%d-forget-a1" % (job, seed), tokens=tokens)
+            _bed_score(evaluations, "%s-seed%d-%s-a1" % (job, seed, job), n=300, correct=100,
+                       tokens=tokens,
+                       per_answer=PER_ANSWER * (16 if job == VERBOSE_JOB else 1))
+    _bed_score(evaluations, "base17b-finqa-a1", n=1147, correct=60, tokens=tokens)
+    _bed_score(evaluations, "base17b-gsm8k-a1", n=300, correct=20, tokens=tokens)
     return {"runs": runs, "forgetting": forgetting, "eval": evaluations,
            "k0": _k0_report(tmp_path / "k0.json"), "k3": _k3_report(tmp_path / "k3.json")}
 
@@ -742,6 +777,61 @@ def test_the_report_reads_the_strict_score_and_flags_a_mismatch(tree):
     report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
     row = report["part_a"]["arms"]["full"]["seeds"][42]
     assert any("MISMATCH" in f for f in row["flags"])
+
+
+# ------------------------------------------------- what a correct answer costs (plan 4c, row Q13)
+def test_the_density_reads_the_counts_the_scorings_carry_and_judges_them_against_the_bar(tmp_path):
+    tree = _tree(tmp_path, tokens="result")
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    block = report["density"]
+    assert block["bar"] == 1.5 and block["available"] == 1 and block["note"] is None
+    assert "no `bed-score.json`" in block["part_a_note"]
+    # gsm8k answers five times as many questions at the same length: cheaper per correct answer
+    gsm8k = block["jobs"]["gsm8k"]
+    assert gsm8k["untrained"]["bed"] == pytest.approx(15000 / 20)
+    cell = gsm8k["seeds"][0]["bed"]
+    assert cell["trained"] == pytest.approx(15000 / 100)
+    assert cell["ratio"] == pytest.approx(0.2) and cell["verdict"] == "within bar"
+    # finqa's answers grow sixteen-fold: the gain is bought at cost
+    finqa = block["jobs"]["finqa"]["seeds"][0]["bed"]
+    assert finqa["untrained"] == pytest.approx(57350 / 60)
+    assert finqa["trained"] == pytest.approx(240000 / 100)
+    assert finqa["ratio"] == pytest.approx(2400 / (57350 / 60)) and finqa["verdict"] == "over bar"
+    assert block["jobs"]["finqa"]["ratio"]["bed"]["n"] == len(B_SEEDS)
+    assert block["jobs"]["finqa"]["ratio"]["bed"]["sd"] == 0
+    assert block["jobs"]["gsm8k"]["seeds"][0]["panels"]["maths"]["ratio"] == pytest.approx(1.0)
+    text = k1c_report.render(report)
+    assert "## What a correct answer costs (tokens per correct answer)" in text
+    assert "| finqa | 0 | finqa | 955.8 | 2400.0 | 2.51 | over bar |" in text
+    assert "| gsm8k | 0 | gsm8k | 750.0 | 150.0 | 0.20 | within bar |" in text
+    assert "ToolAlpaca" in text
+
+
+def test_a_tree_with_no_token_counts_reports_dashes_and_says_so_and_changes_nothing_else(tmp_path):
+    tree = _tree(tmp_path)
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"], tree["k3"])
+    assert report["density"]["measured"] == 0 and report["density"]["available"] == 0
+    assert "carried token counts" in report["density"]["note"]
+    assert report["parts_reported"] == 2 and report["comparable"] == 1
+    assert report["arms_reported"] == len(A_ARMS) + len(B_JOBS)
+    assert report["part_b"]["jobs"]["gsm8k"]["job_score"]["mean"] == 100
+    assert report["part_b"]["sql_alone"]["learned"]["n"] == 3
+    cell = report["density"]["jobs"]["finqa"]["seeds"][0]["bed"]
+    assert cell == {"untrained": None, "trained": None, "ratio": None, "bar": 1.5, "verdict": "unknown"}
+    text = k1c_report.render(report)
+    assert "| finqa | 0 | finqa | - | - | - | unknown |" in text
+    assert "carried token counts" in text
+    assert "SQL learned alone" in text                      # the old sections, unchanged
+
+
+def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_total(tmp_path):
+    tree = _tree(tmp_path, tokens="responses")
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    finqa = report["density"]["jobs"]["finqa"]["seeds"][0]
+    assert finqa["bed"]["ratio"] == pytest.approx(2400 / (57350 / 60))
+    assert finqa["bed"]["verdict"] == "over bar"
+    assert finqa["panels"]["knowledge"]["ratio"] == pytest.approx(1.0)
+    assert "| finqa | 0 | finqa | 955.8 | 2400.0 | 2.51 | over bar |" in k1c_report.render(report)
 
 
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):

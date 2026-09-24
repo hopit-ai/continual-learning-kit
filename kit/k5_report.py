@@ -37,6 +37,7 @@ Standard library only. Nothing is overwritten: an existing --out is refused.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import statistics
@@ -44,6 +45,7 @@ import sys
 from pathlib import Path
 
 SCHEMA = "kit-k5-report.v1"
+HERE = Path(__file__).resolve().parent
 #: The same grammar kit/sequence.py builds the manifest from.
 POINT = re.compile(r"^(?:base|(?P<order>[a-z0-9]+)-(?P<arm>[a-z0-9]+)-seed(?P<seed>\d+)-stage(?P<stage>\d+))$")
 ATTEMPT = re.compile(r"^(?P<stem>.+)-a(?P<attempt>\d+)$")
@@ -55,9 +57,57 @@ class K5ReportError(ValueError):
     """The evidence tree cannot support a report; nothing is written."""
 
 
+# ------------------------------------------------------- intelligence density (plan 4c, row Q13)
+def _load_density():
+    """kit/density.py, loaded by path from this file's own directory, the way kit/beds/rewards.py
+    loads a bed: nothing here needs the kit installed, on sys.path or in the working directory. A
+    copy of the kit without the file still reports -- every density is then unknown, and an unknown
+    density is never a refusal."""
+    path = HERE / "density.py"
+    if not path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("kit_density_for_k5", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+density = _load_density()
+DENSITY_BAR = density.BAR if density else 1.5
+NO_TOKENS = ("No scoring under this root carried token counts -- neither `output_tokens_total` in "
+             "the result nor a `responses.jsonl` beside it -- so every figure in this table is `-`. "
+             "Nothing else in this report depends on them.")
+
+
+def cost(result, path, *, panel=None):
+    """Tokens per correct answer for one scoring, or None when its tokens are not recorded."""
+    if density is None or result is None or path is None:
+        return None
+    try:
+        return density.tokens_per_correct(result, path, panel=panel)
+    except density.DensityError:
+        return None
+
+
+def compare_cost(trained, untrained) -> dict:
+    """{untrained, trained, ratio, bar, verdict} for one cell of the density table."""
+    if density is None:
+        return {"untrained": None, "trained": None, "ratio": None, "bar": DENSITY_BAR,
+                "verdict": "unknown"}
+    return density.compare(trained, untrained, bar=DENSITY_BAR)
+
+
+def show_cost(value, digits: int = 1) -> str:
+    return density.show(value, digits) if density else "-"
+
+
 # ------------------------------------------------------------------------------------ reading
-def latest(directory: Path, filename: str) -> dict:
-    """{stem: result} for the highest attempt of every <stem>-aN folder holding `filename`."""
+def latest_found(directory: Path, filename: str) -> dict:
+    """{stem: (path, result)} for the highest attempt of every <stem>-aN folder holding `filename`.
+
+    The PATH is carried beside the result because kit/density.py needs it: a scoring's token counts
+    may live in the `responses.jsonl` written beside it rather than inside it.
+    """
     found: dict = {}
     if not directory.is_dir():
         return found
@@ -67,8 +117,14 @@ def latest(directory: Path, filename: str) -> dict:
             continue
         stem, attempt = match["stem"], int(match["attempt"])
         if stem not in found or attempt > found[stem][0]:
-            found[stem] = (attempt, json.loads((child / filename).read_text(encoding="utf-8")))
-    return {stem: result for stem, (_attempt, result) in found.items()}
+            found[stem] = (attempt, child / filename,
+                           json.loads((child / filename).read_text(encoding="utf-8")))
+    return {stem: (path, result) for stem, (_attempt, path, result) in found.items()}
+
+
+def latest(directory: Path, filename: str) -> dict:
+    """{stem: result} for the highest attempt of every <stem>-aN folder holding `filename`."""
+    return {stem: result for stem, (_path, result) in latest_found(directory, filename).items()}
 
 
 def latest_file(directory: Path) -> dict:
@@ -96,21 +152,30 @@ def beds_of(scores: dict) -> list:
 
 
 def read_tree(root: Path) -> dict:
-    """Every scoring under `root`, keyed by point: {'scores': {...}, 'panels': ..., 'plasticity': ...}."""
-    scores = latest(root / "eval", "bed-score.json")
+    """Every scoring under `root`, keyed by point: {'scores': {...}, 'panels': ..., 'plasticity': ...}.
+
+    `paths` holds the file every scoring was read from, in its own mapping so a point stays exactly
+    what the rest of this file reads -- results, and nothing else. kit/density.py needs the path: a
+    scoring's token counts may live in the `responses.jsonl` beside it rather than inside it.
+    """
+    scores = latest_found(root / "eval", "bed-score.json")
     beds = beds_of(scores)
     points: dict = {}
-    for stem, result in scores.items():
+    paths: dict = {}
+    for stem, (path, result) in scores.items():
         for bed in beds:
             if stem.endswith("-" + bed) and POINT.match(stem[: -len(bed) - 1]):
-                points.setdefault(stem[: -len(bed) - 1], {}).setdefault("scores", {})[bed] = result
-    for stem, result in latest(root / "forgetting", "forgetting.json").items():
+                point = stem[: -len(bed) - 1]
+                points.setdefault(point, {}).setdefault("scores", {})[bed] = result
+                paths.setdefault(point, {}).setdefault("scores", {})[bed] = path
+    for stem, (path, result) in latest_found(root / "forgetting", "forgetting.json").items():
         if POINT.match(stem):
             points.setdefault(stem, {})["panels"] = result
+            paths.setdefault(stem, {})["panels"] = path
     for stem, result in latest(root / "plasticity", "plasticity.json").items():
         if POINT.match(stem):
             points.setdefault(stem, {})["plasticity"] = result
-    return {"beds": beds, "points": points}
+    return {"beds": beds, "points": points, "paths": paths}
 
 
 def fingerprints(points: dict) -> list:
@@ -203,11 +268,63 @@ def read_sequence(points: dict, beds: list, order: str, arm: str, jobs: list, se
             "missing_points": missing}
 
 
+def build_density(points: dict, paths: dict, beds: list, orders: dict) -> dict:
+    """What a correct answer costs at the end of every sequence, against the untrained model.
+
+    Plan section 4c and research row Q13: every bed and every general panel, per order, arm and
+    seed, at stage 0 (the untrained model, which is stage 0 of every sequence) and at the last
+    stage, with the ratio between them against the bar. A scoring that carries no token counts is
+    unknown here and changes nothing else in this report.
+    """
+    base, base_paths = points.get("base", {}), paths.get("base", {})
+    panel_names = sorted((base.get("panels") or {}).get("panels") or {})
+    untrained = {bed: cost(base.get("scores", {}).get(bed), base_paths.get("scores", {}).get(bed))
+                 for bed in beds}
+    untrained_panels = {name: cost(base.get("panels"), base_paths.get("panels"), panel=name)
+                        for name in panel_names}
+    measured = sum(1 for value in list(untrained.values()) + list(untrained_panels.values())
+                   if value is not None)
+    out: dict = {}
+    for order, entry in sorted(orders.items()):
+        last = len(entry["jobs"])
+        arms: dict = {}
+        for arm, arm_entry in sorted(entry["arms"].items()):
+            rows: dict = {}
+            for seed in sorted(arm_entry["seeds"], key=int):
+                point = point_name(order, arm, int(seed), last)
+                found, found_paths = points.get(point, {}), paths.get(point, {})
+                row: dict = {"point": point, "beds": {}, "panels": {}}
+                for bed in beds:
+                    end = cost(found.get("scores", {}).get(bed), found_paths.get("scores", {}).get(bed))
+                    row["beds"][bed] = compare_cost(end, untrained[bed])
+                    measured += 1 if end is not None else 0
+                for name in panel_names:
+                    end = cost(found.get("panels"), found_paths.get("panels"), panel=name)
+                    row["panels"][name] = compare_cost(end, untrained_panels[name])
+                    measured += 1 if end is not None else 0
+                rows[str(seed)] = row
+            ordered = [rows[seed] for seed in sorted(rows, key=int)]
+            arms[arm] = {"seeds": rows,
+                         "beds": {bed: spread([row["beds"][bed]["ratio"] for row in ordered])
+                                  for bed in beds},
+                         "panels": {name: spread([row["panels"][name]["ratio"] for row in ordered])
+                                    for name in panel_names}}
+        out[order] = {"jobs": entry["jobs"], "arms": arms}
+    return {"bar": DENSITY_BAR, "definition": "output tokens over the whole held-out set, divided "
+                                              "by the correct answers",
+            "measured": measured, "available": int(measured > 0),
+            "note": None if measured else NO_TOKENS,
+            "untrained": {"beds": {bed: (untrained[bed] or {}).get("tokens_per_correct") for bed in beds},
+                          "panels": {name: (untrained_panels[name] or {}).get("tokens_per_correct")
+                                     for name in panel_names}},
+            "orders": out}
+
+
 # ------------------------------------------------------------------------------------ the report
 def build(root: Path, *, allow_different_machines: bool = False) -> dict:
     root = Path(root)
     tree = read_tree(root)
-    points, beds = tree["points"], tree["beds"]
+    points, beds, paths = tree["points"], tree["beds"], tree["paths"]
     if not points:
         raise K5ReportError("no scorings under %s: expected eval/<point>-<bed>-aN/bed-score.json and "
                             "forgetting/<point>-aN/forgetting.json" % root)
@@ -265,7 +382,8 @@ def build(root: Path, *, allow_different_machines: bool = False) -> dict:
             "base": {"scores": {bed: number(points.get("base", {}).get("scores", {}).get(bed))
                                 for bed in beds},
                      "panels": panel_scores(points.get("base", {}).get("panels"))},
-            "orders": orders, "machine_ids": machines, "comparable": int(comparable),
+            "orders": orders, "density": build_density(points, paths, beds, orders),
+            "machine_ids": machines, "comparable": int(comparable),
             "different_machines_allowed": int(bool(allow_different_machines)),
             "orders_reported": len(orders), "arms_reported": len(arms_seen),
             "seeds_reported": len(seeds_seen), "points_read": len(points),
@@ -278,6 +396,38 @@ def show(value, digits: int = 0, *, signed: bool = True) -> str:
     if digits == 0:
         return "%+d" % value if signed else "%d" % value
     return "%+.*f" % (digits, value) if signed else "%.*f" % (digits, value)
+
+
+def render_density(report: dict) -> list:
+    """One table: what a correct answer costs at the end of every sequence, per order, arm and seed."""
+    block = report.get("density") or {}
+    lines = ["", "## What a correct answer costs (tokens per correct answer)", "",
+             "Plan section 4c, research row Q13. Tokens per correct answer is the output tokens over "
+             "the whole held-out set divided by the correct answers, so it is a cost per task and not "
+             "a length. A trained model may spend at most %.1f times the untrained model's on the bed "
+             "it learned and on the general panel; over the bar the gain is reported at cost. The "
+             "untrained model is stage 0 of every sequence, so it is the comparison here too."
+             % block.get("bar", DENSITY_BAR), ""]
+    if not block.get("measured"):
+        lines += [block.get("note") or NO_TOKENS, ""]
+    lines += ["| order | arm | seed | bed or panel | untrained | end of sequence | ratio | verdict |",
+              "|---|---|---|---|---|---|---|---|"]
+    for order in sorted(block.get("orders") or {}):
+        for arm in sorted(block["orders"][order]["arms"]):
+            entry = block["orders"][order]["arms"][arm]
+            for seed in sorted(entry["seeds"], key=int):
+                row = entry["seeds"][seed]
+                for name, cell in list(row["beds"].items()) + list(row["panels"].items()):
+                    lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                        order, arm, seed, name, show_cost(cell["untrained"]),
+                        show_cost(cell["trained"]), show_cost(cell["ratio"], 2), cell["verdict"]))
+            for name, summary in list(entry["beds"].items()) + list(entry["panels"].items()):
+                mean = summary["mean"]
+                lines.append("| %s | **%s** | mean of %d | %s | | | **%s** (sd %s) | %s |" % (
+                    order, arm, summary["n"], name, show_cost(mean, 2),
+                    "-" if summary["sd"] is None else show_cost(summary["sd"], 2),
+                    density.verdict(mean, bar=DENSITY_BAR) if density else "unknown"))
+    return lines
 
 
 def render(report: dict) -> str:
@@ -355,7 +505,8 @@ def render(report: dict) -> str:
                                                        show(arm_entry["seeds"][seed]["final"].get(entry["jobs"][0]),
                                                             signed=False))
                                        for seed in seeds)), ""]
-    lines += ["%d orders, %d arms, %d seeds, %d scored points, %d scorecards, %d plasticity comparisons."
+    lines += render_density(report)
+    lines += ["", "%d orders, %d arms, %d seeds, %d scored points, %d scorecards, %d plasticity comparisons."
               % (report["orders_reported"], report["arms_reported"], report["seeds_reported"],
                  report["points_read"], report["scorecards_read"], report["plasticity_compares_read"]), ""]
     return "\n".join(lines)

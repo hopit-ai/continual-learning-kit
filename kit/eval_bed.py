@@ -246,6 +246,9 @@ def cmd_generate(args) -> int:
                  extra={"mode": "generate", "model": str(model), "items_sha256": items_digest(items),
                         "limit": int(args.limit or 0),
                         "max_new_tokens": MAX_NEW_TOKENS[args.bed], "truncated_at_max_tokens": truncated,
+                        # what a correct answer costs (kit/density.py): the whole set's output tokens
+                        "output_tokens_total": sum(r["output_tokens"] for r in rows),
+                        "output_tokens_mean": round(sum(r["output_tokens"] for r in rows) / max(1, len(rows)), 3),
                         "engine": {**ENGINE, "vllm": vllm.__version__, "batch_invariant": batch_invariant,
                                    "eager": eager, "deterministic": deterministic},
                         "machine": machine_fingerprint(deterministic)})

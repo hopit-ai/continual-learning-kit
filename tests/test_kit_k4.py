@@ -932,23 +932,51 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
 
 
 # ------------------------------------------------------------------------------ 7. the report
-def _bed_score(directory: Path, stem: str, per_item: dict, machine="m1", n=None, attempt=1) -> None:
+#: Output tokens per answer: flat, except that `teacher-hint` writes four times as much as anyone
+#: else -- the shape plan 4c's density bar exists to catch, a gain bought at four times the cost.
+PER_ANSWER = 50
+VERBOSE_ARM = "teacher-hint"
+PANEL_QUESTIONS = 100
+
+
+def _tokens_rows(path: Path, total: int, n: int, panel=None) -> None:
+    rows = [{"id": "q%d" % i, "output_tokens": total // n} for i in range(n)]
+    if panel is not None:
+        rows = [dict(row, panel=panel) for row in rows]
+    with (path / "responses.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write("".join(json.dumps(row) + "\n" for row in rows))
+
+
+def _bed_score(directory: Path, stem: str, per_item: dict, machine="m1", n=None, attempt=1,
+               tokens=None, per_answer=PER_ANSWER) -> None:
     out = directory / ("%s-a%d" % (stem, attempt))
     out.mkdir(parents=True)
     correct = sum(1 for value in per_item.values() if value >= 1)
-    (out / "bed-score.json").write_text(json.dumps(
-        {"schema": "kit-bed-score.v1", "n": n or len(per_item), "correct": correct,
-         "accuracy": round(correct / max(1, len(per_item)), 6), "incorrect_format": 0,
-         "per_item": per_item, "machine": {"id": machine}, "model": stem}))
+    payload = {"schema": "kit-bed-score.v1", "n": n or len(per_item), "correct": correct,
+               "accuracy": round(correct / max(1, len(per_item)), 6), "incorrect_format": 0,
+               "per_item": per_item, "machine": {"id": machine}, "model": stem}
+    total = len(per_item) * per_answer
+    if tokens == "result":
+        payload["output_tokens_total"] = total
+    (out / "bed-score.json").write_text(json.dumps(payload))
+    if tokens == "responses":
+        _tokens_rows(out, total, len(per_item))
 
 
-def _panels(directory: Path, stem: str, correct=(90, 80, 82), machine="m1", attempt=1) -> None:
+def _panels(directory: Path, stem: str, correct=(90, 80, 82), machine="m1", attempt=1,
+            tokens=None) -> None:
     out = directory / ("%s-a%d" % (stem, attempt))
     out.mkdir(parents=True)
     names = ("instructions", "knowledge", "maths")
+    blocks = {name: {"correct": value, "n": 100} for name, value in zip(names, correct)}
+    if tokens == "result":
+        for block in blocks.values():
+            block["output_tokens_total"] = PANEL_QUESTIONS * PER_ANSWER
     (out / "forgetting.json").write_text(json.dumps(
-        {"panels": {name: {"correct": value, "n": 100} for name, value in zip(names, correct)},
-         "total_correct": sum(correct), "machine": {"id": machine}}))
+        {"panels": blocks, "total_correct": sum(correct), "machine": {"id": machine}}))
+    if tokens == "responses":
+        for name in names:
+            _tokens_rows(out, PANEL_QUESTIONS * PER_ANSWER, PANEL_QUESTIONS, panel=name)
 
 
 def _run(runs: Path, point: str, steps: int, attempt: int = 1, **values) -> None:
@@ -985,9 +1013,17 @@ NONE_CORRECT = 4
 
 @pytest.fixture()
 def tree(tmp_path):
+    return _tree(tmp_path)
+
+
+def _tree(tmp_path, tokens=None):
     """A K4 work tree built from the CAMPAIGN FILE'S OWN OUT templates, so the report cannot look up a
     folder the campaign does not write (receipt 225: the K4a report's forgetting table was all
-    dashes because the two names had drifted apart)."""
+    dashes because the two names had drifted apart).
+
+    `tokens` says where the output-token counts live, if anywhere: "result" puts them in the scoring,
+    "responses" in the responses.jsonl beside it, None nowhere at all.
+    """
     import yaml
     spec = yaml.safe_load(CAMPAIGN.read_text())
     work = tmp_path / "work"
@@ -1001,15 +1037,16 @@ def tree(tmp_path):
             point = path.name[:-3]
             named = k4_report.POINT.match(point)
             assert named, point
-            _bed_score(root / "eval", point,
-                       _scored(named["bed"], ARM_CORRECT[named["arm"]]))
+            _bed_score(root / "eval", point, _scored(named["bed"], ARM_CORRECT[named["arm"]]),
+                       tokens=tokens,
+                       per_answer=PER_ANSWER * (4 if named["arm"] == VERBOSE_ARM else 1))
         elif "/eval/" in out and row_id.startswith("base-"):
             bed = row_id[len("base-"):]
-            _bed_score(root / "eval", "base-%s" % bed, UNTRAINED[bed])
+            _bed_score(root / "eval", "base-%s" % bed, UNTRAINED[bed], tokens=tokens)
         elif "/forgetting/" in out and row_id.endswith("-forget"):
-            _panels(root / "forgetting", path.name[:-3])
+            _panels(root / "forgetting", path.name[:-3], tokens=tokens)
         elif out.endswith("/forgetting/base-a{attempt}"):
-            _panels(root / "forgetting", "base")
+            _panels(root / "forgetting", "base", tokens=tokens)
     for bed in BEDS:
         steps = DOSE[bed][0]
         for arm in ARMS:
@@ -1024,8 +1061,9 @@ def tree(tmp_path):
         package = tmp_path / ("%s-package" % bed)
         names = k4_report.NONE_TREES[bed]
         for seed in SEEDS:
-            _bed_score(package / "eval", names["eval"] % seed, _scored(bed, NONE_CORRECT))
-            _panels(package / "forgetting", names["forget"][0] % seed)
+            _bed_score(package / "eval", names["eval"] % seed, _scored(bed, NONE_CORRECT),
+                       tokens=tokens)
+            _panels(package / "forgetting", names["forget"][0] % seed, tokens=tokens)
         none_roots[bed] = package
     rows = tmp_path / "finqa-test.jsonl"
     rows.write_text("".join(json.dumps(
@@ -1252,6 +1290,60 @@ def test_the_report_takes_the_highest_attempt_of_every_scoring(tree):
     report = build(tree)
     row = report["beds"]["spider"]["arms"]["hint"]["seeds"]["0"]
     assert row["eval"]["attempt"] == 2 and row["judged"]["correct"] == 9
+
+
+# ------------------------------------------------- what a correct answer costs (plan 4c, row Q13)
+def test_the_density_reads_the_counts_the_scorings_carry_and_judges_them_against_the_bar(tmp_path):
+    report = build(_tree(tmp_path, tokens="result"))
+    block = report["density"]
+    assert block["bar"] == 1.5 and block["available"] == 1 and block["note"] is None
+    spider = block["beds"]["spider"]
+    # the untrained model answers 4 of 10 at 50 tokens an answer
+    assert spider["untrained"]["bed"] == pytest.approx(500 / 4)
+    # `hint` answers 7 of the same 10 at the same length: cheaper per correct answer
+    cell = spider["arms"]["hint"]["seeds"]["0"]["bed"]
+    assert cell["untrained"] == pytest.approx(125.0) and cell["trained"] == pytest.approx(500 / 7)
+    assert cell["ratio"] == pytest.approx(4 / 7) and cell["verdict"] == "within bar"
+    # `teacher-hint` answers the same 7, at four times the length: the gain is bought at cost
+    verbose = spider["arms"]["teacher-hint"]["seeds"]["0"]["bed"]
+    assert verbose["trained"] == pytest.approx(2000 / 7)
+    assert verbose["ratio"] == pytest.approx(4 * 4 / 7) and verbose["verdict"] == "over bar"
+    assert spider["arms"]["teacher-hint"]["bed"]["n"] == len(SEEDS)
+    assert spider["arms"]["teacher-hint"]["bed"]["mean"] == pytest.approx(4 * 4 / 7)
+    # the reused control is its own scoring, and the panels are flat
+    assert spider["arms"]["none"]["seeds"]["0"]["bed"]["ratio"] == pytest.approx(1.0)
+    assert spider["arms"]["hint"]["seeds"]["0"]["panels"]["maths"]["ratio"] == pytest.approx(1.0)
+    text = k4_report.render(report)
+    assert "## What a correct answer costs (tokens per correct answer)" in text
+    assert "| spider | teacher-hint | 0 | spider | 125.0 | 285.7 | 2.29 | over bar |" in text
+    assert "| spider | hint | 0 | spider | 125.0 | 71.4 | 0.57 | within bar |" in text
+
+
+def test_a_tree_with_no_token_counts_reports_dashes_and_says_so_and_changes_nothing_else(tmp_path):
+    tree = _tree(tmp_path)
+    report = build(tree)
+    assert report["density"]["measured"] == 0 and report["density"]["available"] == 0
+    assert "carried token counts" in report["density"]["note"]
+    assert report["flags"] == [], report["flags"]
+    assert report["beds"]["spider"]["verdict"]["verdict"] == "BAR MET"
+    assert report["beds"]["spider"]["arms"]["hint"]["gain_paired"]["mean"] == pytest.approx(0.3)
+    assert report["beds"]["spider"]["routes"]["sdpo"]["paired"]["mean"] == pytest.approx(0.2)
+    cell = report["density"]["beds"]["spider"]["arms"]["hint"]["seeds"]["0"]["bed"]
+    assert cell == {"untrained": None, "trained": None, "ratio": None, "bar": 1.5, "verdict": "unknown"}
+    text = k4_report.render(report)
+    assert "| spider | hint | 0 | spider | - | - | - | unknown |" in text
+    assert "carried token counts" in text
+    assert "BAR MET" in text
+
+
+def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_total(tmp_path):
+    report = build(_tree(tmp_path, tokens="responses"))
+    spider = report["density"]["beds"]["spider"]
+    assert spider["arms"]["teacher-hint"]["seeds"]["0"]["bed"]["ratio"] == pytest.approx(4 * 4 / 7)
+    assert spider["arms"]["teacher-hint"]["seeds"]["0"]["bed"]["verdict"] == "over bar"
+    assert spider["arms"]["hint"]["seeds"]["0"]["panels"]["knowledge"]["ratio"] == pytest.approx(1.0)
+    assert "| spider | teacher-hint | 0 | spider | 125.0 | 285.7 | 2.29 | over bar |" in \
+        k4_report.render(report)
 
 
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):

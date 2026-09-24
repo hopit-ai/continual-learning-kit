@@ -169,7 +169,12 @@ def cmd_generate(args) -> int:
                      "output_tokens": len(completion.token_ids), "finish_reason": completion.finish_reason})
     (out / "responses.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     truncated = sum(r["finish_reason"] == "length" for r in rows)
-    write_result(out, panels=grade(members, responses), panel_sha=digest,
+    panels = grade(members, responses)
+    for name, slot in panels.items():                      # what a correct answer costs (kit/density.py)
+        tokens = [r["output_tokens"] for r in rows if r["panel"] == name]
+        slot["output_tokens_total"] = sum(tokens)
+        slot["output_tokens_mean"] = round(sum(tokens) / max(1, len(tokens)), 3)
+    write_result(out, panels=panels, panel_sha=digest,
                  extra={"mode": "generate", "model": model_identity(model), "engine": {**ENGINE, "vllm": vllm.__version__, "batch_invariant": batch_invariant, "eager": eager, "deterministic": deterministic},
                         "machine": machine_fingerprint(deterministic), "truncated_at_max_tokens": truncated})
     return 0

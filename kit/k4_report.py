@@ -53,6 +53,7 @@ Standard library only. Nothing is overwritten: an existing --out is refused.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import math
 import re
@@ -62,6 +63,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SCHEMA = "kit-k4-report.v1"
+HERE = Path(__file__).resolve().parent
 NONE_ARM = "none"
 ARMS = ("none", "hint", "hint-faded", "teacher-none", "teacher-hint")
 NEW_ARMS = ("hint", "hint-faded", "teacher-none", "teacher-hint")
@@ -156,6 +158,50 @@ def read_jsonl(path: Path) -> list:
     return rows
 
 
+# ------------------------------------------------------- intelligence density (plan 4c, row Q13)
+def _load_density():
+    """kit/density.py, loaded by path from this file's own directory, the way kit/beds/rewards.py
+    loads a bed: nothing here needs the kit installed, on sys.path or in the working directory. A
+    copy of the kit without the file still reports -- every density is then unknown, and an unknown
+    density is never a refusal."""
+    path = HERE / "density.py"
+    if not path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("kit_density_for_k4", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+density = _load_density()
+DENSITY_BAR = density.BAR if density else 1.5
+NO_TOKENS = ("No scoring read here carried token counts -- neither `output_tokens_total` in the "
+             "result nor a `responses.jsonl` beside it -- so every figure in this table is `-`. "
+             "Nothing else in this report depends on them.")
+
+
+def cost(result, path, *, panel=None):
+    """Tokens per correct answer for one scoring, or None when its tokens are not recorded."""
+    if density is None or result is None or path is None:
+        return None
+    try:
+        return density.tokens_per_correct(result, Path(path), panel=panel)
+    except density.DensityError:
+        return None
+
+
+def compare_cost(trained, untrained) -> dict:
+    """{untrained, trained, ratio, bar, verdict} for one cell of the density table."""
+    if density is None:
+        return {"untrained": None, "trained": None, "ratio": None, "bar": DENSITY_BAR,
+                "verdict": "unknown"}
+    return density.compare(trained, untrained, bar=DENSITY_BAR)
+
+
+def show_cost(value, digits: int = 1) -> str:
+    return density.show(value, digits) if density else "-"
+
+
 def latest_under(directory: Path, stem: str, filename: str):
     """(path, attempt) of the highest `<stem>-a<N>/<filename>` under a directory, or (None, None).
 
@@ -182,14 +228,18 @@ def bed_score(directory: Path, stem: str) -> dict:
     """One `bed-score.json`, as the readout needs it: counts, the per-item verdicts, the machine."""
     path, attempt = latest_under(directory, stem, "bed-score.json")
     if path is None:
-        return {"found": 0, "looked_for": str(directory / ("%s-a<N>" % stem)) + "/bed-score.json"}
+        return {"found": 0, "density": None,
+                "looked_for": str(directory / ("%s-a<N>" % stem)) + "/bed-score.json"}
     result = read_json(path) or {}
     return {"found": 1, "path": str(path), "attempt": attempt, "n": result.get("n"),
             "correct": result.get("correct"), "accuracy": result.get("accuracy"),
             "incorrect_format": result.get("incorrect_format"),
             "per_item": result.get("per_item") or {},
             "machine": ((result.get("machine") or {}).get("id")),
-            "model": result.get("model")}
+            "model": result.get("model"),
+            # read here, where the result and its own path are both in hand: the token counts may
+            # live in the responses.jsonl beside the scoring rather than inside it.
+            "density": cost(result, path)}
 
 
 def panels(directory: Path, stems: tuple) -> dict:
@@ -199,12 +249,15 @@ def panels(directory: Path, stems: tuple) -> dict:
         if path is None:
             continue
         result = read_json(path) or {}
+        names = sorted((result.get("panels") or {}))
         return {"found": 1, "path": str(path), "attempt": attempt,
                 "panels": {name: block.get("correct") for name, block in
                            sorted((result.get("panels") or {}).items())},
                 "total_correct": result.get("total_correct"),
-                "machine": ((result.get("machine") or {}).get("id"))}
-    return {"found": 0, "looked_for": ", ".join(str(directory / ("%s-a<N>" % stem)) for stem in stems)}
+                "machine": ((result.get("machine") or {}).get("id")),
+                "density": {name: cost(result, path, panel=name) for name in names}}
+    return {"found": 0, "density": {},
+            "looked_for": ", ".join(str(directory / ("%s-a<N>" % stem)) for stem in stems)}
 
 
 def accuracy_on(per_item: dict, keep: set | None) -> dict:
@@ -461,6 +514,7 @@ def build(root: Path, runs: Path, *, none_roots: dict, finqa_rows=None, seeds=(0
     report["machine_ids"] = machines
     report["comparable"] = int(comparable)
     report["different_machines_allowed"] = int(bool(allow_different_machines))
+    report["density"] = build_density(report, seeds)
     report["beds_reported"] = sum(1 for bed in BEDS
                                  if report["beds"][bed]["arms"][NONE_ARM]["seeds_scored"]
                                  and any(report["beds"][bed]["arms"][arm]["seeds_scored"] for arm in NEW_ARMS))
@@ -470,6 +524,47 @@ def build(root: Path, runs: Path, *, none_roots: dict, finqa_rows=None, seeds=(0
     report["flags"] += ["%s %s seed %s: %s" % (row["bed"], row["arm"], row["seed"], flag)
                         for row in every_row for flag in row["flags"]]
     return report
+
+
+def build_density(report: dict, seeds) -> dict:
+    """What a correct answer costs, per bed, arm and seed, against the untrained model.
+
+    Plan section 4c and research row Q13. The bed here is the UNAIDED held-out scoring -- the same
+    file every accuracy above is recomputed from -- and the panels are the general ones, because the
+    bar covers both. Every figure is read from the token counts the scoring itself carries, and a
+    scoring without them is unknown here and changes nothing else in this report.
+    """
+    beds: dict = {}
+    measured = 0
+    for bed in BEDS:
+        block = report["beds"][bed]
+        base_eval = block["untrained"]["eval"].get("density")
+        base_panels = block["untrained"]["panels"].get("density") or {}
+        measured += sum(1 for cell in [base_eval] + list(base_panels.values()) if cell is not None)
+        arms: dict = {}
+        for arm in ARMS:
+            rows: dict = {}
+            for seed in seeds:
+                row = block["arms"][arm]["seeds"][str(seed)]
+                trained = row["eval"].get("density")
+                panels = row["panels"].get("density") or {}
+                measured += sum(1 for cell in [trained] + list(panels.values()) if cell is not None)
+                rows[str(seed)] = {"bed": compare_cost(trained, base_eval),
+                                   "panels": {name: compare_cost(panels.get(name), base_panels.get(name))
+                                              for name in sorted(base_panels)}}
+            ordered = [rows[str(seed)] for seed in seeds]
+            arms[arm] = {"seeds": rows, "bed": spread([row["bed"]["ratio"] for row in ordered]),
+                         "panels": {name: spread([row["panels"][name]["ratio"] for row in ordered])
+                                    for name in sorted(base_panels)},
+                         "reused_control": int(arm == NONE_ARM)}
+        beds[bed] = {"untrained": {"bed": (base_eval or {}).get("tokens_per_correct"),
+                                   "panels": {name: (cell or {}).get("tokens_per_correct")
+                                              for name, cell in sorted(base_panels.items())}},
+                     "arms": arms}
+    return {"bar": DENSITY_BAR, "definition": "output tokens over the whole held-out set, divided "
+                                              "by the correct answers",
+            "measured": measured, "available": int(measured > 0),
+            "note": None if measured else NO_TOKENS, "beds": beds}
 
 
 def verdict_of(block: dict) -> dict:
@@ -501,6 +596,40 @@ def verdict_of(block: dict) -> dict:
 # ------------------------------------------------------------------------------------ rendering
 def _fmt(value, pattern="%.4f"):
     return pattern % value if _finite(value) else "-"
+
+
+def render_density(report: dict) -> list:
+    """One table: what a correct answer costs, per bed, arm and seed, against the untrained model."""
+    block = report.get("density") or {}
+    lines = ["", "## What a correct answer costs (tokens per correct answer)", "",
+             "Plan section 4c, research row Q13. Tokens per correct answer is the output tokens over "
+             "the whole held-out set divided by the correct answers, so it is a cost per task and not "
+             "a length. A trained model may spend at most %.1f times the untrained model's on the bed "
+             "it learned and on the general panel; over the bar the gain is reported at cost. The "
+             "`none` rows are the reused control's own scorings." % block.get("bar", DENSITY_BAR), ""]
+    if not block.get("measured"):
+        lines += [block.get("note") or NO_TOKENS, ""]
+    lines += ["| bed | arm | seed | bed or panel | untrained | trained | ratio | verdict |",
+              "|---|---|---|---|---|---|---|---|"]
+    for bed in BEDS:
+        entry = (block.get("beds") or {}).get(bed) or {"arms": {}}
+        for arm in ARMS:
+            arm_block = entry["arms"].get(arm) or {"seeds": {}, "bed": spread([]), "panels": {}}
+            for seed in report["seeds"]:
+                row = arm_block["seeds"].get(str(seed))
+                if row is None:
+                    continue
+                for name, cell in [(bed, row["bed"])] + sorted(row["panels"].items()):
+                    lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                        bed, arm, seed, name, show_cost(cell["untrained"]), show_cost(cell["trained"]),
+                        show_cost(cell["ratio"], 2), cell["verdict"]))
+            for name, summary in [(bed, arm_block["bed"])] + sorted(arm_block["panels"].items()):
+                mean = summary["mean"]
+                lines.append("| %s | **%s** | mean of %d | %s | | | **%s** (sd %s) | %s |" % (
+                    bed, arm, summary["n"], name, show_cost(mean, 2),
+                    "-" if summary["sd"] is None else show_cost(summary["sd"], 2),
+                    density.verdict(mean, bar=DENSITY_BAR) if density else "unknown"))
+    return lines
 
 
 def render(report: dict) -> str:
@@ -609,6 +738,7 @@ def render(report: dict) -> str:
                 lines.append("| %s | %s |" % (arm, " | ".join(
                     _fmt((arm_block["panel_change"].get(name) or {}).get("mean"), "%+.1f")
                     for name in names)))
+    lines += render_density(report)
     if report["flags"]:
         lines += ["", "## Flags", ""] + ["- %s" % flag for flag in report["flags"]]
     lines += ["", "%d beds, %d arms, %d control runs read from other packages."

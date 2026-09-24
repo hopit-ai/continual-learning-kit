@@ -48,10 +48,12 @@ scorecard = load("kit_scorecard", KIT / "scorecard.py")
 
 # ============================================================================ fixtures
 def write_score(directory: Path, correct: float, *, n: float = 100, machine: str | None = "m1",
-                bed: str = "job", key_value: dict | None = None) -> Path:
-    """One `bed-score.json` in the shape kit/eval_bed.py writes."""
+                bed: str = "job", key_value: dict | None = None, tokens: int | None = None) -> Path:
+    """One `bed-score.json` in the shape kit/eval_bed.py writes (`tokens` = output_tokens_total, optional)."""
     payload = {"schema": "kit-bed-score.v1", "bed": bed, "n": n, "correct": correct,
                "total_correct": correct, "accuracy": round(correct / n, 6), "incorrect_format": 0}
+    if tokens is not None:
+        payload["output_tokens_total"] = tokens
     if machine is not None:
         payload["machine"] = {"id": machine, "deterministic": True}
     payload.update(key_value or {})
@@ -60,11 +62,12 @@ def write_score(directory: Path, correct: float, *, n: float = 100, machine: str
     return directory
 
 
-def write_panels(directory: Path, scores: dict, *, machine: str | None = "m1") -> Path:
-    """One `forgetting.json` in the shape kit/score_forgetting.py writes."""
+def write_panels(directory: Path, scores: dict, *, machine: str | None = "m1", tokens: dict | None = None) -> Path:
+    """One `forgetting.json` in the shape kit/score_forgetting.py writes (`tokens` = {panel: output_tokens_total})."""
     payload = {"schema": "kit-forgetting.v1", "total_correct": sum(scores.values()),
                "panels": {name: {"n": 100, "correct": correct, "parsed": 100, "per_member": {},
-                                 "median_output_chars": 200, "empty_outputs": 0}
+                                 "median_output_chars": 200, "empty_outputs": 0,
+                                 **({"output_tokens_total": tokens[name]} if tokens and name in tokens else {})}
                           for name, correct in scores.items()}}
     if machine is not None:
         payload["machine"] = {"id": machine, "deterministic": True}
@@ -553,7 +556,8 @@ def test_scorecard_imports_nothing_of_ours_and_nothing_that_needs_a_gpu():
         elif isinstance(node, ast.ImportFrom):
             imported.add((node.module or "").split(".")[0])
     assert not imported & {"continual", "sdft", "kit", "modal", "torch", "vllm", "transformers"}, imported
-    assert imported <= {"argparse", "json", "re", "statistics", "sys", "pathlib", "__future__"}, imported
+    # importlib loads kit/density.py from beside the file (the density column, plan 4c); still nothing of ours by name
+    assert imported <= {"argparse", "json", "re", "statistics", "sys", "pathlib", "__future__", "importlib"}, imported
 
 
 def function_ast(path: Path, name: str) -> str:
@@ -574,3 +578,68 @@ def test_the_spread_and_the_tree_reading_are_the_same_as_the_k3_readouts():
     assert scorecard.POINT.pattern == k3_report.POINT.pattern
     assert scorecard.ATTEMPT.pattern == k3_report.ATTEMPT.pattern
     assert scorecard.spread([1.0, 2.0, 6.0]) == k3_report.spread([1.0, 2.0, 6.0])
+
+
+# ---- what a correct answer costs (plan 4c): the density column ------------------------------------------
+
+def density_manifest(tmp_path: Path, *, tokens: bool) -> Path:
+    """A one-seed, two-job sequence: job a doubles its tokens per correct answer, job b stays flat; panel p
+    goes over the bar and panel q stays within. Without `tokens`, no scoring carries token counts."""
+    root = tmp_path / "d"
+    tok = (lambda v: v) if tokens else (lambda v: None)
+    stages = []
+    # untrained: a 20 correct / 2,000 tokens (100 per correct); b 30 / 3,000 (100); p 50 / 5,000 (100); q 50 / 5,000
+    write_score(root / "s0-a", 20, bed="a", tokens=tok(2000)); write_score(root / "s0-b", 30, bed="b", tokens=tok(3000))
+    write_panels(root / "s0-f", {"p": 50, "q": 50}, tokens={"p": 5000, "q": 5000} if tokens else None)
+    # after a: a 40 / 8,000 (200: x2, over); b 30 / 3,000
+    write_score(root / "s1-a", 40, bed="a", tokens=tok(8000)); write_score(root / "s1-b", 30, bed="b", tokens=tok(3000))
+    write_panels(root / "s1-f", {"p": 50, "q": 50}, tokens={"p": 6000, "q": 5000} if tokens else None)
+    # after b: a 40 / 8,000 (x2, over); b 60 / 6,000 (100: x1, within); p 50 / 8,000 (x1.6, over); q 50 / 6,000 (x1.2)
+    write_score(root / "s2-a", 40, bed="a", tokens=tok(8000)); write_score(root / "s2-b", 60, bed="b", tokens=tok(6000))
+    write_panels(root / "s2-f", {"p": 50, "q": 50}, tokens={"p": 8000, "q": 6000} if tokens else None)
+    for i, job in enumerate((None, "a", "b")):
+        stages.append({"scores": {"a": "d/s%d-a" % i, "b": "d/s%d-b" % i}, "forgetting": "d/s%d-f" % i,
+                       **({"job": job} if job else {})})
+    return a_manifest(tmp_path / "manifest.json", [{"seed": 0, "untrained": stages[0], "stages": stages[1:]}])
+
+
+def test_the_density_column_reads_tokens_per_correct_answer_and_judges_it_against_the_bar(tmp_path):
+    card = scorecard.build(density_manifest(tmp_path, tokens=True))
+    d = card["per_seed"]["0"]["density"]
+    assert d["bar"] == 1.5
+    assert d["jobs"]["a"]["untrained"] == 100 and d["jobs"]["a"]["trained"] == 200 and d["jobs"]["a"]["verdict"] == "over bar"
+    assert d["jobs"]["b"]["ratio"] == 1 and d["jobs"]["b"]["verdict"] == "within bar"
+    assert d["panels"]["p"]["ratio"] == 1.6 and d["panels"]["p"]["verdict"] == "over bar"
+    assert d["panels"]["q"]["ratio"] == 1.2 and d["panels"]["q"]["verdict"] == "within bar"
+    assert d["over_bar"] == ["a", "panel p"] and d["known"] == d["cells"] == 10
+    text = scorecard.render(card)
+    assert "## What a correct answer costs" in text and "| 0 | 100 to 200 (x2.00, over) | 100 to 100 (x1.00) | 100 to 160 (x1.60, over) | 100 to 120 (x1.20) | a, panel p |" in text
+    assert "carried no token counts" not in text
+
+
+def test_a_scoring_without_token_counts_gives_a_dash_and_never_a_refusal(tmp_path):
+    with_tokens = scorecard.build(density_manifest(tmp_path / "w", tokens=True))
+    without = scorecard.build(density_manifest(tmp_path / "wo", tokens=False))
+    for name in ("average_accuracy", "backward_transfer", "forward_transfer", "general_delta"):
+        assert with_tokens["per_seed"]["0"][name] == without["per_seed"]["0"][name]
+    d = without["per_seed"]["0"]["density"]
+    assert d["known"] == 0 and d["cells"] == 10 and d["over_bar"] == []
+    assert all(c["verdict"] == "unknown" for c in list(d["jobs"].values()) + list(d["panels"].values()))
+    text = scorecard.render(without)
+    assert "| 0 | - | - | - | - | none |" in text and "10 of 10 scorings carried no token counts" in text
+
+
+def test_token_counts_beside_the_result_are_read_when_the_result_has_none(tmp_path):
+    manifest = density_manifest(tmp_path, tokens=False)
+    root = tmp_path / "d"
+    for stage, tokens in ((0, 2000), (2, 8000)):                       # a: 20 -> 40 correct, 100 -> 200 per correct
+        rows = [{"id": i, "output_tokens": tokens // 100} for i in range(100)]
+        (root / ("s%d-a" % stage) / "responses.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    prow = [{"panel": "p", "id": i, "output_tokens": 50} for i in range(100)] + [{"panel": "q", "id": i, "output_tokens": 50} for i in range(100)]
+    (root / "s0-f" / "responses.jsonl").write_text("".join(json.dumps(r) + "\n" for r in prow), encoding="utf-8")
+    (root / "s2-f" / "responses.jsonl").write_text("".join(json.dumps(dict(r, output_tokens=80 if r["panel"] == "p" else 60)) + "\n" for r in prow), encoding="utf-8")
+    d = scorecard.build(manifest)["per_seed"]["0"]["density"]
+    assert d["jobs"]["a"]["ratio"] == 2 and d["jobs"]["a"]["verdict"] == "over bar"
+    assert d["jobs"]["b"]["verdict"] == "unknown"
+    assert d["panels"]["p"]["ratio"] == 1.6 and d["panels"]["q"]["ratio"] == 1.2
+

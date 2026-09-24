@@ -546,8 +546,35 @@ def _point_fields(point: str):
     return (match["order"], match["arm"], int(match["seed"]), int(match["stage"]))
 
 
-def _write_tree(tmp_path: Path, *, machine_of=lambda point: "m1", skip=()) -> Path:
-    """Every directory the campaign writes, filled with a lawful scoring. Built FROM the campaign."""
+#: Output tokens per answer, flat everywhere EXCEPT gsm8k, whose answers get four times longer once
+#: anything has been trained: the shape plan 4c's density bar exists to catch.
+PER_ANSWER = 50
+PANEL_QUESTIONS = 100
+
+
+def _tokens_of(bed: str, stage: int) -> int:
+    """The whole held-out set's output tokens for one bed at one stage: the density's numerator."""
+    return HELD_OUT[bed] * PER_ANSWER * (4 if bed == "gsm8k" and stage > 0 else 1)
+
+
+def _write_tokens(path: Path, payload: dict, tokens, total: int, n: int, *, panel=None) -> None:
+    """Put the counts where `tokens` says: in the result, or in a responses.jsonl beside it."""
+    if tokens == "result":
+        (payload if panel is None else payload["panels"][panel])["output_tokens_total"] = total
+    elif tokens == "responses":
+        rows = [{"id": "q%d" % i, "output_tokens": total // n} for i in range(n)]
+        if panel is not None:
+            rows = [dict(row, panel=panel) for row in rows]
+        with (path / "responses.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write("".join(json.dumps(row) + "\n" for row in rows))
+
+
+def _write_tree(tmp_path: Path, *, machine_of=lambda point: "m1", skip=(), tokens=None) -> Path:
+    """Every directory the campaign writes, filled with a lawful scoring. Built FROM the campaign.
+
+    `tokens` says where the output-token counts live, if anywhere: "result" puts them in the scoring,
+    "responses" in the responses.jsonl beside it, None nowhere at all.
+    """
     os.environ["WORK"] = str(tmp_path)
     campaign = runner.load_campaign(CAMPAIGN)
     for row in campaign["rows"]:
@@ -570,6 +597,7 @@ def _write_tree(tmp_path: Path, *, machine_of=lambda point: "m1", skip=()) -> Pa
                        "incorrect_format": 0}
             if machine_of(point) is not None:
                 payload["machine"] = {"id": machine_of(point), "deterministic": True}
+            _write_tokens(path, payload, tokens, _tokens_of(bed, stage), HELD_OUT[bed])
             (path / "bed-score.json").write_text(json.dumps(payload), encoding="utf-8")
         elif "/forgetting/" in out and (name == "base" or k5_report.POINT.match(name)):
             fields = _point_fields(name)
@@ -581,6 +609,9 @@ def _write_tree(tmp_path: Path, *, machine_of=lambda point: "m1", skip=()) -> Pa
                        "total_correct": sum(panels.values())}
             if machine_of(name) is not None:
                 payload["machine"] = {"id": machine_of(name), "deterministic": True}
+            for panel in panels:
+                _write_tokens(path, payload, tokens, PANEL_QUESTIONS * PER_ANSWER, PANEL_QUESTIONS,
+                              panel=panel)
             (path / "forgetting.json").write_text(json.dumps(payload), encoding="utf-8")
         elif "/plasticity/" in out and (name == "base" or k5_report.POINT.match(name)):
             fields = _point_fields(name)
@@ -689,6 +720,57 @@ def test_the_report_joins_every_order_arm_and_seed(tmp_path):
     seed0 = arm["seeds"]["0"]
     assert seed0["stages"][0]["point"] == "base" and seed0["stages"][1]["point"] == "sqlfirst-shared-seed0-stage1"
     assert seed0["final"]["spider"] == BASE_SCORES["spider"] + LEARNED - DECAY * 3
+
+
+# ------------------------------------------------- what a correct answer costs (plan 4c, row Q13)
+def test_the_density_compares_the_end_of_every_sequence_with_the_untrained_model(tmp_path):
+    report = k5_report.build(_readout(tmp_path, tokens="result"))
+    block = report["density"]
+    assert block["bar"] == 1.5 and block["available"] == 1 and block["note"] is None
+    assert block["untrained"]["beds"]["spider"] == pytest.approx(5000 / BASE_SCORES["spider"])
+    arm = block["orders"]["sqlfirst"]["arms"]["none"]
+    seed0 = arm["seeds"]["0"]
+    # gsm8k's answers are four times longer at the end of the sequence: over the bar, at cost
+    gsm8k = seed0["beds"]["gsm8k"]
+    assert gsm8k["untrained"] == pytest.approx(15000 / BASE_SCORES["gsm8k"])
+    assert gsm8k["trained"] == pytest.approx(60000 / (BASE_SCORES["gsm8k"] + LEARNED - DECAY))
+    assert gsm8k["ratio"] == pytest.approx(400 / 115) and gsm8k["verdict"] == "over bar"
+    # spider's stay the same length, and it answers more of them: under the bar
+    assert seed0["beds"]["spider"]["ratio"] == pytest.approx(40 / 45)
+    assert seed0["beds"]["spider"]["verdict"] == "within bar"
+    assert seed0["panels"]["math"]["ratio"] == pytest.approx(90 / (PANELS["math"] - 4))
+    assert seed0["panels"]["math"]["verdict"] == "within bar"
+    assert arm["beds"]["gsm8k"]["n"] == len(SEEDS)
+    assert arm["beds"]["gsm8k"]["mean"] == pytest.approx(
+        statistics.fmean([400 / (115 + seed) for seed in SEEDS]), abs=1e-4)
+    text = k5_report.render(report)
+    assert "## What a correct answer costs (tokens per correct answer)" in text
+    assert "| sqlfirst | none | 0 | gsm8k | 150.0 | 521.7 | 3.48 | over bar |" in text
+    assert "| sqlfirst | none | 0 | spider | 125.0 | 111.1 | 0.89 | within bar |" in text
+
+
+def test_a_tree_with_no_token_counts_reports_dashes_and_says_so_and_changes_nothing_else(tmp_path):
+    report = k5_report.build(_readout(tmp_path))
+    assert report["density"]["measured"] == 0 and report["density"]["available"] == 0
+    assert "carried token counts" in report["density"]["note"]
+    arm = report["orders"]["sqlfirst"]["arms"]["none"]
+    assert arm["learned"]["finqa"] == {"n": len(SEEDS), "mean": LEARNED, "sd": 0.0}
+    assert arm["kept"]["spider"]["mean"] == -DECAY * 3
+    assert arm["seeds"]["0"]["final"]["spider"] == BASE_SCORES["spider"] + LEARNED - DECAY * 3
+    cell = report["density"]["orders"]["sqlfirst"]["arms"]["none"]["seeds"]["0"]["beds"]["gsm8k"]
+    assert cell == {"untrained": None, "trained": None, "ratio": None, "bar": 1.5, "verdict": "unknown"}
+    text = k5_report.render(report)
+    assert "| sqlfirst | none | 0 | gsm8k | - | - | - | unknown |" in text
+    assert "carried token counts" in text
+
+
+def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_total(tmp_path):
+    report = k5_report.build(_readout(tmp_path, tokens="responses"))
+    seed0 = report["density"]["orders"]["sqlfirst"]["arms"]["none"]["seeds"]["0"]
+    assert seed0["beds"]["gsm8k"]["ratio"] == pytest.approx(400 / 115)
+    assert seed0["beds"]["gsm8k"]["verdict"] == "over bar"
+    assert seed0["panels"]["math"]["ratio"] == pytest.approx(90 / (PANELS["math"] - 4))
+    assert "| sqlfirst | none | 0 | gsm8k | 150.0 | 521.7 | 3.48 | over bar |" in k5_report.render(report)
 
 
 def test_the_report_refuses_to_subtract_counts_made_on_two_machines(tmp_path):

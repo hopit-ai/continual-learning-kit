@@ -69,6 +69,15 @@ SCHEMA = "kit-scorecard.v1"
 MANIFEST_SCHEMA = "kit-sequence.v1"
 RESULT_FILES = ("bed-score.json", "forgetting.json")
 
+
+def _density_module():
+    """kit/density.py, loaded from beside this file so the kit works copied anywhere."""
+    import importlib.util                                                    # noqa: PLC0415
+    spec = importlib.util.spec_from_file_location("density", Path(__file__).resolve().parent / "density.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 # The K3 campaign's own tree, for the adapter: a point is `base`, `a-seed<S>` or `b-<arm>-seed<S>`,
 # and a scored directory is `<stem>-a<attempt>`. Both patterns are k3_report.py's, on purpose.
 POINT = re.compile(r"^(?:base|a-seed(?P<aseed>\d+)|b-(?P<arm>[a-z0-9]+)-seed(?P<bseed>\d+))$")
@@ -205,6 +214,9 @@ def read_run(run: dict, jobs: list, base: Path, key: str) -> dict:
     seed = run["seed"]
     points = [run["untrained"]] + list(run["stages"])
     matrix = {job: [] for job in jobs}
+    costs = {job: [] for job in jobs}                       # tokens per correct answer, by stage (or None)
+    panel_costs: dict = {}
+    density = _density_module()
     machines, sizes, panels, cells = set(), {}, {}, 0
     for index, point in enumerate(points):
         where = "seed %d %s" % (seed, stage_name(index, jobs))
@@ -218,6 +230,7 @@ def read_run(run: dict, jobs: list, base: Path, key: str) -> dict:
                                      "over from another stage." % (where, job, len(points), len(jobs)))
             result, path = read_result(scores[job], base)
             matrix[job].append(number(result, key, path))
+            costs[job].append(density.tokens_per_correct(result, path))
             machines.add((result.get("machine") or {}).get("id"))
             size = result.get("n")
             if isinstance(size, (int, float)) and not isinstance(size, bool):
@@ -229,6 +242,7 @@ def read_run(run: dict, jobs: list, base: Path, key: str) -> dict:
         if point.get("forgetting") is not None:
             result, path = read_result(point["forgetting"], base)
             panels[index] = panel_scores(result, path)
+            panel_costs[index] = {name: density.tokens_per_correct(result, path, panel=name) for name in panels[index]}
             machines.add((result.get("machine") or {}).get("id"))
     last = len(points) - 1
     for index in (0, last):
@@ -240,7 +254,26 @@ def read_run(run: dict, jobs: list, base: Path, key: str) -> dict:
         raise ScorecardError("seed %d: the untrained model was scored on panels %s and the end of the "
                              "sequence on %s" % (seed, sorted(panels[0]), sorted(panels[last])))
     return {"seed": seed, "matrix": matrix, "panels": panels, "machines": machines,
-            "job_questions": sizes, "cells_read": cells}
+            "job_questions": sizes, "cells_read": cells,
+            "density": density_block(costs, panel_costs, jobs, last, density)}
+
+
+def density_block(costs: dict, panel_costs: dict, jobs: list, last: int, density) -> dict:
+    """What a correct answer costs, untrained against the end of the sequence (plan section 4c).
+    Never a refusal: a scoring without token counts gives `-`, and `known` says how many cells had them."""
+    block = {"bar": density.BAR, "jobs": {}, "panels": {}, "known": 0, "cells": 0}
+    for job in jobs:
+        cell = density.compare(costs[job][last], costs[job][0])
+        cell["by_stage"] = [(c or {}).get("tokens_per_correct") for c in costs[job]]
+        block["jobs"][job] = cell
+        block["cells"] += len(costs[job]); block["known"] += sum(c is not None for c in costs[job])
+    for name in sorted(panel_costs.get(0) or {}):
+        cell = density.compare((panel_costs.get(last) or {}).get(name), panel_costs[0].get(name))
+        block["panels"][name] = cell
+        block["cells"] += 2; block["known"] += sum((panel_costs.get(i) or {}).get(name) is not None for i in (0, last))
+    block["over_bar"] = sorted([job for job, c in block["jobs"].items() if c["verdict"] == "over bar"]
+                               + ["panel " + n for n, c in block["panels"].items() if c["verdict"] == "over bar"])
+    return block
 
 
 def metrics(matrix: dict, jobs: list, panels: dict) -> dict:
@@ -277,6 +310,7 @@ def build(manifest_path: Path, *, key: str = "correct", allow_different_machines
                                      "those seeds cannot be averaged" % (job, size, sizes[job]))
         per_seed[read["seed"]] = dict(metrics(read["matrix"], jobs, read["panels"]),
                                       matrix={job: read["matrix"][job] for job in jobs},
+                                      density=read["density"],
                                       panels={str(index): read["panels"][index] for index in sorted(read["panels"])})
     identifiers = sorted(machines, key=lambda item: (item is None, item))
     comparable = len(identifiers) == 1 and identifiers[0] is not None
@@ -349,6 +383,7 @@ def render(card: dict) -> str:
                      show(row["forward_transfer"]),
                      ", ".join("%s %s" % (panel, show(row["general_delta"][panel], 0))
                                for panel in card["panels"])), ""]
+    lines += density_lines(card)
     lines += ["## Over seeds", "",
               "| number | " + " | ".join("seed %d" % seed for seed in seeds) + " | mean | sd |",
               "|---|" + "---|" * (len(seeds) + 2)]
@@ -373,6 +408,39 @@ def render(card: dict) -> str:
     lines += ["", "%d seeds, %d jobs, %d cells read from %s."
               % (card["seeds_reported"], card["jobs_reported"], card["cells_read"], card["manifest"]), ""]
     return "\n".join(lines)
+
+
+def density_lines(card: dict) -> list:
+    """The 'what a correct answer costs' section: tokens per correct answer, untrained against the end of
+    the sequence, per seed, with the plan's bar. Dashes where a scoring carried no token counts."""
+    jobs, seeds = card["jobs"], card["seeds"]
+    first = card["per_seed"][str(seeds[0])].get("density")
+    if not first:
+        return []
+    bar = first["bar"]
+    lines = ["## What a correct answer costs", "",
+             "Tokens per correct answer = the held-out set's output tokens divided by its correct answers: a cost "
+             "per task, not a length. The bar (plan 4c): after the sequence a model spends at most %.1f times the "
+             "untrained model's on each job and each panel; over it, the gain is reported at cost." % bar, "",
+             "| seed | " + " | ".join(jobs) + " | " + " | ".join("panel " + p for p in card["panels"]) + " | over the bar |",
+             "|---|" + "---|" * (len(jobs) + len(card["panels"]) + 1)]
+    known = cells = 0
+    for seed in seeds:
+        d = card["per_seed"][str(seed)]["density"]
+        known += d["known"]; cells += d["cells"]
+        def cell(c):
+            if c["ratio"] is None:
+                return "-"
+            return "%s to %s (x%.2f%s)" % (show(c["untrained"], 0, signed=False), show(c["trained"], 0, signed=False),
+                                            c["ratio"], ", over" if c["verdict"] == "over bar" else "")
+        lines.append("| %d | %s | %s | %s |" % (seed, " | ".join(cell(d["jobs"][job]) for job in jobs),
+                                               " | ".join(cell(d["panels"].get(p, {"ratio": None})) for p in card["panels"]),
+                                               ", ".join(d["over_bar"]) or "none"))
+    lines.append("")
+    if known < cells:
+        lines += ["%d of %d scorings carried no token counts (`output_tokens_total` in the result, or a "
+                  "`responses.jsonl` beside it), shown as `-`. The four numbers above do not depend on them." % (cells - known, cells), ""]
+    return lines
 
 
 # ------------------------------------------------------------------ the K3 adapter
