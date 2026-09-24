@@ -329,6 +329,80 @@ def test_every_spider_rule_drops_what_it_is_for(hint, reason):
     assert hints.drop_reason(hint, spider_rows(1)[0]) == reason
 
 
+# ---- reasoning models think inside the reply (smoke attempt 2: Qwen3-8B, 147 of 171 hints too long) ----
+
+def test_a_thinking_block_is_stripped_before_the_plan_is_counted_or_filtered():
+    reply = "<think>\nThe gold is SELECT name FROM singer WHERE age > 30.\n</think>\n" + PLAN
+    assert hints.tidy(reply) == PLAN
+    assert hints.drop_reason(hints.tidy(reply), spider_rows(1)[0]) is None
+    thinking, plan = hints.split_thinking(reply)
+    assert thinking.startswith("<think>") and thinking.endswith("</think>") and plan.strip() == PLAN
+
+
+def test_an_unclosed_thinking_block_yields_no_plan_rather_than_the_thinking():
+    reply = "<think>\nStill thinking when max_tokens ran out.\nFind the table.\nFilter.\nSort."
+    assert hints.tidy(reply) == ""
+    assert hints.drop_reason(hints.tidy(reply), spider_rows(1)[0]) == "empty"
+
+
+def test_a_reply_without_thinking_is_unchanged_by_the_strip():
+    assert hints.tidy(PLAN + "\n") == PLAN
+
+
+def test_a_plan_written_as_one_paragraph_is_reshaped_to_one_sentence_a_line():
+    paragraph = "Look at the `city` table. Filter rows where `state_name` is 'California'. Sum the `population` values."
+    assert hints.tidy(paragraph).split("\n") == ["Look at the `city` table.", "Filter rows where `state_name` is 'California'.",
+                                                  "Sum the `population` values."]
+    assert hints.was_reshaped(paragraph) and hints.drop_reason(hints.tidy(paragraph), spider_rows(1)[0]) is None
+
+
+def test_a_plan_already_written_as_lines_is_not_reshaped_even_with_two_sentences_on_a_line():
+    plan = "Find the table. Then the column.\nFilter by age.\nSort by name."
+    assert hints.tidy(plan) == plan and not hints.was_reshaped(plan)
+
+
+def test_a_decimal_inside_a_sentence_does_not_split_it():
+    assert hints.tidy("Divide by 3.5 to scale. Then round. Report it.").split("\n")[0] == "Divide by 3.5 to scale."
+
+
+@pytest.mark.parametrize("text,is_sql", [
+    ("Write SELECT name FROM singer to list them.", True),
+    ("select name from artist where age > 30", True),
+    ("Run `select count(*) from singer` on the table.", True),
+    ("Select the publication titles from the publication table using the matched ids.", False),
+    ("Select publication titles from the publication table.", False),
+    ("Select rows with age over 30 from each of the two tables and count them.", False),
+    ("Filter by age, then sort by name.", False),
+])
+def test_the_sql_rule_drops_statements_and_keeps_english_sentences_that_start_with_select(text, is_sql):
+    assert hints.looks_like_sql_statement(text) is is_sql
+    plan = "Find the singer table.\n%s\nReport the names." % text
+    assert (hints.drop_reason(plan, spider_rows(1)[0]) == "contains_sql_statement") is is_sql
+
+
+
+def test_the_request_asks_the_server_not_to_think_and_falls_back_once_on_a_400(monkeypatch):
+    import io
+    import urllib.error
+    import urllib.request
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        body = json.loads(request.data.decode("utf-8"))
+        seen.append(body)
+        if "chat_template_kwargs" in body:
+            raise urllib.error.HTTPError(request.full_url, 400, "unknown field", {}, io.BytesIO(b""))
+        payload = {"choices": [{"message": {"content": PLAN}, "finish_reason": "stop"}], "usage": {}}
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    answer = hints.post_chat("http://x/v1", "m", "q", api_key=None, max_tokens=10, temperature=0.0,
+                             timeout=1.0, retries=3)
+    assert seen[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "chat_template_kwargs" not in seen[1] and len(seen) == 2
+    assert answer["text"] == PLAN and answer["thinking_switch"] == "rejected"
+
+
 @pytest.mark.parametrize("hint,reason", [
     (PLAN, None),
     ("Take the revenue rows.\nDivide the later by the earlier.\nSubtract one.", None),

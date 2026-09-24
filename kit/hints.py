@@ -99,11 +99,31 @@ HINT_INSTRUCTION = (
 HINT_HEADER = "\n\nA hint from a stronger model. It is a plan, not the answer:\n"
 HINT_MIN_LINES, HINT_MAX_LINES = 3, 5
 GENERATE_DEFAULTS = {"max_tokens": 400, "temperature": 0.0, "timeout": 180.0, "retries": 3}
+#: Reasoning models (Qwen3, DeepSeek-R1 servings) return their thinking inside `content` unless the chat
+#: template is told not to think. Asked for through vLLM's `chat_template_kwargs`; a server that rejects
+#: the field (HTTP 400) is asked again without it, and whatever thinking still comes back is stripped by
+#: split_thinking() so that only the plan reaches the filter. Smoke attempt 2 lost 147 of 171 hints to
+#: this: Qwen3-8B's thinking made every hint 10 to 40 lines.
+THINKING_OFF = {"chat_template_kwargs": {"enable_thinking": False}}
+_THINK = re.compile(r"<think>[\s\S]*?</think>", re.I)
+_THINK_OPEN = re.compile(r"<think>", re.I)
+#: A plan written as one paragraph (smoke attempt 3: 141 of 171 Qwen3-8B hints were one line of three to five
+#: sentences) is reshaped to one sentence a line before the line rules see it. Only a reply with fewer than
+#: HINT_MIN_LINES lines is reshaped, so a plan already written as lines is never changed.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z`'\"(])")
 
 # ---- the leakage filter ----------------------------------------------------------------------------
 NUMBER_TOLERANCE = 0.01                      # "within 1 percent", the design note's rule
 _NUMBER = re.compile(r"[-+]?\d[\d,]*\.?\d*|[-+]?\.\d+")
-_SELECT = re.compile(r"\bselect\b[\s\S]{0,400}?\bfrom\b", re.I)
+#: A complete SQL statement of the hint's own: `SELECT ... FROM <table>` on one line, either written in SQL's
+#: upper case, or in code (backticks), or in the shape of code (nothing English between SELECT and FROM, no
+#: determiner after FROM). The English sentence "Select the titles from the publication table" is a plan
+#: step, not a statement: smoke attempt 4 lost 51 of 172 hints to a looser version of this rule.
+_SELECT = re.compile(r"\bselect\b([^\n]{0,200}?)\bfrom\b[ \t]+([`'\"]?\w+)", re.I)
+_SELECT_UPPER = re.compile(r"\bSELECT\b[^\n]{0,200}?\bFROM\b[ \t]+\S")
+_SELECT_CODE = re.compile(r"`[^`\n]*\bselect\b[^`\n]{0,200}?\bfrom\b[^`\n]*`", re.I)
+_ENGLISH = {"the", "a", "an", "each", "every", "all", "any", "this", "that", "these", "those", "its", "their",
+            "of", "to", "for", "with", "in", "on", "by", "which", "whose", "who", "and", "or", "then", "only"}
 _ANSWER_LINE = re.compile(r"\banswer\s*[:=]\s*\S", re.I)
 _YES_NO = re.compile(r"\b(?:the\s+)?answer\s+(?:is|would\s+be)\s+(?:yes|no)\b", re.I)
 _WHITESPACE = re.compile(r"\s+")
@@ -341,31 +361,65 @@ def post_chat(base_url: str, model: str, prompt: str, *, api_key: str | None, ma
     import urllib.error                                                      # noqa: PLC0415
     import urllib.request                                                    # noqa: PLC0415
     url = base_url.rstrip("/") + "/chat/completions"
-    body = json.dumps({"model": model, "max_tokens": max_tokens, "temperature": temperature,
-                       **hint_request(prompt)}).encode("utf-8")
+    extras = dict(THINKING_OFF)
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = "Bearer %s" % api_key
     last = None
     for attempt in range(max(1, retries)):
+        body = json.dumps({"model": model, "max_tokens": max_tokens, "temperature": temperature,
+                           **extras, **hint_request(prompt)}).encode("utf-8")
         request = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:   # noqa: S310
                 payload = json.loads(response.read().decode("utf-8"))
             choice = (payload.get("choices") or [{}])[0]
             return {"text": ((choice.get("message") or {}).get("content") or ""),
-                    "finish_reason": choice.get("finish_reason"), "usage": payload.get("usage") or {}}
+                    "finish_reason": choice.get("finish_reason"), "usage": payload.get("usage") or {},
+                    "thinking_switch": "sent" if extras else "rejected"}
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code == 400 and extras:
+                extras = {}                     # the server does not know the switch: ask plainly, once
+                continue
+            if attempt + 1 < max(1, retries):
+                time.sleep(5.0 * (attempt + 1))
         except (urllib.error.URLError, OSError, ValueError, KeyError) as exc:
             last = exc
             if attempt + 1 < max(1, retries):
                 time.sleep(5.0 * (attempt + 1))
-    return {"text": "", "finish_reason": "error", "usage": {}, "error": "%s: %s" % (type(last).__name__, last)}
+    return {"text": "", "finish_reason": "error", "usage": {}, "error": "%s: %s" % (type(last).__name__, last),
+            "thinking_switch": "sent" if extras else "rejected"}
+
+
+def split_thinking(text: str) -> tuple:
+    """(thinking, plan). A closed <think>...</think> block is the thinking and everything else is the plan;
+    an unclosed <think> means the model ran out of tokens before it wrote a plan, so the plan is empty."""
+    text = text or ""
+    blocks = _THINK.findall(text)
+    rest = _THINK.sub("", text)
+    open_at = _THINK_OPEN.search(rest)
+    if open_at:
+        blocks.append(rest[open_at.start():])
+        rest = ""                               # nothing around an unclosed <think> is a plan we can trust
+    return "\n".join(blocks), rest
 
 
 def tidy(text: str) -> str:
-    """The plan as lines: blank lines and surrounding whitespace dropped, nothing else changed."""
-    lines = [line.strip() for line in (text or "").replace("\r", "\n").split("\n")]
-    return "\n".join(line for line in lines if line)
+    """The plan as lines: any thinking block removed, blank lines and surrounding whitespace dropped,
+    nothing else changed."""
+    _, plan = split_thinking(text)
+    lines = [line.strip() for line in plan.replace("\r", "\n").split("\n") if line.strip()]
+    if 0 < len(lines) < HINT_MIN_LINES:
+        lines = [s.strip() for line in lines for s in _SENTENCE_END.split(line) if s.strip()]
+    return "\n".join(lines)
+
+
+def was_reshaped(text: str) -> bool:
+    """True when tidy() turned a one-paragraph reply into lines (counted in the generate manifest)."""
+    _, plan = split_thinking(text)
+    raw = [line for line in plan.replace("\r", "\n").split("\n") if line.strip()]
+    return 0 < len(raw) < HINT_MIN_LINES and len(tidy(text).split("\n")) > len(raw)
 
 
 def cmd_generate(args) -> int:
@@ -384,6 +438,7 @@ def cmd_generate(args) -> int:
     api_key = os.environ.get(args.api_key_env) if args.api_key_env else None
     out = fresh_dir(args.out)
     written, usage, errors = [], {"prompt_tokens": 0, "completion_tokens": 0}, 0
+    thought, unclosed, reshaped, switches = 0, 0, 0, {"sent": 0, "rejected": 0}
     started = time.monotonic()
     handle = (out / "hints.jsonl").open("w", encoding="utf-8")
     try:
@@ -392,13 +447,18 @@ def cmd_generate(args) -> int:
             answer = post_chat(args.base_url, args.model, prompt, api_key=api_key,
                                max_tokens=args.max_tokens, temperature=args.temperature,
                                timeout=args.timeout, retries=args.retries)
+            thinking, _ = split_thinking(answer["text"])
             hint = tidy(answer["text"])
             errors += int(bool(answer.get("error")))
+            thought += int(bool(thinking))
+            reshaped += int(was_reshaped(answer["text"]))
+            unclosed += int(bool(thinking) and not hint and "</think>" not in answer["text"].lower())
+            switches[answer.get("thinking_switch") or "sent"] += 1
             for key in usage:
                 usage[key] += int((answer.get("usage") or {}).get(key) or 0)
             row = {"index": index, "hint": hint, "lines": len(hint.split("\n")) if hint else 0,
                    "finish_reason": answer.get("finish_reason"), "prompt_sha256": sha256_text(prompt),
-                   "error": answer.get("error")}
+                   "thinking_chars": len(thinking), "error": answer.get("error")}
             handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
             handle.flush()                       # a crash at question 400 must not lose questions 1 to 399
             written.append(row)
@@ -411,7 +471,11 @@ def cmd_generate(args) -> int:
                 "stuck_file": str(Path(args.stuck).resolve()), "stuck_questions": stuck["stuck"],
                 "asked": len(written), "with_text": sum(1 for row in written if row["hint"]),
                 "errors": errors, "usage": usage, "seconds": round(time.monotonic() - started, 1),
-                "request": {"max_tokens": args.max_tokens, "temperature": args.temperature},
+                "request": {"max_tokens": args.max_tokens, "temperature": args.temperature,
+                            **THINKING_OFF},
+                "thinking": {"replies_with_a_thinking_block": thought,
+                             "thinking_unclosed_so_no_plan": unclosed, "switch": switches},
+                "reshaped_from_one_paragraph": reshaped,
                 "system_sha256": sha256_text(HINT_SYSTEM),
                 "instruction_sha256": sha256_text(HINT_INSTRUCTION),
                 "hints_sha256": sha256_file(out / "hints.jsonl")}
@@ -465,6 +529,19 @@ def gold_query_of(ground_truth: str):
     return reference.get("gold_sql") if isinstance(reference, dict) else None
 
 
+def looks_like_sql_statement(text: str) -> bool:
+    """True when the text holds a SELECT ... FROM <table> statement of its own (see _SELECT above)."""
+    text = text or ""
+    if _SELECT_UPPER.search(text) or _SELECT_CODE.search(text):
+        return True
+    for match in _SELECT.finditer(text):
+        middle = {w.lower() for w in re.findall(r"[A-Za-z]+", match.group(1))}
+        after = match.group(2).strip("`'\"").lower()
+        if not (middle & _ENGLISH) and after not in _ENGLISH:
+            return True
+    return False
+
+
 def drop_reason(hint: str, row: dict, *, allow_sql_statements: bool = False):
     """Why this hint may not be used, or None. The rules are the design note's, in its own order."""
     if not hint or not hint.strip():
@@ -479,7 +556,7 @@ def drop_reason(hint: str, row: dict, *, allow_sql_statements: bool = False):
     if gold_query:
         if normalise_sql(gold_query) in normalise_sql(hint):
             return "contains_gold_query"
-        if not allow_sql_statements and _SELECT.search(hint):
+        if not allow_sql_statements and looks_like_sql_statement(hint):
             # Stricter than the note's letter, in service of the note's intent ("never the answer"): a
             # hint carrying a complete SELECT hands over a query whether or not it is the gold one.
             # --allow-sql-statements reproduces the literal rule; the count is reported either way.

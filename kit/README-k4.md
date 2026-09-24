@@ -64,7 +64,9 @@ a three-to-five-line plan. The request text is fixed in `kit/hints.py` and its s
 every run. Then **every hint passes a leakage filter before it is used**:
 
 - on Spider: it may name the gold query's tables and columns, but it may not contain the gold query,
-  and it may not contain a complete `SELECT` statement of its own;
+  and it may not contain a complete `SELECT` statement of its own (upper-case SQL, SQL in backticks, or a
+  code-shaped `select ... from <table>`; an English step such as "Select the titles from the publication
+  table" is a plan, not a statement);
 - on FinQA: it may not contain the gold number, nor any number within 1 percent of it at any of the
   three scales the bed accepts, nor state a yes/no answer;
 - on either: it may not write an `Answer:` line, and it must be three to five lines.
@@ -89,7 +91,10 @@ Everything from `README-partner.md` sections 0 to 4, plus:
 - **a large open model served on an OpenAI-compatible endpoint** (vLLM's own `--served-model-name`
   works). Which model is yours to choose from what your cluster holds — Qwen3-235B-A22B, or the
   largest Llama you have. Tell us which, because it goes in the write-up. It only has to be up for the
-  two `*-hints` rows, about 700 short requests in total.
+  two `*-hints` rows, about 700 short requests in total. A reasoning model (Qwen3, R1) is fine: the
+  request switches its thinking off (`chat_template_kwargs.enable_thinking=false`, which vLLM
+  understands) and any thinking block that still comes back is stripped before the filter sees the
+  plan. The generate manifest counts how many replies thought anyway.
 - **Spider and FinQA on disk**, as in K3 and K1c.
 
 **Run it in the same container, on the same machine, as K3 and K1c.** The `none` arm was scored there,
