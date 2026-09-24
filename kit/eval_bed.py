@@ -45,11 +45,11 @@ ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilizatio
 # One bed's answer budget. All three are 2,048 new tokens, the same cap the forgetting panel uses, so
 # a truncated answer here means the same thing it means there. Kept per bed because a bed whose
 # answers are longer would need its own number, and that change must be visible.
-MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048}
+MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048}
 BED_FILES = {"spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
-             "finqa": HERE / "beds" / "finqa.py"}
-DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test"}
-SPLITS = {"spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test")}
+             "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py"}
+DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout"}
+SPLITS = {"spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout")}
 
 
 class EvalBedError(ValueError):
@@ -101,7 +101,7 @@ def machine_fingerprint(deterministic: bool = True) -> dict:
 # ------------------------------------------------------------------------------- the three beds
 def bed_root(args) -> str:
     """The directory holding the bed's own data. Spider may take it from SPIDER_ROOT, as its bed does."""
-    root = args.root or (os.environ.get("SPIDER_ROOT") if args.bed == "spider" else None)
+    root = args.root or {"spider": os.environ.get("SPIDER_ROOT"), "code": os.environ.get("LCB_ROOT")}.get(args.bed)
     if not root:
         raise EvalBedError("--root is required: the directory holding the %s data%s"
                            % (args.bed, " (or set SPIDER_ROOT)" if args.bed == "spider" else ""))
@@ -120,7 +120,10 @@ def split_of(args) -> str:
 def items_of(module, args) -> list:
     """[{'id', 'prompt', 'ground_truth'}] for the bed's split, built from the partner's own copy of the data."""
     root, split = bed_root(args), split_of(args)
-    if args.bed == "spider":
+    if args.bed == "code":
+        # the coding bed builds its own items; scoring needs the tests file `prepare` wrote, named by CODE_TESTS
+        items = module.eval_items(root, split)
+    elif args.bed == "spider":
         members = module.load_members(root, split, module.load_split())
         items = [{"id": m["id"], "prompt": m["prompt"], "ground_truth": module.ground_truth_for(m)} for m in members]
     elif args.bed == "gsm8k":

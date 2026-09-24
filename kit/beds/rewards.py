@@ -26,7 +26,7 @@ import importlib.util
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-BED_FILES = {"spider": HERE / "spider.py", "gsm8k": HERE / "gsm8k.py", "finqa": HERE / "finqa.py"}
+BED_FILES = {"spider": HERE / "spider.py", "gsm8k": HERE / "gsm8k.py", "finqa": HERE / "finqa.py", "code": HERE / "code.py"}
 
 
 class UnknownDataSource(ValueError):
