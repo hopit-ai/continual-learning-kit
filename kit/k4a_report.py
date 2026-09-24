@@ -306,7 +306,10 @@ def build(runs_dir: Path, forgetting: Path, k0: Path, *, allow_different_machine
         if not match:
             continue                                   # pilot-*, and anything else not in the grid
         arm, seed = match["arm"], int(match["seed"])
-        after = panel_scores(panels.get("%s-forget" % point))
+        # The campaign writes its forget rows to {work}/k4a/forgetting/<point>-a<attempt>, and
+        # latest_panels() strips the -a<attempt> suffix, so the stem is "<point>" and never
+        # "<point>-forget". Accept both so this works whichever way the OUT paths are named.
+        after = panel_scores(panels.get(point) or panels.get("%s-forget" % point))
         row = {
             "run": run["name"], "seed": seed, "steps_completed": run["steps_completed"],
             "validations": run["validations"],

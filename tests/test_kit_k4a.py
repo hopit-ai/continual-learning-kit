@@ -635,7 +635,7 @@ def tree(tmp_path):
         for seed in SEEDS:
             _run_dir(runs, "%s-seed%d-a1" % (arm, seed), steps=40, arm=arm,
                      acc_of=lambda q, step: 1.0 if (q in ("q0", "q1") or step == 0) else 0.5)
-            _panels(forgetting, "%s-seed%d-forget-a1" % (arm, seed))
+            _panels(forgetting, "%s-seed%d-a1" % (arm, seed))       # the campaign's own OUT stem (not "-forget")
     _run_dir(runs, "pilot-feedback-a1", steps=2, arm="FEEDBACK=1")
     return {"runs": runs, "forgetting": forgetting, "k0": _control(tmp_path / "k0.json")}
 
@@ -697,7 +697,7 @@ def test_a_split_over_no_shared_questions_is_flagged_rather_than_rendered_empty(
 
 
 def test_the_report_refuses_to_mix_two_machines(tree):
-    _panels(tree["forgetting"], "feedback-seed44-forget-a2", machine="a-different-machine")
+    _panels(tree["forgetting"], "feedback-seed44-a2", machine="a-different-machine")
     with pytest.raises(k4a_report.K4aReportError, match="fingerprints"):
         k4a_report.build(tree["runs"], tree["forgetting"], tree["k0"])
     mixed = k4a_report.build(tree["runs"], tree["forgetting"], tree["k0"], allow_different_machines=True)
@@ -766,3 +766,34 @@ def test_a_run_with_no_rollout_dumps_says_so_rather_than_comparing_anyway(tree):
     row = report["arms"]["variation"]["seeds"][42]
     assert row["strict_success"] is None
     assert any("NO ROLLOUT DUMPS" in flag for flag in row["flags"])
+
+
+def test_the_report_reads_the_forgetting_folders_the_campaign_actually_writes(tmp_path):
+    """The partner's first K4a report had dashes in every forgetting cell: the campaign writes
+    `{work}/k4a/forgetting/<arm>-seed<S>-a<N>` and the report looked up `<arm>-seed<S>-forget`. The test tree had
+    copied the report's name rather than the campaign's, so nothing caught it. This test builds the tree from
+    the campaign file's own OUT templates, so the two cannot drift apart again."""
+    import yaml
+    campaign = yaml.safe_load((KIT / "campaigns" / "k4a-stuck-problems.yaml").read_text())
+    work = tmp_path / "work"
+    stems = []
+    for row in campaign["rows"]:
+        out = (row.get("env") or {}).get("OUT", "")
+        if "/forgetting/" in out and "seed" in out:
+            stems.append(out.replace("{work}", str(work)).replace("{attempt}", "1"))
+    assert len(stems) == len(ARMS) * len(SEEDS)
+    runs, forgetting = work / "runs", work / "k4a" / "forgetting"
+    runs.mkdir(parents=True)
+    _panels(forgetting, "base-a1")
+    for path in stems:
+        _panels(forgetting.parent.parent / Path(path).relative_to(work).parent, Path(path).name)
+        name = Path(path).name.rsplit("-a", 1)[0]
+        arm = name.split("-seed")[0]
+        _run_dir(runs, name + "-a1", steps=40, arm={"feedback": "FEEDBACK=1", "soft": "SOFT=1", "variation": "TEMP=1.2"}[arm],
+                 acc_of=lambda q, step: 1.0 if step == 0 else 0.5)
+    report = k4a_report.build(runs, forgetting, _control(tmp_path / "k0.json"))
+    for arm in ARMS:
+        for seed in SEEDS:
+            seeds = report["arms"][arm]["seeds"]; row = seeds.get(seed) or seeds.get(str(seed))
+            assert row, "no row for %s seed %d" % (arm, seed)
+            assert row.get("panels"), "no forgetting panels joined for %s seed %d" % (arm, seed)
