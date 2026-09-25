@@ -18,7 +18,7 @@ damaged copy is refused before any GPU is held.
 git clone --depth 1 --branch data-v1 https://github.com/hopit-ai/continual-learning-kit.git kit-data
 cd kit-data
 cat spider/spider_data.zip.part-* > spider_data.zip
-shasum -a 256 -c <(grep 'spider_data.zip (reassembled' MANIFEST.sha256 | sed 's/ (reassembled.*//')
+grep reassembled MANIFEST.sha256 | awk '{print $1"  spider_data.zip"}' | shasum -a 256 -c   # must print OK
 unzip -q spider_data.zip            # gives spider_data/ with database/, train_spider.json, train_others.json
 export SPIDER_ROOT=$PWD/spider_data
 export FINQA_ROOT=$PWD/finqa        # the folder holding train.json, dev.json, test.json
