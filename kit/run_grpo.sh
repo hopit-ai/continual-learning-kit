@@ -18,6 +18,9 @@
 #            TRAIN_FILE  absolute .parquet of trainer rows (a bed's prepare, or kit/mix.py)
 #            VAL_FILE    absolute .parquet the reader can load; validation itself is off by default
 # Optional:  STEPS=60 SAVE_FREQ=$STEPS TEST_FREQ=-1 SEED= NGPU=8 TP=2 OFFLOAD=0 KL=0 KL_COEF=0.001
+#            LR=1e-5  (the reference's actor learning rate; the K3 stage-A dose probe sets 3e-5 on one arm.
+#            Warm-up stays at the reference's 10 steps whatever LR is, so a 20-step run spends half its
+#            steps warming up: that is part of what the probe measures, not a knob.)
 #            TASK=datasets/spider_sql WORK=$PWD/k3-work DRY_RUN=0 FILE_LOG=0
 #
 # FILE_LOG=1 adds `file` to trainer.logger, so the per-step metrics land in $OUT/metrics.jsonl (the
@@ -52,9 +55,11 @@ TASK="${TASK:-datasets/spider_sql}"
 WORK="${WORK:-$PWD/k3-work}"
 DRY_RUN="${DRY_RUN:-0}"
 FILE_LOG="${FILE_LOG:-0}"
+LR="${LR:-1e-5}"
 REWARD="${REWARD:-$KIT/beds/rewards.py}"
 
 [[ "$FILE_LOG" == "0" || "$FILE_LOG" == "1" ]] || { echo "FILE_LOG must be 0 or 1, not $FILE_LOG" >&2; exit 2; }
+[[ "$LR" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "LR must be a number like 1e-5, not $LR" >&2; exit 2; }
 if [[ "$FILE_LOG" == "1" ]]; then LOGGER="[console,file]"; else LOGGER="[console]"; fi
 
 OUT="$WORK/runs/$NAME"
@@ -70,7 +75,7 @@ ARGV=(
   "data.val_files=[$VAL_FILE]"
   "actor_rollout_ref.model.path=$MODEL_DIR"
   "actor_rollout_ref.actor.strategy=fsdp2"
-  "actor_rollout_ref.actor.optim.lr=1e-5"
+  "actor_rollout_ref.actor.optim.lr=$LR"
   "actor_rollout_ref.actor.optim.lr_warmup_steps=10"
   "actor_rollout_ref.actor.ppo_mini_batch_size=32"
   "actor_rollout_ref.rollout.n=8"
@@ -204,6 +209,7 @@ cat > "$OUT/train-summary.json" <<JSON
  "returncode": $STATUS,
  "merged": $MERGED,
  "kl": $KL,
+ "lr": "$LR",
  "n_gpus": $NGPU,
  "seconds": $(( $(date -u +%s) - STARTED )),
  "model_dir": "$MODEL_DIR",
