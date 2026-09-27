@@ -1,0 +1,196 @@
+# Package K3 stage-A dose probe 2: does a length-budgeted reward let a larger dose help?
+#
+# Probe 1 (kit/campaigns/k3-dose-probe.yaml, returned 26 September, docs/phase2/evidence/k3dose-partner)
+# ran four one-seed arms on one node. The reference dose rerun, `ref20`, went 70 -> 75 on the Spider
+# held-out set: +5, exactly the bar, McNemar p 0.46. Every LARGER dose damaged the model through
+# LENGTH. `steps60` (three passes, 60 steps) kept its training reward flat while mean answer length
+# went from about 40 tokens to over 900 after the first pass and the gradient norm collapsed: held-out
+# -2, and 15.7x the untrained model's tokens per correct answer. `lr3x` collapsed (-48, 63x). `hard20`
+# learned its training questions but flipped 32 easy held-out questions (-22, 4.1x). Under plan 4c a
+# length-aware reward is now a justified fix, and this probe tests the simplest one.
+#
+# THE BUDGET is kit/run_grpo.sh's LENGTH_BUDGET, in characters: exported to the reward function as
+# KIT_LENGTH_BUDGET_CHARS, an answer longer than it scores 0 whatever its SQL, and the run's
+# train-summary.json records it as `length_budget_chars`. 800 characters: untrained Spider answers
+# average about 43 tokens (~170 characters), the longest gold Spider query is under 400 characters,
+# and the drift reached 900 tokens (~3,600 characters). 800 leaves every honest answer twice the
+# room the longest gold query needs and takes the whole reward away from the drift.
+#
+# FOUR ARMS, each ONE run from the untrained model:
+#
+#   budget20   the reference dose (640 rows, 20 steps, lr 1e-5) with the budget: does the budget
+#              alone change the dose that already reached +5?
+#   budget40   two passes (1,280 rows, 40 steps) with the budget
+#   budget60   three passes (1,920 rows, 60 steps) with the budget: probe 1's `steps60` plus the budget
+#   ref20-s1   the reference dose, no budget, SEED 1. kit/run_grpo.sh passes SEED only as data.seed,
+#              which the trainer does not read with data.shuffle=False, and vLLM sampling is unseeded:
+#              so this arm is a second independent draw of the reference dose. Beside probe 1's
+#              `ref20` (+5) it says how far one run of the same dose moves from the next
+#
+# "More steps" is a longer file, as in probe 1: the trainer reads its file once and in order, so the
+# two pools are written by kit/sequence.py pool at seed 0. Warm-up stays at 10 steps on every arm.
+#
+# THIS PROBE HAS NO GATE, like probe 1. The four `*-delta` rows are READOUTS and nothing needs them;
+# the decision -- +5 AND within the 1.5x density bar -- is the report's. They come last because
+# `run --all` stops at the first failure; run any remaining one with `--row <id>`.
+#
+# WORK MAY BE THE PARTNER'S K3 (and probe-1) WORK TREE: the model and the Spider bed are read from
+# {work}/models/Qwen3-1.7B and {work}/data/spider, and everything this probe writes is under
+# {work}/k3dose2/ and {work}/runs/<arm>-seed<S>-aN, which no probe-1 row uses.
+#
+# All scoring is on GPU 0 of this machine, in the deterministic mode, and only scorings carrying the
+# same machine-and-mode fingerprint are ever compared (receipts 204 and 209). Run every row on ONE node.
+#
+#   export KIT=/work/continual-learning-kit/kit WORK=/work/k3-work
+#   export SDPO_DIR=/work/SDPO SPIDER_ROOT=/work/spider_data
+#   python $KIT/runner.py plan    $KIT/campaigns/k3-dose-2.yaml
+#   python $KIT/runner.py prepare $KIT/campaigns/k3-dose-2.yaml --all   # no GPU
+#   python $KIT/runner.py run     $KIT/campaigns/k3-dose-2.yaml --all   # 8 GPUs; GPU 0 for scoring
+schema: kit-campaign.v1
+name: k3-dose-2
+workdir_env: WORK
+rows:
+  # ---- The untrained model on the Spider held-out set, scored again HERE so every arm is read
+  # against a scoring from this node and this job. The FIRST row carries the preparation of the
+  # whole probe, so all of its IO happens before a GPU is held.
+  - id: base-spider
+    prepare:
+      - ["bash", "-c", "test -f \"{work}/models/Qwen3-1.7B/config.json\" || hf download Qwen/Qwen3-1.7B --local-dir \"{work}/models/Qwen3-1.7B\" || huggingface-cli download Qwen/Qwen3-1.7B --local-dir \"{work}/models/Qwen3-1.7B\""]
+      - ["bash", "-c", "test -f \"{work}/data/spider/train.parquet\" || python \"{kit}/beds/spider.py\" prepare --spider-root \"$SPIDER_ROOT\" --out \"{work}/data/spider\""]
+    requires: ["{work}/models/Qwen3-1.7B/config.json", "{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose2/eval/base-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"{work}/models/Qwen3-1.7B\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- `budget40`'s training file: two passes over the 640 questions, written as 1,280 rows.
+  - id: pool1280
+    requires: ["{work}/data/spider/train.parquet"]
+    env: {OUT: "{work}/k3dose2/data/spider1280-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/sequence.py\" pool --from \"{work}/data/spider/train.parquet\" --rows 1280 --seed 0 --out \"{env.OUT}\""]
+    bars:
+      - {name: "pooled-to-the-dose", source: "{env.OUT}/pool.manifest.json", key: "rows_total", min: 1280, max: 1280}
+
+  # ---- `budget60`'s training file: three passes, 1,920 rows, exactly as probe 1's `pool1920`.
+  - id: pool1920
+    requires: ["{work}/data/spider/train.parquet"]
+    env: {OUT: "{work}/k3dose2/data/spider1920-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/sequence.py\" pool --from \"{work}/data/spider/train.parquet\" --rows 1920 --seed 0 --out \"{env.OUT}\""]
+    bars:
+      - {name: "pooled-to-the-dose", source: "{env.OUT}/pool.manifest.json", key: "rows_total", min: 1920, max: 1920}
+
+  # ---- ARM 1, budget20: the reference dose with the 800-character budget and nothing else.
+  - id: budget20
+    description: "the reference dose (640 rows, 20 steps) with an 800-character length budget"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "budget20-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1", LENGTH_BUDGET: "800"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "budget-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "length_budget_chars", min: 800, max: 800}
+  - id: budget20-spider
+    needs: [budget20]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose2/eval/budget20-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/budget20-seed0-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 2, budget40: two passes with the budget.
+  - id: budget40
+    description: "two passes (1,280 rows, 40 steps) with an 800-character length budget"
+    needs: [base-spider, pool1280]
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "budget40-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1", LENGTH_BUDGET: "800"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k3dose2/data/spider1280-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "budget-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "length_budget_chars", min: 800, max: 800}
+  - id: budget40-spider
+    needs: [budget40]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose2/eval/budget40-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/budget40-seed0-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 3, budget60: probe 1's `steps60` with the budget.
+  - id: budget60
+    description: "three passes (1,920 rows, 60 steps) with an 800-character length budget"
+    needs: [base-spider, pool1920]
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "budget60-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "60", SAVE_FREQ: "60", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1", LENGTH_BUDGET: "800"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k3dose2/data/spider1920-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 60}
+      - {name: "budget-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "length_budget_chars", min: 800, max: 800}
+  - id: budget60-spider
+    needs: [budget60]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose2/eval/budget60-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/budget60-seed0-a*/hf-step60 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 4, ref20-s1: the reference dose, no budget, a second draw. No `budget-applied` bar:
+  # train-summary.json records `length_budget_chars: null`, which is what this arm must carry.
+  - id: ref20-s1
+    description: "the reference dose, no budget, seed 1: a second draw beside probe 1's ref20 (+5)"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "ref20-s1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ref20-s1-spider
+    needs: [ref20-s1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose2/eval/ref20-s1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/ref20-s1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- The readout: the four arms side by side, their doses and budgets read from each run's own
+  # train-summary.json, the arm list and descriptions from this file. It needs the five scorings and
+  # nothing else, so a delta row below cannot keep it from being written.
+  - id: report
+    needs: [base-spider, budget20-spider, budget40-spider, budget60-spider, ref20-s1-spider]
+    env: {OUT: "{work}/k3dose2/report/a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/k3_dose_report.py\" --root \"{work}/k3dose2\" --runs \"{work}/runs\" --campaign \"{kit}/campaigns/k3-dose-2.yaml\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "arms-reported", source: "{env.OUT}/report.json", key: "arms_reported", min: 4}
+
+  # ---- THE READOUTS, and nothing needs them. A FAILED BAR HERE IS AN ANSWER, not a broken probe.
+  - id: budget20-delta
+    needs: [base-spider, budget20-spider]
+    env: {OUT: "{work}/k3dose2/deltas/budget20-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose2/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose2/eval/budget20-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}   # the verdict is the report's; a failing arm must not halt `run --all`
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: budget40-delta
+    needs: [base-spider, budget40-spider]
+    env: {OUT: "{work}/k3dose2/deltas/budget40-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose2/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose2/eval/budget40-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: budget60-delta
+    needs: [base-spider, budget60-spider]
+    env: {OUT: "{work}/k3dose2/deltas/budget60-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose2/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose2/eval/budget60-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ref20-s1-delta
+    needs: [base-spider, ref20-s1-spider]
+    env: {OUT: "{work}/k3dose2/deltas/ref20-s1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose2/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose2/eval/ref20-s1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}

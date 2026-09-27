@@ -97,6 +97,7 @@ rows:
   # ---- ARM 1, ref20: K3's stage A exactly, rerun here. Its gap from zero is this pipeline's own
   # run-to-run noise, and no other arm means anything without it.
   - id: ref20
+    description: "the reference dose, rerun on this machine (the pipeline's own run-to-run noise)"
     needs: [base-spider]
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "ref20-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1"}
@@ -114,6 +115,7 @@ rows:
 
   # ---- ARM 2, steps60: the same questions three times over, at the reference learning rate.
   - id: steps60
+    description: "three passes over the same 640 questions: 60 steps instead of 20"
     needs: [base-spider, pool1920]
     requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "steps60-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "60", SAVE_FREQ: "60", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1"}
@@ -131,6 +133,7 @@ rows:
 
   # ---- ARM 3, lr3x: the reference dose, three times the learning rate. Warm-up is still 10 of 20.
   - id: lr3x
+    description: "the reference dose at three times the learning rate"
     needs: [base-spider]
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "lr3x-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "3e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1"}
@@ -148,6 +151,7 @@ rows:
 
   # ---- ARM 4, hard20: the reference dose over the questions that carry gradient.
   - id: hard20
+    description: "20 steps over the questions the untrained model does NOT already solve every time"
     needs: [base-spider, subset]
     requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "hard20-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "0", NGPU: "8", KL: "0", FILE_LOG: "1"}

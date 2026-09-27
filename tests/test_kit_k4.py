@@ -58,7 +58,10 @@ GENERATOR = ROOT / "scripts" / "make_k4_campaign.py"
 generator = load("make_k4_campaign", GENERATOR) if GENERATOR.is_file() else None
 
 BEDS = ("spider", "finqa")
+#: The four arms besides the GRPO route's control. `none` is trained here too, at the same dose, and is
+#: named separately because it is what every other GRPO arm is subtracted from.
 ARMS = ("hint", "hint-faded", "teacher-none", "teacher-hint")
+ALL_ARMS = ("none",) + ARMS
 #: The two SDPO arms and the switch position each one IS. `teacher-none` is the SDPO route's control:
 #: same command, same data, same reward function, same dose, one trainer key apart.
 SDPO_ARMS = {"teacher-none": "0", "teacher-hint": "1"}
@@ -757,7 +760,7 @@ def test_every_bed_arm_and_seed_is_trained_scored_and_reported(campaign):
     ids = {line["id"] for line in campaign["rows"]}
     report = next(line for line in campaign["rows"] if line["id"] == "report")
     for bed in BEDS:
-        for arm in ARMS:
+        for arm in ALL_ARMS:
             for seed in SEEDS:
                 point = "%s-%s-seed%d" % (bed, arm, seed)
                 assert point in ids, point
@@ -768,21 +771,78 @@ def test_every_bed_arm_and_seed_is_trained_scored_and_reported(campaign):
         assert "base-%s" % bed in ids and "base-%s" % bed in report["needs"]
 
 
-def test_the_reused_none_arm_is_never_retrained(campaign):
-    """K3 and K1c already ran it. A K4 row that trained the GRPO control would be paying twice for it.
-
-    `teacher-none` is a different arm: it is the SDPO route's control, which no earlier package ran,
-    and it IS trained here.
-    """
-    for line in campaign["rows"]:
-        for bed in BEDS:
-            assert not line["id"].startswith("%s-none-" % bed), line["id"]
-        assert "a-seed" != line["id"][:6]
+def test_nothing_is_borrowed_from_another_packages_folders(campaign):
+    """The package is self-contained: no K3 or K1c folder, no order between packages, and no
+    cross-package machine match. Not in the campaign, its prepare steps, its requires or the report."""
     text = CAMPAIGN.read_text()
-    assert "$K3_ROOT" in text and "$K1C_ROOT" in text
+    for name in ("K3_ROOT", "K1C_ROOT", "none-root", "k3-work", "k1c-work"):
+        assert name not in text, name
+    for line in campaign["rows"]:
+        ran = " ".join(line["command"]) + " " + " ".join(" ".join(step) for step in line.get("prepare") or [])
+        ran += " " + " ".join(line.get("requires") or []) + " " + json.dumps(line.get("env") or {})
+        assert "K3_ROOT" not in ran and "K1C_ROOT" not in ran, line["id"]
+        assert "a-seed" != line["id"][:6]
+    report = next(line for line in campaign["rows"] if line["id"] == "report")
+    assert "--spider-none-root" not in " ".join(report["command"])
+    assert "--finqa-none-root" not in " ".join(report["command"])
+
+
+def test_the_none_arm_is_trained_here_at_five_seeds_on_both_beds(campaign):
+    """kit/run_grpo.sh from the untrained model on the bed's own unhinted file, at the bed's dose, with
+    the same eval and panel scoring as every other arm."""
+    rows = {line["id"]: line for line in campaign["rows"]}
+    for bed in BEDS:
+        steps = DOSE[bed][0]
+        for seed in SEEDS:
+            point = "%s-none-seed%d" % (bed, seed)
+            line = rows[point]
+            command = " ".join(line["command"])
+            assert "run_grpo.sh" in command and "run_sdpo" not in command
+            assert 'TRAIN_FILE="{work}/data/%s/train.parquet"' % ("spider" if bed == "spider" else "finqa-1600") \
+                in command, point
+            assert "applied" not in command and "HINTS_FILE" not in command, point
+            assert 'MODEL_DIR="{work}/models/Qwen3-1.7B"' in command, "from the untrained model"
+            assert line["env"]["STEPS"] == str(steps) and line["env"]["SEED"] == str(seed)
+            assert line["env"].get("KL", "0") == "0" and "LR" not in line["env"], \
+                "the reference dose: KL 0, lr 1e-5 (kit/run_grpo.sh's defaults)"
+            assert rows["%s-eval" % point]["env"]["CUDA_VISIBLE_DEVICES"] == "0"
+            assert rows["%s-forget" % point]["env"]["CUDA_VISIBLE_DEVICES"] == "0"
+            assert "%s-a*/hf-step%d" % (point, steps) in " ".join(rows["%s-eval" % point]["command"])
+    assert DOSE["spider"][0] * 32 == 640, "Spider's `none` is exactly K3's stage A: 640 rows, 20 steps"
     ids = {line["id"] for line in campaign["rows"]}
     for bed in BEDS:
         assert {"%s-teacher-none-seed%d" % (bed, seed) for seed in SEEDS} <= ids
+
+
+def _without_train_file(command: list) -> str:
+    text = " ".join(command)
+    head, rest = text.split('TRAIN_FILE="', 1)
+    return head + 'TRAIN_FILE="<file>' + rest[rest.index('"'):]
+
+
+def test_the_none_rows_are_the_hint_rows_but_for_name_and_training_file(campaign):
+    """The launcher-parity test for the GRPO route: `none` and `hint` are one training file apart and
+    nothing else -- same launcher, same env, same model, same bars -- at every seed and in the pilot."""
+    rows = {line["id"]: line for line in campaign["rows"]}
+    pairs = [("%s-none-seed%d" % (bed, seed), "%s-hint-seed%d" % (bed, seed)) for bed in BEDS for seed in SEEDS]
+    pairs += [("pilot-%s-none" % bed, "pilot-%s-hint" % bed) for bed in BEDS]
+    for control_id, treated_id in pairs:
+        control, treated = rows[control_id], rows[treated_id]
+        differ = {key for key in set(control["env"]) | set(treated["env"])
+                  if control["env"].get(key) != treated["env"].get(key)}
+        assert differ <= {"NAME", "TRAIN_FILE"}, (control_id, differ)
+        assert control["env"]["NAME"] == "%s-a{attempt}" % control_id
+        assert _without_train_file(control["command"]) == _without_train_file(treated["command"]), control_id
+        assert control["command"] != treated["command"], "the training file must differ"
+        assert control["bars"] == treated["bars"]
+        # and each row's scorings are scored the same way
+        if not control_id.startswith("pilot-"):
+            for measure in ("eval", "forget"):
+                a, b = rows["%s-%s" % (control_id, measure)], rows["%s-%s" % (treated_id, measure)]
+                assert a["env"]["CUDA_VISIBLE_DEVICES"] == b["env"]["CUDA_VISIBLE_DEVICES"] == "0"
+                assert a["bars"] == b["bars"]
+                assert " ".join(a["command"]).replace(control_id, "P") == \
+                    " ".join(b["command"]).replace(treated_id, "P")
 
 
 def test_each_beds_dose_is_its_own_controls_dose(campaign):
@@ -798,9 +858,10 @@ def test_each_beds_dose_is_its_own_controls_dose(campaign):
             assert int(first["env"]["STEPS"]) + int(second["env"]["STEPS"]) == steps
             sdpo = [next(r for r in campaign["rows"] if r["id"] == "%s-%s-seed%d" % (bed, arm, seed))
                     for arm in SDPO_ARMS]
-            for line in sdpo:
+            none = next(r for r in campaign["rows"] if r["id"] == "%s-none-seed%d" % (bed, seed))
+            for line in (*sdpo, none):
                 assert line["env"]["STEPS"] == str(steps), line["id"]
-            for line in (hint, first, second, *sdpo):
+            for line in (hint, first, second, *sdpo, none):
                 assert line["env"]["SEED"] == str(seed)
 
 
@@ -824,6 +885,10 @@ def test_the_teacher_arms_train_on_the_controls_own_file_and_the_others_on_a_hin
             assert teacher["env"]["TRAIN_FILE"].endswith("train.parquet"), arm
         hint = next(r for r in campaign["rows"] if r["id"] == "%s-hint-seed0" % bed)
         assert "%s-applied-a*" % bed in " ".join(hint["command"])
+        none = next(r for r in campaign["rows"] if r["id"] == "%s-none-seed0" % bed)
+        assert "applied" not in " ".join(none["command"])
+        assert teacher["env"]["TRAIN_FILE"] in " ".join(none["command"]), \
+            "the GRPO control reads the same unhinted file as the SDPO arms"
 
 
 def test_the_two_sdpo_arms_differ_only_in_the_switch_and_each_row_gates_on_its_own_position(campaign):
@@ -877,7 +942,7 @@ def test_the_pilots_come_first_and_gate_every_later_row(campaign):
     pilots = [line["id"] for line in campaign["rows"] if line.get("pilot")]
     assert ids[0] == "base-forget-1" == pilots[0]
     for bed in BEDS:
-        for name in ("%s-stuck" % bed, "%s-filter" % bed, "pilot-%s-hint" % bed,
+        for name in ("%s-stuck" % bed, "%s-filter" % bed, "pilot-%s-none" % bed, "pilot-%s-hint" % bed,
                      "pilot-%s-hint-faded" % bed, "pilot-%s-teacher-none" % bed,
                      "pilot-%s-teacher-hint" % bed, "base-%s" % bed):
             assert name in pilots, name
@@ -900,8 +965,7 @@ def test_all_the_io_happens_before_a_gpu_is_held(campaign):
     assert "beds/spider.py" in steps and "beds/finqa.py" in steps
     assert "Qwen3-1.7B" in steps
     assert "HINT_BASE_URL" in steps, "the served hint-giver must answer before a GPU is taken"
-    assert "K3_ROOT" in steps and "K1C_ROOT" in steps, \
-        "the control must be on disk before the whole grid runs"
+    assert "K3_ROOT" not in steps and "K1C_ROOT" not in steps, "the control is trained here, not borrowed"
 
 
 def test_the_hint_pipeline_holds_at_most_one_gpu_and_only_for_the_stuck_set(campaign):
@@ -1004,11 +1068,11 @@ def _scored(bed: str, correct: int, machine="m1") -> dict:
     return {item: (1 if index < correct else 0) for index, item in enumerate(ITEMS[bed])}
 
 
-#: What each arm answers of the ten held-out items in the fixture below. The control arms -- `none`,
-#: reused, and `teacher-none`, trained here -- answer 4 and 5; the two hinted arms answer 7. So the
+#: What each arm answers of the ten held-out items in the fixture below. The control arms -- `none`
+#: and `teacher-none`, both trained here -- answer 4 and 5; the two hinted arms answer 7. So the
 #: GRPO route's effect is +0.3 and the SDPO route's is +0.2, and the two cannot be confused.
-ARM_CORRECT = {"hint": 7, "hint-faded": 5, "teacher-none": 5, "teacher-hint": 7}
 NONE_CORRECT = 4
+ARM_CORRECT = {"none": NONE_CORRECT, "hint": 7, "hint-faded": 5, "teacher-none": 5, "teacher-hint": 7}
 
 
 @pytest.fixture()
@@ -1049,43 +1113,39 @@ def _tree(tmp_path, tokens=None):
             _panels(root / "forgetting", "base", tokens=tokens)
     for bed in BEDS:
         steps = DOSE[bed][0]
-        for arm in ARMS:
+        for arm in ALL_ARMS:
             for seed in SEEDS:
                 _run(runs, "%s-%s-seed%d" % (bed, arm, seed),
                      DOSE[bed][1] if arm == "hint-faded" else steps,
                      arm=arm, hints=200 if arm in SDPO_ARMS else None,
                      feedback=int(SDPO_ARMS[arm]) if arm in SDPO_ARMS else None)
-    # the two finished packages the `none` arm is read from, in their own names
-    none_roots = {}
-    for bed in BEDS:
-        package = tmp_path / ("%s-package" % bed)
-        names = k4_report.NONE_TREES[bed]
-        for seed in SEEDS:
-            _bed_score(package / "eval", names["eval"] % seed, _scored(bed, NONE_CORRECT),
-                       tokens=tokens)
-            _panels(package / "forgetting", names["forget"][0] % seed, tokens=tokens)
-        none_roots[bed] = package
+    # nothing outside this package's own tree: the `none` scorings came from the campaign's OUT templates
+    assert {path.name for path in (root / "eval").iterdir()} >= {
+        "%s-none-seed%d-a1" % (bed, seed) for bed in BEDS for seed in SEEDS}
     rows = tmp_path / "finqa-test.jsonl"
     rows.write_text("".join(json.dumps(
         {"data_source": "finqa", "extra_info": {"index": item, "gold_consistent": index != 9}}) + "\n"
         for index, item in enumerate(ITEMS["finqa"])))
-    return {"root": root, "runs": runs, "none_roots": none_roots, "finqa_rows": rows, "work": work}
+    return {"root": root, "runs": runs, "finqa_rows": rows, "work": work}
 
 
 def build(tree, **extra):
-    return k4_report.build(tree["root"], tree["runs"],
-                           none_roots={bed: str(tree["none_roots"][bed]) for bed in BEDS},
-                           finqa_rows=str(tree["finqa_rows"]), **extra)
+    return k4_report.build(tree["root"], tree["runs"], finqa_rows=str(tree["finqa_rows"]), **extra)
 
 
 def test_the_report_joins_every_scoring_the_campaign_writes(tree):
     report = build(tree)
     assert report["beds_reported"] == 2
-    assert report["arms_reported"] == len(ARMS) + 1 and report["none_runs"] == 2 * len(SEEDS)
+    assert report["arms_reported"] == len(ALL_ARMS) and report["none_runs"] == 2 * len(SEEDS)
     assert report["comparable"] == 1
     assert report["flags"] == [], report["flags"]
+    assert "none_roots" not in report
     for bed in BEDS:
-        for arm in ("none",) + ARMS:
+        none_row = report["beds"][bed]["arms"]["none"]["seeds"]["0"]
+        assert "/k4/eval/%s-none-seed0-a1/" % bed in none_row["eval"]["path"]
+        assert "/k4/forgetting/%s-none-seed0-a1/" % bed in none_row["panels"]["path"]
+        assert none_row["run"]["found"] == 1 and none_row["run"]["steps"] == DOSE[bed][0]
+        for arm in ALL_ARMS:
             block = report["beds"][bed]["arms"][arm]
             assert block["seeds_scored"] == len(SEEDS), (bed, arm)
             for seed in SEEDS:
@@ -1233,8 +1293,7 @@ def test_finqas_flagged_items_are_excluded_from_every_number(tree):
 
 
 def test_without_the_finqa_rows_the_exclusion_is_not_silently_skipped(tree):
-    report = k4_report.build(tree["root"], tree["runs"],
-                             none_roots={bed: str(tree["none_roots"][bed]) for bed in BEDS})
+    report = k4_report.build(tree["root"], tree["runs"])
     assert report["finqa_rows"] is None
     assert report["beds"]["finqa"]["arms"]["hint"]["seeds"]["0"]["judged"]["n"] == 10
 
@@ -1260,11 +1319,16 @@ def test_a_missing_scoring_is_a_flag_with_the_path_it_looked_for_not_a_dash(tree
     assert report["beds"]["spider"]["arms"]["hint"]["gain_paired"]["n"] == len(SEEDS) - 1
 
 
-def test_a_missing_control_tree_is_a_flag_and_never_a_zero(tree):
-    report = k4_report.build(tree["root"], tree["runs"], none_roots={"spider": None, "finqa": None})
-    assert report["none_runs"] == 0
-    assert any("NO CONTROL TREE" in flag for flag in report["flags"])
+def test_a_missing_control_is_a_flag_and_never_a_zero(tree):
+    import shutil
+    for seed in SEEDS:
+        shutil.rmtree(tree["root"] / "eval" / ("spider-none-seed%d-a1" % seed))
+    report = build(tree)
+    assert report["none_runs"] == len(SEEDS), "only FinQA's five are left"
+    assert any("spider none seed 0: NO HELD-OUT SCORING" in flag and "spider-none-seed0-a<N>" in flag
+               for flag in report["flags"])
     assert report["beds"]["spider"]["verdict"]["verdict"] == "NO VERDICT"
+    assert report["beds"]["finqa"]["verdict"]["verdict"] == "BAR MET"
 
 
 def test_the_faded_arms_steps_are_its_two_halves_and_not_just_the_second(tree):
@@ -1310,7 +1374,7 @@ def test_the_density_reads_the_counts_the_scorings_carry_and_judges_them_against
     assert verbose["ratio"] == pytest.approx(4 * 4 / 7) and verbose["verdict"] == "over bar"
     assert spider["arms"]["teacher-hint"]["bed"]["n"] == len(SEEDS)
     assert spider["arms"]["teacher-hint"]["bed"]["mean"] == pytest.approx(4 * 4 / 7)
-    # the reused control is its own scoring, and the panels are flat
+    # the control is its own scoring, and the panels are flat
     assert spider["arms"]["none"]["seeds"]["0"]["bed"]["ratio"] == pytest.approx(1.0)
     assert spider["arms"]["hint"]["seeds"]["0"]["panels"]["maths"]["ratio"] == pytest.approx(1.0)
     text = k4_report.render(report)
@@ -1349,8 +1413,6 @@ def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):
     out = tmp_path / "report-a1"
     argv = ["--root", str(tree["root"]), "--runs", str(tree["runs"]),
-            "--spider-none-root", str(tree["none_roots"]["spider"]),
-            "--finqa-none-root", str(tree["none_roots"]["finqa"]),
             "--finqa-rows", str(tree["finqa_rows"]), "--out", str(out)]
     assert k4_report.main(argv) == 0
     text = (out / "k4-report.md").read_text()
@@ -1358,10 +1420,13 @@ def test_the_report_renders_and_never_overwrites(tree, tmp_path):
         assert bed.upper() in text
     for arm in ARMS:
         assert arm in text
-    assert "BAR MET" in text and "reused" in text
+    assert "BAR MET" in text and "reused" not in text and "other package" not in text
+    assert "Control: `none`, trained here." in text
     json.loads((out / "k4-report.json").read_text())
     with pytest.raises(SystemExit):
         k4_report.main(argv)
+    with pytest.raises(SystemExit):              # the borrowed-control options are gone
+        k4_report.main(argv[:-1] + [str(tmp_path / "report-a2"), "--spider-none-root", "/x"])
 
 
 # ------------------------------------------------------------------------- 8. the instructions
@@ -1370,8 +1435,10 @@ def test_every_command_the_readme_gives_names_this_campaign():
     for action in ("plan", "prepare", "run", "status"):
         assert "runner.py %s $KIT/campaigns/k4-hints.yaml" % action in text, action
     for variable in ("KIT", "WORK", "SDPO_DIR", "SPIDER_ROOT", "FINQA_ROOT", "HINT_BASE_URL",
-                     "HINT_MODEL", "K3_ROOT", "K1C_ROOT"):
+                     "HINT_MODEL"):
         assert "export" in text and variable in text, variable
+    for borrowed in ("K3_ROOT", "K1C_ROOT", "kit-seeds-v1", "none-root"):
+        assert borrowed not in text, borrowed
 
 
 def test_the_readme_names_the_arms_the_campaign_actually_has_and_the_bars_it_gates_on():
@@ -1405,13 +1472,21 @@ def test_the_readme_arms_table_gives_every_arm_and_the_route_it_ran_on():
         assert "| %s |" % route in line, (arm, route)
 
 
-def test_the_readme_prices_the_arm_it_asks_for():
-    """The control arm is a third more GPU time than the package without it: a partner who is asked
-    for it must be able to read what it costs before starting."""
+def test_the_readme_prices_the_arms_it_asks_for():
+    """The two control arms are real GPU time: a partner who is asked for them must be able to read
+    what they cost before starting -- including the ten `none` runs this package now trains itself."""
     text = README.read_text()
     assert "teacher-none" in text
-    assert "65 to 75 GPU-hours" in text and "about 43 are the training" in text
-    assert "20 runs at 20 steps" in text and "20 runs at 40 steps" in text
+    assert "80 to 90 GPU-hours" in text and "about 54 are the training" in text
+    assert "25 runs at 20 steps" in text and "25 runs at 40 steps" in text
+    assert "ten `none` runs" in text
+
+
+def test_the_readme_says_one_node_for_every_scoring():
+    text = README.read_text()
+    assert "## One node for every scoring" in text
+    assert "run the whole campaign as one job on one node" in text
+    assert "--row" in text
 
 
 def test_the_readme_names_a_row_the_campaign_has(campaign):

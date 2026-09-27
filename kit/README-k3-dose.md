@@ -82,3 +82,58 @@ had real signal and a tiny dose, ten effective updates at full learning rate aft
 **This probe is one seed.** An arm that clears +5 here is a **candidate dose to confirm at K3's five seeds**, not a result. `ref20` is in the probe precisely so we can see how much of any gap could be the pipeline repeating itself. If an arm wins, what happens next is that stage A is re-dosed to that arm's dose and K3 restarts from its gate — and that is the only decision this probe is allowed to inform.
 
 If **no** arm clears +5, that is also an answer, and a cheap one: it says the problem is not the size of the dose, and we go looking somewhere else before spending another 41 GPU-hours on K3.
+
+## Probe 2: the same doses, with a length budget on the reward
+
+**Probe 1 answered, and the answer was length.** Your reference dose rerun, `ref20`, went **70 → 75** on the Spider held-out set: +5, exactly the bar, McNemar p 0.46. Every *larger* dose damaged the model, and each one did it through the length of its answers:
+
+| Arm | Held-out | Tokens per correct answer, against the untrained model | What happened |
+|---|---|---|---|
+| `ref20` | 70 → 75 (**+5**) | 1.2× | the reference dose, rerun |
+| `steps60` | 70 → 68 (−2) | **15.7×** | training reward flat; mean answer length went from about 40 tokens to **over 900** after the first pass, and the gradient norm collapsed |
+| `lr3x` | 70 → 22 (−48) | **63×** | collapse |
+| `hard20` | 70 → 48 (−22) | 4.1× | learned its training questions, but flipped **32 easy held-out questions** |
+
+GRPO's reward on Spider is right or wrong and nothing else, so an answer that rambles for 900 tokens and ends in the right SQL scores the same as a clean one, and past one pass the policy drifted into the rambling. Under plan 4c a length-aware reward is now a justified fix, and this probe tests the simplest one.
+
+**The budget.** `kit/run_grpo.sh` has a new knob, `LENGTH_BUDGET`, in characters. It is exported to the reward function as `KIT_LENGTH_BUDGET_CHARS`: an answer longer than the budget **scores 0**, whatever its SQL, and the reward carries `over_budget: 1`, `score_before_budget` and `answer_chars` beside the score. The run's `train-summary.json` records it as `length_budget_chars` (`null` when it is off). Probe 2 uses **800 characters**: the untrained model's Spider answers average about 43 tokens (about 170 characters), the longest gold Spider query is under 400 characters, and the drift reached 900 tokens (about 3,600 characters). So 800 leaves every honest answer twice the room the longest gold query needs and takes the whole reward away from the drift.
+
+### The four arms
+
+Every arm is **one run** from the untrained model, on the same node, scored the same way (`kit/campaigns/k3-dose-2.yaml`, everything under `$WORK/k3dose2/`).
+
+| Arm | The dose | What it asks |
+|---|---|---|
+| `budget20` | 640 rows, 20 steps, lr 1e-5, **budget 800**, seed 0 | Does the budget alone change the dose that already reached +5? |
+| `budget40` | 1,280 rows (two passes), 40 steps, **budget 800**, seed 0 | Does a longer dose help once drift earns nothing? |
+| `budget60` | 1,920 rows (three passes), 60 steps, **budget 800**, seed 0 | Probe 1's `steps60`, with the budget. |
+| `ref20-s1` | 640 rows, 20 steps, lr 1e-5, **no budget**, **seed 1** | The reference dose again: how far one run of it lands from the next. |
+
+About `ref20-s1`: `kit/run_grpo.sh` passes `SEED` only as `data.seed`, which the trainer does not read with `data.shuffle=False`, and vLLM sampling is unseeded. So the seed changes nothing but the label: this arm is a second independent draw of exactly the dose `ref20` was, and beside probe 1's +5 it says how much of +5 one run of the reference dose is worth on its own.
+
+As in probe 1, "more steps" is a longer file (`kit/sequence.py pool`, seed 0, rows `pool1280` and `pool1920`), and warm-up stays at 10 steps on every arm. The three budget rows also check that `train-summary.json` recorded `length_budget_chars: 800`, so a launcher that silently dropped the budget fails its row instead of producing a run that looks budgeted.
+
+### How to run it
+
+The same environment and the same `WORK` as probe 1 (the model and the Spider bed are read from where K3 put them):
+
+```bash
+python $KIT/runner.py plan    $KIT/campaigns/k3-dose-2.yaml
+python $KIT/runner.py prepare $KIT/campaigns/k3-dose-2.yaml --all   # no GPU
+python $KIT/runner.py run     $KIT/campaigns/k3-dose-2.yaml --all   # 8 GPUs; GPU 0 for scoring
+```
+
+or as one entry in a batch with the other campaigns you are running. **One node for every row**, exactly as in probe 1: `base-spider` is scored again here, and all five scorings must carry one machine-and-mode fingerprint or the deltas cannot be read. The report is written by `kit/k3_dose_report.py --campaign kit/campaigns/k3-dose-2.yaml`, which reads the arm list and each arm's description from the campaign file and each arm's steps, learning rate and budget from its own `train-summary.json`.
+
+### What it costs
+
+**About an hour and a half of wall clock on the 8×H100 node, so roughly 10 to 12 GPU-hours, plus five scorings.** That is read from your probe-1 runs, not guessed: `ref20` took 756 s end to end for 20 steps (load, vLLM start, training, merge), and `steps60` 2,883 s for 60 steps with its answers at 900 tokens. If the budget keeps answers near the reference length, the four arms (20 + 40 + 60 + 20 = 140 steps) come to about 4,500 to 5,300 s of training. `budget60` should be well under `steps60`'s 2,883 s; if it is not, its answers are long again and the training table will say so.
+
+### What to send back
+
+- the whole `$WORK/k3dose2/` tree (`eval/`, `data/*/pool.manifest.json`, `deltas/`, `report/`) — **minus any checkpoints**;
+- every `$WORK/runs/<arm>-seed<S>-a*/metrics.jsonl` and `train-summary.json` (`budget20-seed0`, `budget40-seed0`, `budget60-seed0`, `ref20-s1-seed1`).
+
+### The decision rule
+
+**An arm clears if it reaches the +5 bar (at least +5, as at K3's gate) AND its tokens per correct answer stay within the density bar of 1.5× the untrained model's.** Probe 1 showed that the +5 bar alone is not enough: a dose that gets there by writing ten times longer answers is not a dose to keep. The report prints the rule's verdict per arm. **The winner — the clearing arm with the largest gain — becomes K3's stage-A dose**, and K3 restarts from its gate at five seeds; as in probe 1, one run is a candidate, not a result, and `ref20-s1` beside `ref20` is how big a gap has to be before it means anything. If no arm clears, the budget is not the fix, and stage A stays at the reference dose.

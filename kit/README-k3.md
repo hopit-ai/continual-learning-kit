@@ -8,7 +8,9 @@
 
 The rehearsal is **on-policy**: the Spider rows carry questions only. The model being trained answers them afresh at every step and Spider's own checker rewards those answers. Nothing is replayed from a stored answer, and no gold SQL is ever shown to the model or carried in any feedback.
 
-Everything trains with the authors' code — `lasgroup/SDPO` at the pinned commit, `--config-name baseline_grpo`, unmodified. The arms differ only in their data file and, for `kl`, three loss settings. All three seeds run the same dose: 20 steps for stage A (exactly one pass over Spider's 640 questions) and 40 steps × 32 questions = 1,280 rows for every stage B, so rehearsal **displaces** maths rows rather than buying extra steps.
+Everything trains with the authors' code — `lasgroup/SDPO` at the pinned commit, `--config-name baseline_grpo`, unmodified. The arms differ only in their data file and, for `kl`, three loss settings. **Five seeds, all in this one campaign**: stage A at seeds 0 to 4, then every stage-B arm at seeds 0 to 4. All five run the reference dose: 20 steps at lr 1e-5 for stage A (exactly one pass over Spider's 640 questions) and 40 steps × 32 questions = 1,280 rows for every stage B, so rehearsal **displaces** maths rows rather than buying extra steps.
+
+Seeds 3 and 4 run here. The separate seeds follow-up package (tags `kit-seeds-v1` and `v2`) is retired: five seeds are in-line in every package from this tag on.
 
 **Stage B starts from stage A's merged checkpoint as a weight-initialised restart**: fresh optimizer state, fresh warm-up, no resume — the same for every arm.
 
@@ -20,7 +22,7 @@ The first rows, at seed 0, are the gate:
 2. stage A is trained; **bar 1: Spider held-out correct must rise by at least 5**;
 3. stage B arm `none` is trained; **bar 2: Spider held-out correct must then fall by at least 5**.
 
-If bar 1 fails, the model never learned job A. If bar 2 fails, nothing was damaged, so there is nothing for rehearsal to protect and any difference between the arms would be noise. Either way every later row stays **refused**, on purpose. Tell us and stop; that is a result, and it costs one stage A and one stage B instead of fifteen.
+If bar 1 fails, the model never learned job A. If bar 2 fails, nothing was damaged, so there is nothing for rehearsal to protect and any difference between the arms would be noise. Either way every later row stays **refused**, on purpose. Tell us and stop; that is a result, and it costs one stage A and one stage B instead of twenty-five.
 
 ## What you need
 
@@ -34,9 +36,30 @@ If bar 1 fails, the model never learned job A. If bar 2 fails, nothing was damag
   ```
 
   `GSM8K_ROOT` points at `/work/gsm8k`. The kit ships no GSM8K text either. 100 of the 300 questions on our general panel are GSM8K test questions, so the bed removes any panel question from the training file and refuses to write a file in which one remains.
-- **About 120 GB of disk**: the 1.7B base is about 3.4 GB, and each of the 15 runs leaves a sharded trainer checkpoint plus the merged copy the scorers read, about 7 GB a run. If space is tight, delete `$WORK/runs/<run>/train/global_step_*/actor` once that run's `hf-step*/config.json` exists — nothing downstream reads the shards, and the scoring folders you send back are text.
+- **About 180 GB of disk**: the 1.7B base is about 3.4 GB, and each of the 25 runs leaves a sharded trainer checkpoint plus the merged copy the scorers read, about 7 GB a run. If space is tight, delete `$WORK/runs/<run>/train/global_step_*/actor` once that run's `hf-step*/config.json` exists — nothing downstream reads the shards, and the scoring folders you send back are text.
 
 Nothing is uploaded. No Hugging Face login is needed: the only model downloaded is the public `Qwen/Qwen3-1.7B`.
+
+## What "seed" means here
+
+`SEED` names a run and is passed to the trainer as `data.seed`, which the trainer ignores because the training order
+is fixed (`data.shuffle=False`), and the sampler is not seeded. So the five "seeds" of every arm are five
+independent repeats of one recipe, not five controlled random streams. That is what the spread is for, a
+run-to-run spread, and it is stated here so nobody reads "seed 3" as reproducible to the token.
+
+## One node for every scoring, or the numbers cannot be compared
+
+Your first K3 gate failed on this, not on the model: `base-spider` and `a-seed0-spider` were scored on
+different nodes, and two nodes scoring the SAME model greedily disagree by about 3 answers in 100 — the size
+of the pilot's bars. Rerun on one node, the same dose gave +5, exactly the bar. Nothing here can be read
+until both sides of a difference come from one node.
+
+So: **run the whole campaign as one job on one node.** Every scoring row pins GPU 0
+(`CUDA_VISIBLE_DEVICES=0`), and the two pilot deltas and the report check that every scoring carries one
+machine fingerprint. If a delta row reports `same-machine 0`, or the report refuses because it found two
+fingerprints, do not read the number: re-score both sides on one node with `--row` (for the first pilot,
+`--row base-spider` and then `--row a-seed0-spider`) and run the delta row again. The report prints every
+fingerprint it read, so this is visible at a glance.
 
 ## The four commands
 
@@ -53,7 +76,7 @@ python $KIT/runner.py plan $KIT/campaigns/k3-replay.yaml
 python $KIT/runner.py prepare $KIT/campaigns/k3-replay.yaml --all
 ```
 
-`prepare` needs **no GPU**: it downloads the model, builds the bed files from your Spider and GSM8K copies, and writes the six rehearsal mixtures, so that no GPU ever waits on a download or a conversion.
+`prepare` needs **no GPU**: it downloads the model, builds the bed files from your Spider and GSM8K copies, and writes the ten rehearsal mixtures, so that no GPU ever waits on a download or a conversion.
 
 ```bash
 python $KIT/runner.py run $KIT/campaigns/k3-replay.yaml --all
@@ -67,16 +90,16 @@ python $KIT/runner.py status $KIT/campaigns/k3-replay.yaml
 
 ## How long this takes, and why that number is a guess
 
-**Estimated 26 to 70 GPU-hours, most likely about 41, and 7 to 18 hours of wall clock.** This is an *estimate*, not a measurement, and it stays one until your K0 report gives us measured step times on your hardware. The arithmetic, so you can correct it yourself:
+**Estimated 43 to 117 GPU-hours, most likely about 68, and 12 to 30 hours of wall clock.** That is the three-seed estimate this package used to carry (26 to 70, most likely 41, 7 to 18 hours) scaled by 5/3 for five seeds. It is an *estimate*, not a measurement, and it stays one until your measured step times replace it. The arithmetic, so you can correct it yourself:
 
 | Part | Work | Rate assumed | Result |
 |---|---|---|---|
-| Training | 3 stage A × 20 steps + 12 stage B × 40 steps = **540 steps** on 8 GPUs | 20 s/step (band 10 to 40) — scaled down from our only measurement, Qwen3-8B SQL at 82 s/step on 4 × H200, for a model 4.7× smaller, twice the GPUs and no teacher forward | 3.0 h (1.5 to 6.0) |
-| Run overhead | 15 runs × model load, vLLM engine start, checkpoint merge | 5 min a run | 1.3 h |
-| Scoring | 16 points × (100 Spider + 300 GSM8K + 300 panel) + one repeat = **11,500 answers** on GPU 0 | 1.5 s an answer (band 1 to 3); the scorer runs eager with CUDA graphs off, which is slower on purpose and is what makes two scorings agree | 4.8 h (3.2 to 9.6) |
-| Scoring overhead | 49 scorings × engine start | 2 min each | 1.6 h |
+| Training | 5 stage A × 20 steps + 20 stage B × 40 steps = **900 steps** on 8 GPUs | 20 s/step (band 10 to 40) — scaled down from our only measurement, Qwen3-8B SQL at 82 s/step on 4 × H200, for a model 4.7× smaller, twice the GPUs and no teacher forward | 5.0 h (2.5 to 10.0) |
+| Run overhead | 25 runs × model load, vLLM engine start, checkpoint merge | 5 min a run | 2.1 h |
+| Scoring | 26 points × (100 Spider + 300 GSM8K + 300 panel) + one repeat = **18,500 answers** on GPU 0 | 1.5 s an answer (band 1 to 3); the scorer runs eager with CUDA graphs off, which is slower on purpose and is what makes two scorings agree | 7.7 h (5.1 to 15.4) |
+| Scoring overhead | 79 scorings × engine start | 2 min each | 2.6 h |
 
-Training occupies all 8 GPUs (4.3 h × 8 = 34 GPU-hours); scoring occupies one (6.4 GPU-hours).
+Training occupies all 8 GPUs (7.1 h × 8 = 57 GPU-hours); scoring occupies one (10.3 GPU-hours).
 
 If the pilot stops the package at bar 1 or bar 2, you will have spent about 1.5 hours of that.
 
@@ -95,8 +118,8 @@ If you can spare the space, the per-point scoring folders under `$WORK/k3/eval/`
 | `a-seed0` | the trainer exits cleanly, writes a checkpoint at step 20 and merges it to `hf-step20/` |
 | `pilot-learned-sql` | Spider held-out correct is at least 5 higher than the untrained model's |
 | `pilot-damaged-sql` | after maths with no protection, Spider held-out correct is at least 5 lower than it was after stage A |
-| `report` | a table, per arm, of what stage B did to Spider and where GSM8K landed, averaged over three seeds |
+| `report` | a table, per arm, of what stage B did to Spider and where GSM8K landed, averaged over five seeds |
 
 **We do not know what the rehearsal arms will show.** That is the experiment. Rehearsal protecting job A, rehearsal doing nothing, and rehearsal costing job B are all results, and all three are worth the same to us. Please send the report whichever it is.
 
-One thing to say in advance about the three seeds. The trainer reads every training file in its written order (`data.shuffle=False`, as the reference SQL runs did), so its own data seed changes nothing. For `rehearse10` and `rehearse30` a seed changes which Spider questions are rehearsed and where they fall. For stage A, `none` and `kl` the three seeds read the same file in the same order and differ only because the reference command leaves rollout sampling unseeded. They are three independent repeats, not three data orders. The report shows each seed as well as the mean, so you can see the spread rather than take our word for it.
+One thing to say in advance about the five seeds. The trainer reads every training file in its written order (`data.shuffle=False`, as the reference SQL runs did), so its own data seed changes nothing. For `rehearse10` and `rehearse30` a seed changes which Spider questions are rehearsed and where they fall. For stage A, `none` and `kl` the five seeds read the same file in the same order and differ only because the reference command leaves rollout sampling unseeded. They are five independent repeats, not five data orders. The report shows each seed as well as the mean, so you can see the spread rather than take our word for it.

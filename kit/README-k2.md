@@ -62,4 +62,6 @@ and send that output, plus the `output.log` of the failed row from `$WORK/campai
 | `spider60-damage-check` | subject 1 shows its damage on your machine too: at least 15 points lost (on ours, maths alone fell 57) |
 | `report` | for each subject, a table of scores before the repair and after 50, 100, 200 and 300 steps, the share recovered, and how far the weights moved |
 
+The report joins each subject to its healthy original and control through the campaign's own subject-to-model pairs (`spider60` is scored against `q3-original` and `q3-control300`, `bird` against `q25-...`), read from the damage-check rows; `--alias subject=model` adds a pair for another campaign. On the first K2 run it did not, and reported only the pilot (found by Shivam Chourasia, 26 September 2026). It shows recovery twice: against the original, which is the bar fixed in advance and the verdict of record, and against the control, because the same repair costs a healthy model 12 to 17 points by itself, so the control is as far back as any repaired model can be expected to come.
+
 We do not know what the recovery will be. That is the experiment. Either answer is a result.

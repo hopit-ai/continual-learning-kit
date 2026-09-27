@@ -180,3 +180,142 @@ def test_the_runner_reads_a_metrics_line_that_contains_a_unicode_line_separator(
     source.write_text(json.dumps({"step": 1, "note": "a" + chr(0x2028) + "b", "data": {"x": 3.0}}, ensure_ascii=False) + "\n")
     judged = runner.judge_bar({"name": "x", "source": str(source), "key": "x", "min": 1})
     assert judged["ok"] and judged["value"] == 3.0
+
+
+# ------------------------------------------------------------------------------------ deferred preparation, batch
+WRITE_OUT = ["python3", "-c", "import os, pathlib; p = pathlib.Path(os.environ['OUT']); "
+             "p.parent.mkdir(parents=True, exist_ok=True); p.write_text('made')"]
+
+
+def campaign_file(tmp_path: Path, name: str, rows: list) -> Path:
+    path = tmp_path / ("%s.json" % name)
+    path.write_text(json.dumps({"schema": runner.SCHEMA, "name": name, "workdir_env": "WORK", "rows": rows}))
+    return path
+
+
+def chain(tmp_path: Path, name: str = "chain", **extra_b) -> Path:
+    """Row `a` writes {work}/made/a.txt (a GPU row, in real life); row `b` requires it and has a prepare step."""
+    b = {"id": "b", "requires": ["{work}/made/a.txt"], "command": ["true"],
+         "prepare": [["python3", "-c", "open('{work}/b-prepared.txt', 'w').write('y')"]], **extra_b}
+    return campaign_file(tmp_path, name, [{"id": "a", "env": {"OUT": "{work}/made/a.txt"}, "command": WRITE_OUT}, b])
+
+
+def test_prepare_all_defers_a_row_whose_input_an_earlier_row_writes(work, tmp_path, capsys):
+    path = chain(tmp_path)
+    assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "deferred: b waits for %s (produced by a or later)" % (work.resolve() / "made" / "a.txt") in out
+    assert not (work / "campaign" / "chain" / "b").exists(), "a deferred row records nothing that could gate it"
+    assert not (work / "b-prepared.txt").exists(), "a deferred row's prepare steps wait too"
+    assert runner.main(["status", str(path)]) == runner.EXIT_OK
+    assert "BLOCKED" not in capsys.readouterr().out
+
+
+def test_run_all_prepares_a_deferred_row_right_before_running_it(work, tmp_path, capsys):
+    path = chain(tmp_path)
+    assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_OK
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert out.index("RUN a") < out.index("PREPARE b now") < out.index("PASS prepare b") < out.index("RUN b")
+    assert (work / "b-prepared.txt").read_text() == "y"
+    assert json.loads((work / "campaign" / "chain" / "b" / "prepare-1.json").read_text())["verdict"] == "PASS"
+    assert json.loads((work / "campaign" / "chain" / "b" / "attempt-1" / "verdict.json").read_text())["verdict"] == "PASS"
+
+
+def test_once_the_input_exists_prepare_all_prepares_the_row_as_usual(work, tmp_path, capsys):
+    path = chain(tmp_path)
+    (work / "made").mkdir()
+    (work / "made" / "a.txt").write_text("made")                                  # as if row a had run
+    assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_OK
+    assert "deferred" not in capsys.readouterr().out
+    assert json.loads((work / "campaign" / "chain" / "b" / "prepare-1.json").read_text())["verdict"] == "PASS"
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    assert len(list((work / "campaign" / "chain" / "b").glob("prepare-*.json"))) == 1, "a prepared row is not prepared twice"
+
+
+def test_run_all_does_not_prepare_a_deferred_row_behind_a_failed_pilot(work, tmp_path):
+    pilot = {"id": "p", "pilot": True, "command": ["false"],
+             "bars": [{"name": "x", "source": "{work}/nowhere.json", "key": "x", "min": 0}]}
+    rows = json.loads(chain(tmp_path).read_text())["rows"]
+    path = campaign_file(tmp_path, "gated", [rows[0], pilot, rows[1]])
+    assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_OK
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    assert (work / "made" / "a.txt").exists()
+    assert not (work / "b-prepared.txt").exists() and not (work / "campaign" / "gated" / "b").exists()
+
+
+def test_prepare_row_is_unchanged_for_a_row_whose_input_is_not_written_yet(work, tmp_path, capsys):
+    assert runner.main(["prepare", str(chain(tmp_path)), "--row", "b"]) == runner.EXIT_FAILED
+    assert "FAIL prepare b: required paths are missing after preparation" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("requires", [
+    ["{work}/nobody-writes-this.txt"],                                  # under {work}, but no row writes it
+    ["/nonexistent-dataset-root/train.json"],                           # outside {work}: a dataset root
+    ["{work}/made/a.txt", "/nonexistent-model/config.json"],            # one produced, one external: still loud
+])
+def test_an_input_nothing_in_the_campaign_writes_still_fails_prepare_loudly(work, tmp_path, capsys, requires):
+    path = chain(tmp_path, requires=requires)
+    assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_FAILED
+    out = capsys.readouterr().out
+    assert "deferred" not in out and "FAIL prepare b: required paths are missing after preparation" in out
+    assert json.loads((work / "campaign" / "chain" / "b" / "prepare-1.json").read_text())["verdict"] == "FAIL"
+
+
+def test_k2_defers_exactly_the_rows_that_wait_on_an_earlier_gpu_row(work):
+    campaign = runner.load_campaign(ROOT / "kit" / "campaigns" / "k2-recovery-test.yaml")
+    waiting = {row["id"]: sorted(set(runner.deferred(campaign, row).values())) for row in campaign["rows"]}
+    assert {k: v for k, v in waiting.items() if v} == {
+        "small-before": ["small-make-damaged"], "small-repair": ["small-targets"], "spider60-repair": ["q3-targets"],
+        "bird-before": ["bird-make-damaged"], "bird-repair": ["q25-targets"]}
+
+
+def tiny(tmp_path: Path, name: str, command: list) -> Path:
+    return campaign_file(tmp_path, name, [{"id": "only", "command": command}])
+
+
+def summary_lines(out: str) -> list:
+    return out[out.index("BATCH SUMMARY"):].strip().split("\n")[1:]
+
+
+def test_batch_runs_campaigns_in_the_order_given(work, tmp_path, capsys):
+    first, second = tiny(tmp_path, "first", ["true"]), tiny(tmp_path, "second", ["true"])
+    assert runner.main(["batch", str(second), str(first)]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert out.index("=== BATCH second: prepare --all") < out.index("=== BATCH second: run --all") < out.index("=== BATCH first")
+    lines = summary_lines(out)
+    assert [line.split()[0] for line in lines] == ["second", "first"]
+    assert all(line.endswith("PASS (run --all exited 0)") for line in lines)
+    for name in ("first", "second"):
+        assert json.loads((work / "campaign" / name / "only" / "attempt-1" / "verdict.json").read_text())["verdict"] == "PASS"
+
+
+def test_batch_stops_at_the_first_campaign_that_fails(work, tmp_path, capsys):
+    bad, good = tiny(tmp_path, "bad", ["false"]), tiny(tmp_path, "good", ["true"])
+    assert runner.main(["batch", str(bad), str(good)]) == runner.EXIT_FAILED
+    lines = summary_lines(capsys.readouterr().out)
+    assert lines[0].split()[0] == "bad" and lines[0].endswith("FAIL (run --all exited 1)")
+    assert lines[1].split()[0] == str(good) and "NOT RUN" in lines[1]
+    assert not (work / "campaign" / "good").exists()
+
+
+def test_batch_returns_the_refusal_code_and_stops_on_a_wrong_campaign_file(work, tmp_path, capsys):
+    pilot = {"id": "p", "pilot": True, "command": ["true"],
+             "bars": [{"name": "x", "source": "{work}/nowhere.json", "key": "x", "min": 0}]}
+    blocked = campaign_file(tmp_path, "blocked", [pilot, {"id": "big", "command": ["true"]}])
+    (work / "campaign" / "blocked" / "p" / "attempt-1").mkdir(parents=True)          # a pilot attempt with no verdict
+    assert runner.main(["run", str(blocked), "--row", "big"]) == runner.EXIT_REFUSED
+    broken = tmp_path / "broken.json"
+    broken.write_text(json.dumps({"schema": "other", "rows": []}))
+    assert runner.main(["batch", str(broken), str(tiny(tmp_path, "later", ["true"]))]) == runner.EXIT_REFUSED
+    captured = capsys.readouterr()
+    assert "CAMPAIGN ERROR in %s" % broken in captured.err and "NOT RUN" in captured.out
+    assert not (work / "campaign" / "later").exists()
+
+
+def test_batch_plan_prints_every_plan_and_executes_nothing(work, tmp_path, capsys):
+    one, two = tiny(tmp_path, "one", ["true"]), chain(tmp_path)
+    assert runner.main(["batch", "--plan", str(one), str(two)]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "campaign one (1 rows)" in out and "campaign chain (2 rows)" in out and "[b] needs: nothing" in out
+    assert sorted(p.name for p in work.iterdir()) == ["chain.json", "one.json"], "only the campaign files themselves"

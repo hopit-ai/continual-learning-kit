@@ -24,7 +24,7 @@ trainer:
 
 | arm | route | what changes | what it answers |
 |---|---|---|---|
-| **none** | GRPO | **nothing, and nothing is rerun.** Your finished K3 stage A is this arm for Spider; your finished K1c part B is it for FinQA | the baseline |
+| **none** | GRPO | **nothing.** `kit/run_grpo.sh` on the bed's own unhinted training file, from the untrained model, at the bed's dose — trained here, five seeds, scored like every other arm | the baseline |
 | **hint** | GRPO | the hint is appended to the prompt of every never-solved question, for the whole run | does scaffolding during training transfer to unaided answers? |
 | **hint-faded** | GRPO | as `hint` for the first half of the run, then removed — a restart from the halfway checkpoint onto the same questions with no hints in them | does the model keep what the hint taught once the hint is gone? |
 | **teacher-none** | SDPO | nothing but the trainer: the same command as `teacher-hint` with the feedback switch **off**, on the same training file, at the same dose and seeds | the SDPO route's control |
@@ -35,8 +35,9 @@ GRPO-route effect and is the verdict; `teacher-hint` minus `teacher-none` is the
 and those two runs are **one trainer key apart**. `teacher-hint` minus `none` would be the hint and
 the change of trainer together, so the report prints it for completeness and reads it as neither.
 
-**What you run is still not our code.** `hint` and `hint-faded` are `kit/run_grpo.sh`, the launcher
-your K3 and K1c runs already used, with a different training file and nothing else. `teacher-hint`
+**What you run is still not our code.** `none`, `hint` and `hint-faded` are `kit/run_grpo.sh`, the
+launcher your K3 and K1c runs already used; `hint` and `hint-faded` differ from `none` in the training
+file and nothing else, and our tests compare those rows key for key. `teacher-hint`
 and `teacher-none` are `kit/run_sdpo_bed.sh`, which is the `kit/run_sdpo_toolalpaca.sh` you ran for K0
 and K4a with this bed's data and reward file and the authors' own `FEEDBACK` switch as its one knob —
 our tests compare the two commands key for key **at both switch positions**, and allow a difference
@@ -53,9 +54,10 @@ gates on the switch position it was meant to run at.
   The report also prints `teacher-none` minus `none` — the change of trainer with no hint on either
   side — because that is a trainer effect and it must not be mistaken for a hint effect.
 - **Spider runs 20 steps, not 40.** Spider's frozen training split is 640 questions and the trainer
-  makes one pass, so 20 updates × 32 questions is all there is — and your K3 stage A, which is this
-  bed's `none` arm, is exactly that run. FinQA runs 40 steps against K1c's 40. Each arm is at its own
-  control's dose, because a double dose against a single-dose control would measure the dose.
+  makes one pass, so 20 updates × 32 questions is all there is — K3's stage-A dose (lr 1e-5, KL 0),
+  which this package's own `none` arm runs. FinQA runs 40 steps, K1c part B's dose. Every arm on a
+  bed, `none` included, runs that bed's dose, because a double dose against a single-dose control
+  would measure the dose.
 
 ## The hint, and why you can believe it is not the answer
 
@@ -81,13 +83,6 @@ data, so no measurement in this package can contain one.
 
 Everything from `README-partner.md` sections 0 to 4, plus:
 
-- **your finished K3 and K1c package directories** (`$K3_ROOT`, `$K1C_ROOT`) — the folders holding
-  `eval/` and `forgetting/`. These are the `none` arm. Nothing else is a substitute, and we would
-  rather stop than invent one. **K4 therefore comes after both of those packages**, and after the K3
-  seeds follow-up (`kit-seeds-v1`), which is what takes K3's stage A from three seeds to five. If you
-  have only K3's first three seeds when you get here, run K4 at those three
-  (`--seeds 0,1,2` on the report row) and tell us: three seeds against a 3-to-4-point seed spread is
-  worth less, and we would rather know which it was than guess from the numbers.
 - **a large open model served on an OpenAI-compatible endpoint** (vLLM's own `--served-model-name`
   works). Which model is yours to choose from what your cluster holds — Qwen3-235B-A22B, or the
   largest Llama you have. Tell us which, because it goes in the write-up. It only has to be up for the
@@ -97,9 +92,28 @@ Everything from `README-partner.md` sections 0 to 4, plus:
   plan. The generate manifest counts how many replies thought anyway.
 - **Spider and FinQA on disk**, as in K3 and K1c.
 
-**Run it in the same container, on the same machine, as K3 and K1c.** The `none` arm was scored there,
-and across machines a panel moves by up to 3 points before any training — the size of the effect we
-are measuring. The report refuses to mix two machine fingerprints.
+**Nothing here comes from another package's folders.** The `none` arm is trained and scored by this
+campaign, so K4 does not wait for K3 or K1c and needs no folder of theirs.
+
+## One node for every scoring, or the numbers cannot be compared
+
+Two nodes scoring the SAME model greedily disagree by about 3 answers in 100 — the size of the 3-point
+bar. Your K3 gate failed on exactly that: its two scorings ran on different nodes, and rerun on one
+node the same dose gave +5, exactly the bar. Nothing here can be read until both sides of a difference
+come from one node.
+
+So: **run the whole campaign as one job on one node.** Every scoring row pins GPU 0
+(`CUDA_VISIBLE_DEVICES=0`), and `base-repeatable` and the report check that every scoring carries the
+same machine fingerprint (the report refuses to mix two). If it finds two, do not read the number:
+re-score both sides on one node with `--row`, one row at a time, and run the report again — for
+example the untrained model and one `none` seed:
+
+```bash
+python $KIT/runner.py run $KIT/campaigns/k4-hints.yaml --row base-spider
+python $KIT/runner.py run $KIT/campaigns/k4-hints.yaml --row spider-none-seed0-eval
+```
+
+The report prints every fingerprint it read, so this is visible at a glance.
 
 ## Run it
 
@@ -107,7 +121,6 @@ are measuring. The report refuses to mix two machine fingerprints.
 export KIT=/work/continual-learning-kit/kit WORK=/work/k4-work
 export SDPO_DIR=/work/SDPO SPIDER_ROOT=/work/spider_data FINQA_ROOT=/work/FinQA/dataset
 export HINT_BASE_URL=http://localhost:8000/v1 HINT_MODEL=<the model you served>
-export K3_ROOT=/work/k3-work/k3 K1C_ROOT=/work/k1c-work/k1c
 ```
 
 ```bash
@@ -119,8 +132,8 @@ python $KIT/runner.py prepare $KIT/campaigns/k4-hints.yaml --all
 ```
 
 `prepare` needs no GPU. It writes both beds' training files, checks the row counts the doses need,
-asks your hint endpoint for its model list, and checks `$K3_ROOT` and `$K1C_ROOT` are on disk. Start
-the hint-giver **before** this step. If any of it is wrong, nothing is wasted.
+and asks your hint endpoint for its model list. Start the hint-giver **before** this step. If any of it
+is wrong, nothing is wasted.
 
 ```bash
 python $KIT/runner.py run $KIT/campaigns/k4-hints.yaml --all
@@ -130,8 +143,8 @@ That runs everything in order and stops at the first refusal. The order is: the 
 the machine check, then Spider completely, then FinQA, then the report.
 
 Per bed the hint work comes first — the never-solved set (one GPU, under two minutes), the hints
-(your served model), the filter and the hinted files (no GPU at all) — and then four two-step pilots,
-one an arm. Nothing large starts until those have passed. You can run a single row at any time:
+(your served model), the filter and the hinted files (no GPU at all) — and then five two-step pilots,
+one an arm, `none` first. Nothing large starts until those have passed. You can run a single row at any time:
 
 ```bash
 python $KIT/runner.py run $KIT/campaigns/k4-hints.yaml --row spider-stuck
@@ -151,19 +164,20 @@ At 15 seconds a step on 8 × H100 (your K3 numbers), and your measured scoring t
 |---|---|---|
 | the untrained model, twice, plus both beds' held-out sets | 5 | 1 hour |
 | Spider: the never-solved set, the hints, the filter, the files | 5 | 30 minutes, at most one GPU |
-| Spider: 4 pilots | 4 | 25 minutes |
-| Spider: 20 runs at 20 steps (the faded arm is 10 + 10) | 25 | 2 hours wall, ~16 GPU-hours |
-| Spider: 20 held-out scorings and 20 panels, GPU 0 | 40 | 4 hours |
+| Spider: 5 pilots | 5 | 30 minutes |
+| Spider: 25 runs at 20 steps (the faded arm is 10 + 10) | 30 | 2.5 hours wall, ~20 GPU-hours |
+| Spider: 25 held-out scorings and 25 panels, GPU 0 | 50 | 5 hours |
 | FinQA: the never-solved set, the hints, the filter, the files | 5 | 1 hour, at most one GPU |
-| FinQA: 4 pilots | 4 | 25 minutes |
-| FinQA: 20 runs at 40 steps | 25 | 3.5 hours wall, ~27 GPU-hours |
-| FinQA: 20 held-out scorings (1,147 questions each) and 20 panels, GPU 0 | 40 | 9.5 hours |
+| FinQA: 5 pilots | 5 | 30 minutes |
+| FinQA: 25 runs at 40 steps | 30 | 4.5 hours wall, ~34 GPU-hours |
+| FinQA: 25 held-out scorings (1,147 questions each) and 25 panels, GPU 0 | 50 | 12 hours |
 | the report | 1 | seconds, no GPU |
 
-**Roughly 22 hours of wall clock and 65 to 75 GPU-hours**, of which about 43 are the training. The
-`teacher-none` arm is 11 of those GPU-hours (about 4 on Spider and 7 on FinQA) and is what makes the
-SDPO route readable at all. The grid rows are independent: if you have a second node the two beds can
-run in parallel with `--row`, as long as **every** scoring happens on one machine's GPU 0.
+**Roughly 27 hours of wall clock and 80 to 90 GPU-hours**, of which about 54 are the training. That is
+the 65 to 75 GPU-hours (about 22 hours of wall clock) this package cost when it borrowed its control,
+plus the ten `none` runs it now trains itself — five a bed, about 4 GPU-hours on Spider and 7 on FinQA,
+two pilots, and their 20 scorings on GPU 0, about 3.5 hours. The `teacher-none` arm is another 11
+GPU-hours (about 4 on Spider and 7 on FinQA) and is what makes the SDPO route readable at all.
 
 ## The stop rule
 

@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""The K4 readout: per bed and arm, what the student answers UNAIDED, beside the reused `none` runs.
+"""The K4 readout: per bed and arm, what the student answers UNAIDED, beside its own `none` runs.
 
     python k4_report.py --root $WORK/k4 --runs $WORK/runs \\
-                        --spider-none-root $K3_ROOT --finqa-none-root $K1C_ROOT \\
                         --finqa-rows $WORK/data/finqa-1600/test.jsonl --out $WORK/k4/report-a1
 
-Reads four kinds of file and recomputes every number from them:
+Reads three kinds of file and recomputes every number from them:
 
     --root              K4's own tree: `eval/<point>-a<N>/bed-score.json` (the bed, unaided) and
                         `forgetting/<point>-a<N>/forgetting.json` (the three general panels), plus
-                        `eval/base-<bed>-a<N>` and `forgetting/base-a<N>` for the untrained model
+                        `eval/base-<bed>-a<N>` and `forgetting/base-a<N>` for the untrained model.
+                        Every arm is read from here, THE CONTROL INCLUDED: `<bed>-none-seed<N>` is
+                        kit/run_grpo.sh on the unhinted file at the bed's dose, trained by this package
     --runs              K4's training runs, for the steps each point completed and its training signals
-    --*-none-root       THE CONTROL, not rerun: a finished package whose runs already are the `none`
-                        arm at the same dose from the same untrained model -- K3 (Spider stage A) and
-                        K1c (FinQA part B). Only their scorings are read; nothing is retrained
     --finqa-rows        FinQA's prepared test rows, which carry `extra_info.gold_consistent`: the 8.3
                         percent of items whose own displayed answer disagrees with the value their
                         program executes to are EXCLUDED, because no model can be fairly judged on them
@@ -37,9 +35,8 @@ THREE RULES IT ENFORCES, because each has already cost this programme a wrong an
 
 1. ONE MACHINE. A held-out count from one machine cannot be subtracted from a count on another: across
    machines a panel moves by up to 3 points before any training (receipt 204), which is the size of the
-   effect being measured. Here the risk is sharper than usual, because the control was scored in a
-   DIFFERENT PACKAGE: if K3, K1c and K4 did not run in the same container on the same machine, the
-   fingerprints differ and this file REFUSES unless --allow-different-machines, which it records.
+   effect being measured. If the scorings carry two fingerprints this file REFUSES unless
+   --allow-different-machines, which it records; the fix is to re-score both sides on one node.
 2. A DIFFERENCE IS ONLY READ WITHIN ITS ROUTE. Every arm's gain against `none` is printed in one
    column, but the two SDPO arms' gains against it also change the trainer, so they carry
    `controlled_comparison: 0` and the SDPO route's own difference is computed separately.
@@ -93,18 +90,8 @@ ARM_FEEDBACK = {"teacher-none": 0, "teacher-hint": 1}
 GAIN_BAR = 0.03
 PANEL_FLOOR = -3
 ATTEMPT = re.compile(r"^(?P<stem>.+)-a(?P<attempt>\d+)$")
-POINT = re.compile(r"^(?P<bed>spider|finqa)-(?P<arm>hint-faded|teacher-hint|teacher-none|hint)"
+POINT = re.compile(r"^(?P<bed>spider|finqa)-(?P<arm>hint-faded|teacher-hint|teacher-none|hint|none)"
                    r"-seed(?P<seed>\d+)$")
-#: Where each bed's `none` arm lives inside the package that already ran it, and what the untrained
-#: model's scoring is called there. These are the other packages' own names, not ours: K3 writes
-#: `eval/a-seed0-spider-a1` and `forgetting/a-seed0-a1`; K1c writes `eval/finqa-seed0-finqa-a1` and
-#: `forgetting/finqa-seed0-forget-a1`.
-NONE_TREES = {
-    "spider": {"package": "K3", "eval": "a-seed%d-spider", "forget": ("a-seed%d",),
-               "base_eval": "base-spider", "base_forget": ("base",)},
-    "finqa": {"package": "K1c", "eval": "finqa-seed%d-finqa", "forget": ("finqa-seed%d-forget",),
-              "base_eval": "base17b-finqa", "base_forget": ("base17b",)},
-}
 TRAIN_KEYS = {"score": "critic/score/mean", "response_tokens": "response_length/mean",
               "entropy": "actor/entropy", "grad_norm": "actor/grad_norm",
               "seconds_per_step": "perf/time_per_step",
@@ -306,42 +293,26 @@ def gold_consistent_ids(path) -> set | None:
     return keep or None
 
 
-def seed_row(bed: str, arm: str, seed: int, *, root: Path, runs: Path, none_root: Path | None,
-             keep: set | None) -> dict:
-    """One bed, arm and seed: where its numbers came from, and the numbers."""
-    tree = NONE_TREES[bed]
-    missing_tree = None
-    if arm == NONE_ARM:
-        if none_root is None:
-            missing_tree = ("NO CONTROL TREE: pass --%s-none-root with the finished %s package, whose "
-                            "runs ARE this arm. Nothing here is a substitute for it."
-                            % (bed, tree["package"]))
-            evaluation = {"found": 0, "looked_for": "--%s-none-root was not given" % bed}
-            block = {"found": 0, "looked_for": "--%s-none-root was not given" % bed}
-        else:
-            evaluation = bed_score(none_root / "eval", tree["eval"] % seed)
-            block = panels(none_root / "forgetting", tuple(stem % seed for stem in tree["forget"]))
-        run = {"found": 0, "reused": 1}
-    else:
-        point = "%s-%s-seed%d" % (bed, arm, seed)
-        evaluation = bed_score(root / "eval", point)
-        block = panels(root / "forgetting", (point,))
-        run = read_run(runs, point)
-        # `hint-faded` is two runs: the hinted half and the plain half that restarts from it. The
-        # second one's own step count is half the arm's dose, so the total is carried explicitly --
-        # a table showing 10 where the arm trained 20 would read as a shorter arm, not a faded one.
-        run["steps_total"] = run.get("steps")
-        if arm == "hint-faded":
-            first = read_run(runs, "%s-first" % point)
-            run["first_half"] = first
-            if first.get("found") and _finite(first.get("steps")) and _finite(run.get("steps")):
-                run["steps_total"] = first["steps"] + run["steps"]
-            elif not first.get("found"):
-                run["steps_total"] = None
+def seed_row(bed: str, arm: str, seed: int, *, root: Path, runs: Path, keep: set | None) -> dict:
+    """One bed, arm and seed: where its numbers came from, and the numbers. Every arm, `none`
+    included, is this package's own point `<bed>-<arm>-seed<N>`."""
+    point = "%s-%s-seed%d" % (bed, arm, seed)
+    evaluation = bed_score(root / "eval", point)
+    block = panels(root / "forgetting", (point,))
+    run = read_run(runs, point)
+    # `hint-faded` is two runs: the hinted half and the plain half that restarts from it. The
+    # second one's own step count is half the arm's dose, so the total is carried explicitly --
+    # a table showing 10 where the arm trained 20 would read as a shorter arm, not a faded one.
+    run["steps_total"] = run.get("steps")
+    if arm == "hint-faded":
+        first = read_run(runs, "%s-first" % point)
+        run["first_half"] = first
+        if first.get("found") and _finite(first.get("steps")) and _finite(run.get("steps")):
+            run["steps_total"] = first["steps"] + run["steps"]
+        elif not first.get("found"):
+            run["steps_total"] = None
     row = {"seed": seed, "arm": arm, "bed": bed, "route": ARM_ROUTE[arm], "eval": evaluation,
            "panels": block, "run": run, "flags": []}
-    if arm == NONE_ARM:
-        row["reused_from"] = tree["package"]
     # The two SDPO arms are one trainer key apart, so the run must say which position it ran at. A
     # control that ran with the switch on is not a control, and a table cannot show that by itself.
     if arm in ARM_FEEDBACK and run.get("found"):
@@ -353,13 +324,11 @@ def seed_row(bed: str, arm: str, seed: int, *, root: Path, runs: Path, none_root
         if run.get("arm_declared") not in (None, arm):
             row["flags"].append("WRONG ARM: the run under this point's name declares itself `%s`. %s"
                                 % (run.get("arm_declared"), run.get("path")))
-    if missing_tree:
-        row["flags"].append(missing_tree)
-    elif not evaluation.get("found"):
+    if not evaluation.get("found"):
         row["flags"].append("NO HELD-OUT SCORING: looked for %s" % evaluation.get("looked_for"))
-    if not block.get("found") and not missing_tree:
+    if not block.get("found"):
         row["flags"].append("NO PANEL SCORING: looked for %s" % block.get("looked_for"))
-    if arm != NONE_ARM and not run.get("found"):
+    if not run.get("found"):
         row["flags"].append("NO TRAINING SUMMARY: looked for %s" % run.get("looked_for"))
     row["judged"] = accuracy_on(evaluation.get("per_item"), keep)
     row["all_items"] = accuracy_on(evaluation.get("per_item"), None)
@@ -412,27 +381,23 @@ def fingerprints(rows: list, base: dict, panel_base: dict) -> list:
     return sorted(seen)
 
 
-def build(root: Path, runs: Path, *, none_roots: dict, finqa_rows=None, seeds=(0, 1, 2, 3, 4),
+def build(root: Path, runs: Path, *, finqa_rows=None, seeds=(0, 1, 2, 3, 4),
           allow_different_machines: bool = False) -> dict:
     root, runs = Path(root), Path(runs)
     keep_by_bed = {"spider": None, "finqa": gold_consistent_ids(finqa_rows)}
     report = {"schema": SCHEMA,
               "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "root": str(root.resolve()), "runs_dir": str(runs.resolve()),
-              "none_roots": {bed: (str(Path(path).resolve()) if path else None)
-                             for bed, path in none_roots.items()},
               "gain_bar": GAIN_BAR, "panel_floor": PANEL_FLOOR, "seeds": list(seeds),
               "finqa_rows": str(Path(finqa_rows).resolve()) if finqa_rows else None,
               "beds": {}, "flags": []}
     every_row, base_blocks = [], {}
     for bed in BEDS:
         keep = keep_by_bed[bed]
-        tree = NONE_TREES[bed]
-        none_root = Path(none_roots[bed]) if none_roots.get(bed) else None
         base_eval = bed_score(root / "eval", "base-%s" % bed)
         base_panels = panels(root / "forgetting", ("base",))
         base_blocks[bed] = (base_eval, base_panels)
-        block = {"bed": bed, "reused_control_from": tree["package"],
+        block = {"bed": bed,
                  "untrained": {"eval": base_eval, "panels": base_panels,
                                "judged": accuracy_on(base_eval.get("per_item"), keep),
                                "all_items": accuracy_on(base_eval.get("per_item"), None)},
@@ -446,7 +411,7 @@ def build(root: Path, runs: Path, *, none_roots: dict, finqa_rows=None, seeds=(0
         for arm in ARMS:
             rows = []
             for seed in seeds:
-                row = seed_row(bed, arm, seed, root=root, runs=runs, none_root=none_root, keep=keep)
+                row = seed_row(bed, arm, seed, root=root, runs=runs, keep=keep)
                 row["split"] = split_by_untrained(row, base_eval, keep)
                 if row["split"] is not None and not row["split"]["shared_items"]:
                     row["flags"].append("NO SHARED ITEMS with the untrained scoring: the two files "
@@ -507,9 +472,8 @@ def build(root: Path, runs: Path, *, none_roots: dict, finqa_rows=None, seeds=(0
             "the scorings read here carry %d different machine-and-mode fingerprints (%s). A held-out "
             "count from one machine cannot be subtracted from a count on another: a panel moves by up "
             "to 3 points across machines before any training, which is the size of the effect K4 "
-            "measures. The `none` arm was scored in another package, so this is the thing to check "
-            "first: K3, K1c and K4 must have run in the same container on the same machine. Re-score "
-            "on one machine, or pass --allow-different-machines and say so in the readout."
+            "measures. Run the whole campaign as one job on one node; re-score both sides on one "
+            "node with --row, or pass --allow-different-machines and say so in the readout."
             % (len(machines), ", ".join(machines)))
     report["machine_ids"] = machines
     report["comparable"] = int(comparable)
@@ -556,7 +520,7 @@ def build_density(report: dict, seeds) -> dict:
             arms[arm] = {"seeds": rows, "bed": spread([row["bed"]["ratio"] for row in ordered]),
                          "panels": {name: spread([row["panels"][name]["ratio"] for row in ordered])
                                     for name in sorted(base_panels)},
-                         "reused_control": int(arm == NONE_ARM)}
+                         "control": int(arm == NONE_ARM)}
         beds[bed] = {"untrained": {"bed": (base_eval or {}).get("tokens_per_correct"),
                                    "panels": {name: (cell or {}).get("tokens_per_correct")
                                               for name, cell in sorted(base_panels.items())}},
@@ -606,7 +570,7 @@ def render_density(report: dict) -> list:
              "the whole held-out set divided by the correct answers, so it is a cost per task and not "
              "a length. A trained model may spend at most %.1f times the untrained model's on the bed "
              "it learned and on the general panel; over the bar the gain is reported at cost. The "
-             "`none` rows are the reused control's own scorings." % block.get("bar", DENSITY_BAR), ""]
+             "`none` rows are the GRPO control's own scorings." % block.get("bar", DENSITY_BAR), ""]
     if not block.get("measured"):
         lines += [block.get("note") or NO_TOKENS, ""]
     lines += ["| bed | arm | seed | bed or panel | untrained | trained | ratio | verdict |",
@@ -636,14 +600,14 @@ def render(report: dict) -> str:
     lines = ["# K4: does a hint on the stuck questions teach the model to answer them unaided?", "",
              "Generated %s by kit/k4_report.py (%s). Every number is recomputed from the raw files."
              % (report["generated_at"], SCHEMA), "",
-             "The `none` arm is NOT rerun here: it is %s."
-             % ", ".join("%s for %s" % (NONE_TREES[bed]["package"], bed) for bed in BEDS)
-             + " Every accuracy is `kit/eval_bed.py` on the bed's held-out questions with NO hint in "
-               "the prompt, scored on one GPU of one machine in the deterministic mode.", ""]
+             "The `none` arm is this package's own: kit/run_grpo.sh on the unhinted training file, "
+             "from the untrained model, at the bed's dose. Every accuracy is `kit/eval_bed.py` on the "
+             "bed's held-out questions with NO hint in the prompt, scored on one GPU of one machine in "
+             "the deterministic mode.", ""]
     if not report["comparable"]:
         lines += ["**The scorings do not share one machine-and-mode fingerprint (%s), so the "
-                  "differences below are not comparable. This is what to check first when the control "
-                  "comes from another package.**" % ", ".join(report["machine_ids"]), ""]
+                  "differences below are not comparable. Re-score both sides on one node.**"
+                  % ", ".join(report["machine_ids"]), ""]
     lines += ["## The verdict, one line a bed", "",
               "The bar, written before any of these numbers existed: `hint` beats `none` by at least "
               "%.0f points on the mean of five seeds, with no larger loss on the general panel "
@@ -682,12 +646,11 @@ def render(report: dict) -> str:
         block = report["beds"][bed]
         untrained = block["untrained"]
         lines += ["", "## %s" % bed.upper(), "",
-                  "Untrained Qwen3-1.7B: %s of %s items%s. Control: %s, reused."
+                  "Untrained Qwen3-1.7B: %s of %s items%s. Control: `none`, trained here."
                   % (_fmt(untrained["judged"]["correct"], "%s"), _fmt(untrained["judged"]["n"], "%s"),
                      "" if block["excluded_items"] in (None, 0)
                      else " (%d items excluded: FinQA's own answer disagrees with its program)"
-                          % block["excluded_items"],
-                     block["reused_control_from"]), "",
+                          % block["excluded_items"]), "",
                   "| arm | route | seed | correct | accuracy | gain vs none | worst panel | steps |",
                   "|---|---|---|---|---|---|---|---|"]
         for arm in ARMS:
@@ -741,7 +704,7 @@ def render(report: dict) -> str:
     lines += render_density(report)
     if report["flags"]:
         lines += ["", "## Flags", ""] + ["- %s" % flag for flag in report["flags"]]
-    lines += ["", "%d beds, %d arms, %d control runs read from other packages."
+    lines += ["", "%d beds, %d arms, %d `none` runs, all from this package's own tree."
               % (report["beds_reported"], report["arms_reported"], report["none_runs"]), ""]
     return "\n".join(lines)
 
@@ -750,10 +713,6 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--root", type=Path, required=True, help="K4's own tree: eval/ and forgetting/")
     parser.add_argument("--runs", type=Path, required=True, help="K4's training runs")
-    parser.add_argument("--spider-none-root", default=None,
-                        help="the finished K3 package directory: Spider's `none` arm")
-    parser.add_argument("--finqa-none-root", default=None,
-                        help="the finished K1c package directory: FinQA's `none` arm")
     parser.add_argument("--finqa-rows", default=None,
                         help="FinQA's prepared test.jsonl, to exclude the items whose gold does not score")
     parser.add_argument("--seeds", default="0,1,2,3,4")
@@ -765,9 +724,7 @@ def main(argv=None) -> int:
         raise SystemExit("refusing to overwrite %s: an output is never replaced" % args.out)
     seeds = tuple(int(part) for part in str(args.seeds).split(",") if part.strip())
     try:
-        report = build(args.root, args.runs,
-                       none_roots={"spider": args.spider_none_root, "finqa": args.finqa_none_root},
-                       finqa_rows=args.finqa_rows, seeds=seeds,
+        report = build(args.root, args.runs, finqa_rows=args.finqa_rows, seeds=seeds,
                        allow_different_machines=args.allow_different_machines)
     except K4ReportError as exc:
         raise SystemExit(str(exc))

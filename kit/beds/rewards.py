@@ -19,11 +19,21 @@ rows silently scored zero would look exactly like a rehearsal that did not work.
 
 The return value is whatever the bed returned, unchanged: this file adds no key, drops none, and
 rewrites no feedback, so the reward a row gets is the reward its own bed defines.
+
+ONE exception, off by default: a LENGTH BUDGET. The dose probe (receipt 232) showed plain GRPO on Spider
+drifting to 900-token answers after one pass over the questions, with the training reward flat and the
+held-out score unmoved, so the count alone hid it. With the environment variable KIT_LENGTH_BUDGET_CHARS
+set to an integer, an answer longer than that many characters scores 0 whatever the bed said, and the
+returned dict carries `over_budget: 1` and a feedback line saying so. The bed's own verdict is kept in
+`score_before_budget` so a readout can count how often the budget bit. Unset, nothing here changes.
 """
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
+
+BUDGET_ENV = "KIT_LENGTH_BUDGET_CHARS"
 
 HERE = Path(__file__).resolve().parent
 BED_FILES = {"spider": HERE / "spider.py", "gsm8k": HERE / "gsm8k.py", "finqa": HERE / "finqa.py", "code": HERE / "code.py"}
@@ -67,7 +77,45 @@ def compute_score(data_source: str, solution_str: str, ground_truth: str, extra_
     if bed is None:
         raise UnknownDataSource("no bed rewards data_source %r; this file dispatches %s"
                                 % (data_source, ", ".join(DATA_SOURCES)))
-    return bed.compute_score(data_source, solution_str, ground_truth, extra_info)
+    result = bed.compute_score(data_source, solution_str, ground_truth, extra_info)
+    budget = length_budget()
+    if budget is None:
+        return result
+    return apply_budget(result, solution_str, budget)
+
+
+def length_budget():
+    """The character budget from the environment, or None when unset. A bad value is a refusal."""
+    raw = os.environ.get(BUDGET_ENV)
+    if raw is None or raw == "":
+        return None
+    try:
+        budget = int(raw)
+    except ValueError as exc:
+        raise ValueError("%s must be a positive integer, not %r" % (BUDGET_ENV, raw)) from exc
+    if budget <= 0:
+        raise ValueError("%s must be a positive integer, not %r" % (BUDGET_ENV, raw))
+    return budget
+
+
+def apply_budget(result, solution_str: str, budget: int):
+    """Zero the score of an answer over the budget; keep the bed's verdict beside it. Never mutates `result`."""
+    length = len(solution_str or "")
+    if not isinstance(result, dict):
+        return result if length <= budget else 0.0
+    out = dict(result)
+    out["answer_chars"] = length
+    out["score_before_budget"] = result.get("score")
+    if length <= budget:
+        out["over_budget"] = 0
+        return out
+    out["over_budget"] = 1
+    out["score"] = 0.0
+    if "acc" in out:
+        out["acc"] = 0.0
+    note = "The answer is %d characters, over the budget of %d; a correct answer must be shorter." % (length, budget)
+    out["feedback"] = (str(out.get("feedback") or "").strip() + " " + note).strip()
+    return out
 
 
 if __name__ == "__main__":

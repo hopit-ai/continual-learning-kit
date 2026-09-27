@@ -40,6 +40,22 @@ and a 60-step arm a sixth. That is part of what the probe measures.
 ONE SEED. Every arm here is seed 0, so a difference between two arms is one run against one run, and
 `ref20` is in the probe precisely to show what one run against one run is worth. Standard library
 only. Nothing is overwritten: an existing --out is refused.
+
+WITH --campaign <yaml> the arm list comes from the campaign file instead of the four names above:
+
+    python k3_dose_report.py --root $WORK/k3dose2 --runs $WORK/runs \\
+        --campaign kit/campaigns/k3-dose-2.yaml --out $WORK/k3dose2/report/a1
+
+Every row whose command runs kit/run_grpo.sh is an arm, in the file's order; its `description` is
+what the report says it changes, its NAME (less `-a{attempt}`) is the run directory looked for, its
+SEED is the seed reported, and its scoring is the `-spider` row that needs it. Steps, lr and
+`length_budget_chars` are read from each run's own train-summary.json, and the rows from the file it
+trained on, as without --campaign. The report then adds a seed and a length-budget column, and an arm
+CLEARS only if it reaches the +5 bar AND its tokens per correct answer stay within the density bar:
+probe 1 showed a dose that reaches the bar by writing longer answers is not a dose to keep. The
+over-budget share of answers is not reported, because verl does not log the reward's `over_budget`
+per step. Reading a .yaml campaign needs PyYAML, which the runner already needs. Without --campaign
+the output is the probe-1 report exactly as before.
 """
 from __future__ import annotations
 
@@ -300,9 +316,60 @@ def training_file_facts(train_file) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------ the arm list
+NAME_ATTEMPT = re.compile(r"-a\{attempt\}$")
+SCORING_OUT = re.compile(r"/eval/(?P<stem>[^/]+)-a\{attempt\}$")
+
+
+def default_arms() -> list:
+    """Probe 1's four arms, exactly as this report has always read them."""
+    return [{"arm": arm, "what": WHAT[arm], "seed": 0, "run": "%s-seed0" % arm,
+             "scoring": "%s-spider" % arm} for arm in ARMS]
+
+
+def arms_from_campaign(path: Path) -> dict:
+    """{name, path, arms} from a kit-campaign file: every row that runs kit/run_grpo.sh is an arm."""
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8")
+        if path.suffix == ".json":
+            campaign = json.loads(text)
+        else:
+            import yaml                                                    # noqa: PLC0415
+            campaign = yaml.safe_load(text)
+    except (OSError, ValueError) as exc:
+        raise K3DoseReportError("cannot read the campaign %s: %s" % (path, exc)) from exc
+    rows = (campaign or {}).get("rows") or []
+    arms = []
+    for row in rows:
+        if "run_grpo.sh" not in " ".join(str(part) for part in row.get("command") or []):
+            continue
+        env = row.get("env") or {}
+        name = env.get("NAME")
+        if not name or not NAME_ATTEMPT.search(name):
+            raise K3DoseReportError("campaign row %s runs kit/run_grpo.sh with no NAME ending in "
+                                    "-a{attempt}, so its run directory cannot be found" % row.get("id"))
+        seed = env.get("SEED")
+        scoring = "%s-spider" % row["id"]
+        for other in rows:
+            match = SCORING_OUT.search((other.get("env") or {}).get("OUT", ""))
+            if match and row["id"] in (other.get("needs") or []) and "eval_bed" in " ".join(other["command"]):
+                scoring = match["stem"]
+                break
+        arms.append({"arm": row["id"], "what": row.get("description") or "-",
+                     "seed": int(seed) if str(seed).isdigit() else None,
+                     "run": NAME_ATTEMPT.sub("", name), "scoring": scoring})
+    if not arms:
+        raise K3DoseReportError("campaign %s has no row that runs kit/run_grpo.sh, so it has no arm" % path)
+    return {"name": campaign.get("name"), "path": str(path.resolve()), "arms": arms}
+
+
 # ------------------------------------------------------------------------------------ the build
-def build(root: Path, runs: Path) -> dict:
+def build(root: Path, runs: Path, campaign: dict | None = None) -> dict:
+    """The report. `campaign` is arms_from_campaign()'s reading, or None for probe 1's four arms."""
     root, runs = Path(root), Path(runs)
+    specs = campaign["arms"] if campaign else default_arms()
+    order = [spec["arm"] for spec in specs]
     scorings = latest_found(root / "eval", "bed-score.json")
     if "base-spider" not in scorings:
         raise K3DoseReportError(
@@ -314,16 +381,17 @@ def build(root: Path, runs: Path) -> dict:
     base_cost = cost((base_path, base))
     run_dirs = latest_dirs(runs)
     arms, missing, measured_density = {}, [], base_cost is not None
-    for arm in ARMS:
-        entry: dict = {"arm": arm, "what": WHAT[arm], "missing": [], "warmup_steps": WARMUP_STEPS,
-                       "batch": BATCH, "seed": 0}
-        found = scorings.get("%s-spider" % arm)
-        run = run_dirs.get("%s-seed0" % arm)
+    for spec in specs:
+        arm = spec["arm"]
+        entry: dict = {"arm": arm, "what": spec["what"], "missing": [], "warmup_steps": WARMUP_STEPS,
+                       "batch": BATCH, "seed": spec["seed"]}
+        found = scorings.get(spec["scoring"])
+        run = run_dirs.get(spec["run"])
         if found is None:
-            entry["missing"].append("no held-out scoring (expected %s/eval/%s-spider-aN/bed-score.json)"
-                                    % (root, arm))
+            entry["missing"].append("no held-out scoring (expected %s/eval/%s-aN/bed-score.json)"
+                                    % (root, spec["scoring"]))
         if run is None:
-            entry["missing"].append("no run directory (expected %s/%s-seed0-aN/)" % (runs, arm))
+            entry["missing"].append("no run directory (expected %s/%s-aN/)" % (runs, spec["run"]))
         summary = {}
         if run is not None:
             path = run / "train-summary.json"
@@ -364,15 +432,26 @@ def build(root: Path, runs: Path) -> dict:
         entry["machine"] = (after or {}).get("machine", {}).get("id") if after else None
         entry["clears_bar"] = int(_finite(entry["delta"]) and entry["delta"] >= BAR)
         entry["verdict"] = verdict_of(entry)
+        if campaign:
+            budget = summary.get("length_budget_chars")
+            entry["length_budget_chars"] = budget if _finite(budget) else None
+            entry["decision"] = decision_of(entry)
         arms[arm] = entry
         missing += ["%s: %s" % (arm, reason) for reason in entry["missing"]]
     machines = sorted({m for m in [(base.get("machine") or {}).get("id")]
-                       + [arms[a]["machine"] for a in ARMS] if m is not None})
-    reported = [arm for arm in ARMS if _finite(arms[arm]["after"])]
+                       + [arms[a]["machine"] for a in order] if m is not None})
+    reported = [arm for arm in order if _finite(arms[arm]["after"])]
     clears = [arm for arm in reported if arms[arm]["clears_bar"]]
+    extra = {}
+    if campaign:
+        extra = {"campaign": {"name": campaign["name"], "path": campaign["path"]}, "arm_order": order,
+                 "arms_clearing_the_decision": sorted(
+                     (arm for arm in reported if arms[arm]["decision"] == "clears"),
+                     key=lambda arm: (-arms[arm]["delta"], order.index(arm)))}
     return {"schema": SCHEMA, "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "root": str(root.resolve()), "runs": str(runs.resolve()), "bar": BAR,
-            "warmup_steps": WARMUP_STEPS, "batch": BATCH, "seeds": [0],
+            "warmup_steps": WARMUP_STEPS, "batch": BATCH,
+            "seeds": sorted({spec["seed"] for spec in specs if spec["seed"] is not None}), **extra,
             "base": {"correct": base_correct, "n": base_n,
                      "truncated_at_max_tokens": number(base, "truncated_at_max_tokens"),
                      "tokens_per_correct": (base_cost or {}).get("tokens_per_correct"),
@@ -397,6 +476,19 @@ def verdict_of(entry: dict) -> str:
                                          BAR, entry["delta"], moved)
 
 
+def decision_of(entry: dict) -> str:
+    """Probe 2's rule: the +5 bar AND tokens per correct answer within the density bar.
+
+    'clears', 'does not', 'density unknown' (the bar is reached but its cost cannot be read, so the
+    arm cannot clear), or '-' when there is no held-out scoring at all."""
+    if not _finite(entry["delta"]):
+        return "-"
+    if not entry["clears_bar"]:
+        return "does not"
+    return {"within bar": "clears", "over bar": "does not"}.get(entry["density"]["verdict"],
+                                                                 "density unknown")
+
+
 # ------------------------------------------------------------------------------------ rendering
 def _fmt(value, pattern="%.4f"):
     return pattern % value if _finite(value) else "-"
@@ -406,62 +498,105 @@ def _int(value):
     return "%d" % value if _finite(value) else "-"
 
 
+def _budget(value) -> str:
+    return "%d chars" % value if _finite(value) else "none"
+
+
 def render(report: dict) -> str:
+    """Markdown. A report built with --campaign adds the seed and length-budget columns and the
+    +5-and-density decision; one built without it is probe 1's report, unchanged."""
     base = report["base"]
-    lines = ["# K3 stage A: which dose clears the +%d bar?" % report["bar"], "",
-             "Generated %s by kit/k3_dose_report.py (%s). Every number is recomputed from the files "
-             "the campaign wrote." % (report["generated_at"], SCHEMA), "",
-             "Stage A of K3 was 20 GRPO steps over Spider's 640 training questions at lr 1e-5, and its "
-             "pilot bar was +%d on the 100 held-out questions. Four arms change one thing each about "
-             "that dose. Every arm here is ONE run at seed 0, and `ref20` is the reference dose rerun "
-             "on this machine, so the gap between `ref20` and 0 is what one run against one run is "
-             "worth before any arm is read." % report["bar"], "",
-             "The untrained Qwen3-1.7B scored **%s of %s**." % (_int(base["correct"]), _int(base["n"])), ""]
+    camp = report.get("campaign")
+    order = report.get("arm_order") or list(ARMS)
+    if camp:
+        lines = ["# K3 stage A, `%s`: which dose clears the +%d bar at a cost within %.1fx?"
+                 % (camp["name"], report["bar"], report["density"]["bar"]), "",
+                 "Generated %s by kit/k3_dose_report.py (%s) from the arms of `%s`. Every number is "
+                 "recomputed from the files the campaign wrote." % (report["generated_at"], SCHEMA,
+                                                                    Path(camp["path"]).name), "",
+                 "Stage A of K3 was 20 GRPO steps over Spider's 640 training questions at lr 1e-5, and "
+                 "its pilot bar was +%d on the 100 held-out questions. %d arms, each ONE run; each "
+                 "arm's steps, learning rate and length budget are read from its own "
+                 "`train-summary.json`. An arm CLEARS only if it reaches +%d AND a correct answer "
+                 "costs at most %.1f times the untrained model's tokens." % (
+                     report["bar"], len(order), report["bar"], report["density"]["bar"]), "",
+                 "The untrained Qwen3-1.7B scored **%s of %s**." % (_int(base["correct"]), _int(base["n"])), ""]
+    else:
+        lines = ["# K3 stage A: which dose clears the +%d bar?" % report["bar"], "",
+                 "Generated %s by kit/k3_dose_report.py (%s). Every number is recomputed from the files "
+                 "the campaign wrote." % (report["generated_at"], SCHEMA), "",
+                 "Stage A of K3 was 20 GRPO steps over Spider's 640 training questions at lr 1e-5, and its "
+                 "pilot bar was +%d on the 100 held-out questions. Four arms change one thing each about "
+                 "that dose. Every arm here is ONE run at seed 0, and `ref20` is the reference dose rerun "
+                 "on this machine, so the gap between `ref20` and 0 is what one run against one run is "
+                 "worth before any arm is read." % report["bar"], "",
+                 "The untrained Qwen3-1.7B scored **%s of %s**." % (_int(base["correct"]), _int(base["n"])), ""]
     if not report["comparable"]:
         lines += ["**The scorings do not share one machine-and-mode fingerprint (%s), so these "
                   "differences are not comparable.**"
                   % (", ".join(str(m) for m in report["machine_ids"]) or "none recorded"), ""]
 
+    dose_head = "| steps | lr | seed | length budget | warm-up |" if camp else "| steps | lr | warm-up |"
     lines += ["## The held-out set (Spider, 100 questions)", "",
               "`right -> wrong` and `wrong -> right` follow the SAME question id through both "
               "scorings, from the `per_item` verdicts each one carries. McNemar's p is the exact "
               "two-sided binomial test on those two counts: it asks whether a policy that changed "
               "nothing could have produced this split, and nothing else.", "",
-              "| arm | what it changes | rows | passes | steps | lr | warm-up | untrained | after | "
+              "| arm | what it changes | rows | passes %s untrained | after | "
               "delta | right -> wrong | wrong -> right | unchanged | McNemar p | truncated before | "
-              "truncated after | verdict |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-    for arm in ARMS:
+              "truncated after | verdict |" % dose_head,
+              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+              + ("---|---|" if camp else "")]
+    for arm in order:
         row = report["arms"][arm]
         file_facts = row["training_file"]
-        lines.append("| %s | %s | %s | %s | %s | %s | %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
-            arm, row["what"], _int(file_facts["rows"]), _fmt(file_facts["passes"], "%.2f"),
-            _int(row["steps"]), row["lr"] or "-", row["warmup_steps"],
+        dose = [_int(row["steps"]), row["lr"] or "-"]
+        if camp:
+            dose += [_int(row["seed"]), _budget(row["length_budget_chars"])]
+        dose.append("%d" % row["warmup_steps"])
+        verdict = row["decision"] if camp else \
+            ("clears" if row["clears_bar"] else ("-" if not _finite(row["delta"]) else "does not"))
+        lines.append("| " + " | ".join([
+            arm, row["what"], _int(file_facts["rows"]), _fmt(file_facts["passes"], "%.2f")] + dose + [
             _int(row["untrained"]), _int(row["after"]),
             "%+d" % row["delta"] if _finite(row["delta"]) else "-",
             _int(row["right_to_wrong"]), _int(row["wrong_to_right"]), _int(row["unchanged"]),
             _fmt(row["mcnemar_p"], "%.3f"), _int(row["truncated_before"]), _int(row["truncated_after"]),
-            "clears" if row["clears_bar"] else ("-" if not _finite(row["delta"]) else "does not")))
-    lines += [""] + ["- **%s**: %s" % (arm, report["arms"][arm]["verdict"]) for arm in ARMS]
+            verdict]) + " |")
+    if camp:
+        lines.append("")
+        for arm in order:
+            row = report["arms"][arm]
+            ratio = row["density"]["ratio"]
+            lines.append("- **%s**: %s; tokens per correct answer %s the untrained model's (%s): %s" % (
+                arm, row["verdict"], show_cost(ratio, 2) + "x" if ratio is not None else "-",
+                row["density"]["verdict"], row["decision"]))
+    else:
+        lines += [""] + ["- **%s**: %s" % (arm, report["arms"][arm]["verdict"]) for arm in order]
 
     lines += ["", "## What the trainer logged", "",
               "Per step, from each run's `metrics.jsonl` (`kit/run_grpo.sh` with `FILE_LOG=1`). The "
               "reward is the training reward on the questions being trained on, not a held-out score. "
               "A flat reward with a moving gradient norm is a dose that is learning nothing from the "
-              "questions it is being given.", "",
-              "| arm | steps logged | reward first quarter | reward last quarter | reward mean | "
+              "questions it is being given.", ""]
+    if camp:
+        lines += ["With a length budget the reward is 0 for any answer over it, so a falling reward "
+                  "beside a rising response length is the budget biting. The share of answers over the "
+                  "budget is not in this table: verl does not log the reward's `over_budget` per step.", ""]
+    lines += ["| arm |%s steps logged | reward first quarter | reward last quarter | reward mean | "
               "grad norm first quarter | grad norm last quarter | grad norm mean | entropy mean | "
-              "response tokens mean |",
-              "|---|---|---|---|---|---|---|---|---|---|"]
-    for arm in ARMS:
+              "response tokens mean |" % (" length budget |" if camp else ""),
+              "|---|---|---|---|---|---|---|---|---|---|" + ("---|" if camp else "")]
+    for arm in order:
         training = report["arms"][arm]["training"]
-        lines.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
-            arm, _int(training["steps_logged"]),
+        cells = [arm] + ([_budget(report["arms"][arm]["length_budget_chars"])] if camp else []) + [
+            _int(training["steps_logged"]),
             _fmt(training["reward"]["first_quarter"], "%.3f"), _fmt(training["reward"]["last_quarter"], "%.3f"),
             _fmt(training["reward"]["mean"], "%.3f"),
             _fmt(training["grad_norm"]["first_quarter"], "%.3f"), _fmt(training["grad_norm"]["last_quarter"], "%.3f"),
             _fmt(training["grad_norm"]["mean"], "%.3f"),
-            _fmt(training["entropy"]["mean"], "%.3f"), _fmt(training["response_tokens"]["mean"], "%.1f")))
+            _fmt(training["entropy"]["mean"], "%.3f"), _fmt(training["response_tokens"]["mean"], "%.1f")]
+        lines.append("| " + " | ".join(cells) + " |")
 
     block = report["density"]
     lines += ["", "## What a correct answer costs (tokens per correct answer)", "",
@@ -472,7 +607,7 @@ def render(report: dict) -> str:
     if not block["measured"]:
         lines += [block["note"] or NO_TOKENS, ""]
     lines += ["| arm | untrained | after | ratio | verdict |", "|---|---|---|---|---|"]
-    for arm in ARMS:
+    for arm in order:
         cell = report["arms"][arm]["density"]
         lines.append("| %s | %s | %s | %s | %s |" % (
             arm, show_cost(cell["untrained"]), show_cost(cell["trained"]),
@@ -482,8 +617,32 @@ def render(report: dict) -> str:
         lines += ["", "## Missing", "",
                   "Reported as missing, never filled in:", ""] + ["- %s" % item for item in report["missing"]]
 
-    clears = report["arms_clearing_the_bar"]
     lines += ["", "## What to do next", ""]
+    if camp:
+        winners = report["arms_clearing_the_decision"]
+        unknown = [arm for arm in order if report["arms"][arm].get("decision") == "density unknown"]
+        if winners:
+            lines += ["%s %s: +%d or more AND within %.1fx tokens per correct answer (%s). `%s` has the "
+                      "largest gain, so its dose becomes K3's stage-A dose and K3 restarts from its "
+                      "gate; nothing beyond that is decided here. Every arm is ONE run, so the winner "
+                      "is a dose to confirm at K3's five seeds, not a result."
+                      % (", ".join("`%s`" % arm for arm in winners),
+                         "clears" if len(winners) == 1 else "clear", report["bar"], block["bar"],
+                         ", ".join("%s %+d" % (arm, report["arms"][arm]["delta"]) for arm in winners),
+                         winners[0])]
+        else:
+            lines += ["No arm cleared: none reached +%d with a correct answer costing at most %.1fx the "
+                      "untrained model's tokens. Stage A is not re-dosed from this probe and K3 stays "
+                      "at its gate. Every arm is ONE run." % (report["bar"], block["bar"])]
+        if unknown:
+            lines += ["", "%s reached +%d but carried no token counts, so its cost cannot be read and it "
+                      "cannot clear until it is re-scored with them."
+                      % (", ".join("`%s`" % arm for arm in unknown), report["bar"])]
+        lines += ["", "%d of %d arms reported, seeds %s, warm-up %d steps on every arm."
+                  % (report["arms_reported"], len(order), ", ".join(str(s) for s in report["seeds"]) or "-",
+                     report["warmup_steps"]), ""]
+        return "\n".join(lines)
+    clears = report["arms_clearing_the_bar"]
     if clears:
         lines += ["%s %s the +%d bar (%s). The winner's dose is what stage A of K3 should be re-dosed "
                   "to, and K3 restarts from its gate; nothing beyond that is decided here. This probe "
@@ -508,11 +667,14 @@ def main(argv=None) -> int:
     parser.add_argument("--root", type=Path, required=True, help="the campaign's k3dose directory")
     parser.add_argument("--runs", type=Path, required=True, help="the directory holding the arms' runs")
     parser.add_argument("--out", type=Path, required=True, help="a new directory; never overwritten")
+    parser.add_argument("--campaign", type=Path, default=None,
+                        help="the campaign file to read the arms from; without it, probe 1's four arms")
     args = parser.parse_args(argv)
     if args.out.exists():
         raise SystemExit("refusing to overwrite %s: an output is never replaced" % args.out)
     try:
-        report = build(args.root, args.runs)
+        campaign = arms_from_campaign(args.campaign) if args.campaign else None
+        report = build(args.root, args.runs, campaign)
     except K3DoseReportError as exc:
         raise SystemExit(str(exc))
     args.out.mkdir(parents=True)

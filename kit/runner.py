@@ -6,6 +6,9 @@
     python runner.py run     campaigns/toy.yaml --row pilot    # run one row
     python runner.py run    campaigns/toy.yaml --all           # run every row in order; stops at a refusal
     python runner.py status campaigns/toy.yaml                 # verdict of every row
+    python runner.py batch  campaigns/a.yaml campaigns/b.yaml  # prepare --all then run --all for each, in order;
+                                                               # stops at the first campaign that does not pass
+    python runner.py batch  --plan campaigns/a.yaml campaigns/b.yaml   # every campaign's plan; executes nothing
 
 The rule this file enforces: **no row runs big unless the same experiment ran small first and
 passed a bar written in advance.** A row marked `pilot: true` is judged against its `bars` when it
@@ -19,6 +22,10 @@ pilot, since fetching data early wastes nothing. `run` REFUSES a row whose prepa
 passed or whose required paths are missing, before its command starts, so an allocated GPU never
 waits on a download. Phase 1 paid for exactly that: 700 seconds of cold dataset download inside a
 GPU container, and GPUs idle for a quarter to 85 percent of a step while scoring ran serially.
+One exception: a row that requires a path under {work} which an EARLIER row's command writes (a model
+that row merges, a file it generates) cannot be prepared before that row has run. `prepare --all`
+defers it ("deferred: ..."), records nothing, and `run --all` prepares it right before running it.
+A missing path nothing in the campaign writes (a dataset root, a model outside {work}) still fails.
 
 What is recorded, and when. `start.json` is written and fsynced BEFORE the command is launched, so a
 crash still leaves the identity of what ran. `verdict.json` is written after. Nothing is ever
@@ -35,6 +42,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import statistics
 import subprocess
 import sys
@@ -167,6 +175,52 @@ def not_ready(campaign: dict, row: dict) -> list:
     if missing:
         reasons.append("required paths are missing: %s" % ", ".join(missing))
     return reasons
+
+
+_OUTPUT = re.compile(r"(?:--out|--output|--out[-_]dir|--output[-_]dir|--local[-_]dir|--save[-_]dir|-o)(?:=|\s+)[\"']?"
+                     r"([^\"'\s;&|)]+)|>\s*[\"']?([^\"'\s;&|)]+)")
+
+
+def outputs(spec: dict) -> set:
+    """The paths a row's command says it writes: the value after --out, --output(-dir), --local-dir, --save-dir, -o
+    or a `>` redirect, and every env value whose name contains OUT (the kit's convention, `OUT: {work}/runs/...`)."""
+    found = {a or b for a, b in _OUTPUT.findall("\n".join(spec["command"]))}
+    found.update(value for key, value in spec["env"].items() if "OUT" in key.upper())
+    return {path.rstrip("/") for path in found}
+
+
+def producers(campaign: dict, row: dict) -> dict:
+    """{required path: id of the first EARLIER row whose command writes it}, for this row's requires under {work}.
+
+    Such a path is an input that an earlier GPU row writes (K2's `small-before` reads the model `small-make-damaged`
+    merges with `--out`), so it cannot exist when `prepare --all` runs before anything has run. A row writes the path
+    when it names the path itself as an output, or a folder the path lies in (below {work} itself)."""
+    work = str(work_root(campaign))
+    ids = [r["id"] for r in campaign["rows"]]
+    written = [(other["id"], outputs(resolve(other, campaign, 1))) for other in campaign["rows"][:ids.index(row["id"])]]
+    found = {}
+    for path in resolve(row, campaign, 1)["requires"]:
+        if not path.startswith(work + os.sep):
+            continue                                             # external: a dataset root, a model outside {work}
+        candidates, parent = [path], os.path.dirname(path)
+        while parent.startswith(work + os.sep):
+            candidates.append(parent)
+            parent = os.path.dirname(parent)
+        owner = next((rid for candidate in candidates for rid, paths in written if candidate in paths), None)
+        if owner is not None:
+            found[path] = owner
+    return found
+
+
+def deferred(campaign: dict, row: dict) -> dict:
+    """The missing required paths that an earlier row will produce, when those are ALL that is missing; else {}.
+    A row with any other missing path is prepared as usual, so an external input still fails loudly."""
+    spec = resolve(row, campaign, 1)
+    missing = [path for path in spec["requires"] if not Path(path).exists()]
+    produced = producers(campaign, row)
+    if not missing or any(path not in produced for path in missing):
+        return {}
+    return {path: produced[path] for path in missing}
 
 
 def prepare_row(campaign: dict, row: dict) -> int:
@@ -324,8 +378,82 @@ def cmd_status(campaign: dict) -> int:
     return EXIT_OK
 
 
+def cmd_prepare(campaign: dict, rows: list, every: bool) -> int:
+    codes = []
+    for row in rows:                                                  # every row, even after a failure: IO is independent
+        waiting = deferred(campaign, row) if every else {}
+        if waiting:                                                   # records nothing, so nothing is gated by it
+            for path, owner in waiting.items():
+                print("deferred: %s waits for %s (produced by %s or later)" % (row["id"], path, owner))
+            continue
+        codes.append(prepare_row(campaign, row))
+    return EXIT_OK if all(code == EXIT_OK for code in codes) else EXIT_FAILED
+
+
+def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int:
+    for row in rows:
+        if every and (latest_verdict(campaign, row["id"]) or {}).get("verdict") == "PASS":
+            print("SKIP %s: already PASS" % row["id"])
+            continue
+        if every and producers(campaign, row) and not gate(campaign, row) and not deferred(campaign, row):
+            done = latest_preparation(campaign, row["id"])
+            if (done or {}).get("verdict") != "PASS":                # deferred by `prepare --all`: its inputs exist now
+                print("PREPARE %s now: the rows it waited for have run" % row["id"])
+                if prepare_row(campaign, row) != EXIT_OK:
+                    print("STOP %s: its preparation failed (see the line above); nothing was launched" % row["id"])
+                    return EXIT_FAILED
+        code = run_row(campaign, row, attempt)
+        if code != EXIT_OK:
+            return code
+    return EXIT_OK
+
+
+def cmd_batch(paths: list, plan_only: bool) -> int:
+    """prepare --all then run --all for each campaign in order; stop at the first campaign whose run does not pass."""
+    results, code = [], EXIT_OK
+    for path in paths:
+        try:
+            campaign = load_campaign(path)
+            if plan_only:
+                print("\n=== %s" % path)
+                cmd_plan(campaign)
+                continue
+            print("\n=== BATCH %s: prepare --all" % campaign["name"])
+            prepared = cmd_prepare(campaign, campaign["rows"], True)
+            print("\n=== BATCH %s: run --all" % campaign["name"])
+            code = cmd_run(campaign, campaign["rows"], True, None)
+        except CampaignError as exc:
+            print("CAMPAIGN ERROR in %s: %s" % (path, exc), file=sys.stderr)
+            results.append((str(path), "REFUSED (campaign file: %s)" % exc))
+            code = EXIT_REFUSED
+            break
+        word = {EXIT_OK: "PASS", EXIT_FAILED: "FAIL", EXIT_REFUSED: "REFUSED"}.get(code, "FAIL")
+        note = "" if prepared == EXIT_OK else ", prepare --all reported a failure"
+        results.append((campaign["name"], "%s (run --all exited %d%s)" % (word, code, note)))
+        if code != EXIT_OK:
+            break
+    if plan_only:
+        return code
+    print("\nBATCH SUMMARY")
+    for name, line in results:
+        print("%-28s %s" % (name, line))
+    for path in paths[len(results):]:
+        print("%-28s NOT RUN (an earlier campaign did not pass)" % path)
+    return code
+
+
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Run a campaign of experiment rows with a pilot gate.")
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["batch"]:
+        parser = argparse.ArgumentParser(prog="runner.py batch",
+                                         description="prepare --all then run --all for each campaign, in order.")
+        parser.add_argument("campaigns", type=Path, nargs="+")
+        parser.add_argument("--plan", action="store_true", help="print every campaign's plan; executes nothing")
+        args = parser.parse_args(argv[1:])
+        return cmd_batch(args.campaigns, args.plan)
+    parser = argparse.ArgumentParser(description="Run a campaign of experiment rows with a pilot gate.",
+                                     epilog="Several campaigns in order, one command: runner.py batch a.yaml b.yaml ... "
+                                            "(prepare --all then run --all for each; --plan prints and executes nothing).")
     parser.add_argument("action", choices=("plan", "prepare", "run", "status"))
     parser.add_argument("campaign", type=Path)
     parser.add_argument("--row")
@@ -344,16 +472,8 @@ def main(argv=None) -> int:
         if not rows:
             raise CampaignError("no row named %r" % args.row)
         if args.action == "prepare":
-            codes = [prepare_row(campaign, row) for row in rows]      # every row, even after a failure: IO is independent
-            return EXIT_OK if all(code == EXIT_OK for code in codes) else EXIT_FAILED
-        for row in rows:
-            if args.all and (latest_verdict(campaign, row["id"]) or {}).get("verdict") == "PASS":
-                print("SKIP %s: already PASS" % row["id"])
-                continue
-            code = run_row(campaign, row, args.attempt)
-            if code != EXIT_OK:
-                return code
-        return EXIT_OK
+            return cmd_prepare(campaign, rows, args.all)
+        return cmd_run(campaign, rows, args.all, args.attempt)
     except CampaignError as exc:
         print("CAMPAIGN ERROR: %s" % exc, file=sys.stderr)
         return EXIT_REFUSED
