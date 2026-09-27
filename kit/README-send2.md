@@ -7,12 +7,15 @@ runs. One tag, one `batch` command, one archive to send back.
 
 | # | campaign | what it answers | GPU-hours (8xH100) |
 |---|---|---|---|
-| 1 | `campaigns/k3-dose-2.yaml` | Probe 2: does an 800-character length budget let stage A take more steps without the length drift probe 1 found? Four one-run arms. `README-k3-dose.md`, section "Probe 2" | about 10 to 12 |
-| 2 | `campaigns/k3-replay.yaml` | K3 restarted at the reference dose, **five seeds in-line**, every scoring on one node. Its gate is unchanged. `README-k3.md` | about 43 to 117, most likely 68 |
-| 3 | `campaigns/k4-hints.yaml` | K4, hints on the stuck questions, now with its own `none` control arm; nothing borrowed from K3. `README-k4.md` | about 80 to 90 |
-| 4 | `campaigns/k1c-grpo-baselines.yaml` | K1c, every job learned alone (8B ToolAlpaca full vs LoRA; 1.7B GSM8K and FinQA), five seeds. `README-k1c.md` | about 80 to 155, most likely 100 |
+| 1 | `campaigns/k3-dose-2.yaml` | Probe 2: does an 800-character length budget let stage A take more steps without the length drift probe 1 found? Four arms, three runs each. `README-k3-dose.md`, section "Probe 2" | about 30 to 36 |
+| 2 | `campaigns/k3-replay.yaml` | K3 restarted at the reference dose, **ten seeds in-line**, every scoring on one node. Its gate is unchanged. `README-k3.md` | about 89 to 229, most likely 134 |
+| 3 | `campaigns/k4-hints.yaml` | K4, hints on the stuck questions, now with its own `none` control arm; nothing borrowed from K3, ten seeds. `README-k4.md` | about 150 to 170 |
+| 4 | `campaigns/k1c-grpo-baselines.yaml` | K1c, every job learned alone (8B ToolAlpaca full vs LoRA; 1.7B GSM8K and FinQA), ten seeds. `README-k1c.md` | about 155 to 305, most likely 195 |
 
-Roughly 215 to 375 GPU-hours in all. Probe 2 is first because it is short and its answer may re-dose K3 later;
+Every package runs ten repeats of every arm and probe 2 runs three per arm: the effects we look for are about 5
+points against a run-to-run spread of 3 to 4, and ten repeats halve the variance of every mean.
+
+Roughly 425 to 740 GPU-hours in all, most likely about 520. Probe 2 is first because it is short and its answer may re-dose K3 later;
 K3 does not wait for it.
 
 ## Before the command: environment, once
@@ -32,6 +35,9 @@ Each campaign keeps its own work tree (`WORK`): the batch command below sets it 
 **K4's hint rows need a large open model served on an OpenAI-compatible endpoint** (vLLM's `--served-model-name`
 works; `README-k4.md` says which rows and how many requests, about 700 short ones). Start it before the batch
 reaches K4, or run K4 separately afterwards with the same command shape; nothing else in the batch touches it.
+
+**Disk.** K1c keeps a sharded checkpoint plus a merged copy per run; at twenty 8B runs that is about 1.1 TB if nothing is
+deleted along the way (`README-k1c.md` says what can go once a run's scoring has passed). K3 and K4 are far smaller.
 
 ## The command
 

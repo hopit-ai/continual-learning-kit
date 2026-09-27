@@ -50,9 +50,16 @@ Every row whose command runs kit/run_grpo.sh is an arm, in the file's order; its
 what the report says it changes, its NAME (less `-a{attempt}`) is the run directory looked for, its
 SEED is the seed reported, and its scoring is the `-spider` row that needs it. Steps, lr and
 `length_budget_chars` are read from each run's own train-summary.json, and the rows from the file it
-trained on, as without --campaign. The report then adds a seed and a length-budget column, and an arm
-CLEARS only if it reaches the +5 bar AND its tokens per correct answer stay within the density bar:
-probe 1 showed a dose that reaches the bar by writing longer answers is not a dose to keep. The
+trained on, as without --campaign. The report then adds a seed and a length-budget column, and a run
+clears only if it reaches the +5 bar AND its tokens per correct answer stay within the density bar:
+probe 1 showed a dose that reaches the bar by writing longer answers is not a dose to keep.
+
+RUNS ARE GROUPED INTO ARMS by the row id before `-r<N>` (`budget20-r1`, `-r2`, `-r3` are the arm
+`budget20`; a row with no such suffix is an arm of one run), because probe 1's reference arm read +5
+where the same recipe had read -8 a day earlier and one run of 100 questions cannot decide a dose.
+Each arm gets a bold mean row, and AN ARM CLEARS only if its MEAN delta is at least +5 AND the mean
+of its runs' tokens-per-correct ratios is within the density bar AND at least RUNS_AT_BAR (2) of its
+runs are individually at +5. An arm with a run unscored is `incomplete` and cannot clear. The
 over-budget share of answers is not reported, because verl does not log the reward's `over_budget`
 per step. Reading a .yaml campaign needs PyYAML, which the runner already needs. Without --campaign
 the output is the probe-1 report exactly as before.
@@ -319,12 +326,14 @@ def training_file_facts(train_file) -> dict:
 # ------------------------------------------------------------------------------ the arm list
 NAME_ATTEMPT = re.compile(r"-a\{attempt\}$")
 SCORING_OUT = re.compile(r"/eval/(?P<stem>[^/]+)-a\{attempt\}$")
+RUN_OF_ARM = re.compile(r"^(?P<arm>.+)-r(?P<run>\d+)$")
+RUNS_AT_BAR = 2             # probe 2's arm rule: at least 2 of an arm's 3 runs individually at +5
 
 
 def default_arms() -> list:
     """Probe 1's four arms, exactly as this report has always read them."""
     return [{"arm": arm, "what": WHAT[arm], "seed": 0, "run": "%s-seed0" % arm,
-             "scoring": "%s-spider" % arm} for arm in ARMS]
+             "scoring": "%s-spider" % arm, "group": arm} for arm in ARMS]
 
 
 def arms_from_campaign(path: Path) -> dict:
@@ -356,9 +365,11 @@ def arms_from_campaign(path: Path) -> dict:
             if match and row["id"] in (other.get("needs") or []) and "eval_bed" in " ".join(other["command"]):
                 scoring = match["stem"]
                 break
+        grouped = RUN_OF_ARM.match(row["id"])
         arms.append({"arm": row["id"], "what": row.get("description") or "-",
                      "seed": int(seed) if str(seed).isdigit() else None,
-                     "run": NAME_ATTEMPT.sub("", name), "scoring": scoring})
+                     "run": NAME_ATTEMPT.sub("", name), "scoring": scoring,
+                     "group": grouped["arm"] if grouped else row["id"]})
     if not arms:
         raise K3DoseReportError("campaign %s has no row that runs kit/run_grpo.sh, so it has no arm" % path)
     return {"name": campaign.get("name"), "path": str(path.resolve()), "arms": arms}
@@ -436,18 +447,22 @@ def build(root: Path, runs: Path, campaign: dict | None = None) -> dict:
             budget = summary.get("length_budget_chars")
             entry["length_budget_chars"] = budget if _finite(budget) else None
             entry["decision"] = decision_of(entry)
+            entry["group"] = spec["group"]
         arms[arm] = entry
         missing += ["%s: %s" % (arm, reason) for reason in entry["missing"]]
     machines = sorted({m for m in [(base.get("machine") or {}).get("id")]
                        + [arms[a]["machine"] for a in order] if m is not None})
     reported = [arm for arm in order if _finite(arms[arm]["after"])]
     clears = [arm for arm in reported if arms[arm]["clears_bar"]]
-    extra = {}
+    extra, arms_reported = {}, len(reported)
     if campaign:
+        groups = group_runs(specs, arms)
+        arms_reported = sum(1 for group in groups.values() if group["runs_reported"] == len(group["runs"]))
         extra = {"campaign": {"name": campaign["name"], "path": campaign["path"]}, "arm_order": order,
+                 "groups": groups, "group_order": list(groups), "runs_reported": len(reported),
                  "arms_clearing_the_decision": sorted(
-                     (arm for arm in reported if arms[arm]["decision"] == "clears"),
-                     key=lambda arm: (-arms[arm]["delta"], order.index(arm)))}
+                     (name for name, group in groups.items() if group["decision"] == "clears"),
+                     key=lambda name: (-groups[name]["mean_delta"], list(groups).index(name)))}
     return {"schema": SCHEMA, "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "root": str(root.resolve()), "runs": str(runs.resolve()), "bar": BAR,
             "warmup_steps": WARMUP_STEPS, "batch": BATCH,
@@ -457,7 +472,7 @@ def build(root: Path, runs: Path, campaign: dict | None = None) -> dict:
                      "tokens_per_correct": (base_cost or {}).get("tokens_per_correct"),
                      "machine": (base.get("machine") or {}).get("id"),
                      "source": str(Path(base_path).resolve())},
-            "arms": arms, "arms_reported": len(reported), "arms_clearing_the_bar": clears,
+            "arms": arms, "arms_reported": arms_reported, "arms_clearing_the_bar": clears,
             "density": {"bar": DENSITY_BAR, "measured": int(measured_density),
                         "note": None if measured_density else NO_TOKENS,
                         "definition": "output tokens over the whole held-out set, divided by the "
@@ -489,6 +504,46 @@ def decision_of(entry: dict) -> str:
                                                                  "density unknown")
 
 
+def group_runs(specs: list, entries: dict) -> dict:
+    """{arm: its runs and their mean} for a campaign, arms in the file's order.
+
+    A run belongs to the arm its id names before `-r<N>`; a row with no such suffix is an arm of one
+    run. The means are over the runs that were scored, and are None when none was; the mean density
+    ratio is None unless every scored run's ratio could be read."""
+    groups: dict = {}
+    for spec in specs:
+        groups.setdefault(spec["group"], {"what": spec["what"], "runs": []})["runs"].append(spec["arm"])
+    for group in groups.values():
+        scored = [entries[run] for run in group["runs"] if _finite(entries[run]["delta"])]
+        ratios = [run["density"]["ratio"] for run in scored]
+        group["runs_reported"] = len(scored)
+        group["deltas"] = [run["delta"] for run in scored]
+        group["mean_after"] = _mean([run["after"] for run in scored])
+        group["mean_delta"] = _mean(group["deltas"])
+        group["mean_density_ratio"] = _mean(ratios) if scored and all(_finite(r) for r in ratios) else None
+        group["runs_at_bar"] = sum(1 for delta in group["deltas"] if delta >= BAR)
+        group["decision"] = group_decision_of(group)
+    return groups
+
+
+def group_decision_of(group: dict) -> str:
+    """Probe 2's arm rule: the MEAN delta at least +5 AND the mean tokens per correct answer within
+    the density bar AND at least RUNS_AT_BAR runs individually at +5.
+
+    'clears', 'does not', 'density unknown' (the delta half holds but the cost cannot be read),
+    'incomplete' (a run of the arm has no held-out scoring, so the rule cannot be applied), or '-'
+    when no run of the arm was scored."""
+    if not group["runs_reported"]:
+        return "-"
+    if group["runs_reported"] < len(group["runs"]):
+        return "incomplete"
+    if group["mean_delta"] < BAR or group["runs_at_bar"] < RUNS_AT_BAR:
+        return "does not"
+    if group["mean_density_ratio"] is None:
+        return "density unknown"
+    return "clears" if group["mean_density_ratio"] <= DENSITY_BAR else "does not"
+
+
 # ------------------------------------------------------------------------------------ rendering
 def _fmt(value, pattern="%.4f"):
     return pattern % value if _finite(value) else "-"
@@ -502,6 +557,14 @@ def _budget(value) -> str:
     return "%d chars" % value if _finite(value) else "none"
 
 
+def group_line(group: dict, bar: int) -> str:
+    """An arm's mean row, after its verdict: the runs, how many reached the bar, and the cost."""
+    ratio = group["mean_density_ratio"]
+    return "runs %s; %d of %d at +%d or more; mean tokens per correct %s the untrained model's" % (
+        ", ".join("%+d" % delta for delta in group["deltas"]) or "-", group["runs_at_bar"],
+        len(group["runs"]), bar, show_cost(ratio, 2) + "x" if ratio is not None else "-")
+
+
 def render(report: dict) -> str:
     """Markdown. A report built with --campaign adds the seed and length-budget columns and the
     +5-and-density decision; one built without it is probe 1's report, unchanged."""
@@ -509,17 +572,21 @@ def render(report: dict) -> str:
     camp = report.get("campaign")
     order = report.get("arm_order") or list(ARMS)
     if camp:
+        groups = report["groups"]
         lines = ["# K3 stage A, `%s`: which dose clears the +%d bar at a cost within %.1fx?"
                  % (camp["name"], report["bar"], report["density"]["bar"]), "",
                  "Generated %s by kit/k3_dose_report.py (%s) from the arms of `%s`. Every number is "
                  "recomputed from the files the campaign wrote." % (report["generated_at"], SCHEMA,
                                                                     Path(camp["path"]).name), "",
                  "Stage A of K3 was 20 GRPO steps over Spider's 640 training questions at lr 1e-5, and "
-                 "its pilot bar was +%d on the 100 held-out questions. %d arms, each ONE run; each "
-                 "arm's steps, learning rate and length budget are read from its own "
-                 "`train-summary.json`. An arm CLEARS only if it reaches +%d AND a correct answer "
-                 "costs at most %.1f times the untrained model's tokens." % (
-                     report["bar"], len(order), report["bar"], report["density"]["bar"]), "",
+                 "its pilot bar was +%d on the 100 held-out questions. %d arms, %d runs; each run's "
+                 "steps, learning rate and length budget are read from its own `train-summary.json`, "
+                 "and its seed is only a label. An arm CLEARS only if its MEAN delta is at least +%d "
+                 "AND its mean tokens per correct answer is at most %.1f times the untrained model's "
+                 "AND at least %d of its runs are individually at +%d: one run of 100 questions "
+                 "cannot decide a dose." % (
+                     report["bar"], len(groups), len(order), report["bar"], report["density"]["bar"],
+                     RUNS_AT_BAR, report["bar"]), "",
                  "The untrained Qwen3-1.7B scored **%s of %s**." % (_int(base["correct"]), _int(base["n"])), ""]
     else:
         lines = ["# K3 stage A: which dose clears the +%d bar?" % report["bar"], "",
@@ -547,7 +614,7 @@ def render(report: dict) -> str:
               "truncated after | verdict |" % dose_head,
               "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
               + ("---|---|" if camp else "")]
-    for arm in order:
+    def run_row(arm):
         row = report["arms"][arm]
         file_facts = row["training_file"]
         dose = [_int(row["steps"]), row["lr"] or "-"]
@@ -563,7 +630,17 @@ def render(report: dict) -> str:
             _int(row["right_to_wrong"]), _int(row["wrong_to_right"]), _int(row["unchanged"]),
             _fmt(row["mcnemar_p"], "%.3f"), _int(row["truncated_before"]), _int(row["truncated_after"]),
             verdict]) + " |")
+
     if camp:
+        for name in report["group_order"]:
+            group = groups[name]
+            for arm in group["runs"]:
+                run_row(arm)
+            lines.append("| " + " | ".join(
+                ["**%s: mean of %d runs**" % (name, len(group["runs"])), group["what"]] + [""] * 7
+                + [_int(base["correct"]), "**%s**" % _fmt(group["mean_after"], "%.1f"),
+                   "**%s**" % _fmt(group["mean_delta"], "%+.1f")] + [""] * 6
+                + ["**%s**: %s" % (group["decision"], group_line(group, report["bar"]))]) + " |")
         lines.append("")
         for arm in order:
             row = report["arms"][arm]
@@ -572,6 +649,8 @@ def render(report: dict) -> str:
                 arm, row["verdict"], show_cost(ratio, 2) + "x" if ratio is not None else "-",
                 row["density"]["verdict"], row["decision"]))
     else:
+        for arm in order:
+            run_row(arm)
         lines += [""] + ["- **%s**: %s" % (arm, report["arms"][arm]["verdict"]) for arm in order]
 
     lines += ["", "## What the trainer logged", "",
@@ -620,27 +699,42 @@ def render(report: dict) -> str:
     lines += ["", "## What to do next", ""]
     if camp:
         winners = report["arms_clearing_the_decision"]
-        unknown = [arm for arm in order if report["arms"][arm].get("decision") == "density unknown"]
+        names = report["group_order"]
+        unknown = [name for name in names if groups[name]["decision"] == "density unknown"]
+        incomplete = [name for name in names if groups[name]["decision"] == "incomplete"]
+        rule = ("mean delta +%d or more, at least %d runs at +%d, and mean tokens per correct answer "
+                "within %.1fx" % (report["bar"], RUNS_AT_BAR, report["bar"], block["bar"]))
         if winners:
-            lines += ["%s %s: +%d or more AND within %.1fx tokens per correct answer (%s). `%s` has the "
-                      "largest gain, so its dose becomes K3's stage-A dose and K3 restarts from its "
-                      "gate; nothing beyond that is decided here. Every arm is ONE run, so the winner "
-                      "is a dose to confirm at K3's five seeds, not a result."
-                      % (", ".join("`%s`" % arm for arm in winners),
-                         "clears" if len(winners) == 1 else "clear", report["bar"], block["bar"],
-                         ", ".join("%s %+d" % (arm, report["arms"][arm]["delta"]) for arm in winners),
-                         winners[0])]
+            top = [name for name in winners if groups[name]["mean_delta"] == groups[winners[0]]["mean_delta"]]
+            lines += ["%s %s the arm rule, %s (%s). %s" % (
+                ", ".join("`%s`" % name for name in winners), "clears" if len(winners) == 1 else "clear",
+                rule, ", ".join("%s mean %+.1f" % (name, groups[name]["mean_delta"]) for name in winners),
+                ("`%s` has the largest mean gain, so its dose becomes K3's stage-A dose and K3 restarts "
+                 "from its gate; nothing beyond that is decided here." % top[0]) if len(top) == 1 else
+                ("%s share the largest mean gain, so this probe does not choose between them; K3's "
+                 "stage-A dose is one of them, and nothing beyond that is decided here."
+                 % ", ".join("`%s`" % name for name in top)))]
         else:
-            lines += ["No arm cleared: none reached +%d with a correct answer costing at most %.1fx the "
-                      "untrained model's tokens. Stage A is not re-dosed from this probe and K3 stays "
-                      "at its gate. Every arm is ONE run." % (report["bar"], block["bar"])]
+            scored = [name for name in names if groups[name]["mean_delta"] is not None]
+            best = max(scored, key=lambda name: (groups[name]["mean_delta"], -names.index(name))) \
+                if scored else None
+            lines += ["No arm cleared the arm rule, %s. Stage A is not re-dosed from this probe and K3 "
+                      "stays at its gate.%s" % (rule, (
+                          " The best mean is `%s` at %+.1f (%s)." % (
+                              best, groups[best]["mean_delta"], group_line(groups[best], report["bar"])))
+                          if best else "")]
         if unknown:
-            lines += ["", "%s reached +%d but carried no token counts, so its cost cannot be read and it "
-                      "cannot clear until it is re-scored with them."
-                      % (", ".join("`%s`" % arm for arm in unknown), report["bar"])]
-        lines += ["", "%d of %d arms reported, seeds %s, warm-up %d steps on every arm."
-                  % (report["arms_reported"], len(order), ", ".join(str(s) for s in report["seeds"]) or "-",
-                     report["warmup_steps"]), ""]
+            lines += ["", "%s met the delta half of the rule but carried no token counts, so its cost "
+                      "cannot be read and it cannot clear until it is re-scored with them."
+                      % ", ".join("`%s`" % name for name in unknown)]
+        if incomplete:
+            lines += ["", "%s is missing a run's held-out scoring, so the arm rule cannot be applied to "
+                      "it; run the missing rows before reading it."
+                      % ", ".join("`%s`" % name for name in incomplete)]
+        lines += ["", "%d of %d arms reported (%d of %d runs), seeds %s (labels only), warm-up %d steps "
+                  "on every arm." % (report["arms_reported"], len(names), report["runs_reported"],
+                                     len(order), ", ".join(str(s) for s in report["seeds"]) or "-",
+                                     report["warmup_steps"]), ""]
         return "\n".join(lines)
     clears = report["arms_clearing_the_bar"]
     if clears:

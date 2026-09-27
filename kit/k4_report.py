@@ -17,7 +17,7 @@ Reads three kinds of file and recomputes every number from them:
                         program executes to are EXCLUDED, because no model can be fairly judged on them
                         (kit/beds/finqa.py, receipt 208, PROCESS 3c)
 
-THE VERDICT IS ONE NUMBER PER BED: the mean over five seeds of `hint` minus `none`, against the design
+THE VERDICT IS ONE NUMBER PER BED: the mean over ten seeds of `hint` minus `none`, against the design
 note's 3-point bar, written before any of these numbers existed.
 
 EVERY NUMBER BELONGS TO A ROUTE, and the report says which. A hint can reach the student's prompt
@@ -85,7 +85,7 @@ ROUTE_EFFECTS = (
 #: What each arm's `feedback` field must say for it to be the arm it is filed under. The two SDPO arms
 #: are one trainer key apart, so a control that ran with the switch on would look like a treatment.
 ARM_FEEDBACK = {"teacher-none": 0, "teacher-hint": 1}
-#: The design note's bar, in accuracy: at least 3 points on the mean of five seeds, with no larger loss
+#: The design note's bar, in accuracy: at least 3 points on the mean of ten seeds, with no larger loss
 #: on the general panel. Written before any number existed; it is not a knob.
 GAIN_BAR = 0.03
 PANEL_FLOOR = -3
@@ -610,7 +610,7 @@ def render(report: dict) -> str:
                   % ", ".join(report["machine_ids"]), ""]
     lines += ["## The verdict, one line a bed", "",
               "The bar, written before any of these numbers existed: `hint` beats `none` by at least "
-              "%.0f points on the mean of five seeds, with no larger loss on the general panel "
+              "%.0f points on the mean of ten seeds, with no larger loss on the general panel "
               "(floor %d per 100). Both arms are GRPO, so this is the GRPO route's own difference."
               % (GAIN_BAR * 100, PANEL_FLOOR), "",
               "| bed | `hint` - `none` (paired, 5 seeds) | worst panel | verdict |", "|---|---|---|---|"]
@@ -715,7 +715,7 @@ def main(argv=None) -> int:
     parser.add_argument("--runs", type=Path, required=True, help="K4's training runs")
     parser.add_argument("--finqa-rows", default=None,
                         help="FinQA's prepared test.jsonl, to exclude the items whose gold does not score")
-    parser.add_argument("--seeds", default="0,1,2,3,4")
+    parser.add_argument("--seeds", default="0,1,2,3,4,5,6,7,8,9")
     parser.add_argument("--out", type=Path, required=True, help="a new directory; never overwritten")
     parser.add_argument("--allow-different-machines", action="store_true",
                         help="report anyway; recorded in the report as the departure it is")

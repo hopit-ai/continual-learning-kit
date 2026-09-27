@@ -60,9 +60,11 @@ generator = load("make_k1c_campaign", GENERATOR) if GENERATOR.is_file() else Non
 DRY_ENV = {"SDPO_DIR": "/work/SDPO", "MODEL_DIR": "/work/models/Qwen3-8B", "WORK": "/work/sdpo-work",
            "NAME": "x", "STEPS": "17", "DRY_RUN": "1"}
 A_ARMS = ("full", "lora")
-A_SEEDS = (42, 43, 44)
+A_SEEDS = (42, 43, 44, 45, 46, 47, 48, 49, 50, 51)
+#: The seeds the partner's K0 report has a dose40 SDPO run for; the other Part A seeds have none.
+K0_SEEDS = (42, 43, 44)
 B_JOBS = ("gsm8k", "finqa")
-B_SEEDS = (0, 1, 2)
+B_SEEDS = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 
 #: What LORA=1 is declared to do to K0's argv, and NOTHING else: three appended keys and one changed
 #: value (docs/phase2/k1c/feasibility.md (b); kit/run_grpo_toolalpaca.sh:32-44).
@@ -642,7 +644,7 @@ def _bed_score(root: Path, name: str, n: int, correct: int, machine="m1", tokens
         _tokens_rows(directory, n * per_answer, n)
 
 
-def _k0_report(path: Path, seeds=A_SEEDS) -> Path:
+def _k0_report(path: Path, seeds=K0_SEEDS) -> Path:
     runs = []
     for seed in seeds:
         runs.append({"name": "dose40-seed%d" % seed, "steps_completed": 40,
@@ -694,7 +696,7 @@ def test_the_report_covers_both_parts_and_every_arm(tree):
     report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
     assert report["parts_reported"] == 2
     assert report["arms_reported"] == len(A_ARMS) + len(B_JOBS)
-    assert report["comparator_runs"] == len(A_SEEDS)
+    assert report["comparator_runs"] == len(K0_SEEDS)
     assert report["comparable"] == 1
 
 
@@ -862,6 +864,17 @@ def test_the_fold_receipt_table_appears_when_a_lora_row_was_folded(tree):
 @pytest.mark.skipif(generator is None, reason="scripts/ is not part of the exported kit")
 def test_the_committed_campaign_is_what_its_generator_builds():
     assert CAMPAIGN.read_text() == generator.build(), "re-run scripts/make_k1c_campaign.py"
+
+
+def test_ten_seeds_a_part_and_the_comparator_bar_asks_only_for_the_k0_runs_that_exist(campaign):
+    """Part A runs ten seeds but K0 has dose-40 runs at 42, 43 and 44 only; a comparator bar that
+    asked for one a seed could never pass."""
+    if generator is not None:
+        assert generator.A_SEEDS == A_SEEDS and generator.B_SEEDS == B_SEEDS
+        assert generator.K0_SEEDS == K0_SEEDS
+    report = next(row for row in campaign["rows"] if row["id"] == "report")
+    bar = next(bar for bar in report["bars"] if bar["key"] == "comparator_runs")
+    assert bar["min"] == len(K0_SEEDS) == 3
 
 
 # --------------------------------------------------------------------------------- 6. the instructions

@@ -65,7 +65,7 @@ ALL_ARMS = ("none",) + ARMS
 #: The two SDPO arms and the switch position each one IS. `teacher-none` is the SDPO route's control:
 #: same command, same data, same reward function, same dose, one trainer key apart.
 SDPO_ARMS = {"teacher-none": "0", "teacher-hint": "1"}
-SEEDS = (0, 1, 2, 3, 4)
+SEEDS = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 DOSE = {"spider": (20, 10), "finqa": (40, 20)}          # (steps, fade), each bed's own control's dose
 
 SPIDER_SOURCE, FINQA_SOURCE = "spider1_execution", "finqa"
@@ -787,7 +787,7 @@ def test_nothing_is_borrowed_from_another_packages_folders(campaign):
     assert "--finqa-none-root" not in " ".join(report["command"])
 
 
-def test_the_none_arm_is_trained_here_at_five_seeds_on_both_beds(campaign):
+def test_the_none_arm_is_trained_here_at_ten_seeds_on_both_beds(campaign):
     """kit/run_grpo.sh from the untrained model on the bed's own unhinted file, at the bed's dose, with
     the same eval and panel scoring as every other arm."""
     rows = {line["id"]: line for line in campaign["rows"]}
@@ -1130,7 +1130,16 @@ def _tree(tmp_path, tokens=None):
 
 
 def build(tree, **extra):
+    extra.setdefault("seeds", SEEDS)
     return k4_report.build(tree["root"], tree["runs"], finqa_rows=str(tree["finqa_rows"]), **extra)
+
+
+def test_the_report_row_asks_for_every_seed_the_campaign_trains(campaign):
+    """kit/k4_report.py defaults to seeds 0 to 4. The campaign runs ten, so its report row must name
+    them: left to the default, the report would print five-seed means over a ten-seed campaign."""
+    report = next(line for line in campaign["rows"] if line["id"] == "report")
+    assert "--seeds %s " % ",".join(str(seed) for seed in SEEDS) in " ".join(report["command"])
+    assert next(bar for bar in report["bars"] if bar["key"] == "none_runs")["min"] == 2 * len(SEEDS)
 
 
 def test_the_report_joins_every_scoring_the_campaign_writes(tree):
@@ -1293,7 +1302,7 @@ def test_finqas_flagged_items_are_excluded_from_every_number(tree):
 
 
 def test_without_the_finqa_rows_the_exclusion_is_not_silently_skipped(tree):
-    report = k4_report.build(tree["root"], tree["runs"])
+    report = k4_report.build(tree["root"], tree["runs"], seeds=SEEDS)
     assert report["finqa_rows"] is None
     assert report["beds"]["finqa"]["arms"]["hint"]["seeds"]["0"]["judged"]["n"] == 10
 
@@ -1324,7 +1333,7 @@ def test_a_missing_control_is_a_flag_and_never_a_zero(tree):
     for seed in SEEDS:
         shutil.rmtree(tree["root"] / "eval" / ("spider-none-seed%d-a1" % seed))
     report = build(tree)
-    assert report["none_runs"] == len(SEEDS), "only FinQA's five are left"
+    assert report["none_runs"] == len(SEEDS), "only FinQA's ten are left"
     assert any("spider none seed 0: NO HELD-OUT SCORING" in flag and "spider-none-seed0-a<N>" in flag
                for flag in report["flags"])
     assert report["beds"]["spider"]["verdict"]["verdict"] == "NO VERDICT"
@@ -1413,7 +1422,8 @@ def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):
     out = tmp_path / "report-a1"
     argv = ["--root", str(tree["root"]), "--runs", str(tree["runs"]),
-            "--finqa-rows", str(tree["finqa_rows"]), "--out", str(out)]
+            "--finqa-rows", str(tree["finqa_rows"]), "--seeds", ",".join(str(seed) for seed in SEEDS),
+            "--out", str(out)]
     assert k4_report.main(argv) == 0
     text = (out / "k4-report.md").read_text()
     for bed in BEDS:
@@ -1474,12 +1484,13 @@ def test_the_readme_arms_table_gives_every_arm_and_the_route_it_ran_on():
 
 def test_the_readme_prices_the_arms_it_asks_for():
     """The two control arms are real GPU time: a partner who is asked for them must be able to read
-    what they cost before starting -- including the ten `none` runs this package now trains itself."""
+    what they cost before starting -- including the twenty `none` runs this package now trains itself."""
     text = README.read_text()
     assert "teacher-none" in text
-    assert "80 to 90 GPU-hours" in text and "about 54 are the training" in text
-    assert "25 runs at 20 steps" in text and "25 runs at 40 steps" in text
-    assert "ten `none` runs" in text
+    assert "150 to 170 GPU-hours" in text and "about 108 are the training" in text
+    assert "scaled by 2 for ten seeds" in text
+    assert "50 runs at 20 steps" in text and "50 runs at 40 steps" in text
+    assert "twenty `none` runs" in text
 
 
 def test_the_readme_says_one_node_for_every_scoring():

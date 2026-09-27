@@ -16,7 +16,7 @@ asks whether **a short plan from a large model, given during training, teaches t
 them on its own afterwards.** Every number we report is the student answering with **no hint in the
 prompt**.
 
-## The five arms, five seeds each, one bed at a time
+## The five arms, ten seeds each, one bed at a time
 
 A hint can reach the model on two routes — the **student** reads it, or only the **teacher** does —
 and each route here carries its own no-hint control, so each route's number is a difference within one
@@ -24,7 +24,7 @@ trainer:
 
 | arm | route | what changes | what it answers |
 |---|---|---|---|
-| **none** | GRPO | **nothing.** `kit/run_grpo.sh` on the bed's own unhinted training file, from the untrained model, at the bed's dose — trained here, five seeds, scored like every other arm | the baseline |
+| **none** | GRPO | **nothing.** `kit/run_grpo.sh` on the bed's own unhinted training file, from the untrained model, at the bed's dose — trained here, ten seeds, scored like every other arm | the baseline |
 | **hint** | GRPO | the hint is appended to the prompt of every never-solved question, for the whole run | does scaffolding during training transfer to unaided answers? |
 | **hint-faded** | GRPO | as `hint` for the first half of the run, then removed — a restart from the halfway checkpoint onto the same questions with no hints in them | does the model keep what the hint taught once the hint is gone? |
 | **teacher-none** | SDPO | nothing but the trainer: the same command as `teacher-hint` with the feedback switch **off**, on the same training file, at the same dose and seeds | the SDPO route's control |
@@ -165,19 +165,23 @@ At 15 seconds a step on 8 × H100 (your K3 numbers), and your measured scoring t
 | the untrained model, twice, plus both beds' held-out sets | 5 | 1 hour |
 | Spider: the never-solved set, the hints, the filter, the files | 5 | 30 minutes, at most one GPU |
 | Spider: 5 pilots | 5 | 30 minutes |
-| Spider: 25 runs at 20 steps (the faded arm is 10 + 10) | 30 | 2.5 hours wall, ~20 GPU-hours |
-| Spider: 25 held-out scorings and 25 panels, GPU 0 | 50 | 5 hours |
+| Spider: 50 runs at 20 steps (the faded arm is 10 + 10) | 60 | 5 hours wall, ~40 GPU-hours |
+| Spider: 50 held-out scorings and 50 panels, GPU 0 | 100 | 10 hours |
 | FinQA: the never-solved set, the hints, the filter, the files | 5 | 1 hour, at most one GPU |
 | FinQA: 5 pilots | 5 | 30 minutes |
-| FinQA: 25 runs at 40 steps | 30 | 4.5 hours wall, ~34 GPU-hours |
-| FinQA: 25 held-out scorings (1,147 questions each) and 25 panels, GPU 0 | 50 | 12 hours |
+| FinQA: 50 runs at 40 steps | 60 | 9 hours wall, ~68 GPU-hours |
+| FinQA: 50 held-out scorings (1,147 questions each) and 50 panels, GPU 0 | 100 | 24 hours |
 | the report | 1 | seconds, no GPU |
 
-**Roughly 27 hours of wall clock and 80 to 90 GPU-hours**, of which about 54 are the training. That is
-the 65 to 75 GPU-hours (about 22 hours of wall clock) this package cost when it borrowed its control,
-plus the ten `none` runs it now trains itself — five a bed, about 4 GPU-hours on Spider and 7 on FinQA,
-two pilots, and their 20 scorings on GPU 0, about 3.5 hours. The `teacher-none` arm is another 11
-GPU-hours (about 4 on Spider and 7 on FinQA) and is what makes the SDPO route readable at all.
+**Roughly 52 hours of wall clock and 150 to 170 GPU-hours**, of which about 108 are the training. That
+is the five-seed estimate (about 27 hours of wall clock and 80 to 90 GPU-hours, 54 of them training)
+scaled by 2 for ten seeds: every run and every scoring of a trained model doubles; the untrained
+model, the hint work and the pilots do not. It is ten because every effect this package looks for is
+about 5 points against a run-to-run spread of 3 to 4, and ten repeats halve the variance of every mean
+(the error on each mean narrows by about 30 percent). Within it, the twenty `none` runs this
+package trains itself — ten a bed — are about 8 GPU-hours on Spider and 14 on FinQA, plus two pilots
+and their 40 scorings on GPU 0, about 7 hours. The `teacher-none` arm is another 22 GPU-hours (about 8
+on Spider and 14 on FinQA) and is what makes the SDPO route readable at all.
 
 ## The stop rule
 
@@ -224,7 +228,7 @@ $WORK/k4/hints/            every stuck.json, hints.jsonl, filter.json and apply.
 
 The hints themselves matter as much as the scores: they are the treatment, and we want to read them.
 
-The report holds, per bed and arm: the unaided held-out score at five seeds with its mean and spread,
+The report holds, per bed and arm: the unaided held-out score at ten seeds with its mean and spread,
 the paired gain over your `none` runs seed for seed, the held-out questions split into the ones the
 untrained model already answered and the ones it did not, the three general panels, and one verdict
 line a bed against the 3-point bar we wrote down before any of these numbers existed. Above those it

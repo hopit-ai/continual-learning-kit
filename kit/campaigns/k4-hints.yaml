@@ -12,7 +12,7 @@
 # TWO BEDS, in this order: Spider (SQL), then FinQA (annual-report arithmetic). GSM8K is dropped: its
 # stuck set is 33 questions of 640, too few for an arm to differ from its control.
 #
-# FIVE ARMS a bed, five seeds each, on TWO ROUTES -- a hint the STUDENT reads (GRPO, the control's own
+# FIVE ARMS a bed, ten seeds each, on TWO ROUTES -- a hint the STUDENT reads (GRPO, the control's own
 # trainer) and a hint only the TEACHER reads (SDPO). Each route carries its own no-hint control, so
 # each route's number is a difference within one trainer:
 #
@@ -256,7 +256,7 @@ rows:
       - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
 
-  # ---- SPIDER GRID. Five arms x five seeds at 20 steps x 32 questions, the control's dose
+  # ---- SPIDER GRID. Five arms x ten seeds at 20 steps x 32 questions, the control's dose
   # on every arm, which is what makes the 3-point bar readable. `none` is the GRPO route's
   # control and is trained here, from the untrained model on the unhinted file. The last
   # two arms are the SDPO route and differ from each other in one trainer key, so they
@@ -368,6 +368,111 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed4-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-none-seed5
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-none-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-none-seed5-eval
+    needs: [spider-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-none-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-none-seed5-forget
+    needs: [spider-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-none-seed6
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-none-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-none-seed6-eval
+    needs: [spider-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-none-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-none-seed6-forget
+    needs: [spider-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-none-seed7
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-none-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-none-seed7-eval
+    needs: [spider-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-none-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-none-seed7-forget
+    needs: [spider-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-none-seed8
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-none-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-none-seed8-eval
+    needs: [spider-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-none-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-none-seed8-forget
+    needs: [spider-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-none-seed9
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-none-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-none-seed9-eval
+    needs: [spider-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-none-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-none-seed9-forget
+    needs: [spider-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-none-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: spider-hint-seed0
     requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "spider-hint-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "0", NGPU: "8", FILE_LOG: "1"}
@@ -471,6 +576,111 @@ rows:
     needs: [spider-hint-seed4]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed4-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed4-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-hint-seed5
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-seed5-eval
+    needs: [spider-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-seed5-forget
+    needs: [spider-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-hint-seed6
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-seed6-eval
+    needs: [spider-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-seed6-forget
+    needs: [spider-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-hint-seed7
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-seed7-eval
+    needs: [spider-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-seed7-forget
+    needs: [spider-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-hint-seed8
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-seed8-eval
+    needs: [spider-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-seed8-forget
+    needs: [spider-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-hint-seed9
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-seed9-eval
+    needs: [spider-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-seed9-forget
+    needs: [spider-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   # the hinted half: 10 of 20 steps, then the hint is gone.
@@ -643,6 +853,176 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed4-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 10 of 20 steps, then the hint is gone.
+  - id: spider-hint-faded-seed5-first
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-faded-seed5-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: spider-hint-faded-seed5
+    needs: [spider-hint-faded-seed5-first]
+    env: {NAME: "spider-hint-faded-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/spider-hint-faded-seed5-first-a*/hf-step10 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-faded-seed5-eval
+    needs: [spider-hint-faded-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-faded-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-faded-seed5-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-faded-seed5-forget
+    needs: [spider-hint-faded-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-faded-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed5-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 10 of 20 steps, then the hint is gone.
+  - id: spider-hint-faded-seed6-first
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-faded-seed6-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: spider-hint-faded-seed6
+    needs: [spider-hint-faded-seed6-first]
+    env: {NAME: "spider-hint-faded-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/spider-hint-faded-seed6-first-a*/hf-step10 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-faded-seed6-eval
+    needs: [spider-hint-faded-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-faded-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-faded-seed6-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-faded-seed6-forget
+    needs: [spider-hint-faded-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-faded-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed6-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 10 of 20 steps, then the hint is gone.
+  - id: spider-hint-faded-seed7-first
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-faded-seed7-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: spider-hint-faded-seed7
+    needs: [spider-hint-faded-seed7-first]
+    env: {NAME: "spider-hint-faded-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/spider-hint-faded-seed7-first-a*/hf-step10 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-faded-seed7-eval
+    needs: [spider-hint-faded-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-faded-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-faded-seed7-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-faded-seed7-forget
+    needs: [spider-hint-faded-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-faded-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed7-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 10 of 20 steps, then the hint is gone.
+  - id: spider-hint-faded-seed8-first
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-faded-seed8-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: spider-hint-faded-seed8
+    needs: [spider-hint-faded-seed8-first]
+    env: {NAME: "spider-hint-faded-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/spider-hint-faded-seed8-first-a*/hf-step10 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-faded-seed8-eval
+    needs: [spider-hint-faded-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-faded-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-faded-seed8-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-faded-seed8-forget
+    needs: [spider-hint-faded-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-faded-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed8-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 10 of 20 steps, then the hint is gone.
+  - id: spider-hint-faded-seed9-first
+    requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "spider-hint-faded-seed9-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: spider-hint-faded-seed9
+    needs: [spider-hint-faded-seed9-first]
+    env: {NAME: "spider-hint-faded-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "10", SAVE_FREQ: "10", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/spider-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/spider-hint-faded-seed9-first-a*/hf-step10 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 10}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-hint-faded-seed9-eval
+    needs: [spider-hint-faded-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-hint-faded-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-hint-faded-seed9-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-hint-faded-seed9-forget
+    needs: [spider-hint-faded-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-hint-faded-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-hint-faded-seed9-a*/hf-step10 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: spider-teacher-none-seed0
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
     env: {NAME: "spider-teacher-none-seed0-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "0", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
@@ -758,6 +1138,121 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed4-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-none-seed5
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-none-seed5-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "5", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-none-seed5-eval
+    needs: [spider-teacher-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-none-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-none-seed5-forget
+    needs: [spider-teacher-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-none-seed6
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-none-seed6-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "6", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-none-seed6-eval
+    needs: [spider-teacher-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-none-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-none-seed6-forget
+    needs: [spider-teacher-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-none-seed7
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-none-seed7-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "7", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-none-seed7-eval
+    needs: [spider-teacher-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-none-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-none-seed7-forget
+    needs: [spider-teacher-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-none-seed8
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-none-seed8-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "8", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-none-seed8-eval
+    needs: [spider-teacher-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-none-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-none-seed8-forget
+    needs: [spider-teacher-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-none-seed9
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-none-seed9-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "9", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-none-seed9-eval
+    needs: [spider-teacher-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-none-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-none-seed9-forget
+    needs: [spider-teacher-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-none-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: spider-teacher-hint-seed0
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
     env: {NAME: "spider-teacher-hint-seed0-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "0", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
@@ -871,6 +1366,121 @@ rows:
     needs: [spider-teacher-hint-seed4]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed4-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed4-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-hint-seed5
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-hint-seed5-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "5", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-hint-seed5-eval
+    needs: [spider-teacher-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-hint-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-hint-seed5-forget
+    needs: [spider-teacher-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-hint-seed6
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-hint-seed6-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "6", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-hint-seed6-eval
+    needs: [spider-teacher-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-hint-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-hint-seed6-forget
+    needs: [spider-teacher-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-hint-seed7
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-hint-seed7-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "7", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-hint-seed7-eval
+    needs: [spider-teacher-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-hint-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-hint-seed7-forget
+    needs: [spider-teacher-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-hint-seed8
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-hint-seed8-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "8", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-hint-seed8-eval
+    needs: [spider-teacher-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-hint-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-hint-seed8-forget
+    needs: [spider-teacher-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: spider-teacher-hint-seed9
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {NAME: "spider-teacher-hint-seed9-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/spider/train.parquet", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SEED: "9", NGPU: "8", SHUFFLE: "0", TASK: "datasets/spider", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/spider-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 128}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: spider-teacher-hint-seed9-eval
+    needs: [spider-teacher-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/spider-teacher-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/spider-teacher-hint-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: spider-teacher-hint-seed9-forget
+    needs: [spider-teacher-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/spider-teacher-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/spider-teacher-hint-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
 
@@ -1000,7 +1610,7 @@ rows:
       - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
 
-  # ---- FINQA GRID. Five arms x five seeds at 40 steps x 32 questions, the control's dose
+  # ---- FINQA GRID. Five arms x ten seeds at 40 steps x 32 questions, the control's dose
   # on every arm, which is what makes the 3-point bar readable. `none` is the GRPO route's
   # control and is trained here, from the untrained model on the unhinted file. The last
   # two arms are the SDPO route and differ from each other in one trainer key, so they
@@ -1112,6 +1722,111 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed4-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-none-seed5
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-none-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/finqa-1600/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-none-seed5-eval
+    needs: [finqa-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-none-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-none-seed5-forget
+    needs: [finqa-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-none-seed6
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-none-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/finqa-1600/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-none-seed6-eval
+    needs: [finqa-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-none-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-none-seed6-forget
+    needs: [finqa-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-none-seed7
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-none-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/finqa-1600/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-none-seed7-eval
+    needs: [finqa-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-none-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-none-seed7-forget
+    needs: [finqa-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-none-seed8
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-none-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/finqa-1600/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-none-seed8-eval
+    needs: [finqa-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-none-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-none-seed8-forget
+    needs: [finqa-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-none-seed9
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-none-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/finqa-1600/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-none-seed9-eval
+    needs: [finqa-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-none-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-none-seed9-forget
+    needs: [finqa-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-none-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: finqa-hint-seed0
     requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
     env: {NAME: "finqa-hint-seed0-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "0", NGPU: "8", FILE_LOG: "1"}
@@ -1215,6 +1930,111 @@ rows:
     needs: [finqa-hint-seed4]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed4-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed4-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-hint-seed5
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-seed5-eval
+    needs: [finqa-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-seed5-forget
+    needs: [finqa-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-hint-seed6
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-seed6-eval
+    needs: [finqa-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-seed6-forget
+    needs: [finqa-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-hint-seed7
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-seed7-eval
+    needs: [finqa-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-seed7-forget
+    needs: [finqa-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-hint-seed8
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-seed8-eval
+    needs: [finqa-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-seed8-forget
+    needs: [finqa-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-hint-seed9
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SAVE_FREQ: "40", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-seed9-eval
+    needs: [finqa-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-seed9-forget
+    needs: [finqa-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   # the hinted half: 20 of 40 steps, then the hint is gone.
@@ -1387,6 +2207,176 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed4-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 20 of 40 steps, then the hint is gone.
+  - id: finqa-hint-faded-seed5-first
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-faded-seed5-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: finqa-hint-faded-seed5
+    needs: [finqa-hint-faded-seed5-first]
+    env: {NAME: "finqa-hint-faded-seed5-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "5", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/finqa-hint-faded-seed5-first-a*/hf-step20 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-faded-seed5-eval
+    needs: [finqa-hint-faded-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-faded-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-faded-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-faded-seed5-forget
+    needs: [finqa-hint-faded-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-faded-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed5-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 20 of 40 steps, then the hint is gone.
+  - id: finqa-hint-faded-seed6-first
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-faded-seed6-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: finqa-hint-faded-seed6
+    needs: [finqa-hint-faded-seed6-first]
+    env: {NAME: "finqa-hint-faded-seed6-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "6", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/finqa-hint-faded-seed6-first-a*/hf-step20 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-faded-seed6-eval
+    needs: [finqa-hint-faded-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-faded-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-faded-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-faded-seed6-forget
+    needs: [finqa-hint-faded-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-faded-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed6-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 20 of 40 steps, then the hint is gone.
+  - id: finqa-hint-faded-seed7-first
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-faded-seed7-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: finqa-hint-faded-seed7
+    needs: [finqa-hint-faded-seed7-first]
+    env: {NAME: "finqa-hint-faded-seed7-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "7", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/finqa-hint-faded-seed7-first-a*/hf-step20 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-faded-seed7-eval
+    needs: [finqa-hint-faded-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-faded-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-faded-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-faded-seed7-forget
+    needs: [finqa-hint-faded-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-faded-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed7-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 20 of 40 steps, then the hint is gone.
+  - id: finqa-hint-faded-seed8-first
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-faded-seed8-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: finqa-hint-faded-seed8
+    needs: [finqa-hint-faded-seed8-first]
+    env: {NAME: "finqa-hint-faded-seed8-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "8", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/finqa-hint-faded-seed8-first-a*/hf-step20 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-faded-seed8-eval
+    needs: [finqa-hint-faded-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-faded-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-faded-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-faded-seed8-forget
+    needs: [finqa-hint-faded-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-faded-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed8-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  # the hinted half: 20 of 40 steps, then the hint is gone.
+  - id: finqa-hint-faded-seed9-first
+    requires: ["{work}/data/finqa-1600/test.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "finqa-hint-faded-seed9-first-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part1.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  # the plain half, restarted from the hinted half's merged checkpoint:
+  # fresh optimizer state, fresh warm-up, no resume, and the rows that
+  # come AFTER the split, so this arm and `hint` see the same questions.
+  - id: finqa-hint-faded-seed9
+    needs: [finqa-hint-faded-seed9-first]
+    env: {NAME: "finqa-hint-faded-seed9-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "20", SAVE_FREQ: "20", SEED: "9", NGPU: "8", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"$(ls -d {work}/k4/hints/finqa-applied-a* | sort -V | tail -1)/train-part2.parquet\" MODEL_DIR=\"$(ls -d {work}/runs/finqa-hint-faded-seed9-first-a*/hf-step20 | sort -V | tail -1)\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-hint-faded-seed9-eval
+    needs: [finqa-hint-faded-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-hint-faded-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-hint-faded-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-hint-faded-seed9-forget
+    needs: [finqa-hint-faded-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-hint-faded-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-hint-faded-seed9-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: finqa-teacher-none-seed0
     requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
     env: {NAME: "finqa-teacher-none-seed0-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "0", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
@@ -1500,6 +2490,121 @@ rows:
     needs: [finqa-teacher-none-seed4]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed4-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed4-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-none-seed5
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-none-seed5-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "5", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-none-seed5-eval
+    needs: [finqa-teacher-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-none-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-none-seed5-forget
+    needs: [finqa-teacher-none-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-none-seed6
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-none-seed6-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "6", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-none-seed6-eval
+    needs: [finqa-teacher-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-none-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-none-seed6-forget
+    needs: [finqa-teacher-none-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-none-seed7
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-none-seed7-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "7", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-none-seed7-eval
+    needs: [finqa-teacher-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-none-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-none-seed7-forget
+    needs: [finqa-teacher-none-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-none-seed8
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-none-seed8-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "8", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-none-seed8-eval
+    needs: [finqa-teacher-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-none-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-none-seed8-forget
+    needs: [finqa-teacher-none-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-none-seed9
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-none-seed9-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "9", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "0"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-no-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", max: 0}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-none-seed9-eval
+    needs: [finqa-teacher-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-none-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-none-seed9-forget
+    needs: [finqa-teacher-none-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-none-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-none-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: finqa-teacher-hint-seed0
@@ -1617,19 +2722,134 @@ rows:
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed4-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-hint-seed5
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-hint-seed5-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "5", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-hint-seed5-eval
+    needs: [finqa-teacher-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-hint-seed5-forget
+    needs: [finqa-teacher-hint-seed5]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-hint-seed5-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed5-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-hint-seed6
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-hint-seed6-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "6", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-hint-seed6-eval
+    needs: [finqa-teacher-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-hint-seed6-forget
+    needs: [finqa-teacher-hint-seed6]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-hint-seed6-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed6-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-hint-seed7
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-hint-seed7-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "7", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-hint-seed7-eval
+    needs: [finqa-teacher-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-hint-seed7-forget
+    needs: [finqa-teacher-hint-seed7]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-hint-seed7-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed7-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-hint-seed8
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-hint-seed8-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "8", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-hint-seed8-eval
+    needs: [finqa-teacher-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-hint-seed8-forget
+    needs: [finqa-teacher-hint-seed8]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-hint-seed8-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed8-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
+  - id: finqa-teacher-hint-seed9
+    requires: ["{work}/data/finqa-1600/train.parquet", "{work}/data/finqa-1600/test.parquet"]
+    env: {NAME: "finqa-teacher-hint-seed9-a{attempt}", WORK: "{work}", TRAIN_FILE: "{work}/data/finqa-1600/train.parquet", VAL_FILE: "{work}/data/finqa-1600/test.parquet", STEPS: "40", SEED: "9", NGPU: "8", SHUFFLE: "0", TASK: "datasets/finqa", FEEDBACK: "1"}
+    command: ["bash", "-c", "HINTS_FILE=\"$(ls -d {work}/k4/hints/finqa-filtered-a* | sort -V | tail -1)/hints-filtered.jsonl\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_sdpo_bed.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "hints-were-served", source: "{work}/runs/{env.NAME}/train-summary.json", key: "hints", min: 384}
+      - {name: "teacher-saw-the-feedback", source: "{work}/runs/{env.NAME}/train-summary.json", key: "feedback", min: 1}
+      - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
+  - id: finqa-teacher-hint-seed9-eval
+    needs: [finqa-teacher-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/eval/finqa-teacher-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed finqa --root \"$FINQA_ROOT\" --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 1147, max: 1147}
+  - id: finqa-teacher-hint-seed9-forget
+    needs: [finqa-teacher-hint-seed9]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4/forgetting/finqa-teacher-hint-seed9-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/finqa-teacher-hint-seed9-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
 
   # ---- The readout. Every arm and seed on both beds, `none` included, all from this
   # package's own tree, with the held-out questions split by what the untrained model
-  # could already do, the three panels, and the five-seed mean and spread. It prints each
+  # could already do, the three panels, and the ten-seed mean and spread. It prints each
   # route's own effect -- `hint` minus `none` and `teacher-hint` minus `teacher-none` --
   # and says which route a number belongs to. Every scoring it reads is named here, so
   # the report cannot be written over a hole.
   - id: report
-    needs: [spider-none-seed0-eval, spider-none-seed0-forget, spider-none-seed1-eval, spider-none-seed1-forget, spider-none-seed2-eval, spider-none-seed2-forget, spider-none-seed3-eval, spider-none-seed3-forget, spider-none-seed4-eval, spider-none-seed4-forget, spider-hint-seed0-eval, spider-hint-seed0-forget, spider-hint-seed1-eval, spider-hint-seed1-forget, spider-hint-seed2-eval, spider-hint-seed2-forget, spider-hint-seed3-eval, spider-hint-seed3-forget, spider-hint-seed4-eval, spider-hint-seed4-forget, spider-hint-faded-seed0-eval, spider-hint-faded-seed0-forget, spider-hint-faded-seed1-eval, spider-hint-faded-seed1-forget, spider-hint-faded-seed2-eval, spider-hint-faded-seed2-forget, spider-hint-faded-seed3-eval, spider-hint-faded-seed3-forget, spider-hint-faded-seed4-eval, spider-hint-faded-seed4-forget, spider-teacher-none-seed0-eval, spider-teacher-none-seed0-forget, spider-teacher-none-seed1-eval, spider-teacher-none-seed1-forget, spider-teacher-none-seed2-eval, spider-teacher-none-seed2-forget, spider-teacher-none-seed3-eval, spider-teacher-none-seed3-forget, spider-teacher-none-seed4-eval, spider-teacher-none-seed4-forget, spider-teacher-hint-seed0-eval, spider-teacher-hint-seed0-forget, spider-teacher-hint-seed1-eval, spider-teacher-hint-seed1-forget, spider-teacher-hint-seed2-eval, spider-teacher-hint-seed2-forget, spider-teacher-hint-seed3-eval, spider-teacher-hint-seed3-forget, spider-teacher-hint-seed4-eval, spider-teacher-hint-seed4-forget, base-spider, finqa-none-seed0-eval, finqa-none-seed0-forget, finqa-none-seed1-eval, finqa-none-seed1-forget, finqa-none-seed2-eval, finqa-none-seed2-forget, finqa-none-seed3-eval, finqa-none-seed3-forget, finqa-none-seed4-eval, finqa-none-seed4-forget, finqa-hint-seed0-eval, finqa-hint-seed0-forget, finqa-hint-seed1-eval, finqa-hint-seed1-forget, finqa-hint-seed2-eval, finqa-hint-seed2-forget, finqa-hint-seed3-eval, finqa-hint-seed3-forget, finqa-hint-seed4-eval, finqa-hint-seed4-forget, finqa-hint-faded-seed0-eval, finqa-hint-faded-seed0-forget, finqa-hint-faded-seed1-eval, finqa-hint-faded-seed1-forget, finqa-hint-faded-seed2-eval, finqa-hint-faded-seed2-forget, finqa-hint-faded-seed3-eval, finqa-hint-faded-seed3-forget, finqa-hint-faded-seed4-eval, finqa-hint-faded-seed4-forget, finqa-teacher-none-seed0-eval, finqa-teacher-none-seed0-forget, finqa-teacher-none-seed1-eval, finqa-teacher-none-seed1-forget, finqa-teacher-none-seed2-eval, finqa-teacher-none-seed2-forget, finqa-teacher-none-seed3-eval, finqa-teacher-none-seed3-forget, finqa-teacher-none-seed4-eval, finqa-teacher-none-seed4-forget, finqa-teacher-hint-seed0-eval, finqa-teacher-hint-seed0-forget, finqa-teacher-hint-seed1-eval, finqa-teacher-hint-seed1-forget, finqa-teacher-hint-seed2-eval, finqa-teacher-hint-seed2-forget, finqa-teacher-hint-seed3-eval, finqa-teacher-hint-seed3-forget, finqa-teacher-hint-seed4-eval, finqa-teacher-hint-seed4-forget, base-finqa]
+    needs: [spider-none-seed0-eval, spider-none-seed0-forget, spider-none-seed1-eval, spider-none-seed1-forget, spider-none-seed2-eval, spider-none-seed2-forget, spider-none-seed3-eval, spider-none-seed3-forget, spider-none-seed4-eval, spider-none-seed4-forget, spider-none-seed5-eval, spider-none-seed5-forget, spider-none-seed6-eval, spider-none-seed6-forget, spider-none-seed7-eval, spider-none-seed7-forget, spider-none-seed8-eval, spider-none-seed8-forget, spider-none-seed9-eval, spider-none-seed9-forget, spider-hint-seed0-eval, spider-hint-seed0-forget, spider-hint-seed1-eval, spider-hint-seed1-forget, spider-hint-seed2-eval, spider-hint-seed2-forget, spider-hint-seed3-eval, spider-hint-seed3-forget, spider-hint-seed4-eval, spider-hint-seed4-forget, spider-hint-seed5-eval, spider-hint-seed5-forget, spider-hint-seed6-eval, spider-hint-seed6-forget, spider-hint-seed7-eval, spider-hint-seed7-forget, spider-hint-seed8-eval, spider-hint-seed8-forget, spider-hint-seed9-eval, spider-hint-seed9-forget, spider-hint-faded-seed0-eval, spider-hint-faded-seed0-forget, spider-hint-faded-seed1-eval, spider-hint-faded-seed1-forget, spider-hint-faded-seed2-eval, spider-hint-faded-seed2-forget, spider-hint-faded-seed3-eval, spider-hint-faded-seed3-forget, spider-hint-faded-seed4-eval, spider-hint-faded-seed4-forget, spider-hint-faded-seed5-eval, spider-hint-faded-seed5-forget, spider-hint-faded-seed6-eval, spider-hint-faded-seed6-forget, spider-hint-faded-seed7-eval, spider-hint-faded-seed7-forget, spider-hint-faded-seed8-eval, spider-hint-faded-seed8-forget, spider-hint-faded-seed9-eval, spider-hint-faded-seed9-forget, spider-teacher-none-seed0-eval, spider-teacher-none-seed0-forget, spider-teacher-none-seed1-eval, spider-teacher-none-seed1-forget, spider-teacher-none-seed2-eval, spider-teacher-none-seed2-forget, spider-teacher-none-seed3-eval, spider-teacher-none-seed3-forget, spider-teacher-none-seed4-eval, spider-teacher-none-seed4-forget, spider-teacher-none-seed5-eval, spider-teacher-none-seed5-forget, spider-teacher-none-seed6-eval, spider-teacher-none-seed6-forget, spider-teacher-none-seed7-eval, spider-teacher-none-seed7-forget, spider-teacher-none-seed8-eval, spider-teacher-none-seed8-forget, spider-teacher-none-seed9-eval, spider-teacher-none-seed9-forget, spider-teacher-hint-seed0-eval, spider-teacher-hint-seed0-forget, spider-teacher-hint-seed1-eval, spider-teacher-hint-seed1-forget, spider-teacher-hint-seed2-eval, spider-teacher-hint-seed2-forget, spider-teacher-hint-seed3-eval, spider-teacher-hint-seed3-forget, spider-teacher-hint-seed4-eval, spider-teacher-hint-seed4-forget, spider-teacher-hint-seed5-eval, spider-teacher-hint-seed5-forget, spider-teacher-hint-seed6-eval, spider-teacher-hint-seed6-forget, spider-teacher-hint-seed7-eval, spider-teacher-hint-seed7-forget, spider-teacher-hint-seed8-eval, spider-teacher-hint-seed8-forget, spider-teacher-hint-seed9-eval, spider-teacher-hint-seed9-forget, base-spider, finqa-none-seed0-eval, finqa-none-seed0-forget, finqa-none-seed1-eval, finqa-none-seed1-forget, finqa-none-seed2-eval, finqa-none-seed2-forget, finqa-none-seed3-eval, finqa-none-seed3-forget, finqa-none-seed4-eval, finqa-none-seed4-forget, finqa-none-seed5-eval, finqa-none-seed5-forget, finqa-none-seed6-eval, finqa-none-seed6-forget, finqa-none-seed7-eval, finqa-none-seed7-forget, finqa-none-seed8-eval, finqa-none-seed8-forget, finqa-none-seed9-eval, finqa-none-seed9-forget, finqa-hint-seed0-eval, finqa-hint-seed0-forget, finqa-hint-seed1-eval, finqa-hint-seed1-forget, finqa-hint-seed2-eval, finqa-hint-seed2-forget, finqa-hint-seed3-eval, finqa-hint-seed3-forget, finqa-hint-seed4-eval, finqa-hint-seed4-forget, finqa-hint-seed5-eval, finqa-hint-seed5-forget, finqa-hint-seed6-eval, finqa-hint-seed6-forget, finqa-hint-seed7-eval, finqa-hint-seed7-forget, finqa-hint-seed8-eval, finqa-hint-seed8-forget, finqa-hint-seed9-eval, finqa-hint-seed9-forget, finqa-hint-faded-seed0-eval, finqa-hint-faded-seed0-forget, finqa-hint-faded-seed1-eval, finqa-hint-faded-seed1-forget, finqa-hint-faded-seed2-eval, finqa-hint-faded-seed2-forget, finqa-hint-faded-seed3-eval, finqa-hint-faded-seed3-forget, finqa-hint-faded-seed4-eval, finqa-hint-faded-seed4-forget, finqa-hint-faded-seed5-eval, finqa-hint-faded-seed5-forget, finqa-hint-faded-seed6-eval, finqa-hint-faded-seed6-forget, finqa-hint-faded-seed7-eval, finqa-hint-faded-seed7-forget, finqa-hint-faded-seed8-eval, finqa-hint-faded-seed8-forget, finqa-hint-faded-seed9-eval, finqa-hint-faded-seed9-forget, finqa-teacher-none-seed0-eval, finqa-teacher-none-seed0-forget, finqa-teacher-none-seed1-eval, finqa-teacher-none-seed1-forget, finqa-teacher-none-seed2-eval, finqa-teacher-none-seed2-forget, finqa-teacher-none-seed3-eval, finqa-teacher-none-seed3-forget, finqa-teacher-none-seed4-eval, finqa-teacher-none-seed4-forget, finqa-teacher-none-seed5-eval, finqa-teacher-none-seed5-forget, finqa-teacher-none-seed6-eval, finqa-teacher-none-seed6-forget, finqa-teacher-none-seed7-eval, finqa-teacher-none-seed7-forget, finqa-teacher-none-seed8-eval, finqa-teacher-none-seed8-forget, finqa-teacher-none-seed9-eval, finqa-teacher-none-seed9-forget, finqa-teacher-hint-seed0-eval, finqa-teacher-hint-seed0-forget, finqa-teacher-hint-seed1-eval, finqa-teacher-hint-seed1-forget, finqa-teacher-hint-seed2-eval, finqa-teacher-hint-seed2-forget, finqa-teacher-hint-seed3-eval, finqa-teacher-hint-seed3-forget, finqa-teacher-hint-seed4-eval, finqa-teacher-hint-seed4-forget, finqa-teacher-hint-seed5-eval, finqa-teacher-hint-seed5-forget, finqa-teacher-hint-seed6-eval, finqa-teacher-hint-seed6-forget, finqa-teacher-hint-seed7-eval, finqa-teacher-hint-seed7-forget, finqa-teacher-hint-seed8-eval, finqa-teacher-hint-seed8-forget, finqa-teacher-hint-seed9-eval, finqa-teacher-hint-seed9-forget, base-finqa]
     env: {OUT: "{work}/k4/report-a{attempt}"}
-    command: ["bash", "-c", "python \"{kit}/k4_report.py\" --root \"{work}/k4\" --runs \"{work}/runs\" --finqa-rows \"{work}/data/finqa-1600/test.jsonl\" --out \"{env.OUT}\""]
+    command: ["bash", "-c", "python \"{kit}/k4_report.py\" --root \"{work}/k4\" --runs \"{work}/runs\" --finqa-rows \"{work}/data/finqa-1600/test.jsonl\" --seeds 0,1,2,3,4,5,6,7,8,9 --out \"{env.OUT}\""]
     bars:
       - {name: "both-beds-reported", source: "{env.OUT}/k4-report.json", key: "beds_reported", min: 2}
       - {name: "every-arm-reported", source: "{env.OUT}/k4-report.json", key: "arms_reported", min: 5}
-      - {name: "the-control-was-found", source: "{env.OUT}/k4-report.json", key: "none_runs", min: 10}
+      - {name: "the-control-was-found", source: "{env.OUT}/k4-report.json", key: "none_runs", min: 20}
       - {name: "one-machine", source: "{env.OUT}/k4-report.json", key: "comparable", min: 1}

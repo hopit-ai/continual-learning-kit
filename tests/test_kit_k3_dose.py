@@ -16,10 +16,12 @@ way the probe could quietly answer the wrong question:
     give a delta of -8 and p = 0.229, and an arm at +7 must clear the bar.
 (e) a run with no metrics.jsonl still produces a report, with the missing file named.
 (f) the density cells appear when a scoring carries `output_tokens_total` and are `-` when it does not.
-(g) probe 2 (kit/campaigns/k3-dose-2.yaml): every training row is probe 1's `ref20` but for the keys
-    a budgeted dose may change, the three budget rows carry LENGTH_BUDGET 800 and `ref20-s1` none, the
-    readouts are leaves, and the report with --campaign reads its arms from the file and renders the
-    length-budget column and the +5-and-density decision -- while without --campaign it is unchanged.
+(g) probe 2 (kit/campaigns/k3-dose-2.yaml): four arms of three runs, the runs of an arm identical but
+    for their SEED label, every run probe 1's `ref20` but for the keys a budgeted dose may change, the
+    budget runs carrying LENGTH_BUDGET 800 and `ref20`'s none, every run with its own scoring and
+    leaf delta row; the report with --campaign groups the runs into arms and applies the arm rule
+    (mean +5, mean density within 1.5x, 2 of 3 runs at +5) -- while without --campaign it renders
+    probe 1's fixture byte for byte as before.
 
 Everything builds its own fixtures; nothing here needs a GPU, a network or a trained model.
 """
@@ -597,8 +599,10 @@ def test_the_density_cells_are_dashes_when_no_scoring_carries_them(tmp_path):
 
 # ================================================== (g) probe 2: the length-budgeted reward
 CAMPAIGN2 = KIT / "campaigns" / "k3-dose-2.yaml"
-ARMS2 = ("budget20", "budget40", "budget60", "ref20-s1")
-#: The keys a probe-2 arm may differ from probe 1's `ref20` in. NGPU, KL, WORK and VAL_FILE may not.
+ARMS2 = ("budget20", "budget40", "budget60", "ref20")
+RUNS_PER_ARM = 3
+RUNS2 = tuple("%s-r%d" % (arm, r) for arm in ARMS2 for r in range(1, RUNS_PER_ARM + 1))
+#: The keys a probe-2 run may differ from probe 1's `ref20` in. NGPU, KL, WORK and VAL_FILE may not.
 ALLOWED_TO_DIFFER_2 = {"NAME", "TRAIN_FILE", "STEPS", "SAVE_FREQ", "SEED", "LENGTH_BUDGET", "LR", "FILE_LOG"}
 
 
@@ -608,61 +612,97 @@ def campaign2():
     return runner.load_campaign(CAMPAIGN2)
 
 
+def runs_of(arm: str) -> list:
+    return ["%s-r%d" % (arm, r) for r in range(1, RUNS_PER_ARM + 1)]
+
+
 def test_probe_2_parses_and_has_no_gate(campaign2):
     ids = [row["id"] for row in campaign2["rows"]]
-    assert campaign2["name"] == "k3-dose-2" and len(ids) == 16
-    assert ids[0] == "base-spider" and row_of(campaign2, "base-spider")["prepare"]
+    assert campaign2["name"] == "k3-dose-2"
+    assert len(ids) == 3 + len(ARMS2) * RUNS_PER_ARM * 3 + 1 == 40
+    assert len(set(ids)) == len(ids)
+    assert ids[:3] == ["base-spider", "pool1280", "pool1920"] and row_of(campaign2, "base-spider")["prepare"]
     assert [row["id"] for row in campaign2["rows"] if row.get("pilot")] == []
-    for row in ("stuck", "subset"):
-        assert row not in ids, "probe 2 needs no stuck set and no subset"
+    for row in ("stuck", "subset", "ref20-s1"):
+        assert row not in ids, "probe 2 needs no stuck set and no subset, and ref20-s1 is now ref20"
 
 
-def test_probe_2s_arms_are_probe_1s_ref20_but_for_the_keys_a_budgeted_dose_may_change(campaign,
+def test_probe_2_has_twelve_training_runs_in_four_arms_of_three(campaign2):
+    training = [row for row in campaign2["rows"] if "run_grpo.sh" in " ".join(row["command"])]
+    assert [row["id"] for row in training] == list(RUNS2)
+    for arm in ARMS2:
+        rows = [row_of(campaign2, run) for run in runs_of(arm)]
+        assert [row["env"]["SEED"] for row in rows] == ["1", "2", "3"], arm
+        for r, row in enumerate(rows, start=1):
+            assert row["env"]["NAME"] == "%s-r%d-seed%d-a{attempt}" % (arm, r, r), row["id"]
+        same = [{k: v for k, v in row["env"].items() if k not in ("NAME", "SEED")} for row in rows]
+        assert same[0] == same[1] == same[2], "%s: its runs differ in more than the label" % arm
+        assert len({row["description"] for row in rows}) == 1 and rows[0]["description"], arm
+        assert rows[0]["command"] == rows[1]["command"] == rows[2]["command"], arm
+        assert rows[0]["needs"] == rows[1]["needs"] == rows[2]["needs"], arm
+        assert [bar for bar in rows[0]["bars"]] == [bar for bar in rows[2]["bars"]], arm
+
+
+def test_probe_2s_runs_are_probe_1s_ref20_but_for_the_keys_a_budgeted_dose_may_change(campaign,
                                                                                     campaign2):
     ref20 = row_of(campaign, "ref20")["env"]
     theirs = {key: value for key, value in ref20.items() if key not in ALLOWED_TO_DIFFER_2}
-    for arm in ARMS2:
-        row = row_of(campaign2, arm)
+    for run in RUNS2:
+        row = row_of(campaign2, run)
         env = row["env"]
-        assert {key: value for key, value in env.items() if key not in ALLOWED_TO_DIFFER_2} == theirs, arm
-        assert set(env) - set(ref20) <= {"LENGTH_BUDGET"}, arm
-        assert env["NGPU"] == "8" and env["KL"] == "0" and env["LR"] == "1e-5", arm
-        assert env["FILE_LOG"] == "1" and env["SAVE_FREQ"] == env["STEPS"], arm
-        assert env["NAME"] == "%s-seed%s-a{attempt}" % (arm, env["SEED"]), arm
-        assert row["description"], "%s: the report reads what an arm changes from here" % arm
-        assert "run_grpo.sh" in " ".join(row["command"]), arm
-        assert any(bar["key"] == "steps" and bar["min"] == int(env["STEPS"]) for bar in row["bars"]), arm
+        assert {key: value for key, value in env.items() if key not in ALLOWED_TO_DIFFER_2} == theirs, run
+        assert set(env) - set(ref20) <= {"LENGTH_BUDGET"}, run
+        assert env["NGPU"] == "8" and env["KL"] == "0" and env["LR"] == "1e-5", run
+        assert env["FILE_LOG"] == "1" and env["SAVE_FREQ"] == env["STEPS"], run
+        assert "run_grpo.sh" in " ".join(row["command"]), run
+        assert any(bar["key"] == "steps" and bar["min"] == int(env["STEPS"]) for bar in row["bars"]), run
 
 
-def test_the_budget_rows_carry_800_and_ref20_s1_carries_none_and_seed_1(campaign2):
-    doses = {"budget20": ("20", "0"), "budget40": ("40", "0"), "budget60": ("60", "0"), "ref20-s1": ("20", "1")}
-    for arm, (steps, seed) in doses.items():
-        env = row_of(campaign2, arm)["env"]
-        assert (env["STEPS"], env["SEED"]) == (steps, seed), arm
+def test_the_budget_runs_carry_800_and_ref20_carries_none(campaign2):
+    steps = {"budget20": "20", "budget40": "40", "budget60": "60", "ref20": "20"}
+    for arm, count in steps.items():
+        for run in runs_of(arm):
+            assert row_of(campaign2, run)["env"]["STEPS"] == count, run
     for arm in ("budget20", "budget40", "budget60"):
-        row = row_of(campaign2, arm)
-        assert row["env"]["LENGTH_BUDGET"] == "800", arm
-        bar = next(b for b in row["bars"] if b["name"] == "budget-applied")
-        assert (bar["key"], bar["min"], bar["max"]) == ("length_budget_chars", 800, 800), arm
-    ref = row_of(campaign2, "ref20-s1")
-    assert "LENGTH_BUDGET" not in ref["env"] and "LENGTH_BUDGET" not in " ".join(ref["command"])
-    assert not any(bar["key"] == "length_budget_chars" for bar in ref["bars"])
+        for run in runs_of(arm):
+            row = row_of(campaign2, run)
+            assert row["env"]["LENGTH_BUDGET"] == "800", run
+            bar = next(b for b in row["bars"] if b["name"] == "budget-applied")
+            assert (bar["key"], bar["min"], bar["max"]) == ("length_budget_chars", 800, 800), run
+    for run in runs_of("ref20"):
+        ref = row_of(campaign2, run)
+        assert "LENGTH_BUDGET" not in ref["env"] and "LENGTH_BUDGET" not in " ".join(ref["command"])
+        assert not any(bar["key"] == "length_budget_chars" for bar in ref["bars"])
 
 
 def test_probe_2_trains_on_the_file_each_dose_needs(campaign2):
-    commands = {arm: " ".join(row_of(campaign2, arm)["command"]) for arm in ARMS2}
-    for arm in ("budget20", "ref20-s1"):
-        assert "TRAIN_FILE=\"{work}/data/spider/train.parquet\"" in commands[arm], arm
-    assert "k3dose2/data/spider1280-a*" in commands["budget40"] and "pool1280" in row_of(campaign2, "budget40")["needs"]
-    assert "k3dose2/data/spider1920-a*" in commands["budget60"] and "pool1920" in row_of(campaign2, "budget60")["needs"]
+    for arm in ("budget20", "ref20"):
+        for run in runs_of(arm):
+            assert "TRAIN_FILE=\"{work}/data/spider/train.parquet\"" in " ".join(row_of(campaign2, run)["command"])
+    for arm, pool in (("budget40", "1280"), ("budget60", "1920")):
+        for run in runs_of(arm):
+            assert "k3dose2/data/spider%s-a*" % pool in " ".join(row_of(campaign2, run)["command"])
+            assert "pool%s" % pool in row_of(campaign2, run)["needs"]
     for pool, rows in (("pool1280", 1280), ("pool1920", 1920)):
         command = " ".join(row_of(campaign2, pool)["command"])
         assert "sequence.py\" pool" in command and "--rows %d --seed 0" % rows in command
-    for arm in ARMS2:
-        scoring = " ".join(row_of(campaign2, "%s-spider" % arm)["command"])
-        env = row_of(campaign2, arm)["env"]
-        assert "runs/%s-seed%s-a*/hf-step%s" % (arm, env["SEED"], env["STEPS"]) in scoring, arm
-        assert row_of(campaign2, "%s-spider" % arm)["env"]["CUDA_VISIBLE_DEVICES"] == "0"
+
+
+def test_every_run_has_its_own_scoring_and_delta_row(campaign2):
+    for run in RUNS2:
+        env = row_of(campaign2, run)["env"]
+        scoring = row_of(campaign2, "%s-spider" % run)
+        assert scoring["needs"] == [run] and scoring["env"]["CUDA_VISIBLE_DEVICES"] == "0"
+        assert scoring["env"]["OUT"] == "{work}/k3dose2/eval/%s-spider-a{attempt}" % run
+        assert "runs/%s-seed%s-a*/hf-step%s" % (run, env["SEED"], env["STEPS"]) in " ".join(scoring["command"])
+        delta = row_of(campaign2, "%s-delta" % run)
+        assert sorted(delta["needs"]) == sorted(["base-spider", "%s-spider" % run])
+        command = " ".join(delta["command"])
+        assert "k3dose2/eval/base-spider-a*" in command and "k3dose2/eval/%s-spider-a*" % run in command
+        assert delta["env"]["OUT"] == "{work}/k3dose2/deltas/%s-a{attempt}.json" % run
+        bars = {bar["name"]: bar for bar in delta["bars"]}
+        assert bars["delta-recorded"]["key"] == "delta" and bars["delta-recorded"]["min"] == -100
+        assert bars["same-machine"]["key"] == "same_machine_flag" and bars["same-machine"]["min"] == 1
 
 
 def test_probe_2_writes_only_under_k3dose2(campaign2):
@@ -677,21 +717,14 @@ def test_probe_2_writes_only_under_k3dose2(campaign2):
 
 def test_probe_2s_delta_rows_are_leaves_and_the_report_reads_the_campaign(campaign2):
     ids = [row["id"] for row in campaign2["rows"]]
-    deltas = ["%s-delta" % arm for arm in ARMS2]
-    assert ids[-4:] == deltas
+    deltas = ["%s-delta" % run for run in RUNS2]
+    assert ids[-12:] == deltas, "the readouts run last, after the report"
     for row in campaign2["rows"]:
         assert not set(row["needs"]) & set(deltas), "%s needs a readout row" % row["id"]
-    for arm in ARMS2:
-        row = row_of(campaign2, "%s-delta" % arm)
-        assert sorted(row["needs"]) == sorted(["base-spider", "%s-spider" % arm])
-        command = " ".join(row["command"])
-        assert "k3dose2/eval/base-spider-a*" in command and "k3dose2/eval/%s-spider-a*" % arm in command
-        bars = {bar["name"]: bar for bar in row["bars"]}
-        assert bars["delta-recorded"]["key"] == "delta" and bars["delta-recorded"]["min"] == -100
-        assert bars["same-machine"]["key"] == "same_machine_flag" and bars["same-machine"]["min"] == 1
     report = row_of(campaign2, "report")
-    assert sorted(report["needs"]) == sorted(["base-spider"] + ["%s-spider" % arm for arm in ARMS2])
+    assert sorted(report["needs"]) == sorted(["base-spider"] + ["%s-spider" % run for run in RUNS2])
     assert "--campaign \"{kit}/campaigns/k3-dose-2.yaml\"" in " ".join(report["command"])
+    assert next(bar for bar in report["bars"] if bar["key"] == "arms_reported")["min"] == 4
 
 
 def test_probe_2s_bars_read_numbers_its_tools_write(campaign2):
@@ -711,19 +744,20 @@ def test_probe_2s_plan_prints_every_row_and_executes_nothing(tmp_path):
                           env={**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"},
                           capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
-    assert "campaign k3-dose-2 (16 rows)" in done.stdout
-    assert len([line for line in done.stdout.split("\n") if line.startswith("[")]) == 16
+    assert "campaign k3-dose-2 (40 rows)" in done.stdout
+    assert len([line for line in done.stdout.split("\n") if line.startswith("[")]) == 40
     assert list(work.iterdir()) == []
 
 
 def test_the_arm_list_is_read_from_either_campaign_file():
     probe2 = report_tool.arms_from_campaign(CAMPAIGN2)
     assert probe2["name"] == "k3-dose-2"
-    assert [a["arm"] for a in probe2["arms"]] == list(ARMS2)
-    by_arm = {a["arm"]: a for a in probe2["arms"]}
-    assert by_arm["ref20-s1"]["run"] == "ref20-s1-seed1" and by_arm["ref20-s1"]["seed"] == 1
-    assert by_arm["ref20-s1"]["scoring"] == "ref20-s1-spider"
-    assert by_arm["budget40"]["run"] == "budget40-seed0" and "800-character" in by_arm["budget40"]["what"]
+    assert [a["arm"] for a in probe2["arms"]] == list(RUNS2)
+    assert [a["group"] for a in probe2["arms"]] == [arm for arm in ARMS2 for _ in range(RUNS_PER_ARM)]
+    by_run = {a["arm"]: a for a in probe2["arms"]}
+    assert by_run["ref20-r2"]["run"] == "ref20-r2-seed2" and by_run["ref20-r2"]["seed"] == 2
+    assert by_run["ref20-r2"]["scoring"] == "ref20-r2-spider"
+    assert by_run["budget40-r3"]["run"] == "budget40-r3-seed3" and "800-character" in by_run["budget40-r3"]["what"]
     probe1 = report_tool.arms_from_campaign(CAMPAIGN)
     assert probe1["arms"] == report_tool.default_arms(), "probe 1's file must name exactly its four arms"
 
@@ -736,24 +770,35 @@ def test_a_campaign_with_no_training_row_is_a_refusal(tmp_path):
         report_tool.arms_from_campaign(path)
 
 
-def _tree2(tmp_path: Path, *, tokens=True) -> tuple:
-    """Probe 2's tree: budget20 +7 at 1.05x (clears), budget40 +8 at 2.02x (over the density bar),
-    budget60 -2, ref20-s1 +5 at 1.05x (clears, at exactly the bar)."""
+#: Per run: (delta, tokens per correct answer against the untrained model's). The untrained model
+#: scores 70 at 7,000 tokens, 100 per correct answer, so a run at +d with ratio x spent 100x(70+d)x.
+PROBE2 = {
+    "budget20": ((7, 1.1), (6, 1.1), (2, 1.1)),     # mean +5, 2 of 3 at +5, 1.1x: CLEARS
+    "budget40": ((9, 2.0), (9, 2.0), (9, 2.0)),     # mean +9, 3 of 3, but 2.0x: does not
+    "budget60": ((5, 1.0), (5, 1.0), (5, 1.0)),     # mean +5, 3 of 3, 1.0x: CLEARS
+    "ref20": ((8, 1.0), (1, 1.0), (1, 1.0)),        # mean +3.3, 1 of 3: does not
+}
+
+
+def _tree2(tmp_path: Path, *, tokens=True, skip=()) -> tuple:
+    """Probe 2's tree, three runs per arm, each run +d with no answer lost (PROBE2 above)."""
     root, runs = tmp_path / "k3dose2", tmp_path / "runs"
-    after = {"budget20": PLUS_SEVEN, "budget40": PER_ITEM_IDS[:78], "budget60": PER_ITEM_IDS[:68],
-             "ref20-s1": PER_ITEM_IDS[:75]}
-    token_of = {"base": 4000, "budget20": 4600, "budget40": 9000, "budget60": 3900, "ref20-s1": 4500}
-    dose = {"budget20": (20, 0, 800, "data/spider/train.parquet"),
-            "budget40": (40, 0, 800, "k3dose2/data/spider1280-a1/train.parquet"),
-            "budget60": (60, 0, 800, "k3dose2/data/spider1920-a1/train.parquet"),
-            "ref20-s1": (20, 1, None, "data/spider/train.parquet")}
-    _score(root / "eval" / "base-spider-a1", correct_ids=UNTRAINED_RIGHT, tokens=token_of["base"] if tokens else None)
+    dose = {"budget20": (20, 800, "data/spider/train.parquet"),
+            "budget40": (40, 800, "k3dose2/data/spider1280-a1/train.parquet"),
+            "budget60": (60, 800, "k3dose2/data/spider1920-a1/train.parquet"),
+            "ref20": (20, None, "data/spider/train.parquet")}
+    _score(root / "eval" / "base-spider-a1", correct_ids=UNTRAINED_RIGHT, tokens=7000 if tokens else None)
     for arm in ARMS2:
-        steps, seed, budget, train_file = dose[arm]
-        _score(root / "eval" / ("%s-spider-a1" % arm), correct_ids=after[arm],
-               tokens=token_of[arm] if tokens else None)
-        _run(runs, arm, steps=steps, lr="1e-5", seed=seed, train_file=str(tmp_path / train_file),
-             summary={"length_budget_chars": budget})
+        steps, budget, train_file = dose[arm]
+        for r, (delta, ratio) in enumerate(PROBE2[arm], start=1):
+            run = "%s-r%d" % (arm, r)
+            if run in skip:
+                continue
+            correct = 70 + delta
+            _score(root / "eval" / ("%s-spider-a1" % run), correct_ids=PER_ITEM_IDS[:correct],
+                   tokens=round(100 * correct * ratio) if tokens else None)
+            _run(runs, run, steps=steps, lr="1e-5", seed=r, train_file=str(tmp_path / train_file),
+                 summary={"length_budget_chars": budget})
     (tmp_path / "data" / "spider").mkdir(parents=True)
     (tmp_path / "data" / "spider" / "train.jsonl").write_text(
         "".join(json.dumps(_row("q%d" % i)) + "\n" for i in range(640)), encoding="utf-8")
@@ -766,57 +811,100 @@ def _tree2(tmp_path: Path, *, tokens=True) -> tuple:
     return root, runs
 
 
-def test_the_report_with_a_campaign_reads_probe_2s_arms_budgets_and_decision(tmp_path):
+def test_the_report_groups_runs_into_arms_and_applies_the_arm_rule(tmp_path):
     root, runs = _tree2(tmp_path)
     report = report_tool.build(root, runs, report_tool.arms_from_campaign(CAMPAIGN2))
-    assert report["arm_order"] == list(ARMS2) and report["arms_reported"] == 4
-    assert report["seeds"] == [0, 1] and report["campaign"]["name"] == "k3-dose-2"
-    arms = report["arms"]
-    assert [arms[a]["length_budget_chars"] for a in ARMS2] == [800, 800, 800, None]
-    assert [arms[a]["delta"] for a in ARMS2] == [7, 8, -2, 5]
-    assert [arms[a]["decision"] for a in ARMS2] == ["clears", "does not", "does not", "clears"]
-    assert arms["budget40"]["clears_bar"] == 1 and arms["budget40"]["density"]["verdict"] == "over bar"
-    assert arms["budget40"]["training_file"]["passes"] == 2.0 and arms["budget60"]["training_file"]["rows"] == 1920
-    assert arms["ref20-s1"]["seed"] == 1 and arms["ref20-s1"]["run"] == "ref20-s1-seed1-a1"
-    assert report["arms_clearing_the_decision"] == ["budget20", "ref20-s1"], "largest gain first"
+    assert report["arm_order"] == list(RUNS2) and report["group_order"] == list(ARMS2)
+    assert report["arms_reported"] == 4 and report["runs_reported"] == 12
+    assert report["seeds"] == [1, 2, 3] and report["campaign"]["name"] == "k3-dose-2"
+    groups = report["groups"]
+    assert {name: group["runs"] for name, group in groups.items()} == {arm: runs_of(arm) for arm in ARMS2}
+    assert {name: group["deltas"] for name, group in groups.items()} == {
+        arm: [delta for delta, _ in PROBE2[arm]] for arm in ARMS2}
+    assert groups["budget20"]["mean_delta"] == pytest.approx(5.0)
+    assert groups["ref20"]["mean_delta"] == pytest.approx(10 / 3, abs=1e-4)
+    assert [groups[a]["runs_at_bar"] for a in ARMS2] == [2, 3, 3, 1]
+    assert groups["budget20"]["mean_density_ratio"] == pytest.approx(1.1, abs=1e-3)
+    assert groups["budget40"]["mean_density_ratio"] == pytest.approx(2.0, abs=1e-3)
+    assert [groups[a]["decision"] for a in ARMS2] == ["clears", "does not", "clears", "does not"]
+    assert report["arms_clearing_the_decision"] == ["budget20", "budget60"], "ties keep the file's order"
+    runs_ = report["arms"]
+    assert [runs_[r]["decision"] for r in runs_of("budget20")] == ["clears", "clears", "does not"]
+    assert runs_["ref20-r2"]["length_budget_chars"] is None and runs_["budget60-r3"]["length_budget_chars"] == 800
+    assert runs_["ref20-r2"]["seed"] == 2 and runs_["ref20-r2"]["run"] == "ref20-r2-seed2-a1"
+    assert runs_["budget40-r1"]["training_file"]["passes"] == 2.0
+    assert runs_["budget40-r1"]["mcnemar_p"] == pytest.approx(2 * 0.5 ** 9, abs=1e-6)
+    assert (runs_["ref20-r1"]["right_to_wrong"], runs_["ref20-r1"]["wrong_to_right"]) == (0, 8)
 
 
-def test_an_arm_at_the_bar_with_no_token_counts_cannot_clear(tmp_path):
-    root, runs = _tree2(tmp_path, tokens=False)
-    report = report_tool.build(root, runs, report_tool.arms_from_campaign(CAMPAIGN2))
-    assert report["arms"]["budget20"]["decision"] == "density unknown"
-    assert report["arms_clearing_the_decision"] == []
-    text = report_tool.render(report)
-    assert "No arm cleared" in text and "carried no token counts" in text
-
-
-def test_the_report_with_a_campaign_renders_probe_2s_tree_with_the_length_budget_column(tmp_path):
+def test_the_report_renders_a_bold_mean_row_per_arm_and_names_the_clearing_arms(tmp_path):
     root, runs = _tree2(tmp_path)
     out = tmp_path / "report" / "a1"
     assert report_tool.main(["--root", str(root), "--runs", str(runs), "--campaign", str(CAMPAIGN2),
                              "--out", str(out)]) == 0
     text = (out / "report.md").read_text()
     assert "# K3 stage A, `k3-dose-2`: which dose clears the +5 bar at a cost within 1.5x?" in text
+    assert "4 arms, 12 runs" in text and "at least 2 of its runs are individually at +5" in text
     assert ("| arm | what it changes | rows | passes | steps | lr | seed | length budget | warm-up | "
             "untrained | after |") in text
-    assert "| 1280 | 2.00 | 40 | 1e-5 | 0 | 800 chars | 10 | 70 | 78 | +8 |" in text
-    assert "| 640 | 1.00 | 20 | 1e-5 | 1 | none | 10 | 70 | 75 | +5 |" in text
-    assert "| arm | length budget | steps logged |" in text
-    assert "| budget20 | 800 chars | 20 |" in text and "| ref20-s1 | none | 20 |" in text
-    assert "| budget40 | 57.1 | 115.4 | 2.02 | over bar |" in text
-    assert "`budget20`, `ref20-s1` clear" in text and "`budget20` has the largest gain" in text
-    assert "seeds 0, 1" in text
+    assert "| budget40-r2 | two passes (1,280 rows, 40 steps) with an 800-character length budget | 1280 | 2.00 | 40 | 1e-5 | 2 | 800 chars | 10 | 70 | 79 | +9 |" in text
+    assert "| 640 | 1.00 | 20 | 1e-5 | 3 | none | 10 | 70 | 71 | +1 |" in text
+    assert ("| **budget20: mean of 3 runs** | the reference dose (640 rows, 20 steps) with an 800-character "
+            "length budget |  |  |  |  |  |  |  | 70 | **75.0** | **+5.0** |  |  |  |  |  |  | **clears**: "
+            "runs +7, +6, +2; 2 of 3 at +5 or more; mean tokens per correct 1.10x the untrained model's |") in text
+    assert ("**budget40: mean of 3 runs**" in text
+            and "| **does not**: runs +9, +9, +9; 3 of 3 at +5 or more; mean tokens per correct 2.00x" in text)
+    assert "| **clears**: runs +5, +5, +5; 3 of 3 at +5 or more; mean tokens per correct 1.00x" in text
+    assert "| 70 | **73.3** | **+3.3** |" in text
+    assert "| **does not**: runs +8, +1, +1; 1 of 3 at +5 or more;" in text
+    lines = text.split("\n")
+    mean_row = next(i for i, line in enumerate(lines) if line.startswith("| **budget20: mean"))
+    assert [lines[mean_row - k].split(" | ")[0] for k in (3, 2, 1)] == ["| budget20-r1", "| budget20-r2", "| budget20-r3"]
+    assert "| budget20-r1 | 800 chars | 20 |" in text and "| ref20-r3 | none | 20 |" in text
+    assert "| budget40-r1 | 100.0 | 200.0 | 2.00 | over bar |" in text
+    assert "`budget20`, `budget60` clear the arm rule" in text and "budget20 mean +5.0, budget60 mean +5.0" in text
+    assert "`budget20`, `budget60` share the largest mean gain, so this probe does not choose" in text
+    assert "has the largest mean gain" not in text
+    assert text.endswith("4 of 4 arms reported (12 of 12 runs), seeds 1, 2, 3 (labels only), warm-up 10 "
+                         "steps on every arm.\n")
     written = json.loads((out / "report.json").read_text())
-    assert written["arms"]["budget60"]["length_budget_chars"] == 800
+    assert written["arms_reported"] == 4 and written["groups"]["budget60"]["decision"] == "clears"
+
+
+def test_with_no_arm_clearing_the_report_names_the_best_mean(tmp_path):
+    root, runs = _tree2(tmp_path, tokens=False)
+    report = report_tool.build(root, runs, report_tool.arms_from_campaign(CAMPAIGN2))
+    groups = report["groups"]
+    assert [groups[a]["decision"] for a in ARMS2] == ["density unknown"] * 3 + ["does not"]
+    assert report["arms_clearing_the_decision"] == []
+    text = report_tool.render(report)
+    assert "No arm cleared the arm rule" in text
+    assert "The best mean is `budget40` at +9.0 (runs +9, +9, +9; 3 of 3 at +5 or more" in text
+    assert "`budget20`, `budget40`, `budget60` met the delta half of the rule but carried no token counts" in text
+
+
+def test_an_arm_missing_a_run_is_incomplete_and_cannot_clear(tmp_path):
+    root, runs = _tree2(tmp_path, skip=("budget60-r2",))
+    report = report_tool.build(root, runs, report_tool.arms_from_campaign(CAMPAIGN2))
+    group = report["groups"]["budget60"]
+    assert group["runs_reported"] == 2 and group["decision"] == "incomplete"
+    assert report["arms_reported"] == 3 and report["runs_reported"] == 11
+    assert report["arms_clearing_the_decision"] == ["budget20"]
+    assert any(item.startswith("budget60-r2: no held-out scoring") for item in report["missing"])
+    text = report_tool.render(report)
+    assert "`budget60` is missing a run's held-out scoring" in text
+    assert "`budget20` clears the arm rule" in text and "`budget20` has the largest mean gain" in text
+    assert "| **budget60: mean of 3 runs** |" in text and "**incomplete**: runs +5, +5; 2 of 3 at +5" in text
 
 
 def test_without_a_campaign_the_probe_1_report_is_unchanged(tmp_path):
     """No seed column, no budget column, no decision: the probe-1 report exactly as it was."""
     root, runs = _tree(tmp_path, tokens=True)
     report = report_tool.build(root, runs)
-    for key in ("campaign", "arm_order", "arms_clearing_the_decision"):
+    for key in ("campaign", "arm_order", "arms_clearing_the_decision", "groups", "group_order", "runs_reported"):
         assert key not in report
-    assert all("length_budget_chars" not in arm and "decision" not in arm for arm in report["arms"].values())
+    assert all("length_budget_chars" not in arm and "decision" not in arm and "group" not in arm
+               for arm in report["arms"].values())
     text = report_tool.render(report)
     assert text.startswith("# K3 stage A: which dose clears the +5 bar?\n")
     assert ("| arm | what it changes | rows | passes | steps | lr | warm-up | untrained | after | delta | "
@@ -825,8 +913,22 @@ def test_without_a_campaign_the_probe_1_report_is_unchanged(tmp_path):
     assert ("| arm | steps logged | reward first quarter | reward last quarter | reward mean | grad norm "
             "first quarter | grad norm last quarter | grad norm mean | entropy mean | response tokens mean |"
             "\n|---|---|---|---|---|---|---|---|---|---|\n") in text
-    assert "length budget" not in text and "seeds 0" not in text
+    assert "length budget" not in text and "seeds 0" not in text and "mean of" not in text
     assert text.endswith("4 of 4 arms reported, seed 0, warm-up 10 steps on every arm.\n")
+
+
+#: sha256 of probe 1's report.md on `_tree(tokens=True)` with the clock and the paths pinned, as
+#: kit/k3_dose_report.py rendered it before probe 2's runs were grouped into arms.
+PROBE1_RENDER_SHA256 = "568681030cc4769f6db27e15083b076c6074da902fffee3e357a3dba5397a292"
+
+
+def test_probe_1s_render_is_byte_for_byte_what_it_was(tmp_path):
+    import hashlib
+    root, runs = _tree(tmp_path, tokens=True)
+    report = report_tool.build(root, runs)
+    report["generated_at"] = "2026-09-27T00:00:00Z"
+    text = report_tool.render(report).replace(str(tmp_path.resolve()), "<tmp>")
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PROBE1_RENDER_SHA256
 
 
 def test_probe_1s_tree_reads_the_same_with_or_without_its_campaign(tmp_path):
@@ -834,5 +936,5 @@ def test_probe_1s_tree_reads_the_same_with_or_without_its_campaign(tmp_path):
     plain = report_tool.build(root, runs)
     via = report_tool.build(root, runs, report_tool.arms_from_campaign(CAMPAIGN))
     for arm in ARMS:
-        extra = {"length_budget_chars", "decision"}
+        extra = {"length_budget_chars", "decision", "group"}
         assert {k: v for k, v in via["arms"][arm].items() if k not in extra} == plain["arms"][arm], arm
