@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -194,8 +195,8 @@ def campaign_file(tmp_path: Path, name: str, rows: list) -> Path:
 
 
 def chain(tmp_path: Path, name: str = "chain", **extra_b) -> Path:
-    """Row `a` writes {work}/made/a.txt (a GPU row, in real life); row `b` requires it and has a prepare step."""
-    b = {"id": "b", "requires": ["{work}/made/a.txt"], "command": ["true"],
+    """Row `a` writes {work}/made/a.txt (a GPU row, in real life); row `b` requires it, needs `a`, and has a prepare step."""
+    b = {"id": "b", "needs": ["a"], "requires": ["{work}/made/a.txt"], "command": ["true"],
          "prepare": [["python3", "-c", "open('{work}/b-prepared.txt', 'w').write('y')"]], **extra_b}
     return campaign_file(tmp_path, name, [{"id": "a", "env": {"OUT": "{work}/made/a.txt"}, "command": WRITE_OUT}, b])
 
@@ -208,7 +209,8 @@ def test_prepare_all_defers_a_row_whose_input_an_earlier_row_writes(work, tmp_pa
     assert not (work / "campaign" / "chain" / "b").exists(), "a deferred row records nothing that could gate it"
     assert not (work / "b-prepared.txt").exists(), "a deferred row's prepare steps wait too"
     assert runner.main(["status", str(path)]) == runner.EXIT_OK
-    assert "BLOCKED" not in capsys.readouterr().out
+    status = capsys.readouterr().out.splitlines()
+    assert status[1].split() == ["b", "BLOCKED", "needs", "a,", "which", "has", "not", "run"], "blocked by its needs alone"
 
 
 def test_run_all_prepares_a_deferred_row_right_before_running_it(work, tmp_path, capsys):
@@ -237,6 +239,7 @@ def test_run_all_does_not_prepare_a_deferred_row_behind_a_failed_pilot(work, tmp
     pilot = {"id": "p", "pilot": True, "command": ["false"],
              "bars": [{"name": "x", "source": "{work}/nowhere.json", "key": "x", "min": 0}]}
     rows = json.loads(chain(tmp_path).read_text())["rows"]
+    rows[1]["needs"] = ["a", "p"]
     path = campaign_file(tmp_path, "gated", [rows[0], pilot, rows[1]])
     assert runner.main(["prepare", str(path), "--all"]) == runner.EXIT_OK
     assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
@@ -302,7 +305,7 @@ def test_batch_stops_at_the_first_campaign_that_fails(work, tmp_path, capsys):
 def test_batch_returns_the_refusal_code_and_stops_on_a_wrong_campaign_file(work, tmp_path, capsys):
     pilot = {"id": "p", "pilot": True, "command": ["true"],
              "bars": [{"name": "x", "source": "{work}/nowhere.json", "key": "x", "min": 0}]}
-    blocked = campaign_file(tmp_path, "blocked", [pilot, {"id": "big", "command": ["true"]}])
+    blocked = campaign_file(tmp_path, "blocked", [pilot, {"id": "big", "needs": ["p"], "command": ["true"]}])
     (work / "campaign" / "blocked" / "p" / "attempt-1").mkdir(parents=True)          # a pilot attempt with no verdict
     assert runner.main(["run", str(blocked), "--row", "big"]) == runner.EXIT_REFUSED
     broken = tmp_path / "broken.json"
@@ -317,5 +320,344 @@ def test_batch_plan_prints_every_plan_and_executes_nothing(work, tmp_path, capsy
     one, two = tiny(tmp_path, "one", ["true"]), chain(tmp_path)
     assert runner.main(["batch", "--plan", str(one), str(two)]) == runner.EXIT_OK
     out = capsys.readouterr().out
-    assert "campaign one (1 rows)" in out and "campaign chain (2 rows)" in out and "[b] needs: nothing" in out
+    assert "campaign one (1 rows)" in out and "campaign chain (2 rows)" in out and "[b] needs: a" in out
     assert sorted(p.name for p in work.iterdir()) == ["chain.json", "one.json"], "only the campaign files themselves"
+
+
+# ------------------------------------------------------------------------------------ implicit order
+# A row that requires what another row's prepare writes depends on that row. The runner gets the order free from
+# file order; a parallel dispatcher does not (K1c, 30 September: `base17b-gsm8k` required the GSM8K files
+# `base17b-finqa`'s prepare builds, named no edge, and the partner's dispatcher started both at once).
+BUILD = ["python3", "-c", "import pathlib; p = pathlib.Path('{work}/data/x'); p.mkdir(parents=True, exist_ok=True); "
+         "(p / 'train.parquet').write_text('t')", "--out", "{work}/data/x"]
+
+
+def ordered(tmp_path: Path, name: str, *, stated: bool) -> Path:
+    """`maker`'s prepare builds {work}/data/x; `explicit` and `self-made` are fine; `reader` names `maker` only if stated."""
+    wanted = ["{work}/data/x/train.parquet"]
+    return campaign_file(tmp_path, name, [
+        {"id": "maker", "prepare": [BUILD], "requires": wanted, "command": ["true"]},
+        {"id": "explicit", "needs": ["maker"], "requires": wanted, "command": ["true"]},
+        {"id": "through-explicit", "needs": ["explicit"], "requires": wanted, "command": ["true"]},
+        {"id": "self-made", "prepare": [BUILD], "requires": wanted, "command": ["true"]},
+        {"id": "reader", "needs": ["maker"] if stated else [], "requires": wanted, "command": ["true"]}])
+
+
+def test_implicit_edges_finds_the_unstated_order_and_only_that(work, tmp_path):
+    edges = runner.implicit_edges(runner.load_campaign(ordered(tmp_path, "implied", stated=False)))
+    assert edges == [("reader", str(work.resolve() / "data" / "x" / "train.parquet"), "maker", "prepare")]
+    assert runner.implicit_edges(runner.load_campaign(ordered(tmp_path, "stated", stated=True))) == []
+
+
+def test_implicit_edges_reads_a_command_output_too(work, tmp_path):
+    rows = json.loads(chain(tmp_path).read_text())["rows"]
+    del rows[1]["needs"]
+    edges = runner.implicit_edges(runner.load_campaign(campaign_file(tmp_path, "unstated", rows)))
+    assert edges == [("b", str(work.resolve() / "made" / "a.txt"), "a", "command")]
+
+
+def test_plan_exits_non_zero_on_an_implicit_edge_and_prints_nothing_new_without_one(work, tmp_path, capsys):
+    assert runner.main(["plan", str(ordered(tmp_path, "implied", stated=False))]) == runner.EXIT_REFUSED
+    out = capsys.readouterr().out
+    assert ("IMPLICIT ORDER: reader requires %s, written by maker's prepare, but does not need maker"
+            % (work.resolve() / "data" / "x" / "train.parquet")) in out
+    assert out.count("IMPLICIT ORDER") == 1
+    assert runner.main(["plan", str(ordered(tmp_path, "stated", stated=True))]) == runner.EXIT_OK
+    assert "IMPLICIT" not in capsys.readouterr().out
+    assert runner.main(["batch", "--plan", str(ordered(tmp_path, "implied", stated=False))]) == runner.EXIT_REFUSED
+
+
+@pytest.mark.parametrize("action", [["prepare", "--all"], ["prepare", "--row", "maker"], ["run", "--all"],
+                                    ["run", "--row", "maker"], ["batch"]])
+def test_prepare_run_and_batch_refuse_an_implicit_edge_before_doing_anything(work, tmp_path, capsys, action):
+    path = ordered(tmp_path, "implied", stated=False)
+    argv = ["batch", str(path)] if action == ["batch"] else [action[0], str(path)] + action[1:]
+    assert runner.main(argv) == runner.EXIT_REFUSED
+    assert "IMPLICIT ORDER: reader requires" in capsys.readouterr().out
+    assert not (work / "data").exists() and not (work / "campaign").exists(), "a refusal prepares and records nothing"
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "kit" / "campaigns").glob("*.yaml")), ids=lambda p: p.name)
+def test_every_committed_campaign_states_its_order(work, path):
+    assert runner.implicit_edges(runner.load_campaign(path)) == []
+
+
+GENERATORS = sorted((ROOT / "scripts").glob("make_*_campaign.py"))
+
+
+@pytest.mark.skipif(not GENERATORS, reason="scripts/ is not part of the exported kit")
+@pytest.mark.parametrize("path", GENERATORS, ids=lambda p: p.name)
+def test_every_generated_campaign_is_what_its_generator_builds(path):
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+    assert generator.OUT.read_text() == generator.build(), "re-run %s" % path.relative_to(ROOT)
+
+
+# ------------------------------------------------------------------------------------ the pilot gate, stated
+# The runner enforces "every row needs every earlier pilot" by itself; the campaign file must say so too, or a
+# dispatcher that reads only `needs` starts rows beside a pilot (30 September: `base-forget-2` beside `base-forget-1`).
+CAMPAIGNS = sorted((ROOT / "kit" / "campaigns").glob("*.yaml"))
+PASSING_PILOT = {"id": "p", "pilot": True, "command": ["true"],
+                 "bars": [{"name": "x", "source": "{work}/nowhere.json", "key": "x", "min": 0}]}
+
+
+@pytest.mark.parametrize("path", CAMPAIGNS, ids=lambda p: p.name)
+def test_every_committed_campaign_states_its_pilot_edges(work, path):
+    """Each pilot needs the previous pilot and every other row the most recent pilot before it, in the file."""
+    last = None
+    for row in runner.load_campaign(path)["rows"]:
+        if last:
+            assert last in row["_stated_needs"], "%s does not state the pilot %s" % (row["id"], last)
+        if row.get("pilot"):
+            last = row["id"]
+
+
+def test_a_row_after_a_pilot_that_does_not_need_it_is_refused(work, tmp_path, capsys):
+    rows = [PASSING_PILOT, {"id": "second", "command": ["true"]}, {"id": "third", "needs": ["second"], "command": ["true"]},
+            {"id": "q", "pilot": True, "needs": ["third"], "command": ["true"], "bars": PASSING_PILOT["bars"]}]
+    path = campaign_file(tmp_path, "unstated-pilot", rows)
+    assert runner.implicit_edges(runner.load_campaign(path)) == [
+        ("second", None, "p", "pilot"), ("third", None, "p", "pilot"), ("q", None, "p", "pilot")], "the gate's own pilots do not count"
+    assert runner.main(["plan", str(path)]) == runner.EXIT_REFUSED
+    assert "IMPLICIT ORDER: second comes after pilot p but does not need it" in capsys.readouterr().out
+    for argv in (["run", str(path), "--all"], ["prepare", str(path), "--all"], ["batch", str(path)]):
+        assert runner.main(argv) == runner.EXIT_REFUSED
+    assert not (work / "campaign").exists(), "a refusal runs and records nothing"
+    rows[1]["needs"] = ["p"]                                                      # third and q now reach p through second
+    assert runner.implicit_edges(runner.load_campaign(campaign_file(tmp_path, "stated-pilot", rows))) == []
+
+
+# ------------------------------------------------------------------------------------ wants
+def seeded(tmp_path: Path, name: str, *, failing=(), report: dict | None = None) -> Path:
+    """`w-seed0` and `w-seed1` each write {work}/made/<id>.txt; `report` wants both and needs neither."""
+    rows = [{"id": "w-seed%d" % s, "env": {"OUT": "{work}/made/w-seed%d.txt" % s},
+             "command": ["false"] if s in failing else WRITE_OUT} for s in (0, 1)]
+    return campaign_file(tmp_path, name, rows + [report or {"id": "report", "wants": ["w-seed0", "w-seed1"], "command": ["true"]}])
+
+
+def row_verdict(work: Path, campaign: str, row: str) -> dict:
+    return json.loads((work / "campaign" / campaign / row / "attempt-1" / "verdict.json").read_text())
+
+
+def test_a_wanted_row_runs_first_when_it_is_scheduled(work, tmp_path, capsys):
+    path = seeded(tmp_path, "wanting")
+    assert runner.main(["plan", str(path)]) == runner.EXIT_OK
+    assert "[report] needs: nothing\n  wants: w-seed0, w-seed1" in capsys.readouterr().out
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert out.index("RUN w-seed0") < out.index("RUN w-seed1") < out.index("RUN report")
+    assert row_verdict(work, "wanting", "report")["wants_not_passed"] == []
+
+
+def test_a_want_states_a_file_order_as_a_need_does(work, tmp_path):
+    reader = {"id": "report", "requires": ["{work}/made/w-seed0.txt"], "command": ["true"]}
+    edges = runner.implicit_edges(runner.load_campaign(seeded(tmp_path, "unordered", report=reader)))
+    assert edges == [("report", str(work.resolve() / "made" / "w-seed0.txt"), "w-seed0", "command")]
+    wanting = seeded(tmp_path, "ordered", report={**reader, "wants": ["w-seed0"]})
+    assert runner.implicit_edges(runner.load_campaign(wanting)) == []
+
+
+def test_a_failed_seed_run_does_not_stop_run_all_and_the_report_records_the_want(work, tmp_path, capsys):
+    path = seeded(tmp_path, "failing", failing=(0,))
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED               # the first failure's code, at the end
+    out = capsys.readouterr().out
+    assert "continuing: w-seed0 failed; no later row needs it (wanted by: report)\n" in out
+    assert "note report: runs without 1 wanted row(s) that have not passed: w-seed0" in out
+    assert row_verdict(work, "failing", "w-seed1")["verdict"] == "PASS"
+    report = row_verdict(work, "failing", "report")
+    assert report["verdict"] == "PASS" and report["wants_not_passed"] == ["w-seed0"]
+    start = json.loads((work / "campaign" / "failing" / "report" / "attempt-1" / "start.json").read_text())
+    assert start["wants_not_passed"] == ["w-seed0"]
+
+
+def test_a_failed_row_a_later_row_needs_still_stops_run_all_naming_that_row(work, tmp_path, capsys):
+    path = seeded(tmp_path, "needed", failing=(0,), report={"id": "report", "needs": ["w-seed0"], "command": ["true"]})
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    out = capsys.readouterr().out
+    assert "STOP: w-seed0 did not pass and report needs it; nothing after it runs" in out and "continuing" not in out
+    assert not (work / "campaign" / "needed" / "w-seed1").exists() and not (work / "campaign" / "needed" / "report").exists()
+    assert runner.main(["run", str(path), "--row", "report"]) == runner.EXIT_REFUSED
+
+
+def test_a_need_through_another_row_stops_run_all_too_and_so_does_batch(work, tmp_path, capsys):
+    """`sum` needs `mid`, which needs the failing `w-seed0`: the need is transitive, and `batch` applies the same rule."""
+    def rows(mid: dict) -> list:
+        return [{"id": "w-seed0", "command": ["false"]}, {"id": "w-seed1", "command": ["true"]},
+                {"id": "mid", "command": ["true"], **mid}, {"id": "sum", "needs": ["mid"], "command": ["true"]},
+                {"id": "report", "wants": ["w-seed0", "w-seed1"], "command": ["true"]}]
+    through = campaign_file(tmp_path, "through", rows({"needs": ["w-seed0"]}))
+    campaign = runner.load_campaign(through)
+    assert runner.needed_later(campaign, campaign["rows"], "w-seed0") == ["mid", "sum"]
+    assert runner.main(["batch", str(through)]) == runner.EXIT_FAILED
+    assert "STOP: w-seed0 did not pass and mid needs it; nothing after it runs" in capsys.readouterr().out
+    assert not (work / "campaign" / "through" / "w-seed1").exists()
+    around = campaign_file(tmp_path, "around", rows({"wants": ["w-seed0"]}))
+    assert runner.main(["batch", str(around)]) == runner.EXIT_FAILED
+    assert "continuing: w-seed0 failed; no later row needs it (wanted by: mid, report)" in capsys.readouterr().out
+    assert row_verdict(work, "around", "sum")["verdict"] == "PASS"
+    assert row_verdict(work, "around", "report")["wants_not_passed"] == ["w-seed0"]
+
+
+def test_a_refused_row_nothing_needs_does_not_stop_run_all(work, tmp_path, capsys):
+    rows = [{"id": "lost", "requires": ["/nowhere/at/all"], "command": ["true"]},
+            {"id": "after", "wants": ["lost"], "command": ["true"]}]
+    assert runner.main(["run", str(campaign_file(tmp_path, "refusing", rows)), "--all"]) == runner.EXIT_REFUSED
+    out = capsys.readouterr().out
+    assert "REFUSED lost" in out and "continuing: lost failed; no later row needs it (wanted by: after)" in out
+    assert row_verdict(work, "refusing", "after")["wants_not_passed"] == ["lost"]
+
+
+@pytest.mark.parametrize("mutate, message", [
+    (lambda rows: rows[0].update(wants=["report"]), "wants rows that do not come before it"),
+    (lambda rows: rows[2].update(wants="w-seed0"), "wants must be a list"),
+])
+def test_a_wrong_wants_refuses(work, tmp_path, capsys, mutate, message):
+    rows = json.loads(seeded(tmp_path, "wrong").read_text())["rows"]
+    mutate(rows)
+    assert runner.main(["plan", str(campaign_file(tmp_path, "wrong", rows))]) == runner.EXIT_REFUSED
+    assert message in capsys.readouterr().err
+
+
+# ------------------------------------------------------------------------------------ --seeds
+def test_seeds_parse_lists_and_ranges():
+    assert runner.parse_seeds("0,1,2,3,4") == runner.parse_seeds("0-4") == [0, 1, 2, 3, 4]
+    assert runner.parse_seeds("7, 0-2") == [0, 1, 2, 7]
+    for bad in ("a", "0-x", ",", "0-", "4-0"):
+        with pytest.raises(runner.CampaignError):
+            runner.parse_seeds(bad)
+
+
+def test_the_seed_filter_reads_the_id_then_the_name_and_keeps_rows_with_no_seed(work, tmp_path, capsys):
+    rows = [{"id": "a-seed3", "command": ["true"]}, {"id": "a-seed12-forget", "command": ["true"]},
+            {"id": "train", "env": {"NAME": "run-seed7-a{attempt}"}, "command": ["true"]},
+            {"id": "b-seed3", "env": {"NAME": "b-seed7-a{attempt}"}, "command": ["true"]},       # the id wins
+            {"id": "plain", "env": {"NAME": "plain-a{attempt}"}, "command": ["true"]}]
+    campaign = runner.load_campaign(campaign_file(tmp_path, "filtered", rows))
+    assert runner.filter_seeds(campaign, [3, 12]) == ["train"]
+    assert runner.filter_seeds(campaign, [7]) == ["a-seed3", "a-seed12-forget", "b-seed3"]
+    assert runner.filter_seeds(campaign, None) == []
+    capsys.readouterr()
+    assert runner.main(["plan", str(campaign_file(tmp_path, "filtered", rows)), "--seeds", "7"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert out.count("skipped (seed filter): a-seed3\n") == 1 and "[a-seed3]" not in out and "[train]" in out and "[plain]" in out
+    assert runner.main(["plan", str(campaign_file(tmp_path, "filtered", rows)), "--seeds", "x"]) == runner.EXIT_REFUSED
+
+
+def test_a_filtered_out_want_does_not_block_and_the_verdict_records_the_filter(work, tmp_path, capsys):
+    path = seeded(tmp_path, "reduced")
+    assert runner.main(["prepare", str(path), "--all", "--seeds", "1"]) == runner.EXIT_OK
+    assert runner.main(["run", str(path), "--all", "--seeds", "1"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert out.count("skipped (seed filter): w-seed0") == 2, "once per command"
+    assert not (work / "campaign" / "reduced" / "w-seed0").exists() and not (work / "made" / "w-seed0.txt").exists()
+    verdict = row_verdict(work, "reduced", "report")
+    assert verdict["verdict"] == "PASS" and verdict["seeds"] == [1] and verdict["wants_not_passed"] == ["w-seed0"]
+    assert row_verdict(work, "reduced", "w-seed1")["seeds"] == [1]
+    assert runner.main(["run", str(seeded(tmp_path, "full")), "--all"]) == runner.EXIT_OK
+    assert row_verdict(work, "full", "report")["seeds"] is None
+
+
+def test_a_row_that_needs_a_skipped_row_is_refused_naming_it(work, tmp_path, capsys):
+    path = seeded(tmp_path, "needing", report={"id": "sum", "needs": ["w-seed0"], "command": ["true"]})
+    assert runner.main(["plan", str(path), "--seeds", "1"]) == runner.EXIT_OK
+    assert "refused unless it already passed: needs w-seed0, which the seed filter skips" in capsys.readouterr().out
+    assert runner.main(["run", str(path), "--all", "--seeds", "1"]) == runner.EXIT_REFUSED
+    assert "REFUSED sum: needs w-seed0, which the seed filter skips (--seeds 1) and which has not passed" in capsys.readouterr().out
+    assert row_verdict(work, "needing", "w-seed1")["verdict"] == "PASS" and not (work / "campaign" / "needing" / "sum").exists()
+    assert runner.main(["run", str(path), "--row", "w-seed0"]) == runner.EXIT_OK             # an earlier, unfiltered run
+    assert runner.main(["run", str(path), "--all", "--seeds", "1"]) == runner.EXIT_OK        # the need has passed: not refused
+
+
+def test_batch_takes_the_seed_filter(work, tmp_path, capsys):
+    path = seeded(tmp_path, "batched")
+    assert runner.main(["batch", "--seeds", "0", str(path)]) == runner.EXIT_OK
+    assert "skipped (seed filter): w-seed1" in capsys.readouterr().out
+    assert not (work / "campaign" / "batched" / "w-seed1").exists()
+    assert row_verdict(work, "batched", "report")["seeds"] == [0]
+    assert runner.main(["batch", "--seeds", "0-", str(path)]) == runner.EXIT_REFUSED
+
+
+def test_a_stated_seed_wins_over_the_name_and_plan_prints_it(work, tmp_path, capsys):
+    rows = [{"id": "x-r1", "seed": 1, "env": {"NAME": "x-r1-seed9-a{attempt}"}, "command": ["true"]},
+            {"id": "x-r1-spider", "seed": 1, "needs": ["x-r1"], "command": ["true"]},
+            {"id": "old-seed2", "command": ["true"]}, {"id": "plain", "command": ["true"]}]
+    path = campaign_file(tmp_path, "stated", rows)
+    campaign = runner.load_campaign(path)
+    assert [runner.seed_of(row) for row in campaign["rows"]] == [1, 1, 2, None]
+    assert runner.filter_seeds(campaign, [9]) == ["x-r1", "x-r1-spider", "old-seed2"], "the field first, the name only without it"
+    capsys.readouterr()
+    assert runner.main(["plan", str(path)]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "[x-r1] needs: nothing\n  seed: 1\n" in out and "[old-seed2] needs: nothing\n  seed: 2 (from its name)\n" in out
+    assert "[plain] needs: nothing\n  command:" in out
+
+
+@pytest.mark.parametrize("seed", ["1", -1, True, 1.5])
+def test_a_seed_that_is_not_a_whole_number_refuses(work, tmp_path, capsys, seed):
+    path = campaign_file(tmp_path, "badseed", [{"id": "a", "seed": seed, "command": ["true"]}])
+    assert runner.main(["plan", str(path)]) == runner.EXIT_REFUSED
+    assert "row a: seed must be a whole number" in capsys.readouterr().err
+
+
+# ------------------------------------------------------------------------------------ `seed:` in the committed campaigns
+SEEDED = re.compile(r"seed(\d+)|-r(\d+)(?:-|$)")
+
+
+@pytest.mark.parametrize("path", CAMPAIGNS, ids=lambda p: p.name)
+def test_every_seeded_row_states_its_seed(path):
+    """A row whose id or run NAME is built per seed (`seed<N>`) or per run (`-r<N>`) carries `seed:`, and agrees."""
+    for row in yaml.safe_load(path.read_text())["rows"]:
+        named = [m for text in (row["id"], str((row.get("env") or {}).get("NAME", ""))) for m in SEEDED.finditer(text)]
+        if named:
+            assert isinstance(row.get("seed"), int), "%s carries no seed: field" % row["id"]
+            assert {int(m.group(1) or m.group(2)) for m in named} == {row["seed"]}, row["id"]
+
+
+def test_seeds_1_2_on_the_anchor_plan_the_base_the_r1_and_r2_rows_and_the_report(work, capsys):
+    assert runner.main(["plan", str(ROOT / "kit" / "campaigns" / "k3-anchor.yaml"), "--seeds", "1-2"]) == runner.EXIT_OK
+    planned = re.findall(r"(?m)^\[([^\]]+)\]", capsys.readouterr().out)
+    spider = ["%s-r%d%s" % (arm, run, part) for arm in ("ref20", "kl01", "kl10", "ent01", "lr06", "lr36", "lr06kl") for run in (1, 2)
+              for part in ("", "-spider", "-delta")]
+    gsm8k = ["%s-r%d%s" % (arm, run, part) for arm in ("g-ref", "g-lr06", "g-lr06kl", "g-kl01") for run in (1, 2)
+             for part in ("", "-gsm8k", "-delta")]
+    assert sorted(planned) == sorted(["base-spider", "base-gsm8k", "report"] + spider + gsm8k) and len(planned) == 69
+
+
+def test_the_dose_probe_filters_each_arm_with_its_scoring_and_delta(work, capsys):
+    """Every probe arm is one run at seed 0: `--seeds 1` drops the run, its scoring and its delta together."""
+    assert runner.main(["plan", str(ROOT / "kit" / "campaigns" / "k3-dose-probe.yaml"), "--seeds", "1"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert re.findall(r"(?m)^\[([^\]]+)\]", out) == ["base-spider", "stuck", "subset", "pool1920", "report"]
+    assert "refused unless it already passed" not in out
+
+
+# ------------------------------------------------------------------------------------ report rows in the committed campaigns
+# A report row NEEDS only pilots and the untrained (base) scorings and WANTS every per-seed row it reads, so a
+# reduced-seed run (`--seeds 0-4`) still writes a report and records its verdict. The count pins each one.
+REPORT_WANTS = {"k1a-forgetting-of-k0.yaml": 5, "k1c-grpo-baselines.yaml": 100, "k2-recovery-test.yaml": 0,
+                "k2b-route.yaml": 60, "k3-anchor.yaml": 33, "k3-dose-2.yaml": 12, "k3-dose-probe.yaml": 4,
+                "k3-replay.yaml": 140, "k4-hints.yaml": 200, "k4a-stuck-problems.yaml": 18, "k5-sequence.yaml": 24}
+
+
+def test_every_campaign_with_a_report_row_is_listed():
+    assert sorted(p.name for p in CAMPAIGNS if "\n  - id: report\n" in p.read_text()) == sorted(REPORT_WANTS)
+
+
+@pytest.mark.parametrize("name", sorted(REPORT_WANTS))
+def test_every_report_row_needs_only_pilots_and_base_scorings_and_wants_its_seed_rows(work, name):
+    campaign = runner.load_campaign(ROOT / "kit" / "campaigns" / name)
+    rows = {row["id"]: row for row in campaign["rows"]}
+    memo: dict = {}
+
+    def per_seed(rid: str) -> bool:
+        """The row carries a seed, or needs (through rows that are not pilots) one that does."""
+        if rid not in memo:
+            row = rows[rid]
+            memo[rid] = runner.seed_of(row) is not None or (not row.get("pilot") and any(map(per_seed, row["_stated_needs"])))
+        return memo[rid]
+
+    report = rows["report"]
+    assert [n for n in report["_stated_needs"] if rows[n].get("pilot") or not per_seed(n)] == report["_stated_needs"]
+    assert all(per_seed(w) for w in report["wants"]) and len(report["wants"]) == REPORT_WANTS[name]
+    assert any(per_seed(rid) for rid in rows) == bool(report["wants"])

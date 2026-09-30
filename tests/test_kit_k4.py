@@ -766,8 +766,8 @@ def test_every_bed_arm_and_seed_is_trained_scored_and_reported(campaign):
                 assert point in ids, point
                 assert "%s-eval" % point in ids
                 assert "%s-forget" % point in ids
-                assert "%s-eval" % point in report["needs"]
-                assert "%s-forget" % point in report["needs"]
+                assert "%s-eval" % point in report["wants"]
+                assert "%s-forget" % point in report["wants"]
         assert "base-%s" % bed in ids and "base-%s" % bed in report["needs"]
 
 

@@ -59,6 +59,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import random
 import re
 import sys
 from decimal import Decimal, InvalidOperation
@@ -380,6 +381,96 @@ def cmd_score(args) -> int:
     return 0
 
 
+# ------------------------------------------------------------------ supervised targets (package K2b)
+SOURCE_ID = re.compile(r"^%s-(?P<split>train|test)-(?P<position>\d+)$" % DATA_SOURCE)
+CALCULATOR = re.compile(r"<<[^<>]*>>")        # the dataset's calculator annotations, `<<48/2=24>>`: not prose
+
+
+def sft_response(solution: str, gold: str) -> str:
+    """The dataset's worked solution in the form this bed asks for: its reasoning lines, calculator
+    annotations removed, then a last line `Answer: <gold>` in place of `#### <gold>`."""
+    reasoning = CALCULATOR.sub("", str(solution).split(GOLD_MARK)[0])
+    lines = [line.rstrip() for line in reasoning.strip().split("\n") if line.strip()]
+    return "\n".join(lines + ["Answer: %s" % gold])
+
+
+def sft_rows(rows: list, root, allow_subset: bool = False) -> list:
+    """(prompt, response) pairs for the SFT trainer, one per trainer row, in the rows' order.
+
+    The prompt is the row's own user turn, the text the GRPO trainer renders; the SFT trainer wraps it in the
+    same single user turn. The response comes from the dataset's solution for the question the row was built
+    from, found by the row's id; the question and the gold must match the row's, or nothing is written."""
+    splits: dict = {}
+    out = []
+    for row in rows:
+        index = str(row["extra_info"]["index"])
+        found = SOURCE_ID.match(index)
+        if not found:
+            raise SystemExit("row %s: not an id this bed writes, so its solution cannot be found" % index)
+        if found["split"] not in splits:
+            splits[found["split"]] = load(root, found["split"], expect_size=not allow_subset)
+        items = splits[found["split"]]
+        position = int(found["position"])
+        item = items[position] if position < len(items) else None
+        if item is None or item["id"] != index:
+            raise SystemExit("row %s: the GSM8K copy under %s has no such row" % (index, root))
+        if normalise(item["question"]) != normalise(row["extra_info"]["problem"]):
+            raise SystemExit("row %s: the dataset's question is not the one the row was built from" % index)
+        gold = str(row["reward_model"]["ground_truth"])
+        if not is_correct(item["gold"], gold):
+            raise SystemExit("row %s: the dataset's gold %s is not the row's %s" % (index, item["gold"], gold))
+        turns = row["prompt"]
+        if len(turns) != 1 or turns[0]["role"] != "user" or turns[0]["content"] != render_prompt(item):
+            raise SystemExit("row %s: the prompt is not one user turn rendered by this bed" % index)
+        out.append({"id": index, "prompt": turns[0]["content"], "response": sft_response(item["answer"], gold), "gold": gold,
+                    "annotations_removed": len(CALCULATOR.findall(item["answer"]))})
+    return out
+
+
+def cmd_sft_export(args) -> int:
+    source, out = Path(args.source), Path(args.out)
+    kind = "parquet" if source.suffix == ".parquet" else "jsonl"
+    paths = {ext: out / ("%s.%s" % (source.stem, ext)) for ext in ("parquet", "jsonl", "manifest.json")}
+    for path in paths.values():
+        if path.exists():
+            raise SystemExit("refusing to overwrite %s: an output is never replaced, write to a new directory" % path)
+    try:
+        import pyarrow as pa                                                  # noqa: PLC0415
+        import pyarrow.parquet as pq                                          # noqa: PLC0415
+    except ImportError:
+        raise SystemExit("the SFT trainer reads parquet and pyarrow is not installed: nothing was written")
+    panel = panel_questions(Path(args.panel) if args.panel else PANEL_PATH)
+    rows = _read(source, kind)
+    left = rows_contaminated(rows, panel)
+    if left:
+        raise SystemExit("refusing: %d of %d rows of %s carry a forgetting-panel question (e.g. %s)" % (len(left), len(rows), source, left[:3]))
+    pairs = sft_rows(rows, Path(args.gsm8k_root), args.allow_subset)
+    # The bed's own scorer marks every target it would train on: a target it would mark wrong teaches the wrong answer.
+    wrong = [pair["id"] for pair in pairs if compute_score(DATA_SOURCE, pair["response"], pair["gold"])["acc"] != 1.0]
+    if wrong:
+        raise SystemExit("refusing: %d of %d exported responses do not score correct against their own gold (e.g. %s)" % (len(wrong), len(pairs), wrong[:3]))
+    records = [{"id": p["id"], "prompt": p["prompt"], "response": p["response"]} for p in pairs]
+    # The SFT trainer samples nothing and shuffles with a fixed seed, so repeats on one file are near-copies of one
+    # run: a seed gives a repeat the same rows in its own order, and nothing else.
+    if args.seed is not None:
+        random.Random(args.seed).shuffle(records)
+    out.mkdir(parents=True, exist_ok=True)
+    text = "".join(json.dumps(r, sort_keys=True, ensure_ascii=False) + "\n" for r in records)
+    paths["jsonl"].write_text(text, encoding="utf-8")
+    pq.write_table(pa.Table.from_pylist(records), paths["parquet"])
+    manifest = {"schema": "kit-bed-gsm8k-sft.v1", "source": str(source.resolve()), "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                "rows": len(records), "scored_correct": len(records) - len(wrong), "jsonl_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                "parquet_sha256": hashlib.sha256(paths["parquet"].read_bytes()).hexdigest(),
+                "instruction_sha256": hashlib.sha256(INSTRUCTION.encode("utf-8")).hexdigest(),
+                "calculator_annotations_removed": sum(p["annotations_removed"] for p in pairs),
+                "max_chars": max((len(r["prompt"]) + len(r["response"]) for r in records), default=0), "allow_subset": bool(args.allow_subset)}
+    if args.seed is not None:
+        manifest.update(seed=args.seed, order_sha256=hashlib.sha256("\n".join(r["id"] for r in records).encode("utf-8")).hexdigest())
+    paths["manifest.json"].write_text(json.dumps(manifest, indent=1, sort_keys=True))
+    print("exported %d SFT rows from %s to %s, every response scored correct by this bed" % (len(records), source, paths["parquet"]))
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="GSM8K bed: prepare trainer files, or score saved responses.")
     sub = parser.add_subparsers(dest="action", required=True)
@@ -398,8 +489,15 @@ def main(argv=None) -> int:
     s.add_argument("--heldout-n", type=int, default=HELD_OUT_N)
     s.add_argument("--panel")
     s.add_argument("--allow-subset", action="store_true")
+    e = sub.add_parser("sft-export", help="(prompt, response) parquet for the SFT trainer from prepared trainer rows (package K2b)")
+    e.add_argument("--from", dest="source", required=True, help="a prepared train or heldout file, .parquet or .jsonl")
+    e.add_argument("--gsm8k-root", required=True, help="the dataset copy the rows were prepared from: it holds the worked solutions")
+    e.add_argument("--out", required=True, help="directory; writes <stem>.parquet, <stem>.jsonl and <stem>.manifest.json")
+    e.add_argument("--panel")
+    e.add_argument("--allow-subset", action="store_true")
+    e.add_argument("--seed", type=int, help="write the same rows in the order random.Random(SEED).shuffle gives (default: the source's order)")
     args = parser.parse_args(argv)
-    return {"prepare": cmd_prepare, "score": cmd_score}[args.action](args)
+    return {"prepare": cmd_prepare, "score": cmd_score, "sft-export": cmd_sft_export}[args.action](args)
 
 
 if __name__ == "__main__":

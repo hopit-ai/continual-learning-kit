@@ -86,7 +86,7 @@ python $KIT/runner.py run $KIT/campaigns/k3-replay.yaml --all
 python $KIT/runner.py status $KIT/campaigns/k3-replay.yaml
 ```
 
-`run` stops at the first refusal or failure; fixing the cause and running the same command again skips everything that already passed. A retry of one row is a new attempt in its own directory — nothing is ever overwritten.
+`run` stops at a refusal or failure that a later row needs (a pilot, a data step); a failed run that only the report wants is skipped and the report records it; fixing the cause and running the same command again skips everything that already passed. A retry of one row is a new attempt in its own directory — nothing is ever overwritten.
 
 ## How long this takes, and why that number is a guess
 

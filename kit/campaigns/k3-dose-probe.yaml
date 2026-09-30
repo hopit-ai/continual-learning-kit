@@ -88,6 +88,7 @@ rows:
   # ---- `steps60`'s training file: three passes over the same 640 questions, written as 1,920 rows,
   # because the trainer reads its file once and in order.
   - id: pool1920
+    needs: [base-spider]
     requires: ["{work}/data/spider/train.parquet"]
     env: {OUT: "{work}/k3dose/data/spider1920-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/sequence.py\" pool --from \"{work}/data/spider/train.parquet\" --rows 1920 --seed 0 --out \"{env.OUT}\""]
@@ -97,6 +98,7 @@ rows:
   # ---- ARM 1, ref20: K3's stage A exactly, rerun here. Its gap from zero is this pipeline's own
   # run-to-run noise, and no other arm means anything without it.
   - id: ref20
+    seed: 0
     description: "the reference dose, rerun on this machine (the pipeline's own run-to-run noise)"
     needs: [base-spider]
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
@@ -107,6 +109,7 @@ rows:
       - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
       - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
   - id: ref20-spider
+    seed: 0
     needs: [ref20]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose/eval/ref20-spider-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/ref20-seed0-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
@@ -115,6 +118,7 @@ rows:
 
   # ---- ARM 2, steps60: the same questions three times over, at the reference learning rate.
   - id: steps60
+    seed: 0
     description: "three passes over the same 640 questions: 60 steps instead of 20"
     needs: [base-spider, pool1920]
     requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
@@ -125,6 +129,7 @@ rows:
       - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
       - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 60}
   - id: steps60-spider
+    seed: 0
     needs: [steps60]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose/eval/steps60-spider-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/steps60-seed0-a*/hf-step60 | sort -V | tail -1)\" --out \"{env.OUT}\""]
@@ -133,6 +138,7 @@ rows:
 
   # ---- ARM 3, lr3x: the reference dose, three times the learning rate. Warm-up is still 10 of 20.
   - id: lr3x
+    seed: 0
     description: "the reference dose at three times the learning rate"
     needs: [base-spider]
     requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
@@ -143,6 +149,7 @@ rows:
       - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
       - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
   - id: lr3x-spider
+    seed: 0
     needs: [lr3x]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose/eval/lr3x-spider-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/lr3x-seed0-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
@@ -151,6 +158,7 @@ rows:
 
   # ---- ARM 4, hard20: the reference dose over the questions that carry gradient.
   - id: hard20
+    seed: 0
     description: "20 steps over the questions the untrained model does NOT already solve every time"
     needs: [base-spider, subset]
     requires: ["{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
@@ -161,6 +169,7 @@ rows:
       - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
       - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
   - id: hard20-spider
+    seed: 0
     needs: [hard20]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3dose/eval/hard20-spider-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/hard20-seed0-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
@@ -168,10 +177,12 @@ rows:
       - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
 
   # ---- The readout: the four arms side by side, with the paired churn, the exact McNemar p, what
-  # the trainer logged per step and what a correct answer costs. It needs the five scorings and
-  # nothing else, so a delta row below cannot keep it from being written.
+  # the trainer logged per step and what a correct answer costs. It needs the untrained scoring and
+  # wants the four arm scorings (ordering only: one that failed or that --seeds skipped does not
+  # block it; its bar says what it found), so a delta row below cannot keep it from being written.
   - id: report
-    needs: [base-spider, ref20-spider, steps60-spider, lr3x-spider, hard20-spider]
+    needs: [base-spider]
+    wants: [ref20-spider, steps60-spider, lr3x-spider, hard20-spider]
     env: {OUT: "{work}/k3dose/report/a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/k3_dose_report.py\" --root \"{work}/k3dose\" --runs \"{work}/runs\" --out \"{env.OUT}\""]
     bars:
@@ -183,6 +194,7 @@ rows:
   # to the dose did not make the model learn SQL. `run --all` still stops at the first failure, so
   # run the remaining delta rows with `--row <id>`.
   - id: ref20-delta
+    seed: 0
     needs: [base-spider, ref20-spider]
     env: {OUT: "{work}/k3dose/deltas/ref20-a{attempt}.json"}
     command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose/eval/ref20-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
@@ -190,6 +202,7 @@ rows:
       - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}   # the +5 verdict is the report's; a failing arm must not halt `run --all`
       - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
   - id: steps60-delta
+    seed: 0
     needs: [base-spider, steps60-spider]
     env: {OUT: "{work}/k3dose/deltas/steps60-a{attempt}.json"}
     command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose/eval/steps60-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
@@ -197,6 +210,7 @@ rows:
       - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}   # the +5 verdict is the report's; a failing arm must not halt `run --all`
       - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
   - id: lr3x-delta
+    seed: 0
     needs: [base-spider, lr3x-spider]
     env: {OUT: "{work}/k3dose/deltas/lr3x-a{attempt}.json"}
     command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose/eval/lr3x-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
@@ -204,6 +218,7 @@ rows:
       - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}   # the +5 verdict is the report's; a failing arm must not halt `run --all`
       - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
   - id: hard20-delta
+    seed: 0
     needs: [base-spider, hard20-spider]
     env: {OUT: "{work}/k3dose/deltas/hard20-a{attempt}.json"}
     command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3dose/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3dose/eval/hard20-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]

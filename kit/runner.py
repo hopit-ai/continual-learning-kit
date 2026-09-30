@@ -4,16 +4,34 @@
     python runner.py plan    campaigns/toy.yaml                # print what would run; executes nothing
     python runner.py prepare campaigns/toy.yaml --all          # every row's IO, on a CPU machine, before any GPU is held
     python runner.py run     campaigns/toy.yaml --row pilot    # run one row
-    python runner.py run    campaigns/toy.yaml --all           # run every row in order; stops at a refusal
+    python runner.py run    campaigns/toy.yaml --all           # run every row in order; stops at a failure a later row needs
     python runner.py status campaigns/toy.yaml                 # verdict of every row
     python runner.py batch  campaigns/a.yaml campaigns/b.yaml  # prepare --all then run --all for each, in order;
                                                                # stops at the first campaign that does not pass
     python runner.py batch  --plan campaigns/a.yaml campaigns/b.yaml   # every campaign's plan; executes nothing
+    python runner.py batch  --seeds 0-4 campaigns/a.yaml       # plan, prepare, run and batch: only seeds 0..4
 
 The rule this file enforces: **no row runs big unless the same experiment ran small first and
 passed a bar written in advance.** A row marked `pilot: true` is judged against its `bars` when it
 finishes. Every later row needs every earlier pilot's latest verdict to be PASS, plus any rows it names
-in `needs`, and is REFUSED otherwise: nothing is launched, exit code 2.
+in `needs`, and is REFUSED otherwise: nothing is launched, exit code 2. The campaign file STATES the pilot
+gate too: each pilot needs the previous pilot, every other row needs the most recent pilot before it, and
+a row that does not reach every earlier pilot through `needs` is an implicit order (below).
+
+`wants` is ordering only: a row runs after the rows it wants when they are scheduled, but a wanted row
+that failed, was refused or is not scheduled does not block it at the gate (a report row wants its
+per-seed scorings and needs only the pilots and the base scorings; its bars judge what it found).
+After a row fails or is refused, `run --all` (and so `batch`) goes on when no later scheduled row needs it,
+directly or through rows it needs ("continuing: ..."), and stops there, naming the row, when one does; it
+exits non-zero either way. A row that only wants the failed row runs, and its start.json and verdict.json
+list it under `wants_not_passed`.
+
+`--seeds 0,1,2` or `--seeds 0-4` (plan, prepare, run, batch) skips every row whose `seed:` is outside the
+set. A row that belongs to one repeat states its seed (`seed: 3`); a row without the field falls back to
+`seed<N>` in its id, or else in its NAME env (campaigns written before the field), and a row with neither
+is kept. A skipped row is neither run nor recorded and blocks no row that only wants it; a row that NEEDS
+one (and it has not passed already) is refused, naming it. Every start.json and verdict.json records the
+seed filter in use.
 
 **All IO happens before a GPU is held.** A row may list `prepare` commands (downloads, format
 conversions, tokenising, anything that needs no GPU) and `requires` paths (the model directory, the
@@ -22,6 +40,10 @@ pilot, since fetching data early wastes nothing. `run` REFUSES a row whose prepa
 passed or whose required paths are missing, before its command starts, so an allocated GPU never
 waits on a download. Phase 1 paid for exactly that: 700 seconds of cold dataset download inside a
 GPU container, and GPUs idle for a quarter to 85 percent of a step while scoring ran serially.
+Every such order must be STATED: a row that requires a path another row's prepare (or command) writes must
+name that row in `needs`, directly or through a row it needs. `plan` prints each one that is only implied
+("IMPLICIT ORDER: ...") and exits 2, and `prepare`/`run`/`batch` refuse the campaign before doing anything:
+file order is free here, but a parallel dispatcher sees two independent rows and starts both.
 One exception: a row that requires a path under {work} which an EARLIER row's command writes (a model
 that row merges, a file it generates) cannot be prepared before that row has run. `prepare --all`
 defers it ("deferred: ..."), records nothing, and `run --all` prepares it right before running it.
@@ -87,14 +109,25 @@ def load_campaign(path: Path) -> dict:
         for command in row.get("prepare") or []:
             if not isinstance(command, list) or not command:
                 raise CampaignError("row %s: each prepare entry must be a non-empty command list" % row["id"])
-        # every earlier pilot is ALWAYS required; a row's own `needs` adds to that, it never replaces it
-        row["needs"] = list(dict.fromkeys(list(seen_pilots) + list(row.get("needs") or [])))
+        # every earlier pilot is ALWAYS required; a row's own `needs` adds to that, it never replaces it.
+        # What the file states is kept apart, so `implicit_edges` can tell a stated pilot edge from the gate's.
+        row["_stated_needs"] = list(row.get("needs") or [])
+        row["needs"] = list(dict.fromkeys(list(seen_pilots) + row["_stated_needs"]))
         unknown = [n for n in row["needs"] if n not in ids[:ids.index(row["id"])]]
         if unknown:
             raise CampaignError("row %s needs rows that do not come before it: %s" % (row["id"], unknown))
+        if not isinstance(row.get("wants") or [], list):
+            raise CampaignError("row %s: wants must be a list of row ids" % row["id"])
+        row["wants"] = list(dict.fromkeys(row.get("wants") or []))
+        unknown = [w for w in row["wants"] if w not in ids[:ids.index(row["id"])]]
+        if unknown:
+            raise CampaignError("row %s wants rows that do not come before it: %s" % (row["id"], unknown))
+        if "seed" in row and (not isinstance(row["seed"], int) or isinstance(row["seed"], bool) or row["seed"] < 0):
+            raise CampaignError("row %s: seed must be a whole number, found %r" % (row["id"], row["seed"]))
         if row.get("pilot"):
             seen_pilots.append(row["id"])
     campaign["_path"] = str(path.resolve())
+    campaign["_seeds"], campaign["_skipped"] = None, []
     campaign["_sha256"] = hashlib.sha256(text.encode()).hexdigest()
     return campaign
 
@@ -105,6 +138,44 @@ def work_root(campaign: dict) -> Path:
     if not value:
         raise CampaignError("set %s to the directory that holds outputs" % name)
     return Path(value).resolve()
+
+
+_SEED = re.compile(r"seed(\d+)")
+
+
+def seed_of(row: dict) -> int | None:
+    """The seed a row carries: its `seed:` field, or (a campaign written before the field) `seed<N>` in its id, or
+    else in its NAME env; None for a row with no seed."""
+    if "seed" in row:
+        return row["seed"]
+    for text in (row["id"], str((row.get("env") or {}).get("NAME", ""))):
+        match = _SEED.search(text)
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def parse_seeds(text: str) -> list:
+    """`0,1,2,3,4` or `0-4` (or a mix, `0-2,7`) as a sorted list of seeds."""
+    seeds = set()
+    for part in (p.strip() for p in text.split(",") if p.strip()):
+        match = re.fullmatch(r"(\d+)(?:\s*-\s*(\d+))?", part)
+        if not match or int(match.group(2) or match.group(1)) < int(match.group(1)):
+            raise CampaignError("--seeds takes numbers and rising ranges, e.g. 0,1,2 or 0-4; found %r" % part)
+        seeds.update(range(int(match.group(1)), int(match.group(2) or match.group(1)) + 1))
+    if not seeds:
+        raise CampaignError("--seeds names no seed: %r" % text)
+    return sorted(seeds)
+
+
+def filter_seeds(campaign: dict, seeds: list | None) -> list:
+    """Record the seed filter on the campaign and print each row it skips, once; returns the skipped ids."""
+    campaign["_seeds"] = seeds
+    campaign["_skipped"] = [] if seeds is None else [row["id"] for row in campaign["rows"]
+                                                     if seed_of(row) is not None and seed_of(row) not in seeds]
+    for rid in campaign["_skipped"]:
+        print("skipped (seed filter): %s" % rid)
+    return campaign["_skipped"]
 
 
 def fill(template: str, row: dict, campaign: dict, attempt: int) -> str:
@@ -189,27 +260,98 @@ def outputs(spec: dict) -> set:
     return {path.rstrip("/") for path in found}
 
 
+def prepared(spec: dict) -> set:
+    """The paths a row's prepare steps say they write, read the way `outputs` reads a command."""
+    return outputs({"command": [part for command in spec["prepare"] for part in command], "env": {}})
+
+
+def writers(campaign: dict, path: str, written: list) -> list:
+    """The ids in `written` ([(row id, paths it writes)]) that write `path`, or a folder it lies in below {work}
+    itself, most specific path first. A path outside {work} (a dataset root, a model elsewhere) has no writer."""
+    work = str(work_root(campaign))
+    if not path.startswith(work + os.sep):
+        return []
+    candidates, parent = [path], os.path.dirname(path)
+    while parent.startswith(work + os.sep):
+        candidates.append(parent)
+        parent = os.path.dirname(parent)
+    return list(dict.fromkeys(rid for candidate in candidates for rid, paths in written if candidate in paths))
+
+
 def producers(campaign: dict, row: dict) -> dict:
     """{required path: id of the first EARLIER row whose command writes it}, for this row's requires under {work}.
 
     Such a path is an input that an earlier GPU row writes (K2's `small-before` reads the model `small-make-damaged`
     merges with `--out`), so it cannot exist when `prepare --all` runs before anything has run. A row writes the path
     when it names the path itself as an output, or a folder the path lies in (below {work} itself)."""
-    work = str(work_root(campaign))
     ids = [r["id"] for r in campaign["rows"]]
     written = [(other["id"], outputs(resolve(other, campaign, 1))) for other in campaign["rows"][:ids.index(row["id"])]]
     found = {}
     for path in resolve(row, campaign, 1)["requires"]:
-        if not path.startswith(work + os.sep):
-            continue                                             # external: a dataset root, a model outside {work}
-        candidates, parent = [path], os.path.dirname(path)
-        while parent.startswith(work + os.sep):
-            candidates.append(parent)
-            parent = os.path.dirname(parent)
-        owner = next((rid for candidate in candidates for rid, paths in written if candidate in paths), None)
-        if owner is not None:
-            found[path] = owner
+        owners = writers(campaign, path, written)
+        if owners:
+            found[path] = owners[0]
     return found
+
+
+def implicit_edges(campaign: dict) -> list:
+    """[(row, required path, writer row, "prepare" or "command")] for every order a campaign implies without stating,
+    and (row, None, pilot, "pilot") for every earlier pilot a row does not reach through its stated `needs`.
+
+    A row that requires a path another row's prepare steps (or its command, see `outputs`) write depends on that row,
+    and says so only when its `needs`, followed transitively, reach one of the path's writers. `runner.py` gets the
+    order free by running rows in file order; a parallel dispatcher sees two independent rows and starts both (K1c,
+    30 September: `base17b-gsm8k` required the GSM8K files `base17b-finqa`'s prepare builds). A row whose own prepare
+    writes the path depends on nobody for it. The writer named is the earliest one, so adding it to `needs` fixes it.
+    A `wants` edge states a file order too (a report reading what a seed row wrote may want it).
+
+    The pilot gate is an order as well (30 September: the partner's dispatcher launched `base-forget-2` beside the
+    pilot `base-forget-1`, and the runner refused it), so a row must reach every earlier pilot through `needs`,
+    followed transitively; the pilots the gate adds by itself, and `wants`, do not count."""
+    rows, order = campaign["rows"], {row["id"]: n for n, row in enumerate(campaign["rows"])}
+    specs = {row["id"]: resolve(row, campaign, 1) for row in rows}
+    by_prepare = [(rid, prepared(spec)) for rid, spec in specs.items()]
+    by_command = [(rid, outputs(spec)) for rid, spec in specs.items()]
+    needs = {row["id"]: row.get("_stated_needs", row["needs"]) for row in rows}
+    stated = {row["id"]: needs[row["id"]] + list(row.get("wants") or []) for row in rows}
+
+    def upstream(rid: str, edges_of: dict) -> set:
+        seen, todo = set(), list(edges_of[rid])
+        while todo:
+            other = todo.pop()
+            if other not in seen:
+                seen.add(other)
+                todo.extend(edges_of.get(other, []))
+        return seen
+
+    edges, pilots = [], []
+    for row in rows:
+        rid, reached = row["id"], upstream(row["id"], stated)
+        for path in specs[rid]["requires"]:
+            if writers(campaign, path, [(rid, prepared(specs[rid]))]):
+                continue
+            found = {}
+            for how, written in (("command", by_command), ("prepare", by_prepare)):   # prepare wins when both write it
+                found.update({other: how for other in writers(campaign, path, [w for w in written if w[0] != rid])})
+            if found and not reached & set(found):
+                writer = min(found, key=order.get)
+                edges.append((rid, path, writer, found[writer]))
+        gated = upstream(rid, needs)
+        edges.extend((rid, None, pilot, "pilot") for pilot in pilots if pilot not in gated)
+        if row.get("pilot"):
+            pilots.append(rid)
+    return edges
+
+
+def refuse_implicit(campaign: dict) -> bool:
+    """Print every implicit edge; True when there is any, so the campaign must not be planned, prepared or run."""
+    edges = implicit_edges(campaign)
+    for rid, path, writer, how in edges:
+        if how == "pilot":
+            print("IMPLICIT ORDER: %s comes after pilot %s but does not need it" % (rid, writer))
+        else:
+            print("IMPLICIT ORDER: %s requires %s, written by %s's %s, but does not need %s" % (rid, path, writer, how, writer))
+    return bool(edges)
 
 
 def deferred(campaign: dict, row: dict) -> dict:
@@ -304,7 +446,10 @@ def gate(campaign: dict, row: dict) -> list:
     reasons = []
     for needed in row["needs"]:
         verdict = latest_verdict(campaign, needed)
-        if verdict is None:
+        if needed in campaign.get("_skipped", ()) and (verdict or {}).get("verdict") != "PASS":
+            reasons.append("needs %s, which the seed filter skips (--seeds %s) and which has not passed"
+                           % (needed, ",".join(map(str, campaign["_seeds"]))))
+        elif verdict is None:
             reasons.append("needs %s, which has not run" % needed)
         elif verdict["verdict"] != "PASS":
             reasons.append("needs %s, whose latest verdict is %s (%s)" % (needed, verdict["verdict"], verdict.get("reason") or "see its verdict.json"))
@@ -324,8 +469,12 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     spec = resolve(row, campaign, number)
     out = row_dir(campaign, row["id"]) / ("attempt-%d" % number)
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    unmet = [w for w in row.get("wants") or [] if (latest_verdict(campaign, w) or {}).get("verdict") != "PASS"]
+    if unmet:
+        print("note %s: runs without %d wanted row(s) that have not passed: %s" % (row["id"], len(unmet), ", ".join(unmet)))
     write_durably(out / "start.json", {"schema": SCHEMA, "campaign": campaign["name"], "campaign_sha256": campaign["_sha256"],
                                        "row": row["id"], "attempt": number, "pilot": bool(row.get("pilot")), "needs": row["needs"],
+                                       "wants": row.get("wants") or [], "wants_not_passed": unmet, "seeds": campaign.get("_seeds"),
                                        "started_at": started, **{k: spec[k] for k in ("command", "env", "cwd")}})
     print("RUN %s attempt %d: %s" % (row["id"], number, " ".join(spec["command"])))
     clock = time.monotonic()
@@ -346,16 +495,28 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         verdict, reason = "PASS", None
     write_durably(out / "verdict.json", {"schema": SCHEMA, "row": row["id"], "attempt": number, "verdict": verdict, "reason": reason,
                                          "returncode": returncode, "bars": bars, "started_at": started,
+                                         "seeds": campaign.get("_seeds"), "wants_not_passed": unmet,
                                          "seconds": round(time.monotonic() - clock, 1)})
     print("%s %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
     return EXIT_OK if verdict == "PASS" else EXIT_FAILED
 
 
 def cmd_plan(campaign: dict) -> int:
+    skipped = campaign.get("_skipped") or []
     print("campaign %s (%s rows), outputs under %s" % (campaign["name"], len(campaign["rows"]), work_root(campaign)))
+    if campaign.get("_seeds") is not None:
+        print("seed filter: %s (%d rows skipped)" % (",".join(map(str, campaign["_seeds"])), len(skipped)))
     for row in campaign["rows"]:
+        if row["id"] in skipped:
+            continue
         spec = resolve(row, campaign, 1)
         print("\n[%s]%s needs: %s" % (row["id"], " PILOT" if row.get("pilot") else "", ", ".join(row["needs"]) or "nothing"))
+        if seed_of(row) is not None:
+            print("  seed: %d%s" % (seed_of(row), "" if "seed" in row else " (from its name)"))
+        if row.get("wants"):
+            print("  wants: %s" % ", ".join(row["wants"]))
+        for needed in (n for n in row["needs"] if n in skipped):
+            print("  refused unless it already passed: needs %s, which the seed filter skips" % needed)
         for command in spec["prepare"]:
             print("  prepare (no GPU): %s" % " ".join(command))
         for path in spec["requires"]:
@@ -366,7 +527,11 @@ def cmd_plan(campaign: dict) -> int:
         for bar in spec["bars"]:
             print("  bar %s: %s of %s in [%s, %s] from %s" % (bar.get("name", bar["key"]), bar.get("agg", "last"), bar["key"],
                                                              bar.get("min"), bar.get("max"), bar["source"]))
-    return EXIT_OK
+    if not implicit_edges(campaign):
+        return EXIT_OK
+    print()
+    refuse_implicit(campaign)
+    return EXIT_REFUSED
 
 
 def cmd_status(campaign: dict) -> int:
@@ -381,6 +546,8 @@ def cmd_status(campaign: dict) -> int:
 def cmd_prepare(campaign: dict, rows: list, every: bool) -> int:
     codes = []
     for row in rows:                                                  # every row, even after a failure: IO is independent
+        if row["id"] in campaign.get("_skipped", ()):
+            continue                                                  # printed once when the filter was applied
         waiting = deferred(campaign, row) if every else {}
         if waiting:                                                   # records nothing, so nothing is gated by it
             for path, owner in waiting.items():
@@ -390,34 +557,72 @@ def cmd_prepare(campaign: dict, rows: list, every: bool) -> int:
     return EXIT_OK if all(code == EXIT_OK for code in codes) else EXIT_FAILED
 
 
+def needed_later(campaign: dict, rows: list, failed: str) -> list:
+    """The rows after `failed` in `rows` that `run --all` will still run (the seed filter keeps them and they have not
+    passed already) and that need it, directly or through the rows they need (the gate's pilots included)."""
+    by_id = {row["id"]: row for row in campaign["rows"]}
+    memo: dict = {}
+
+    def reaches(rid: str) -> bool:
+        if rid not in memo:
+            memo[rid] = False                                          # needs point only backwards: no cycle
+            memo[rid] = any(n == failed or reaches(n) for n in by_id[rid]["needs"])
+        return memo[rid]
+    later = rows[[row["id"] for row in rows].index(failed) + 1:]
+    return [row["id"] for row in later if row["id"] not in campaign.get("_skipped", ()) and reaches(row["id"])
+            and (latest_verdict(campaign, row["id"]) or {}).get("verdict") != "PASS"]
+
+
 def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int:
+    """Rows in file order, so a row's wants (always earlier rows) run first when scheduled. With --all, a row that
+    fails or is refused stops the run when a later scheduled row needs it (directly or transitively), and otherwise
+    the run goes on and exits with the first failure's code. A row the seed filter skips is passed over."""
+    first = EXIT_OK
     for row in rows:
+        if row["id"] in campaign.get("_skipped", ()):
+            continue                                                  # printed once when the filter was applied
         if every and (latest_verdict(campaign, row["id"]) or {}).get("verdict") == "PASS":
             print("SKIP %s: already PASS" % row["id"])
             continue
+        code = None
         if every and producers(campaign, row) and not gate(campaign, row) and not deferred(campaign, row):
             done = latest_preparation(campaign, row["id"])
             if (done or {}).get("verdict") != "PASS":                # deferred by `prepare --all`: its inputs exist now
                 print("PREPARE %s now: the rows it waited for have run" % row["id"])
                 if prepare_row(campaign, row) != EXIT_OK:
-                    print("STOP %s: its preparation failed (see the line above); nothing was launched" % row["id"])
-                    return EXIT_FAILED
-        code = run_row(campaign, row, attempt)
-        if code != EXIT_OK:
+                    print("NOT RUN %s: its preparation failed (see the line above); nothing was launched" % row["id"])
+                    code = EXIT_FAILED
+        if code is None:
+            code = run_row(campaign, row, attempt)
+        if code == EXIT_OK:
+            continue
+        if not every:
             return code
-    return EXIT_OK
+        first = first or code
+        needing = needed_later(campaign, rows, row["id"])
+        if needing:
+            print("STOP: %s did not pass and %s needs it; nothing after it runs" % (row["id"], needing[0]))
+            return first
+        wanting = [r["id"] for r in rows[rows.index(row) + 1:] if row["id"] in (r.get("wants") or [])
+                   and r["id"] not in campaign.get("_skipped", ())]
+        print("continuing: %s failed; no later row needs it (wanted by: %s)" % (row["id"], ", ".join(wanting) or "none"))
+    return first
 
 
-def cmd_batch(paths: list, plan_only: bool) -> int:
-    """prepare --all then run --all for each campaign in order; stop at the first campaign whose run does not pass."""
+def cmd_batch(paths: list, plan_only: bool, seeds: list | None = None) -> int:
+    """prepare --all then run --all for each campaign in order (inside one, a failure stops the run only when a later
+    row needs it, as in `run --all`); stop at the first campaign whose run does not pass."""
     results, code = [], EXIT_OK
     for path in paths:
         try:
             campaign = load_campaign(path)
+            filter_seeds(campaign, seeds)
             if plan_only:
                 print("\n=== %s" % path)
-                cmd_plan(campaign)
+                code = cmd_plan(campaign) or code
                 continue
+            if refuse_implicit(campaign):
+                raise CampaignError("its row order is implied, not stated (the IMPLICIT ORDER lines above)")
             print("\n=== BATCH %s: prepare --all" % campaign["name"])
             prepared = cmd_prepare(campaign, campaign["rows"], True)
             print("\n=== BATCH %s: run --all" % campaign["name"])
@@ -449,8 +654,14 @@ def main(argv=None) -> int:
                                          description="prepare --all then run --all for each campaign, in order.")
         parser.add_argument("campaigns", type=Path, nargs="+")
         parser.add_argument("--plan", action="store_true", help="print every campaign's plan; executes nothing")
+        parser.add_argument("--seeds", help="only these seeds, e.g. 0,1,2 or 0-4; rows with no seed always run")
         args = parser.parse_args(argv[1:])
-        return cmd_batch(args.campaigns, args.plan)
+        try:
+            seeds = parse_seeds(args.seeds) if args.seeds else None
+        except CampaignError as exc:
+            print("CAMPAIGN ERROR: %s" % exc, file=sys.stderr)
+            return EXIT_REFUSED
+        return cmd_batch(args.campaigns, args.plan, seeds)
     parser = argparse.ArgumentParser(description="Run a campaign of experiment rows with a pilot gate.",
                                      epilog="Several campaigns in order, one command: runner.py batch a.yaml b.yaml ... "
                                             "(prepare --all then run --all for each; --plan prints and executes nothing).")
@@ -459,9 +670,12 @@ def main(argv=None) -> int:
     parser.add_argument("--row")
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--attempt", type=int)
+    parser.add_argument("--seeds", help="plan/prepare/run only these seeds, e.g. 0,1,2 or 0-4; rows with no seed are kept")
     args = parser.parse_args(argv)
     try:
         campaign = load_campaign(args.campaign)
+        if args.action != "status":
+            filter_seeds(campaign, parse_seeds(args.seeds) if args.seeds else None)
         if args.action == "plan":
             return cmd_plan(campaign)
         if args.action == "status":
@@ -471,6 +685,8 @@ def main(argv=None) -> int:
         rows = campaign["rows"] if args.all else [r for r in campaign["rows"] if r["id"] == args.row]
         if not rows:
             raise CampaignError("no row named %r" % args.row)
+        if refuse_implicit(campaign):
+            raise CampaignError("its row order is implied, not stated: add each row named above to the row's needs")
         if args.action == "prepare":
             return cmd_prepare(campaign, rows, args.all)
         return cmd_run(campaign, rows, args.all, args.attempt)

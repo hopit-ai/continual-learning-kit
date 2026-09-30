@@ -87,7 +87,7 @@ five worked examples. If any of that is wrong, nothing is wasted.
 python $KIT/runner.py run $KIT/campaigns/k4a-stuck-problems.yaml --all
 ```
 
-That runs everything in order and stops at the first refusal. The three training pilots come first.
+That runs everything in order and stops at a refusal or failure that a later row needs; a failed run that only the report wants is skipped and the report records it. The three training pilots come first.
 Nothing else starts until all three have passed.
 
 The three `base-*` rows near the end score the untrained model and need no training, so if it suits

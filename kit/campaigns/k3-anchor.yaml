@@ -1,0 +1,1024 @@
+# Package K3 dose-and-anchor test: which dose does not break the model, and does an anchor help at that dose?
+#
+# Probes 1 and 2 (kit/campaigns/k3-dose-probe.yaml, k3-dose-2.yaml) and receipt 237 ran the reference
+# dose -- 20 GRPO steps over Spider's 640 training questions at lr 1e-5 -- nine times on one node. It
+# does not teach the untrained Qwen3-1.7B SQL: the nine runs average about -7 on the 100 held-out
+# questions. Receipt 238 (docs/phase2/analysis/spider-flips-probe1.md) found why: in EVERY run the
+# model stops writing JOINs (41 of 100 answers before, 0 to 9 after), nests subqueries instead, and
+# loses the questions whose gold answer joins tables. The partner's K1c Part B (30 September) then
+# found the same on the other beds at K3's stage-B dose (40 steps, lr 1e-5): GSM8K fell from 245 to 137
+# of 300 with the answers no longer parsing (207 malformed of 300 on one seed), FinQA from 633 to 414 of
+# 1147. Every run so far used lr 1e-5, the authors' value for an 8B; the trainer's own documentation
+# uses 1e-6, and even the 8B collapsed on one seed of five at 1e-5 under plain GRPO. So this test asks
+# two things on two beds: WHICH DOSE DOES NOT BREAK THE MODEL, and DOES AN ANCHOR HELP AT THAT DOSE.
+#
+# THE KNOBS are all kit/run_grpo.sh's, and each run's train-summary.json records them:
+#   LR=l            the actor's learning rate (`lr`).
+#   KL=1 KL_COEF=c  the trainer's own KL loss (low_var_kl) to a frozen reference copy of the STARTING
+#                   model -- here the untrained one -- weighted c. It pulls the policy back toward the
+#                   answers it started from. verl then holds that reference copy beside the actor, so
+#                   these rows need more GPU memory than plain GRPO (`kl: 1` in train-summary.json).
+#   ENTROPY_COEF=e  the actor's entropy bonus: it pays the policy for staying spread over several ways
+#                   of answering instead of collapsing onto one. Recorded as `entropy_coeff` (a string,
+#                   so no bar reads it; the report prints each row's description).
+#
+# ELEVEN ARMS, each THREE runs from the untrained model, ids <arm>-r1, -r2, -r3:
+#
+#   Spider, 20 steps on the 640-row file (the reference dose), scored on the Spider held-out 100:
+#     ref20    lr 1e-5, plain GRPO: the control, three more draws of the recipe that collapses
+#     kl01     lr 1e-5, KL=1 KL_COEF=0.01
+#     kl10     lr 1e-5, KL=1 KL_COEF=0.1
+#     ent01    lr 1e-5, ENTROPY_COEF=0.01, no KL
+#     lr06     lr 1e-6, no anchor
+#     lr36     lr 3e-6, no anchor
+#     lr06kl   lr 1e-6, KL=1 KL_COEF=0.01
+#   GSM8K, 40 steps on the 1,280-row file (K3's stage-B dose), scored on the GSM8K held-out 300:
+#     g-ref    lr 1e-5, plain GRPO: the control, K1c Part B's recipe
+#     g-lr06   lr 1e-6, no anchor
+#     g-lr06kl lr 1e-6, KL=1 KL_COEF=0.01
+#     g-kl01   lr 1e-5, KL=1 KL_COEF=0.01
+#
+# Every Spider run's environment is probe 2's `ref20` rows' but for NAME, SEED and the arm's own
+# knobs (LR, KL, KL_COEF, ENTROPY_COEF). Every GSM8K run's is the Spider `ref20` run's but for NAME,
+# SEED, the arm's knobs, STEPS and SAVE_FREQ (40), and the GSM8K files K3's stage B trains and
+# validates on ({work}/data/gsm8k-1280, built exactly as kit/campaigns/k3-replay.yaml builds it). TASK
+# is left at the launcher's default, as K3's stage B and K1c Part B left it: the reward is chosen by
+# each row's data_source. Run rN carries SEED N, only as a label (the trainer does not read data.seed
+# with data.shuffle=False and vLLM sampling is unseeded): three independent draws of one recipe. Run
+# directories are named `anchor-<arm>-rN-seedN-aN`, so a WORK tree that already holds probe 2's
+# `ref20-rN-seedN-aN` runs is never read or overwritten by this test.
+# 2 untrained scorings + 33 runs x (train, scoring, delta) + report = 102 rows.
+#
+# THIS TEST HAS NO GATE. The thirty-three `*-delta` rows are READOUTS and nothing needs them; they come
+# last because `run --all` stops at the first failure a later row needs. The decision is the report's,
+# per bed and per arm, from the `decision:` block below. On BOTH beds an arm clears only if its MEAN
+# delta is at least 0 (it stops falling) AND at least 2 of its 3 runs are individually at 0 or more
+# AND its mean tokens per correct answer are within 1.5x the untrained model's. On SPIDER it must also,
+# averaged over its runs, write a JOIN in at least 30% of its answers (it keeps its joins; the
+# untrained model's share was 41%). On GSM8K its mean share of answers the bed cannot parse
+# (`incorrect_format` in bed-score.json, as a share of the 300) may exceed the untrained model's by at
+# most 5 percentage points (it keeps its answer format). The question is "does it stop falling and
+# keep its form", not "does it gain 5": a gain is only worth chasing with a recipe that does not
+# break the model.
+#
+# WORK MAY BE THE PARTNER'S K3 WORK TREE: the model and the beds are read from {work}/models/Qwen3-1.7B,
+# {work}/data/spider and {work}/data/gsm8k-1280, and everything this test writes is under
+# {work}/k3anchor/ and {work}/runs/anchor-*.
+#
+# All scoring is on GPU 0 of this machine, in the deterministic mode, and only scorings carrying the
+# same machine-and-mode fingerprint are ever compared (receipts 204 and 209). Run every row on ONE node.
+#
+#   export KIT=/work/continual-learning-kit/kit WORK=/work/k3-work
+#   export SDPO_DIR=/work/SDPO SPIDER_ROOT=/work/spider_data GSM8K_ROOT=/work/gsm8k
+#   python $KIT/runner.py plan  $KIT/campaigns/k3-anchor.yaml
+#   python $KIT/runner.py batch $KIT/campaigns/k3-anchor.yaml     # prepare --all, then run --all
+schema: kit-campaign.v1
+name: k3-anchor
+workdir_env: WORK
+# The arm rule kit/k3_dose_report.py applies (see the header), one per bed, in place of probe 2's +5.
+decision:
+  spider: {min_mean_delta: 0, min_runs_passing: 2, max_density_ratio: 1.5, min_join_share: 30}
+  gsm8k: {min_mean_delta: 0, min_runs_passing: 2, max_density_ratio: 1.5, max_format_failures_pp: 5}
+rows:
+  # ---- The untrained model on the Spider held-out set, scored again HERE so every arm is read
+  # against a scoring from this node and this job; it is also the reference repertoire (41% JOIN in
+  # probe 1). The FIRST row carries the preparation of the whole test -- the model, the Spider bed and
+  # the 1,280-row GSM8K file -- so all of its IO happens before a GPU is held, and every row that
+  # reads a file it builds reaches it through `needs`.
+  - id: base-spider
+    prepare:
+      - ["bash", "-c", "test -f \"{work}/models/Qwen3-1.7B/config.json\" || hf download Qwen/Qwen3-1.7B --local-dir \"{work}/models/Qwen3-1.7B\" || huggingface-cli download Qwen/Qwen3-1.7B --local-dir \"{work}/models/Qwen3-1.7B\""]
+      - ["bash", "-c", "test -f \"{work}/data/spider/train.parquet\" || python \"{kit}/beds/spider.py\" prepare --spider-root \"$SPIDER_ROOT\" --out \"{work}/data/spider\""]
+      - ["bash", "-c", "test -f \"{work}/data/gsm8k-1280/train.parquet\" || python \"{kit}/beds/gsm8k.py\" prepare --gsm8k-root \"$GSM8K_ROOT\" --out \"{work}/data/gsm8k-1280\" --limit 1280"]
+      - ["bash", "-c", "rows=$(wc -l < \"{work}/data/gsm8k-1280/train.jsonl\"); echo \"gsm8k train rows: $rows (need 1280)\"; test \"$rows\" -ge 1280 || { echo \"the GSM8K training file is shorter than the dose needs\" >&2; exit 2; }"]
+    requires: ["{work}/models/Qwen3-1.7B/config.json", "{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/base-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"{work}/models/Qwen3-1.7B\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- The untrained model on the GSM8K held-out 300: every GSM8K arm's delta, cost and format
+  # failures are read against this scoring. It needs the first row, whose preparation built the files.
+  - id: base-gsm8k
+    needs: [base-spider]
+    requires: ["{work}/models/Qwen3-1.7B/config.json", "{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet"]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/base-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"{work}/models/Qwen3-1.7B\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+
+  # ---- ARM 1, ref20: plain GRPO at the reference dose, the control. Its three runs say how far the
+  # recipe that collapses lands from one draw to the next, and every other Spider arm is read against them.
+  - id: ref20-r1
+    seed: 1
+    description: "plain GRPO at the reference dose (640 rows, 20 steps, lr 1e-5): the control"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ref20-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ref20-r1-spider
+    seed: 1
+    needs: [ref20-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ref20-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ref20-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: ref20-r2
+    seed: 2
+    description: "plain GRPO at the reference dose (640 rows, 20 steps, lr 1e-5): the control"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ref20-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ref20-r2-spider
+    seed: 2
+    needs: [ref20-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ref20-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ref20-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: ref20-r3
+    seed: 3
+    description: "plain GRPO at the reference dose (640 rows, 20 steps, lr 1e-5): the control"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ref20-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ref20-r3-spider
+    seed: 3
+    needs: [ref20-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ref20-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ref20-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 2, kl01: the reference dose with the KL anchor at 0.01. The `kl-applied` bar fails a run
+  # whose launcher silently dropped KL, instead of producing a run that looks anchored.
+  - id: kl01-r1
+    seed: 1
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl01-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "1", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl01-r1-spider
+    seed: 1
+    needs: [kl01-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl01-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl01-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: kl01-r2
+    seed: 2
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl01-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "2", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl01-r2-spider
+    seed: 2
+    needs: [kl01-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl01-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl01-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: kl01-r3
+    seed: 3
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl01-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "3", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl01-r3-spider
+    seed: 3
+    needs: [kl01-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl01-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl01-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 3, kl10: the reference dose with the KL anchor ten times stronger, at 0.1.
+  - id: kl10-r1
+    seed: 1
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.1"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl10-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "1", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl10-r1-spider
+    seed: 1
+    needs: [kl10-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl10-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl10-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: kl10-r2
+    seed: 2
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.1"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl10-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "2", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl10-r2-spider
+    seed: 2
+    needs: [kl10-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl10-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl10-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: kl10-r3
+    seed: 3
+    description: "the reference dose with a KL anchor to the untrained model, coefficient 0.1"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-kl10-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "3", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: kl10-r3-spider
+    seed: 3
+    needs: [kl10-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/kl10-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-kl10-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 4, ent01: the reference dose with an entropy bonus of 0.01 and no KL.
+  - id: ent01-r1
+    seed: 1
+    description: "the reference dose with an entropy bonus of 0.01, no KL"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ent01-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1", ENTROPY_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ent01-r1-spider
+    seed: 1
+    needs: [ent01-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ent01-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ent01-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: ent01-r2
+    seed: 2
+    description: "the reference dose with an entropy bonus of 0.01, no KL"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ent01-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1", ENTROPY_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ent01-r2-spider
+    seed: 2
+    needs: [ent01-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ent01-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ent01-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: ent01-r3
+    seed: 3
+    description: "the reference dose with an entropy bonus of 0.01, no KL"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-ent01-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-5", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1", ENTROPY_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: ent01-r3-spider
+    seed: 3
+    needs: [ent01-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/ent01-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-ent01-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 5, lr06: the reference dose at a tenth of the learning rate, 1e-6 -- the value verl's own
+  # documentation uses -- and no anchor. Does a smaller step alone stop the fall?
+  - id: lr06-r1
+    seed: 1
+    description: "the reference dose at lr 1e-6 (the trainer's documented value), no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr06-r1-spider
+    seed: 1
+    needs: [lr06-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr06-r2
+    seed: 2
+    description: "the reference dose at lr 1e-6 (the trainer's documented value), no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr06-r2-spider
+    seed: 2
+    needs: [lr06-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr06-r3
+    seed: 3
+    description: "the reference dose at lr 1e-6 (the trainer's documented value), no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr06-r3-spider
+    seed: 3
+    needs: [lr06-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 6, lr36: between the two, at 3e-6, no anchor.
+  - id: lr36-r1
+    seed: 1
+    description: "the reference dose at lr 3e-6, no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr36-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "3e-6", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr36-r1-spider
+    seed: 1
+    needs: [lr36-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr36-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr36-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr36-r2
+    seed: 2
+    description: "the reference dose at lr 3e-6, no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr36-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "3e-6", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr36-r2-spider
+    seed: 2
+    needs: [lr36-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr36-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr36-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr36-r3
+    seed: 3
+    description: "the reference dose at lr 3e-6, no anchor"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr36-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "3e-6", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+  - id: lr36-r3-spider
+    seed: 3
+    needs: [lr36-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr36-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr36-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- ARM 7, lr06kl: lr 1e-6 with the KL anchor at 0.01. Does the anchor help at the small dose?
+  - id: lr06kl-r1
+    seed: 1
+    description: "the reference dose at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06kl-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "1", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: lr06kl-r1-spider
+    seed: 1
+    needs: [lr06kl-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06kl-r1-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06kl-r1-seed1-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr06kl-r2
+    seed: 2
+    description: "the reference dose at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06kl-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "2", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: lr06kl-r2-spider
+    seed: 2
+    needs: [lr06kl-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06kl-r2-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06kl-r2-seed2-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+  - id: lr06kl-r3
+    seed: 3
+    description: "the reference dose at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-spider]
+    requires: ["{work}/data/spider/train.parquet", "{work}/data/spider/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-lr06kl-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/spider/heldout.parquet", STEPS: "20", SAVE_FREQ: "20", LR: "1e-6", SEED: "3", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/spider/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 20}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: lr06kl-r3-spider
+    seed: 3
+    needs: [lr06kl-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/lr06kl-r3-spider-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed spider --root \"$SPIDER_ROOT\" --model \"$(ls -d {work}/runs/anchor-lr06kl-r3-seed3-a*/hf-step20 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 100, max: 100}
+
+  # ---- GSM8K ARM 1, g-ref: K3's stage-B dose on GSM8K from the untrained model, plain GRPO -- the
+  # recipe K1c Part B found breaks the answer format (245 -> 137 of 300). The control.
+  - id: g-ref-r1
+    seed: 1
+    description: "plain GRPO at K3's stage-B dose on GSM8K (1,280 rows, 40 steps, lr 1e-5): the control"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-ref-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-ref-r1-gsm8k
+    seed: 1
+    needs: [g-ref-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-ref-r1-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-ref-r1-seed1-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-ref-r2
+    seed: 2
+    description: "plain GRPO at K3's stage-B dose on GSM8K (1,280 rows, 40 steps, lr 1e-5): the control"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-ref-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-ref-r2-gsm8k
+    seed: 2
+    needs: [g-ref-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-ref-r2-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-ref-r2-seed2-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-ref-r3
+    seed: 3
+    description: "plain GRPO at K3's stage-B dose on GSM8K (1,280 rows, 40 steps, lr 1e-5): the control"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-ref-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-ref-r3-gsm8k
+    seed: 3
+    needs: [g-ref-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-ref-r3-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-ref-r3-seed3-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+
+  # ---- GSM8K ARM 2, g-lr06: the same dose at lr 1e-6, no anchor.
+  - id: g-lr06-r1
+    seed: 1
+    description: "K3's stage-B dose on GSM8K at lr 1e-6, no anchor"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "1", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-lr06-r1-gsm8k
+    seed: 1
+    needs: [g-lr06-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06-r1-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06-r1-seed1-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-lr06-r2
+    seed: 2
+    description: "K3's stage-B dose on GSM8K at lr 1e-6, no anchor"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "2", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-lr06-r2-gsm8k
+    seed: 2
+    needs: [g-lr06-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06-r2-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06-r2-seed2-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-lr06-r3
+    seed: 3
+    description: "K3's stage-B dose on GSM8K at lr 1e-6, no anchor"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "3", NGPU: "8", KL: "0", FILE_LOG: "1"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+  - id: g-lr06-r3-gsm8k
+    seed: 3
+    needs: [g-lr06-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06-r3-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06-r3-seed3-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+
+  # ---- GSM8K ARM 3, g-lr06kl: lr 1e-6 with the KL anchor at 0.01.
+  - id: g-lr06kl-r1
+    seed: 1
+    description: "K3's stage-B dose on GSM8K at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06kl-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "1", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-lr06kl-r1-gsm8k
+    seed: 1
+    needs: [g-lr06kl-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06kl-r1-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06kl-r1-seed1-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-lr06kl-r2
+    seed: 2
+    description: "K3's stage-B dose on GSM8K at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06kl-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "2", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-lr06kl-r2-gsm8k
+    seed: 2
+    needs: [g-lr06kl-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06kl-r2-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06kl-r2-seed2-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-lr06kl-r3
+    seed: 3
+    description: "K3's stage-B dose on GSM8K at lr 1e-6 with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-lr06kl-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-6", SEED: "3", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-lr06kl-r3-gsm8k
+    seed: 3
+    needs: [g-lr06kl-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-lr06kl-r3-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-lr06kl-r3-seed3-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+
+  # ---- GSM8K ARM 4, g-kl01: the reference lr 1e-5 with the KL anchor at 0.01.
+  - id: g-kl01-r1
+    seed: 1
+    description: "K3's stage-B dose on GSM8K (lr 1e-5) with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-kl01-r1-seed1-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "1", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-kl01-r1-gsm8k
+    seed: 1
+    needs: [g-kl01-r1]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-kl01-r1-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-kl01-r1-seed1-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-kl01-r2
+    seed: 2
+    description: "K3's stage-B dose on GSM8K (lr 1e-5) with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-kl01-r2-seed2-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "2", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-kl01-r2-gsm8k
+    seed: 2
+    needs: [g-kl01-r2]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-kl01-r2-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-kl01-r2-seed2-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+  - id: g-kl01-r3
+    seed: 3
+    description: "K3's stage-B dose on GSM8K (lr 1e-5) with a KL anchor to the untrained model, coefficient 0.01"
+    needs: [base-gsm8k]
+    requires: ["{work}/data/gsm8k-1280/train.parquet", "{work}/data/gsm8k-1280/heldout.parquet", "{work}/models/Qwen3-1.7B/config.json"]
+    env: {NAME: "anchor-g-kl01-r3-seed3-a{attempt}", WORK: "{work}", VAL_FILE: "{work}/data/gsm8k-1280/heldout.parquet", STEPS: "40", SAVE_FREQ: "40", LR: "1e-5", SEED: "3", NGPU: "8", KL: "1", FILE_LOG: "1", KL_COEF: "0.01"}
+    command: ["bash", "-c", "TRAIN_FILE=\"{work}/data/gsm8k-1280/train.parquet\" MODEL_DIR=\"{work}/models/Qwen3-1.7B\" bash \"{kit}/run_grpo.sh\""]
+    bars:
+      - {name: "trainer-exited-clean", source: "{work}/runs/{env.NAME}/train-summary.json", key: "returncode", max: 0}
+      - {name: "checkpoint-merged", source: "{work}/runs/{env.NAME}/train-summary.json", key: "merged", min: 1}
+      - {name: "steps-run", source: "{work}/runs/{env.NAME}/train-summary.json", key: "steps", min: 40}
+      - {name: "kl-applied", source: "{work}/runs/{env.NAME}/train-summary.json", key: "kl", min: 1, max: 1}
+  - id: g-kl01-r3-gsm8k
+    seed: 3
+    needs: [g-kl01-r3]
+    env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k3anchor/eval/g-kl01-r3-gsm8k-a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/eval_bed.py\" generate --bed gsm8k --root \"$GSM8K_ROOT\" --model \"$(ls -d {work}/runs/anchor-g-kl01-r3-seed3-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "scored", source: "{env.OUT}/bed-score.json", key: "n", min: 300, max: 300}
+
+  # ---- The readout: the eleven arms side by side, grouped by bed, each as its three runs and their
+  # mean, with what the answers look like (on Spider the JOIN share, subquery share and style shift
+  # against the untrained scoring; on GSM8K the format failures, answer length and truncation) and
+  # each bed's rule from this file's `decision:` block. It needs the two untrained scorings and wants
+  # the thirty-three run scorings (ordering only: one that failed or that --seeds skipped does not
+  # block it; its bar says what it found), so a delta row below cannot keep it from being written.
+  - id: report
+    needs: [base-spider, base-gsm8k]
+    wants: [ref20-r1-spider, ref20-r2-spider, ref20-r3-spider, kl01-r1-spider, kl01-r2-spider, kl01-r3-spider, kl10-r1-spider, kl10-r2-spider, kl10-r3-spider, ent01-r1-spider, ent01-r2-spider, ent01-r3-spider, lr06-r1-spider, lr06-r2-spider, lr06-r3-spider, lr36-r1-spider, lr36-r2-spider, lr36-r3-spider, lr06kl-r1-spider, lr06kl-r2-spider, lr06kl-r3-spider, g-ref-r1-gsm8k, g-ref-r2-gsm8k, g-ref-r3-gsm8k, g-lr06-r1-gsm8k, g-lr06-r2-gsm8k, g-lr06-r3-gsm8k, g-lr06kl-r1-gsm8k, g-lr06kl-r2-gsm8k, g-lr06kl-r3-gsm8k, g-kl01-r1-gsm8k, g-kl01-r2-gsm8k, g-kl01-r3-gsm8k]
+    env: {OUT: "{work}/k3anchor/report/a{attempt}"}
+    command: ["bash", "-c", "python \"{kit}/k3_dose_report.py\" --root \"{work}/k3anchor\" --runs \"{work}/runs\" --campaign \"{kit}/campaigns/k3-anchor.yaml\" --out \"{env.OUT}\""]
+    bars:
+      - {name: "arms-reported", source: "{env.OUT}/report.json", key: "arms_reported", min: 11}
+
+  # ---- THE READOUTS, one per run, and nothing needs them. A FAILED BAR HERE IS AN ANSWER, not a
+  # broken test.
+  - id: ref20-r1-delta
+    seed: 1
+    needs: [base-spider, ref20-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ref20-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ref20-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}   # the verdict is the report's; a falling run must not halt `run --all`
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ref20-r2-delta
+    seed: 2
+    needs: [base-spider, ref20-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ref20-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ref20-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ref20-r3-delta
+    seed: 3
+    needs: [base-spider, ref20-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ref20-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ref20-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl01-r1-delta
+    seed: 1
+    needs: [base-spider, kl01-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl01-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl01-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl01-r2-delta
+    seed: 2
+    needs: [base-spider, kl01-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl01-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl01-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl01-r3-delta
+    seed: 3
+    needs: [base-spider, kl01-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl01-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl01-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl10-r1-delta
+    seed: 1
+    needs: [base-spider, kl10-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl10-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl10-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl10-r2-delta
+    seed: 2
+    needs: [base-spider, kl10-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl10-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl10-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: kl10-r3-delta
+    seed: 3
+    needs: [base-spider, kl10-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/kl10-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/kl10-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ent01-r1-delta
+    seed: 1
+    needs: [base-spider, ent01-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ent01-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ent01-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ent01-r2-delta
+    seed: 2
+    needs: [base-spider, ent01-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ent01-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ent01-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: ent01-r3-delta
+    seed: 3
+    needs: [base-spider, ent01-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/ent01-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/ent01-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06-r1-delta
+    seed: 1
+    needs: [base-spider, lr06-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06-r2-delta
+    seed: 2
+    needs: [base-spider, lr06-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06-r3-delta
+    seed: 3
+    needs: [base-spider, lr06-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr36-r1-delta
+    seed: 1
+    needs: [base-spider, lr36-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr36-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr36-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr36-r2-delta
+    seed: 2
+    needs: [base-spider, lr36-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr36-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr36-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr36-r3-delta
+    seed: 3
+    needs: [base-spider, lr36-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr36-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr36-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06kl-r1-delta
+    seed: 1
+    needs: [base-spider, lr06kl-r1-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06kl-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06kl-r1-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06kl-r2-delta
+    seed: 2
+    needs: [base-spider, lr06kl-r2-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06kl-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06kl-r2-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: lr06kl-r3-delta
+    seed: 3
+    needs: [base-spider, lr06kl-r3-spider]
+    env: {OUT: "{work}/k3anchor/deltas/lr06kl-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-spider-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/lr06kl-r3-spider-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-ref-r1-delta
+    seed: 1
+    needs: [base-gsm8k, g-ref-r1-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-ref-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-ref-r1-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-ref-r2-delta
+    seed: 2
+    needs: [base-gsm8k, g-ref-r2-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-ref-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-ref-r2-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-ref-r3-delta
+    seed: 3
+    needs: [base-gsm8k, g-ref-r3-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-ref-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-ref-r3-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06-r1-delta
+    seed: 1
+    needs: [base-gsm8k, g-lr06-r1-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06-r1-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06-r2-delta
+    seed: 2
+    needs: [base-gsm8k, g-lr06-r2-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06-r2-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06-r3-delta
+    seed: 3
+    needs: [base-gsm8k, g-lr06-r3-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06-r3-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06kl-r1-delta
+    seed: 1
+    needs: [base-gsm8k, g-lr06kl-r1-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06kl-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06kl-r1-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06kl-r2-delta
+    seed: 2
+    needs: [base-gsm8k, g-lr06kl-r2-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06kl-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06kl-r2-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-lr06kl-r3-delta
+    seed: 3
+    needs: [base-gsm8k, g-lr06kl-r3-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-lr06kl-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-lr06kl-r3-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-kl01-r1-delta
+    seed: 1
+    needs: [base-gsm8k, g-kl01-r1-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-kl01-r1-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-kl01-r1-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-kl01-r2-delta
+    seed: 2
+    needs: [base-gsm8k, g-kl01-r2-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-kl01-r2-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-kl01-r2-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}
+  - id: g-kl01-r3-delta
+    seed: 3
+    needs: [base-gsm8k, g-kl01-r3-gsm8k]
+    env: {OUT: "{work}/k3anchor/deltas/g-kl01-r3-a{attempt}.json"}
+    command: ["bash", "-c", "python \"{kit}/delta.py\" --a \"$(ls -d {work}/k3anchor/eval/base-gsm8k-a* | sort -V | tail -1)\" --b \"$(ls -d {work}/k3anchor/eval/g-kl01-r3-gsm8k-a* | sort -V | tail -1)\" --key correct --out \"{env.OUT}\""]
+    bars:
+      - {name: "delta-recorded", source: "{env.OUT}", key: "delta", min: -100}
+      - {name: "same-machine", source: "{env.OUT}", key: "same_machine_flag", min: 1}

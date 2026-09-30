@@ -75,6 +75,7 @@ rows:
   # CHECK, NOT A GATE -- success share: does the softer reward promote near-misses? NOT a bar -- over two steps it is noise (K0 swings 0.19 to 0.62 per step). The report prints it beside K0's own first two steps, which ran 0.281-0.406
   - id: pilot-soft
     pilot: true
+    needs: [pilot-feedback]
     env: {NAME: "pilot-soft-a{attempt}", STEPS: "2", TEST_FREQ: "2", SOFT: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -86,6 +87,7 @@ rows:
   # CHECK, NOT A GATE -- entropy: is the policy the loss sees actually softer? NOT a bar -- two steps of it is noise. The report prints it beside K0's first two steps, which ran 0.208-0.224
   - id: pilot-variation
     pilot: true
+    needs: [pilot-soft]
     env: {NAME: "pilot-variation-a{attempt}", STEPS: "2", TEST_FREQ: "2", TEMP: "1.2"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -98,6 +100,8 @@ rows:
   # control: 40 steps, validation every 5, batch 32, 8 attempts, warm-up 10. About 50
   # minutes each on 8 x H100 by K0's measured step time.
   - id: feedback-seed42
+    seed: 42
+    needs: [pilot-variation]
     env: {NAME: "feedback-seed42-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "42", FEEDBACK: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -106,6 +110,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: feedback-seed43
+    seed: 43
+    needs: [pilot-variation]
     env: {NAME: "feedback-seed43-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "43", FEEDBACK: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -114,6 +120,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: feedback-seed44
+    seed: 44
+    needs: [pilot-variation]
     env: {NAME: "feedback-seed44-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "44", FEEDBACK: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -122,6 +130,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: soft-seed42
+    seed: 42
+    needs: [pilot-variation]
     env: {NAME: "soft-seed42-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "42", SOFT: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -130,6 +140,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: soft-seed43
+    seed: 43
+    needs: [pilot-variation]
     env: {NAME: "soft-seed43-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "43", SOFT: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -138,6 +150,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: soft-seed44
+    seed: 44
+    needs: [pilot-variation]
     env: {NAME: "soft-seed44-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "44", SOFT: "1"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -146,6 +160,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: variation-seed42
+    seed: 42
+    needs: [pilot-variation]
     env: {NAME: "variation-seed42-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "42", TEMP: "1.2"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -154,6 +170,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: variation-seed43
+    seed: 43
+    needs: [pilot-variation]
     env: {NAME: "variation-seed43-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "43", TEMP: "1.2"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -162,6 +180,8 @@ rows:
       - {name: "no-length-collapse", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: "min", min: 16}
       - {name: "final-validation", source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {"step": 40}, agg: "last", min: 0.0}
   - id: variation-seed44
+    seed: 44
+    needs: [pilot-variation]
     env: {NAME: "variation-seed44-a{attempt}", STEPS: "40", TEST_FREQ: "5", SEED: "44", TEMP: "1.2"}
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     bars:
@@ -177,11 +197,13 @@ rows:
   # ours is 251 of 300; two other machines gave 250 and 251. Far outside this band means the setup differs.
   - id: base-1
     pilot: true
+    needs: [pilot-variation]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/base-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$MODEL_DIR\" --out \"{env.OUT}\""]
     bars:
       - {name: "untrained-total", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 245, max: 257}
   - id: base-2
+    needs: [base-1]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/base-repeat-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$MODEL_DIR\" --out \"{env.OUT}\""]
     bars:
@@ -198,64 +220,77 @@ rows:
 
   # Every arm's final model, on the same GPU of the same machine as the two rows above.
   - id: feedback-seed42-forget
-    needs: [feedback-seed42]
+    seed: 42
+    needs: [repeatable, feedback-seed42]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/feedback-seed42-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/feedback-seed42-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: feedback-seed43-forget
-    needs: [feedback-seed43]
+    seed: 43
+    needs: [repeatable, feedback-seed43]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/feedback-seed43-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/feedback-seed43-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: feedback-seed44-forget
-    needs: [feedback-seed44]
+    seed: 44
+    needs: [repeatable, feedback-seed44]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/feedback-seed44-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/feedback-seed44-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: soft-seed42-forget
-    needs: [soft-seed42]
+    seed: 42
+    needs: [repeatable, soft-seed42]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/soft-seed42-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/soft-seed42-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: soft-seed43-forget
-    needs: [soft-seed43]
+    seed: 43
+    needs: [repeatable, soft-seed43]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/soft-seed43-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/soft-seed43-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: soft-seed44-forget
-    needs: [soft-seed44]
+    seed: 44
+    needs: [repeatable, soft-seed44]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/soft-seed44-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/soft-seed44-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: variation-seed42-forget
-    needs: [variation-seed42]
+    seed: 42
+    needs: [repeatable, variation-seed42]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/variation-seed42-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/variation-seed42-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: variation-seed43-forget
-    needs: [variation-seed43]
+    seed: 43
+    needs: [repeatable, variation-seed43]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/variation-seed43-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/variation-seed43-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
   - id: variation-seed44-forget
-    needs: [variation-seed44]
+    seed: 44
+    needs: [repeatable, variation-seed44]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/k4a/forgetting/variation-seed44-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$(ls -d {work}/runs/variation-seed44-a*/hf-step40 | sort -V | tail -1)\" --out \"{env.OUT}\""]
     bars:
       - {name: "scored", source: "{env.OUT}/forgetting.json", key: "total_correct", min: 1}
 
   # ---- The readout: every arm and seed beside the K0 control, plus the panels.
-  # Every run and every scoring it reads is named here, so it cannot be written over a hole.
+  # Every run and every scoring it reads is named here.
+  # Report rows NEED only the pilots and the untrained (base) scorings; every per-seed row they read is
+  # in `wants`: it runs first when it is scheduled, and one that failed or that `--seeds` skipped does
+  # not block the report, whose bars and readout say what it found.
   - id: report
-    needs: [feedback-seed42, feedback-seed43, feedback-seed44, soft-seed42, soft-seed43, soft-seed44, variation-seed42, variation-seed43, variation-seed44, feedback-seed42-forget, feedback-seed43-forget, feedback-seed44-forget, soft-seed42-forget, soft-seed43-forget, soft-seed44-forget, variation-seed42-forget, variation-seed43-forget, variation-seed44-forget]
+    needs: [repeatable]
+    wants: [feedback-seed42, feedback-seed43, feedback-seed44, soft-seed42, soft-seed43, soft-seed44, variation-seed42, variation-seed43, variation-seed44, feedback-seed42-forget, feedback-seed43-forget, feedback-seed44-forget, soft-seed42-forget, soft-seed43-forget, soft-seed44-forget, variation-seed42-forget, variation-seed43-forget, variation-seed44-forget]
     env: {OUT: "{work}/k4a/report-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/k4a_report.py\" --runs \"{work}/runs\" --forgetting \"{work}/k4a/forgetting\" --k0 \"$K0_REPORT\" --out \"{env.OUT}\""]
     bars:

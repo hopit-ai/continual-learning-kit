@@ -57,7 +57,7 @@ rows:
     bars:
       - {name: "damaged-model-written", source: "{work}/k2/small-damage-run-a{attempt}/train_log.jsonl", key: "step", agg: "max", min: 60}
   - id: small-before
-    needs: [small-make-damaged, small-targets]
+    needs: [small-repeatable, small-make-damaged, small-targets]
     requires: ["{work}/k2/models/small-damaged/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/models/small-damaged\" --out \"{work}/k2/small-before-a{attempt}\""]
@@ -65,7 +65,7 @@ rows:
       - {name: "scored", source: "{work}/k2/small-before-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: small-damage-check
     pilot: true
-    needs: [small-make-damaged, small-targets, small-before]
+    needs: [small-repeatable, small-make-damaged, small-targets, small-before]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/damage_check.py\" --original \"$(ls -d {work}/k2/small-original-a* | sort -V | tail -1)\" --before \"$(ls -d {work}/k2/small-before-a* | sort -V | tail -1)\" --out \"{work}/k2/small-damage-a{attempt}.json\""]
     bars:
@@ -79,19 +79,19 @@ rows:
     bars:
       - {name: "trained", source: "{work}/k2/small-repair-a{attempt}/train_log.jsonl", key: "step", agg: "max", min: 300}
   - id: small-after50
-    needs: [small-make-damaged, small-targets, small-repair]
+    needs: [small-damage-check, small-make-damaged, small-targets, small-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-small-after50\" \"{work}/k2/small-drift-after50.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/small-damaged\" --adapter \"$(ls -d {work}/k2/small-repair-a* | sort -V | tail -1)/adapter-step50\" --out \"{work}/k2/tmp-small-after50\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-small-after50\" --out \"{work}/k2/small-after50-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-0.6B\" --model \"{work}/k2/tmp-small-after50\" --out \"{work}/k2/small-drift-after50.json\"; status=$?; rm -rf \"{work}/k2/tmp-small-after50\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/small-after50-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: small-after300
-    needs: [small-make-damaged, small-targets, small-repair]
+    needs: [small-damage-check, small-make-damaged, small-targets, small-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-small-after300\" \"{work}/k2/small-drift-after300.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/small-damaged\" --adapter \"$(ls -d {work}/k2/small-repair-a* | sort -V | tail -1)/adapter-step300\" --out \"{work}/k2/tmp-small-after300\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-small-after300\" --out \"{work}/k2/small-after300-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-0.6B\" --model \"{work}/k2/tmp-small-after300\" --out \"{work}/k2/small-drift-after300.json\"; status=$?; rm -rf \"{work}/k2/tmp-small-after300\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/small-after300-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: small-drift-damaged
-    needs: [small-make-damaged, small-targets]
+    needs: [small-damage-check, small-make-damaged, small-targets]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -f \"{work}/k2/small-drift-damaged.json\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-0.6B\" --model \"{work}/k2/models/small-damaged\" --out \"{work}/k2/small-drift-damaged.json\""]
     bars:
@@ -104,7 +104,7 @@ rows:
       - {name: "scored", source: "{work}/k2/small-control300-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: small-report
     pilot: true
-    needs: [small-after300, small-control300, small-drift-damaged]
+    needs: [small-damage-check, small-after300, small-control300, small-drift-damaged]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/report.py\" --root \"{work}/k2\" --out \"{work}/k2/report-small-a{attempt}\""]
     bars:
@@ -112,6 +112,7 @@ rows:
 
   # ---- SUBJECT 1: Qwen3-8B after SDPO on Spider with zero warm-up, 60 steps. Maths 91 -> 34 on our harness; answers a few tokens long.
   - id: q3-original
+    needs: [small-report]
     prepare:
       - ["bash", "-c", "test -f \"{work}/models/Qwen3-8B/config.json\" || hf download Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --local-dir \"{work}/models/Qwen3-8B\" || huggingface-cli download Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --local-dir \"{work}/models/Qwen3-8B\""]
       - ["bash", "-c", "mkdir -p \"{work}/k2\" && test -f \"{work}/k2/repair-prompts.jsonl\" || python \"{kit}/repair/prompts.py\" --n 1000 --out \"{work}/k2/repair-prompts.jsonl\""]
@@ -121,14 +122,14 @@ rows:
     bars:
       - {name: "scored", source: "{work}/k2/q3-original-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: q3-targets
-    needs: [q3-original]
+    needs: [small-report, q3-original]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "test -f \"{work}/k2/q3-targets.jsonl\" || python \"{kit}/repair/make_targets.py\" --model \"{work}/models/Qwen3-8B\" --prompts \"{work}/k2/repair-prompts.jsonl\" --out \"{work}/k2/q3-targets.jsonl\""]
     bars:
       - {name: "enough-targets", source: "{work}/k2/q3-targets.jsonl.stats.json", key: "targets", min: 900}
       - {name: "few-empty", source: "{work}/k2/q3-targets.jsonl.stats.json", key: "empty", max: 50}
   - id: spider60-before
-    needs: [q3-targets]
+    needs: [small-report, q3-targets]
     prepare:
       - ["bash", "-c", "test -f \"{work}/models/csl-p1-spider-sdpo-step60-collapsed/config.json\" || hf download HopitAI/csl-p1-spider-sdpo-step60-collapsed --local-dir \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" || huggingface-cli download HopitAI/csl-p1-spider-sdpo-step60-collapsed --local-dir \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\""]
     requires: ["{work}/models/csl-p1-spider-sdpo-step60-collapsed/config.json"]
@@ -137,51 +138,51 @@ rows:
     bars:
       - {name: "scored", source: "{work}/k2/spider60-before-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: spider60-damage-check
-    needs: [q3-targets, spider60-before]
+    needs: [small-report, q3-targets, spider60-before]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/damage_check.py\" --original \"$(ls -d {work}/k2/q3-original-a* | sort -V | tail -1)\" --before \"$(ls -d {work}/k2/spider60-before-a* | sort -V | tail -1)\" --out \"{work}/k2/spider60-damage-a{attempt}.json\""]
     bars:
       - {name: "damage-is-visible", source: "{work}/k2/spider60-damage-a{attempt}.json", key: "damage_total", min: 15}
       - {name: "same-machine", source: "{work}/k2/spider60-damage-a{attempt}.json", key: "same_machine_flag", min: 1}
   - id: spider60-repair
-    needs: [q3-targets, spider60-damage-check]
+    needs: [small-report, q3-targets, spider60-damage-check]
     requires: ["{work}/k2/q3-targets.jsonl"]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/train_lora.py\" --model \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --data \"{work}/k2/q3-targets.jsonl\" --out \"{work}/k2/spider60-repair-a{attempt}\" --steps 300 --save-at 50,100,200,300 --lr 1e-4"]
     bars:
       - {name: "trained", source: "{work}/k2/spider60-repair-a{attempt}/train_log.jsonl", key: "step", agg: "max", min: 300}
   - id: spider60-after50
-    needs: [q3-targets, spider60-repair]
+    needs: [small-report, q3-targets, spider60-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-spider60-after50\" \"{work}/k2/spider60-drift-after50.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --adapter \"$(ls -d {work}/k2/spider60-repair-a* | sort -V | tail -1)/adapter-step50\" --out \"{work}/k2/tmp-spider60-after50\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-spider60-after50\" --out \"{work}/k2/spider60-after50-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-8B\" --model \"{work}/k2/tmp-spider60-after50\" --out \"{work}/k2/spider60-drift-after50.json\"; status=$?; rm -rf \"{work}/k2/tmp-spider60-after50\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/spider60-after50-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: spider60-after100
-    needs: [q3-targets, spider60-repair]
+    needs: [small-report, q3-targets, spider60-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-spider60-after100\" \"{work}/k2/spider60-drift-after100.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --adapter \"$(ls -d {work}/k2/spider60-repair-a* | sort -V | tail -1)/adapter-step100\" --out \"{work}/k2/tmp-spider60-after100\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-spider60-after100\" --out \"{work}/k2/spider60-after100-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-8B\" --model \"{work}/k2/tmp-spider60-after100\" --out \"{work}/k2/spider60-drift-after100.json\"; status=$?; rm -rf \"{work}/k2/tmp-spider60-after100\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/spider60-after100-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: spider60-after200
-    needs: [q3-targets, spider60-repair]
+    needs: [small-report, q3-targets, spider60-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-spider60-after200\" \"{work}/k2/spider60-drift-after200.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --adapter \"$(ls -d {work}/k2/spider60-repair-a* | sort -V | tail -1)/adapter-step200\" --out \"{work}/k2/tmp-spider60-after200\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-spider60-after200\" --out \"{work}/k2/spider60-after200-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-8B\" --model \"{work}/k2/tmp-spider60-after200\" --out \"{work}/k2/spider60-drift-after200.json\"; status=$?; rm -rf \"{work}/k2/tmp-spider60-after200\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/spider60-after200-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: spider60-after300
-    needs: [q3-targets, spider60-repair]
+    needs: [small-report, q3-targets, spider60-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-spider60-after300\" \"{work}/k2/spider60-drift-after300.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --adapter \"$(ls -d {work}/k2/spider60-repair-a* | sort -V | tail -1)/adapter-step300\" --out \"{work}/k2/tmp-spider60-after300\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-spider60-after300\" --out \"{work}/k2/spider60-after300-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-8B\" --model \"{work}/k2/tmp-spider60-after300\" --out \"{work}/k2/spider60-drift-after300.json\"; status=$?; rm -rf \"{work}/k2/tmp-spider60-after300\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/spider60-after300-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: spider60-drift-damaged
-    needs: [q3-targets]
+    needs: [small-report, q3-targets]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -f \"{work}/k2/spider60-drift-damaged.json\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen3-8B\" --model \"{work}/models/csl-p1-spider-sdpo-step60-collapsed\" --out \"{work}/k2/spider60-drift-damaged.json\""]
     bars:
       - {name: "measured", source: "{work}/k2/spider60-drift-damaged.json", key: "relative_distance_all", min: 0}
   - id: q3-control300
-    needs: [q3-targets]
+    needs: [small-report, q3-targets]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/train_lora.py\" --model \"{work}/models/Qwen3-8B\" --data \"{work}/k2/q3-targets.jsonl\" --out \"{work}/k2/q3-control-run-a{attempt}\" --steps 300 --save-at 300 --lr 1e-4 && rm -rf \"{work}/k2/tmp-q3-control\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/Qwen3-8B\" --adapter \"{work}/k2/q3-control-run-a{attempt}/adapter-step300\" --out \"{work}/k2/tmp-q3-control\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-q3-control\" --out \"{work}/k2/q3-control300-a{attempt}\"; status=$?; rm -rf \"{work}/k2/tmp-q3-control\"; exit $status"]
     bars:
@@ -189,6 +190,7 @@ rows:
 
   # ---- SUBJECT 2: Qwen2.5-7B-Instruct fine-tuned on bare gold SQL (a LoRA adapter). Maths -0.73; most physics answers began with SELECT.
   - id: q25-original
+    needs: [small-report]
     prepare:
       - ["bash", "-c", "test -f \"{work}/models/Qwen2.5-7B-Instruct/config.json\" || hf download Qwen/Qwen2.5-7B-Instruct --local-dir \"{work}/models/Qwen2.5-7B-Instruct\" || huggingface-cli download Qwen/Qwen2.5-7B-Instruct --local-dir \"{work}/models/Qwen2.5-7B-Instruct\""]
       - ["bash", "-c", "mkdir -p \"{work}/k2\" && test -f \"{work}/k2/repair-prompts.jsonl\" || python \"{kit}/repair/prompts.py\" --n 1000 --out \"{work}/k2/repair-prompts.jsonl\""]
@@ -198,14 +200,14 @@ rows:
     bars:
       - {name: "scored", source: "{work}/k2/q25-original-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: q25-targets
-    needs: [q25-original]
+    needs: [small-report, q25-original]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "test -f \"{work}/k2/q25-targets.jsonl\" || python \"{kit}/repair/make_targets.py\" --model \"{work}/models/Qwen2.5-7B-Instruct\" --prompts \"{work}/k2/repair-prompts.jsonl\" --out \"{work}/k2/q25-targets.jsonl\""]
     bars:
       - {name: "enough-targets", source: "{work}/k2/q25-targets.jsonl.stats.json", key: "targets", min: 900}
       - {name: "few-empty", source: "{work}/k2/q25-targets.jsonl.stats.json", key: "empty", max: 50}
   - id: bird-make-damaged
-    needs: [q25-original]
+    needs: [small-report, q25-original]
     prepare:
       - ["bash", "-c", "test -f \"{work}/models/csl-p1-bird-sft-bare-gold-lora/adapter_config.json\" || hf download HopitAI/csl-p1-bird-sft-bare-gold-lora --local-dir \"{work}/models/csl-p1-bird-sft-bare-gold-lora\" || huggingface-cli download HopitAI/csl-p1-bird-sft-bare-gold-lora --local-dir \"{work}/models/csl-p1-bird-sft-bare-gold-lora\""]
     requires: ["{work}/models/csl-p1-bird-sft-bare-gold-lora/adapter_config.json"]
@@ -214,64 +216,64 @@ rows:
     bars:
       - {name: "merged", source: "{work}/k2/models/bird-damaged/config.json", key: "vocab_size", min: 1}
   - id: bird-before
-    needs: [bird-make-damaged, q25-targets]
+    needs: [small-report, bird-make-damaged, q25-targets]
     requires: ["{work}/k2/models/bird-damaged/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/models/bird-damaged\" --out \"{work}/k2/bird-before-a{attempt}\""]
     bars:
       - {name: "scored", source: "{work}/k2/bird-before-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: bird-damage-check
-    needs: [bird-make-damaged, q25-targets, bird-before]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-before]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/damage_check.py\" --original \"$(ls -d {work}/k2/q25-original-a* | sort -V | tail -1)\" --before \"$(ls -d {work}/k2/bird-before-a* | sort -V | tail -1)\" --out \"{work}/k2/bird-damage-a{attempt}.json\""]
     bars:
       - {name: "damage-is-visible", source: "{work}/k2/bird-damage-a{attempt}.json", key: "damage_total", min: 15}
       - {name: "same-machine", source: "{work}/k2/bird-damage-a{attempt}.json", key: "same_machine_flag", min: 1}
   - id: bird-repair
-    needs: [bird-make-damaged, q25-targets, bird-damage-check]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-damage-check]
     requires: ["{work}/k2/q25-targets.jsonl"]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/train_lora.py\" --model \"{work}/k2/models/bird-damaged\" --data \"{work}/k2/q25-targets.jsonl\" --out \"{work}/k2/bird-repair-a{attempt}\" --steps 300 --save-at 50,100,200,300 --lr 1e-4"]
     bars:
       - {name: "trained", source: "{work}/k2/bird-repair-a{attempt}/train_log.jsonl", key: "step", agg: "max", min: 300}
   - id: bird-after50
-    needs: [bird-make-damaged, q25-targets, bird-repair]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-bird-after50\" \"{work}/k2/bird-drift-after50.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/bird-damaged\" --adapter \"$(ls -d {work}/k2/bird-repair-a* | sort -V | tail -1)/adapter-step50\" --out \"{work}/k2/tmp-bird-after50\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-bird-after50\" --out \"{work}/k2/bird-after50-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen2.5-7B-Instruct\" --model \"{work}/k2/tmp-bird-after50\" --out \"{work}/k2/bird-drift-after50.json\"; status=$?; rm -rf \"{work}/k2/tmp-bird-after50\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/bird-after50-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: bird-after100
-    needs: [bird-make-damaged, q25-targets, bird-repair]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-bird-after100\" \"{work}/k2/bird-drift-after100.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/bird-damaged\" --adapter \"$(ls -d {work}/k2/bird-repair-a* | sort -V | tail -1)/adapter-step100\" --out \"{work}/k2/tmp-bird-after100\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-bird-after100\" --out \"{work}/k2/bird-after100-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen2.5-7B-Instruct\" --model \"{work}/k2/tmp-bird-after100\" --out \"{work}/k2/bird-drift-after100.json\"; status=$?; rm -rf \"{work}/k2/tmp-bird-after100\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/bird-after100-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: bird-after200
-    needs: [bird-make-damaged, q25-targets, bird-repair]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-bird-after200\" \"{work}/k2/bird-drift-after200.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/bird-damaged\" --adapter \"$(ls -d {work}/k2/bird-repair-a* | sort -V | tail -1)/adapter-step200\" --out \"{work}/k2/tmp-bird-after200\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-bird-after200\" --out \"{work}/k2/bird-after200-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen2.5-7B-Instruct\" --model \"{work}/k2/tmp-bird-after200\" --out \"{work}/k2/bird-drift-after200.json\"; status=$?; rm -rf \"{work}/k2/tmp-bird-after200\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/bird-after200-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: bird-after300
-    needs: [bird-make-damaged, q25-targets, bird-repair]
+    needs: [small-report, bird-make-damaged, q25-targets, bird-repair]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -rf \"{work}/k2/tmp-bird-after300\" \"{work}/k2/bird-drift-after300.json\" && python \"{kit}/repair/merge.py\" --base \"{work}/k2/models/bird-damaged\" --adapter \"$(ls -d {work}/k2/bird-repair-a* | sort -V | tail -1)/adapter-step300\" --out \"{work}/k2/tmp-bird-after300\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-bird-after300\" --out \"{work}/k2/bird-after300-a{attempt}\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen2.5-7B-Instruct\" --model \"{work}/k2/tmp-bird-after300\" --out \"{work}/k2/bird-drift-after300.json\"; status=$?; rm -rf \"{work}/k2/tmp-bird-after300\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/bird-after300-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: bird-drift-damaged
-    needs: [bird-make-damaged, q25-targets]
+    needs: [small-report, bird-make-damaged, q25-targets]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "rm -f \"{work}/k2/bird-drift-damaged.json\" && python \"{kit}/repair/drift.py\" --reference \"{work}/models/Qwen2.5-7B-Instruct\" --model \"{work}/k2/models/bird-damaged\" --out \"{work}/k2/bird-drift-damaged.json\""]
     bars:
       - {name: "measured", source: "{work}/k2/bird-drift-damaged.json", key: "relative_distance_all", min: 0}
   - id: q25-control300
-    needs: [q25-targets]
+    needs: [small-report, q25-targets]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/train_lora.py\" --model \"{work}/models/Qwen2.5-7B-Instruct\" --data \"{work}/k2/q25-targets.jsonl\" --out \"{work}/k2/q25-control-run-a{attempt}\" --steps 300 --save-at 300 --lr 1e-4 && rm -rf \"{work}/k2/tmp-q25-control\" && python \"{kit}/repair/merge.py\" --base \"{work}/models/Qwen2.5-7B-Instruct\" --adapter \"{work}/k2/q25-control-run-a{attempt}/adapter-step300\" --out \"{work}/k2/tmp-q25-control\" && python \"{kit}/score_forgetting.py\" generate --model \"{work}/k2/tmp-q25-control\" --out \"{work}/k2/q25-control300-a{attempt}\"; status=$?; rm -rf \"{work}/k2/tmp-q25-control\"; exit $status"]
     bars:
       - {name: "scored", source: "{work}/k2/q25-control300-a{attempt}/forgetting.json", key: "total_correct", min: 1}
   - id: report
-    needs: [spider60-after300, bird-after300, q3-control300, q25-control300]
+    needs: [small-report, spider60-after300, bird-after300, q3-control300, q25-control300]
     env: {CUDA_VISIBLE_DEVICES: "0"}
     command: ["bash", "-c", "python \"{kit}/repair/report.py\" --root \"{work}/k2\" --out \"{work}/k2/report-a{attempt}\""]
     bars:

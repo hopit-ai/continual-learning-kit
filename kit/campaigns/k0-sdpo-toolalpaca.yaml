@@ -19,26 +19,36 @@ rows:
       - {name: calibration, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 0}, agg: first, min: 0.555, max: 0.600}
       - {name: teacher-signal, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "self_distillation/success_group_fraction", agg: max, min: 0.000001}
   - id: run3-seed43
+    seed: 43
+    needs: [smoke]
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     env: {NAME: "run3-seed43-a{attempt}", SEED: "43", STEPS: "17"}
     bars: &finished17
       - {name: final-validation, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 17}, agg: last, min: 0.0}
       - {name: no-length-collapse, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: min, min: 16}
   - id: run3-seed44
+    seed: 44
+    needs: [smoke]
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     env: {NAME: "run3-seed44-a{attempt}", SEED: "44", STEPS: "17"}
     bars: *finished17
   - id: dose40-seed42
+    seed: 42
+    needs: [smoke]
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     env: {NAME: "dose40-seed42-a{attempt}", SEED: "42", STEPS: "40", TEST_FREQ: "5"}
     bars: &finished40
       - {name: final-validation, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "val-core/tooluse/acc/mean@16", where: {step: 40}, agg: last, min: 0.0}
       - {name: no-length-collapse, source: "{work}/runs/{env.NAME}/metrics.jsonl", key: "response_length/mean", agg: min, min: 16}
   - id: dose40-seed43
+    seed: 43
+    needs: [smoke]
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     env: {NAME: "dose40-seed43-a{attempt}", SEED: "43", STEPS: "40", TEST_FREQ: "5"}
     bars: *finished40
   - id: dose40-seed44
+    seed: 44
+    needs: [smoke]
     command: ["bash", "{kit}/run_sdpo_toolalpaca.sh"]
     env: {NAME: "dose40-seed44-a{attempt}", SEED: "44", STEPS: "40", TEST_FREQ: "5"}
     bars: *finished40

@@ -482,8 +482,9 @@ def test_every_arm_and_seed_is_trained_scored_and_reported(campaign):
     report = next(row for row in campaign["rows"] if row["id"] == "report")
     for arm in ARMS:
         for seed in SEEDS:
-            assert "%s-seed%d" % (arm, seed) in report["needs"]
-            assert "%s-seed%d-forget" % (arm, seed) in report["needs"]
+            assert "%s-seed%d" % (arm, seed) in report["wants"]
+            assert "%s-seed%d-forget" % (arm, seed) in report["wants"]
+    assert report["_stated_needs"] == ["repeatable"], "a reduced-seed run still writes the report"
 
 
 def test_every_training_row_carries_its_arms_knob_and_no_other(campaign):

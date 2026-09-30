@@ -22,6 +22,7 @@ rows:
       # ours is 251 of 300; two other machines gave 250 and 251. Far outside this band means the setup differs.
       - {name: untrained-total, source: "{env.OUT}/forgetting.json", key: total_correct, min: 245, max: 257}
   - id: base-2
+    needs: [base-1]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/base-2-a{attempt}"}
     command: ["bash", "-c", "python \"{kit}/score_forgetting.py\" generate --model \"$MODEL_DIR\" --out \"$OUT\""]
     bars:
@@ -37,32 +38,44 @@ rows:
       - {name: changed-verdicts, source: "{env.OUT}/agreement.json", key: changed_verdicts, max: 0}
       - {name: same-machine, source: "{env.OUT}/agreement.json", key: same_machine_flag, min: 1}
   - id: run3-seed43
+    seed: 43
+    needs: [repeatable]
     requires: ["{work}/runs/run3-seed43/hf-step17/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/run3-seed43-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/run3-seed43/hf-step17", "--out", "{env.OUT}"]
     bars: &scored
       - {name: scored, source: "{env.OUT}/forgetting.json", key: total_correct, min: 1}
   - id: run3-seed44
+    seed: 44
+    needs: [repeatable]
     requires: ["{work}/runs/run3-seed44/hf-step17/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/run3-seed44-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/run3-seed44/hf-step17", "--out", "{env.OUT}"]
     bars: *scored
   - id: dose40-seed42
+    seed: 42
+    needs: [repeatable]
     requires: ["{work}/runs/dose40-seed42/hf-step40/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed42-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed42/hf-step40", "--out", "{env.OUT}"]
     bars: *scored
   - id: dose40-seed43
+    seed: 43
+    needs: [repeatable]
     requires: ["{work}/runs/dose40-seed43/hf-step40/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed43-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed43/hf-step40", "--out", "{env.OUT}"]
     bars: *scored
   - id: dose40-seed44
+    seed: 44
+    needs: [repeatable]
     requires: ["{work}/runs/dose40-seed44/hf-step40/config.json"]
     env: {CUDA_VISIBLE_DEVICES: "0", OUT: "{work}/forgetting/dose40-seed44-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "generate", "--model", "{work}/runs/dose40-seed44/hf-step40", "--out", "{env.OUT}"]
     bars: *scored
   - id: report
+    needs: [repeatable]
+    wants: [run3-seed43, run3-seed44, dose40-seed42, dose40-seed43, dose40-seed44]   # ordering only: a missing one does not block the report
     env: {OUT: "{work}/forgetting/report-a{attempt}"}
     command: ["python", "{kit}/score_forgetting.py", "summarize", "--root", "{work}/forgetting", "--base", "base-1", "--out", "{env.OUT}"]
     bars:

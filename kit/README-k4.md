@@ -139,7 +139,7 @@ is wrong, nothing is wasted.
 python $KIT/runner.py run $KIT/campaigns/k4-hints.yaml --all
 ```
 
-That runs everything in order and stops at the first refusal. The order is: the untrained model and
+That runs everything in order and stops at a refusal or failure that a later row needs; a failed run that only the report wants is skipped and the report records it. The order is: the untrained model and
 the machine check, then Spider completely, then FinQA, then the report.
 
 Per bed the hint work comes first — the never-solved set (one GPU, under two minutes), the hints

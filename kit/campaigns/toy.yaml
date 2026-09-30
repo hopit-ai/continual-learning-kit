@@ -17,6 +17,7 @@ rows:
       - {name: calibration, source: "{env.OUT}/metrics.jsonl", key: "val/acc", where: {step: 0}, agg: first, min: 0.555, max: 0.600}
       - {name: signal, source: "{env.OUT}/metrics.jsonl", key: "train/signal", agg: max, min: 0.000001}
   - id: big
+    needs: [pilot]
     # IO first: `runner.py prepare` fetches this on a CPU machine; `run` refuses until it is there.
     prepare:
       - ["python3", "-c", "import pathlib; p = pathlib.Path('{work}/data/big-inputs.txt'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text('ready')"]

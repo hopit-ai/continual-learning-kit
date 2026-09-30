@@ -327,7 +327,8 @@ def test_the_bed_imports_nothing_from_continual_or_sdft():
         elif isinstance(node, ast.ImportFrom):
             imported.add((node.module or "").split(".")[0])
     assert not imported & {"continual", "sdft", "kit", "modal", "torch", "transformers"}, imported
-    assert imported <= {"argparse", "hashlib", "json", "re", "sys", "decimal", "pathlib", "pyarrow", "__future__"}, imported
+    # `random`: K2b's sft-export --seed permutes each SFT repeat's row order (standard library, no network, no model)
+    assert imported <= {"argparse", "hashlib", "json", "re", "sys", "decimal", "pathlib", "pyarrow", "random", "__future__"}, imported
 
 
 # ------------------------------------------------------- local data only: does the panel sit in the dataset?

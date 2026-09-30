@@ -56,6 +56,33 @@ prints every row and executes nothing.
 **One rule: run each command as one job on one node**, so every scoring shares a machine fingerprint. If a report
 shows two fingerprints, re-score both sides on one node with `--row` and re-run the report row.
 
+## Running fewer seeds
+
+```bash
+WORK=/work/k3-work python $KIT/runner.py batch --seeds 0-4 $KIT/campaigns/k3-replay.yaml
+```
+
+`--seeds 0-4` (or `0,1,2,3,4`; `plan`, `prepare` and `run` take it too) skips every row whose `seed:` is outside
+the set. Every row that belongs to one repeat states it: the training run, its scorings, its forgetting scoring, its
+delta, its data file (`plan` prints `seed: N` under each). Each skipped row is printed once as
+`skipped (seed filter): <row>` and is neither run nor recorded. Rows with no seed, the untrained scorings and the
+pilots' readouts, run as usual. K3 and K4 use seeds 0-9, K1c part A 42-51 and part B 0-9, so half of K1c is
+`--seeds 0-4,42-46`. The probes number their repeats `-r1` to `-r3` and carry `seed: 1` to `3` on the run, its
+`-spider` scoring and its `-delta`, so `--seeds 1-2` on `k3-anchor.yaml` or `k3-dose-2.yaml` runs two repeats of
+every arm whole. Keep seed 0 in the set on a first run of K2b and K3: their pilot runs are the seed-0 runs, and
+every later row is refused until they have passed.
+
+The report row still runs and records its verdict. It needs only the pilots and the untrained scorings and *wants*
+the per-seed rows, so a skipped one does not block it, and its `verdict.json` records the filter
+(`"seeds": [0, 1, 2, 3, 4]`). A failed or refused row that no later row needs (a seed's scoring, its delta) no longer
+stops `run --all` or `batch`: the runner prints `continuing: <row> failed; no later row needs it (wanted by: ...)`,
+runs the rest, lists the row under `wants_not_passed` in the report's `verdict.json`, and exits non-zero at the end.
+A failure that a later row needs still stops the run there, naming that row: a pilot, and a training run, whose
+own scorings need it. A bar that counts runs can still fail on a reduced run (K4's
+`the-control-was-found` asks for twenty `none` runs); that FAIL says only that fewer seeds ran. Five seeds of ten
+leave every mean with wider error bars, about 1.4 times the ten-seed ones. The other seeds can run later into the
+same `WORK` with `--seeds 5-9`; then re-run the report with `run --row report`.
+
 ## What to send back
 
 ```bash

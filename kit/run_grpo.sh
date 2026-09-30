@@ -21,6 +21,8 @@
 #            LENGTH_BUDGET=  (characters; empty = off. Exported to the reward function as KIT_LENGTH_BUDGET_CHARS:
 #            an answer longer than this scores 0. Probe 2 (receipt 232) tests 800 on Spider after plain GRPO
 #            drifted to 900-token answers past one pass.)
+#            ENTROPY_COEF=  (empty = the reference's 0, nothing passed; a positive number sets the actor's
+#            entropy bonus, which the anchor test (receipt 239) uses to keep a confident model from collapsing.)
 #            LR=1e-5  (the reference's actor learning rate; the K3 stage-A dose probe sets 3e-5 on one arm.
 #            Warm-up stays at the reference's 10 steps whatever LR is, so a 20-step run spends half its
 #            steps warming up: that is part of what the probe measures, not a knob.)
@@ -59,11 +61,13 @@ WORK="${WORK:-$PWD/k3-work}"
 DRY_RUN="${DRY_RUN:-0}"
 FILE_LOG="${FILE_LOG:-0}"
 LR="${LR:-1e-5}"
+ENTROPY_COEF="${ENTROPY_COEF:-}"
 LENGTH_BUDGET="${LENGTH_BUDGET:-}"
 REWARD="${REWARD:-$KIT/beds/rewards.py}"
 
 [[ "$FILE_LOG" == "0" || "$FILE_LOG" == "1" ]] || { echo "FILE_LOG must be 0 or 1, not $FILE_LOG" >&2; exit 2; }
 [[ "$LR" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "LR must be a number like 1e-5, not $LR" >&2; exit 2; }
+[[ -z "$ENTROPY_COEF" || "$ENTROPY_COEF" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "ENTROPY_COEF must be empty or a number like 0.01, not $ENTROPY_COEF" >&2; exit 2; }
 if [[ -n "$LENGTH_BUDGET" ]]; then
   [[ "$LENGTH_BUDGET" =~ ^[1-9][0-9]*$ ]] || { echo "LENGTH_BUDGET must be a positive integer of characters, not $LENGTH_BUDGET" >&2; exit 2; }
   export KIT_LENGTH_BUDGET_CHARS="$LENGTH_BUDGET"
@@ -144,6 +148,10 @@ if [[ "$KL" == "1" ]]; then
   )
 fi
 
+if [[ -n "$ENTROPY_COEF" ]]; then
+  ARGV+=("actor_rollout_ref.actor.entropy_coeff=$ENTROPY_COEF")
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
 
 if [[ -e "$OUT" ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
@@ -220,6 +228,8 @@ cat > "$OUT/train-summary.json" <<JSON
  "merged": $MERGED,
  "kl": $KL,
  "lr": "$LR",
+ "entropy_coeff": "${ENTROPY_COEF:-0}",
+ "kl_coef": "$KL_COEF",
  "length_budget_chars": ${LENGTH_BUDGET:-null},
  "n_gpus": $NGPU,
  "seconds": $(( $(date -u +%s) - STARTED )),
