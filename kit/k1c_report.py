@@ -62,7 +62,10 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA = "kit-k1c-report.v2"
+SCHEMA = "kit-k1c-report.v3"
+#: A trained bed scoring with more wrong-format answers than the untrained model's by more than this
+#: is counted as collapsed in the paragraph under the Part B table.
+COLLAPSE_MARGIN = 50
 HERE = Path(__file__).resolve().parent
 VAL_KEY = "val-core/tooluse/acc/mean@16"
 COMPARATOR_PREFIX = "dose40-seed"
@@ -578,12 +581,19 @@ def build_part_b(runs: dict, panels: dict, scores: dict, sql_alone: dict | None,
         block["learned"] = spread([r["learned"] for r in ordered])
         block["cut_at_cap"] = spread([r["length"]["cut_at_cap"] for r in ordered])
         known = [r for r in ordered if r["length"]["finished"] is not None]
+        untrained_format = number(scores.get("base17b-%s" % job), "incorrect_format")
         block["cap_reading"] = {
             "scorings": len(ordered),
             "incorrect_format": sum(r["incorrect_format"] or 0 for r in ordered),
             "cut_at_cap": sum(r["length"]["cut_at_cap"] or 0 for r in ordered),
+            "untrained_incorrect_format": untrained_format,
+            "collapse_margin": COLLAPSE_MARGIN,
+            "collapsed": (sum(1 for r in ordered if _finite(r["incorrect_format"]) and
+                              r["incorrect_format"] > untrained_format + COLLAPSE_MARGIN)
+                          if _finite(untrained_format) else None),
             "read_from_responses": len(known),
             "incorrect_format_where_read": sum(r["incorrect_format"] or 0 for r in known),
+            "cut_at_cap_where_read": sum(r["length"]["cut_at_cap"] or 0 for r in known),
             "cut_and_wrong": sum(r["length"]["cut_and_wrong"] for r in known) if known else None,
             "finished": sum(r["length"]["finished"] for r in known) if known else None,
             "finished_right": sum(r["length"]["finished_right"] for r in known) if known else None}
@@ -743,39 +753,50 @@ def render_cap_lead(b: dict) -> list:
     return [text, ""]
 
 
+def _rate(part, whole) -> str:
+    return _pct(part / whole, 0) if _finite(part) and _finite(whole) and whole else "-"
+
+
 def render_cap_reading(b: dict) -> list:
-    """One plain-language paragraph under the Part B table that reads the two cap columns."""
+    """One paragraph under the Part B table that states what the cap columns show, per job, and no
+    more: the counts, the finished answers' rate beside the untrained model's, and how many trained
+    scorings collapsed into wrong format."""
     caps = b.get("bed_caps") or []
-    parts, most, read = [], [], []
+    parts, read = [], False
     for job in sorted(b["jobs"]):
         reading = b["jobs"][job].get("cap_reading") or {}
-        if not reading.get("read_from_responses"):
-            continue
-        read.append(job)
-        untrained = (b["base"].get("length") or {}).get(job) or {}
-        sentence = ("On %s, %d of the %d trained scorings came with their per-answer file: %d answers were marked "
-                    "wrong format and %d wrong answers were cut at %s before they ended; of the %d "
-                    "answers that stopped on their own, %d were right"
+        sentence = []
+        if reading.get("read_from_responses"):
+            read = True
+            untrained = (b["base"].get("length") or {}).get(job) or {}
+            text = ("On %s, %d of the %d trained scorings came with their per-answer file: %d answers "
+                    "were marked wrong format, %d were cut at %s and %d of those cut were wrong; %s "
+                    "answers that stopped on their own were right (%s)"
                     % (job, reading["read_from_responses"], reading["scorings"],
-                       reading["incorrect_format_where_read"], reading["cut_and_wrong"],
-                       _cap_words(caps), reading["finished"], reading["finished_right"]))
-        if _finite(untrained.get("finished")):
-            sentence += ", against the untrained model's %s" % _of(untrained["finished_right"],
-                                                                   untrained["finished"])
-        parts.append(sentence + ".")
-        if reading["incorrect_format_where_read"] and \
-                2 * reading["cut_and_wrong"] >= reading["incorrect_format_where_read"]:
-            most.append(job)
-    if not read:
+                       reading["incorrect_format_where_read"], reading["cut_at_cap_where_read"],
+                       _cap_words(caps), reading["cut_and_wrong"],
+                       _of(reading["finished_right"], reading["finished"]),
+                       _rate(reading["finished_right"], reading["finished"])))
+            if _finite(untrained.get("finished")):
+                text += ", against the untrained model's %s (%s)" % (
+                    _of(untrained["finished_right"], untrained["finished"]),
+                    _rate(untrained["finished_right"], untrained["finished"]))
+            sentence.append(text + ".")
+        if _finite(reading.get("collapsed")):
+            sentence.append("Of the %d trained %s scorings, %d had more than %d wrong-format answers "
+                            "above the untrained model's %d (collapsed %d of %d)."
+                            % (reading["scorings"], job, reading["collapsed"],
+                               reading["collapse_margin"], reading["untrained_incorrect_format"],
+                               reading["collapsed"], reading["scorings"]))
+        parts += sentence
+    if not parts:
         return []
-    if most:
-        parts.append("%s, then, most of the wrong-format answers are answers cut at the scoring cap: "
-                     "the bed's damage there is answers running past the scoring cap rather than lost "
-                     "arithmetic, and `finished, right` is how the trained model does on the answers "
-                     "it finished." % ("On " + " and ".join(most) if most != read else "On every job"))
-    if set(read) - set(most):
-        parts.append("On %s fewer wrong answers were cut than were marked wrong format, so the cap "
-                     "does not explain that count." % " and ".join(sorted(set(read) - set(most))))
+    if read:
+        parts.append("A cut answer was scored as it stood and shows that %s was hit, not why, so where "
+                     "most wrong answers were cut the count at this cap cannot separate an answer that "
+                     "was wrong from one that did not end; the answers that finished are a selected, "
+                     "probably easier subset, so their rate does not show the ability was kept; a "
+                     "scoring at a longer cap is what would separate them." % _cap_words(caps))
     return ["", " ".join(parts)]
 
 

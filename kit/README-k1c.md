@@ -147,10 +147,12 @@ One thing to say in advance about the seeds. A seed here sets the data order and
 
 ## Rescoring at the trainer's cap (added 1 October, after the first archive)
 
-The first archive showed that, in the eight of ten Part B runs that collapsed, the "wrong format" answers are answers cut at the kit's 2,048-new-token scoring
-cap: the trained models' answers grew to 1,500 to 8,000 tokens (the trainer allows 8,192), and most answers that
-finished were right. `campaigns/k1c-rescore.yaml` scores the same ten Part B checkpoints and the untrained model again
-at 8,192 new tokens (`eval_bed.py` and `score_forgetting.py` now take `--max-new-tokens`; the result records the cap and
-`compare` refuses two results scored at different caps) and writes a second report under `k1c/report8k-a1`. The bar
-of record stays the 2,048 scoring in `report-a1`: a model that needs four times the tokens to finish has failed the
-cost bar whatever it scores at 8,192. The rescoring answers one question only: is the arithmetic still there.
+The first archive showed that in eight of the ten Part B runs the answers had grown during training (the trainer
+allows 8,192 new tokens) and were cut at the kit's 2,048-token scoring cap; on those runs the answers cut and wrong
+are at least nine tenths of the "wrong format" count. A cut answer is scored as it stood, so that count cannot
+separate an answer that was wrong from one that did not end. `campaigns/k1c-rescore.yaml` scores the same ten
+checkpoints and the untrained model again at 8,192 new tokens, on one GPU, under `k1c/cap8192/`, and writes a second
+report under `k1c/report8k-a1`. `eval_bed.py` and `score_forgetting.py` take `--max-new-tokens` for it: the result
+records the cap, the context grows to 4,096 prompt tokens plus the cap, and `compare`, `summarize` and `delta.py`
+refuse two results scored at different caps. The bar of record stays the 2,048 scoring in `report-a1`: a model that
+needs several times the tokens to finish has failed the cost bar whatever it scores at 8,192.

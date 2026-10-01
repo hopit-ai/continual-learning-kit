@@ -47,7 +47,7 @@ PANEL_FILE = HERE / "panels" / "general-v1.jsonl"
 FLOOR_PER_100 = -3
 DECODING = {"temperature": 0.0, "top_p": 1.0, "top_k": -1, "repetition_penalty": 1.0, "max_tokens": 2048}
 ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilization": 0.85, "max_model_len": 4096}
-PROMPT_BUDGET = 2048        # the trainer's `max_prompt_length`; with `--max-new-tokens` the context grows to fit prompt + cap
+PROMPT_BUDGET = 4096        # with `--max-new-tokens` the context grows to this plus the cap. Not the trainer's 2,048 prompt limit: 18 FinQA test prompts are longer (up to 2,558 tokens, docs/phase2/k1c/feasibility.md), and a prompt over the budget would be given less than the cap and still be counted as cut at it
 
 _spec = importlib.util.spec_from_file_location("kit_scorers", HERE / "scorers.py")
 scorers = importlib.util.module_from_spec(_spec)
@@ -162,7 +162,7 @@ def cmd_generate(args) -> int:
     prompts = [render(tokenizer, m["prompt"]) for m in members]
     cap = int(args.max_new_tokens or DECODING["max_tokens"])
     decoding = {**DECODING, "max_tokens": cap}
-    engine = {**ENGINE, "max_model_len": max(ENGINE["max_model_len"], PROMPT_BUDGET + cap)}   # context grows to fit prompt + cap
+    engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
     llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
     responses, rows = {}, []
@@ -288,6 +288,10 @@ def cmd_summarize(args) -> int:
         if name.startswith("base"):
             continue
         after = json.loads((directory / "forgetting.json").read_text())
+        caps = [(r.get("decoding") or {}).get("max_tokens", DECODING["max_tokens"]) for r in (base, after)]
+        if caps[0] != caps[1]:
+            raise SystemExit("%s was scored at most %s new tokens an answer and %s at most %s: scorings at two answer "
+                             "caps cannot be judged against each other" % (args.base, caps[0], name, caps[1]))
         same = (base.get("machine") or {}).get("id") is not None and (base.get("machine") or {}).get("id") == (after.get("machine") or {}).get("id")
         changes = {p: after["panels"][p]["correct"] - base["panels"][p]["correct"] for p in base["panels"]}
         lost = {p: sum(base["panels"][p]["per_member"][m] and not after["panels"][p]["per_member"][m] for m in base["panels"][p]["per_member"]) for p in base["panels"]}

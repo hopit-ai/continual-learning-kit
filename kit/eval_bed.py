@@ -46,7 +46,7 @@ ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilizatio
 # a truncated answer here means the same thing it means there. Kept per bed because a bed whose
 # answers are longer would need its own number, and that change must be visible.
 MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048}
-PROMPT_BUDGET = 2048        # the trainer's `max_prompt_length`; with `--max-new-tokens` the context grows to fit prompt + cap
+PROMPT_BUDGET = 4096        # with `--max-new-tokens` the context grows to this plus the cap. Not the trainer's 2,048 prompt limit: 18 FinQA test prompts are longer (up to 2,558 tokens, docs/phase2/k1c/feasibility.md), and a prompt over the budget would be given less than the cap and still be counted as cut at it
 BED_FILES = {"spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
              "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py"}
 DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout"}
@@ -234,8 +234,8 @@ def cmd_generate(args) -> int:
     prompts = [render(tokenizer, item["prompt"]) for item in items]
     cap = int(args.max_new_tokens or MAX_NEW_TOKENS[args.bed])
     decoding = {**DECODING, "max_tokens": cap}
-    # A longer cap than the bed's needs a longer context: the trainer's prompt budget (2,048) plus the cap.
-    engine = {**ENGINE, "max_model_len": max(ENGINE["max_model_len"], PROMPT_BUDGET + cap)}
+    # A longer cap than the bed's needs a longer context: room for the longest prompt (PROMPT_BUDGET) plus the cap.
+    engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
     llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
     answers, rows = {}, []

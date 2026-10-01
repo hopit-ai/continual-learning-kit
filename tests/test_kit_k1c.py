@@ -53,9 +53,13 @@ fold_lora = load("kit_fold_lora_for_k1c", FOLD)
 k1c_report = load("kit_k1c_report", KIT / "k1c_report.py")
 
 #: The exported kit carries kit/ and these tests, but not scripts/. Everything below works on the
-#: export; only the generator-parity test needs the private repository, and it skips without it.
+#: export; only the generator-parity test and the length script's marker rule need the private
+#: repository, and they skip without it.
 GENERATOR = ROOT / "scripts" / "make_k1c_campaign.py"
 generator = load("make_k1c_campaign", GENERATOR) if GENERATOR.is_file() else None
+LENGTH_SCRIPT = ROOT / "scripts" / "analyse_k1c_length.py"
+length_script = load("analyse_k1c_length", LENGTH_SCRIPT) if LENGTH_SCRIPT.is_file() else None
+needs_generator = pytest.mark.skipif(length_script is None, reason="scripts/ is not part of the exported kit")
 
 DRY_ENV = {"SDPO_DIR": "/work/SDPO", "MODEL_DIR": "/work/models/Qwen3-8B", "WORK": "/work/sdpo-work",
            "NAME": "x", "STEPS": "17", "DRY_RUN": "1"}
@@ -877,10 +881,17 @@ def _gsm8k_seed0_cut(tree, *, untrained_cap=CAP):
                     kind="forgetting")
 
 
+def _wrong_format(tree, scoring: str, count: int) -> None:
+    path = tree["eval"] / scoring / "bed-score.json"
+    path.write_text(json.dumps(dict(json.loads(path.read_text()), incorrect_format=count)))
+
+
 def test_the_cap_columns_count_cut_answers_and_the_finished_ones_that_were_right(tree):
     _gsm8k_seed0_cut(tree)
+    _wrong_format(tree, "gsm8k-seed1-gsm8k-a1", 51)      # one more than the margin: collapsed
+    _wrong_format(tree, "gsm8k-seed2-gsm8k-a1", 50)      # exactly the margin: not
     report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
-    assert report["schema"] == "kit-k1c-report.v2"
+    assert report["schema"] == "kit-k1c-report.v3"
     b = report["part_b"]
     row = b["jobs"]["gsm8k"]["seeds"][0]
     assert row["length"] == {"cap": CAP, "cut_at_cap": 7, "cut_and_wrong": 6, "finished": 3,
@@ -895,8 +906,22 @@ def test_the_cap_columns_count_cut_answers_and_the_finished_ones_that_were_right
     assert "| wrong format | cut at cap | finished, right | s/step |" in text
     assert "| gsm8k | gsm8k | 0 | 10 | 8 | 3 | -5 | 6 | 7 | 2 of 3 | 55.0 |" in text
     assert "gsm8k 0 cut, 8 of 10 finished right" in text
-    assert "running past the scoring cap rather than lost arithmetic" in text
     assert "`finished, right`" in text
+    # the paragraph states the columns and no more
+    reading = b["jobs"]["gsm8k"]["cap_reading"]
+    assert reading["collapsed"] == 1 and reading["collapse_margin"] == 50
+    assert reading["untrained_incorrect_format"] == 0 and reading["cut_at_cap_where_read"] == 7
+    assert b["jobs"]["finqa"]["cap_reading"]["collapsed"] == 0
+    assert "On gsm8k, 1 of the 10 trained scorings came with their per-answer file: 6 answers were " \
+           "marked wrong format, 7 were cut at the 2048-token cap and 6 of those cut were wrong; 2 of 3 " \
+           "answers that stopped on their own were right (67%), against the untrained model's 8 of 10 " \
+           "(80%)." in text
+    assert "Of the 10 trained gsm8k scorings, 1 had more than 50 wrong-format answers above the " \
+           "untrained model's 0 (collapsed 1 of 10)." in text
+    assert "(collapsed 0 of 10)" in text
+    assert "a scoring at a longer cap is what would separate them" in text
+    assert "rather than lost arithmetic" not in text and "On every job" not in text
+    assert "one for one" not in text and "nearly all right" not in text
     assert "| gsm8k | 0 | 82 (+0) (c 1) | 80 (+0) (c 0) | 90 (+0) (c 4) |" in text
     assert "Untrained Qwen3-1.7B: instructions 82 (c 0), knowledge 80 (c 0), maths 90 (c 0)" in text
     # a scoring with no responses.jsonl keeps the scorer's count and prints `-` for the rest
@@ -940,8 +965,34 @@ def test_the_report_still_runs_with_no_responses_file_anywhere(tree):
     text = k1c_report.render(report)
     assert "| gsm8k | gsm8k | 0 | 300 | 20 | 100 | +80 | 0 | - | - | 55.0 |" in text
     assert "(c " not in text and "rather than lost arithmetic" not in text
+    assert "came with their per-answer file" not in text and "a longer cap" not in text
+    assert "(collapsed 0 of 10)" in text                 # read from bed-score.json alone
     assert "Untrained Qwen3-1.7B: instructions 82, knowledge 80, maths 90" in text
     assert "do not record their cap" in text
+
+
+@needs_generator
+@pytest.mark.parametrize("text, last, anywhere", [
+    ("Answer: 15", False, False),                        # gold 5 inside a larger number
+    ("Answer: -5", False, False),                        # the sign is part of the number
+    ("The answer could be 5; actually the answer is 12", False, True),
+    ("\\boxed{5}", True, True),
+    ("Answer: 5.", True, True),                          # a sentence's full stop is dropped
+    ("Answer: 1,005", False, False),                     # commas go before matching
+    ("no marker at all, just 5", False, False),
+])
+def test_the_gold_check_reads_the_number_after_the_marker_and_not_any_mention(text, last, anywhere):
+    assert length_script.marker_matches(text, "5") == (last, anywhere)
+
+
+@needs_generator
+def test_the_control_gives_every_question_another_questions_gold():
+    gold = {"q%02d" % i: str(i) for i in range(20)}
+    other = length_script.derangement(gold)
+    assert set(other) == set(gold) and sorted(other.values()) == sorted(gold.values())
+    assert all(other[i] != gold[i] for i in gold)
+    assert other["q00"] == "7" and other["q19"] == "6"
+    assert length_script.derangement(gold) == other      # deterministic
 
 
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):

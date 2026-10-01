@@ -69,9 +69,21 @@ def read_value(where, key: str) -> tuple:
     return float(value), (result.get("machine") or {}).get("id"), path
 
 
+def answer_cap(path):
+    """The most new tokens one answer was allowed in the scoring at `path`, or None when it does not say."""
+    result = json.loads(path.read_text(encoding="utf-8"))
+    value = result.get("max_new_tokens", (result.get("decoding") or {}).get("max_tokens"))
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 def delta(a, b, key: str) -> dict:
     a_value, a_machine, a_path = read_value(a, key)
     b_value, b_machine, b_path = read_value(b, key)
+    caps = (answer_cap(a_path), answer_cap(b_path))
+    if None not in caps and caps[0] != caps[1]:          # the scorers' `--max-new-tokens`: two caps are two measurements
+        raise DeltaError("%s was scored at most %d new tokens an answer and %s at most %d: an answer cut at one cap may "
+                         "have finished at the other, so their difference is not a change in the model"
+                         % (a_path, caps[0], b_path, caps[1]))
     same = a_machine is not None and a_machine == b_machine
     return {"schema": SCHEMA, "key": key, "a": a_value, "b": b_value, "delta": b_value - a_value,
             "same_machine_flag": int(same), "same_machine": same,

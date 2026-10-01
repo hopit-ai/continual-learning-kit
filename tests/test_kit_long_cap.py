@@ -62,7 +62,7 @@ def _model(tmp_path: Path) -> Path:
     return model
 
 
-@pytest.mark.parametrize("flag, cap, context", [([], 2048, 4096), (["--max-new-tokens", "8192"], 8192, 2048 + 8192)])
+@pytest.mark.parametrize("flag, cap, context", [([], 2048, 4096), (["--max-new-tokens", "8192"], 8192, 4096 + 8192)])
 def test_the_panel_scorer_passes_the_cap_to_the_engine_and_records_it(tmp_path, engine, flag, cap, context):
     sf = _load("score_forgetting")
     assert sf.main(["generate", "--model", str(_model(tmp_path)), "--out", str(tmp_path / "out"), *flag]) == 0
@@ -73,7 +73,7 @@ def test_the_panel_scorer_passes_the_cap_to_the_engine_and_records_it(tmp_path, 
     assert sf.DECODING["max_tokens"] == 2048 and sf.ENGINE["max_model_len"] == 4096       # the defaults are untouched
 
 
-@pytest.mark.parametrize("flag, cap, context", [([], 2048, 4096), (["--max-new-tokens", "8192"], 8192, 2048 + 8192)])
+@pytest.mark.parametrize("flag, cap, context", [([], 2048, 4096), (["--max-new-tokens", "8192"], 8192, 4096 + 8192)])
 def test_the_bed_scorer_passes_the_cap_to_the_engine_and_records_it(tmp_path, engine, flag, cap, context):
     eb = _load("eval_bed")
     data = tmp_path / "gsm8k"
