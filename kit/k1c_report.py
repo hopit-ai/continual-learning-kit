@@ -40,6 +40,11 @@ FOUR RULES IT ENFORCES, each of which has already cost this programme a wrong an
 4. NOTHING IS A CONCLUSION HERE. These are baselines. Every table says what was measured and against
    what; the only comparisons drawn are LoRA against full at the same seed, and each arm against the
    SDPO run at the same seed.
+5. THE SCORING CAP IS NAMED. The scorers decode at most `max_new_tokens` per answer, far fewer than
+   training allows, so a trained model whose answers grew past it is scored on answers cut short.
+   Part B prints, per scoring, how many answers were cut at the cap and how many of the answers that
+   stopped on their own were right (from `finish_reason` in the `responses.jsonl` beside it), and an
+   untrained and an after scoring made at two different caps is a FLAG, never a silent comparison.
 
 Standard library only. Nothing is overwritten: an existing --out is refused.
 """
@@ -57,7 +62,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA = "kit-k1c-report.v1"
+SCHEMA = "kit-k1c-report.v2"
 HERE = Path(__file__).resolve().parent
 VAL_KEY = "val-core/tooluse/acc/mean@16"
 COMPARATOR_PREFIX = "dose40-seed"
@@ -148,6 +153,68 @@ def latest_files_found(directory: Path, filename: str) -> dict:
 def latest_files(directory: Path, filename: str) -> dict:
     """{stem: parsed json} for the highest attempt of every <stem>-aN folder holding `filename`."""
     return {stem: result for stem, (_path, result) in latest_files_found(directory, filename).items()}
+
+
+# ------------------------------------------------------------------------------- the scoring cap
+CUT = "length"          # vLLM's finish_reason for an answer that hit max_new_tokens
+
+
+def _responses(found) -> list | None:
+    """The rows of the `responses.jsonl` beside a scoring, or None when it is absent or its rows do not
+    say why they stopped (`finish_reason`). An unknown is printed as `-`, never as a zero."""
+    if not found:
+        return None
+    target = Path(found[0]).parent / "responses.jsonl"
+    if not target.is_file():
+        return None
+    rows = _jsonl(target)
+    return rows if rows and all("finish_reason" in row for row in rows) else None
+
+
+def cap_of(result: dict | None):
+    """The most new tokens one answer was allowed when this scoring was made."""
+    if not result:
+        return None
+    value = result.get("max_new_tokens", (result.get("decoding") or {}).get("max_tokens"))
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def bed_length(found) -> dict:
+    """What the cap did to one bed scoring: the cap, the answers cut at it (the scorer's own count),
+    and, from responses.jsonl, the cut answers that were wrong and the answers that stopped on their
+    own with how many of those were right."""
+    result = found[1] if found else None
+    out = {"cap": cap_of(result), "cut_at_cap": number(result, "truncated_at_max_tokens"),
+           "cut_and_wrong": None, "finished": None, "finished_right": None}
+    rows = _responses(found)
+    per_item = (result or {}).get("per_item")
+    if rows is None or not isinstance(per_item, dict):
+        return out
+    finished = [row for row in rows if row["finish_reason"] != CUT]
+    out["finished"] = len(finished)
+    out["finished_right"] = sum(1 for row in finished if per_item.get(row.get("id")) == 1)
+    out["cut_and_wrong"] = sum(1 for row in rows
+                               if row["finish_reason"] == CUT and per_item.get(row.get("id")) != 1)
+    return out
+
+
+def panel_cuts(found) -> dict | None:
+    """{panel: answers cut at the cap} for one forgetting scoring, or None without a responses.jsonl."""
+    rows = _responses(found)
+    if rows is None:
+        return None
+    names = sorted(((found[1] or {}).get("panels") or {}))
+    return {name: sum(1 for row in rows if row.get("panel") == name and row["finish_reason"] == CUT)
+            for name in names}
+
+
+def cap_flag(what: str, untrained, after) -> str | None:
+    """One flag when an untrained and an after scoring were decoded under two different caps."""
+    if untrained is None or after is None or untrained == after:
+        return None
+    return ("CAP DIFFERS on %s: the untrained model was scored at most %d new tokens per answer and "
+            "this run at most %d. An answer cut at one cap may have finished at the other, so the "
+            "difference between them is not the training alone." % (what, untrained, after))
 
 
 # ------------------------------------------------------- intelligence density (plan 4c, row Q13)
@@ -463,10 +530,15 @@ def build_part_a(runs: dict, panels: dict, comparator: dict) -> dict:
             "comparator": comparator, "flags": flags}
 
 
-def build_part_b(runs: dict, panels: dict, scores: dict, sql_alone: dict | None) -> dict:
+def build_part_b(runs: dict, panels: dict, scores: dict, sql_alone: dict | None, *,
+                 scores_found: dict | None = None, panels_found: dict | None = None) -> dict:
+    scores_found, panels_found = scores_found or {}, panels_found or {}
     base = {"panels": panel_scores(panels.get("base17b")),
             **{job: number(scores.get("base17b-%s" % job)) for job in sorted(B_JOBS)}}
     base["n"] = {job: number(scores.get("base17b-%s" % job), "n") for job in sorted(B_JOBS)}
+    base["length"] = {job: bed_length(scores_found.get("base17b-%s" % job)) for job in sorted(B_JOBS)}
+    base["panel_cuts"] = panel_cuts(panels_found.get("base17b"))
+    base["panel_cap"] = cap_of(panels.get("base17b"))
     jobs: dict = {}
     for point, run in sorted(runs.items()):
         match = B_POINT.match(point)
@@ -490,15 +562,38 @@ def build_part_b(runs: dict, panels: dict, scores: dict, sql_alone: dict | None)
                           if _finite(row["job_score"]) and _finite(row["base_score"]) else None)
         row["panel_change"] = {name: after[name] - base["panels"][name]
                                for name in sorted(set(after) & set(base["panels"]))}
+        row["length"] = bed_length(scores_found.get("%s-%s" % (point, bed)))
+        row["panel_cuts"] = panel_cuts(panels_found.get("%s-forget" % point))
+        row["panel_cap"] = cap_of(panels.get("%s-forget" % point))
+        for what, untrained, trained in (
+                ("the %s bed" % bed, base["length"][job]["cap"], row["length"]["cap"]),
+                ("the forgetting panels", base["panel_cap"], row["panel_cap"])):
+            flag = cap_flag(what, untrained, trained)
+            if flag:
+                row["flags"].append(flag)
         jobs.setdefault(job, {"bed": bed, "seeds": {}})["seeds"][seed] = row
     for job, block in jobs.items():
         ordered = [block["seeds"][s] for s in sorted(block["seeds"])]
         block["job_score"] = spread([r["job_score"] for r in ordered])
         block["learned"] = spread([r["learned"] for r in ordered])
+        block["cut_at_cap"] = spread([r["length"]["cut_at_cap"] for r in ordered])
+        known = [r for r in ordered if r["length"]["finished"] is not None]
+        block["cap_reading"] = {
+            "scorings": len(ordered),
+            "incorrect_format": sum(r["incorrect_format"] or 0 for r in ordered),
+            "cut_at_cap": sum(r["length"]["cut_at_cap"] or 0 for r in ordered),
+            "read_from_responses": len(known),
+            "incorrect_format_where_read": sum(r["incorrect_format"] or 0 for r in known),
+            "cut_and_wrong": sum(r["length"]["cut_and_wrong"] for r in known) if known else None,
+            "finished": sum(r["length"]["finished"] for r in known) if known else None,
+            "finished_right": sum(r["length"]["finished_right"] for r in known) if known else None}
         block["seconds_per_step"] = spread([r["means"].get("seconds_per_step") for r in ordered])
         block["panel_change"] = {name: spread([r["panel_change"].get(name) for r in ordered])
                                  for name in sorted({n for r in ordered for n in r["panel_change"]})}
-    return {"base": base, "jobs": {job: jobs[job] for job in sorted(jobs)}, "sql_alone": sql_alone,
+    caps = {entry["cap"] for entry in base["length"].values()} | \
+        {row["length"]["cap"] for block in jobs.values() for row in block["seeds"].values()}
+    return {"base": base, "jobs": {job: jobs[job] for job in sorted(jobs)},
+            "bed_caps": sorted(cap for cap in caps if cap is not None), "sql_alone": sql_alone,
             "sql_alone_note": "SQL learned alone at 1.7B is K3's stage A (rows a-seed0/1/2), not "
                               "re-measured here. Pass --k3 with your K3 report to include it.",
             "coding_note": "Coding is out of scope for K1c: the kit has no Modal-free code sandbox, so "
@@ -577,7 +672,8 @@ def build(runs_dir: Path, forgetting: Path, evaluations: Path, k0: Path, k3: Pat
 
     comparator = read_comparator(k0)
     part_a = build_part_a(a_runs, panels, comparator)
-    part_b = build_part_b(b_runs, panels, scores, read_sql_alone(k3))
+    part_b = build_part_b(b_runs, panels, scores, read_sql_alone(k3),
+                          scores_found=scores_found, panels_found=panels_found)
     pilots = {name: read_run(path, summary_name=("run-summary.json" if name.startswith("pilot-") and
                                                  not name.startswith("pilot-b-") else "train-summary.json"))
               for name, path in sorted(latest_dirs(runs_dir).items()) if name.startswith("pilot-")}
@@ -607,6 +703,80 @@ def _fmt(value, pattern="%.4f"):
 
 def _pct(value, digits):
     return ("%%.%df%%%%" % digits) % (100 * value) if _finite(value) else "-"
+
+
+def _of(part, whole):
+    return "%d of %d" % (part, whole) if _finite(part) and _finite(whole) else "-"
+
+
+def _cap_words(caps: list) -> str:
+    return ("the %d-token cap" % caps[0]) if len(caps) == 1 else "the scoring cap"
+
+
+def _cut_mark(cuts: dict | None, name: str) -> str:
+    return " (c %d)" % cuts[name] if cuts and name in cuts else ""
+
+
+def render_cap_lead(b: dict) -> list:
+    """The sentence before the Part B table: the cap every bed scoring was decoded under, and what the
+    untrained model's answers did at it."""
+    caps = b.get("bed_caps") or []
+    if not caps:
+        return ["The bed scorings do not record their cap (`max_new_tokens`), so `cut at cap` is the "
+                "scorer's own count with no cap named beside it.", ""]
+    if len(caps) == 1:
+        text = ("Every bed answer was decoded to at most %d new tokens (`max_new_tokens`); an answer "
+                "still going there is cut at the cap and scored as it stands." % caps[0])
+    else:
+        text = ("The bed scorings here were decoded at different caps (%s new tokens, `max_new_tokens`; "
+                "see Flags); an answer still going at its cap is cut there and scored as it stands."
+                % ", ".join("%d" % c for c in caps))
+    text += (" `cut at cap` counts those answers in the after scoring; `finished, right` counts the "
+             "answers that stopped on their own and were right, out of all that stopped on their own.")
+    untrained = ["%s %s cut, %s finished right" % (job, "%d" % entry["cut_at_cap"]
+                                                   if _finite(entry["cut_at_cap"]) else "-",
+                                                   _of(entry["finished_right"], entry["finished"]))
+                 for job, entry in sorted((b["base"].get("length") or {}).items())
+                 if job in b["jobs"]]
+    if untrained:
+        text += " The untrained model, beside it: %s." % "; ".join(untrained)
+    return [text, ""]
+
+
+def render_cap_reading(b: dict) -> list:
+    """One plain-language paragraph under the Part B table that reads the two cap columns."""
+    caps = b.get("bed_caps") or []
+    parts, most, read = [], [], []
+    for job in sorted(b["jobs"]):
+        reading = b["jobs"][job].get("cap_reading") or {}
+        if not reading.get("read_from_responses"):
+            continue
+        read.append(job)
+        untrained = (b["base"].get("length") or {}).get(job) or {}
+        sentence = ("On %s, %d of the %d trained scorings came with their per-answer file: %d answers were marked "
+                    "wrong format and %d wrong answers were cut at %s before they ended; of the %d "
+                    "answers that stopped on their own, %d were right"
+                    % (job, reading["read_from_responses"], reading["scorings"],
+                       reading["incorrect_format_where_read"], reading["cut_and_wrong"],
+                       _cap_words(caps), reading["finished"], reading["finished_right"]))
+        if _finite(untrained.get("finished")):
+            sentence += ", against the untrained model's %s" % _of(untrained["finished_right"],
+                                                                   untrained["finished"])
+        parts.append(sentence + ".")
+        if reading["incorrect_format_where_read"] and \
+                2 * reading["cut_and_wrong"] >= reading["incorrect_format_where_read"]:
+            most.append(job)
+    if not read:
+        return []
+    if most:
+        parts.append("%s, then, most of the wrong-format answers are answers cut at the scoring cap: "
+                     "the bed's damage there is answers running past the scoring cap rather than lost "
+                     "arithmetic, and `finished, right` is how the trained model does on the answers "
+                     "it finished." % ("On " + " and ".join(most) if most != read else "On every job"))
+    if set(read) - set(most):
+        parts.append("On %s fewer wrong answers were cut than were marked wrong format, so the cap "
+                     "does not explain that count." % " and ".join(sorted(set(read) - set(most))))
+    return ["", " ".join(parts)]
 
 
 def render_density(report: dict) -> list:
@@ -740,34 +910,53 @@ def render(report: dict) -> str:
                   "40 steps x 32 questions, which is K3's stage-B dose, so `gsm8k` here is directly "
                   "readable against K3's `b-none` arm (maths learned AFTER SQL) as well as being the "
                   "row rehearsal has to beat. Counts are correct answers on the bed's largest held-out "
-                  "set, scored deterministically on one GPU of one machine.", "",
-                  "| job | bed | seed | held out | untrained | after | learned | wrong format | s/step |",
-                  "|---|---|---|---|---|---|---|---|---|"]
+                  "set, scored deterministically on one GPU of one machine.", ""]
+        lines += render_cap_lead(b)
+        lines += ["| job | bed | seed | held out | untrained | after | learned | wrong format | "
+                  "cut at cap | finished, right | s/step |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
         for job in sorted(b["jobs"]):
             block = b["jobs"][job]
             for seed in sorted(block["seeds"]):
                 r = block["seeds"][seed]
-                lines.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                length = r.get("length") or {}
+                lines.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
                     job, block["bed"], seed, r["job_n"], r["base_score"], r["job_score"],
                     "%+d" % r["learned"] if _finite(r["learned"]) else "-",
-                    r["incorrect_format"], _fmt(r["means"].get("seconds_per_step"), "%.1f")))
-            lines.append("| **%s** | | mean of %d | | | **%s** (sd %s) | **%s** (sd %s) | | %s |" % (
+                    r["incorrect_format"],
+                    "%d" % length["cut_at_cap"] if _finite(length.get("cut_at_cap")) else "-",
+                    _of(length.get("finished_right"), length.get("finished")),
+                    _fmt(r["means"].get("seconds_per_step"), "%.1f")))
+            cut = block.get("cut_at_cap") or spread([])
+            lines.append("| **%s** | | mean of %d | | | **%s** (sd %s) | **%s** (sd %s) | | %s | | %s |" % (
                 job, block["learned"]["n"], _fmt(block["job_score"]["mean"], "%.1f"),
                 _fmt(block["job_score"]["sd"], "%.1f"), _fmt(block["learned"]["mean"], "%+.1f"),
-                _fmt(block["learned"]["sd"], "%.1f"),
+                _fmt(block["learned"]["sd"], "%.1f"), _fmt(cut["mean"], "%.1f"),
                 _fmt(block["seconds_per_step"]["mean"], "%.1f")))
+        lines += render_cap_reading(b)
 
         if b["base"]["panels"]:
             names = sorted(b["base"]["panels"])
+            base_cuts = b["base"].get("panel_cuts")
+            marked = base_cuts is not None or any(
+                row.get("panel_cuts") is not None
+                for block in b["jobs"].values() for row in block["seeds"].values())
             lines += ["", "### Forgetting, Part B", "",
-                      "Untrained Qwen3-1.7B: " + ", ".join("%s %d" % (n, b["base"]["panels"][n])
-                                                           for n in names), "",
-                      "| job | seed | " + " | ".join(names) + " |", "|---|---|" + "---|" * len(names)]
+                      "Untrained Qwen3-1.7B: " + ", ".join("%s %d%s" % (n, b["base"]["panels"][n],
+                                                                       _cut_mark(base_cuts, n))
+                                                           for n in names), ""]
+            if marked:
+                cap = b["base"].get("panel_cap")
+                lines += ["`(c N)`: N of that panel's answers were cut at %s and scored as they stood "
+                          "(from `finish_reason` in the scoring's responses.jsonl)."
+                          % ("the %d-token cap" % cap if cap else "the scoring cap"), ""]
+            lines += ["| job | seed | " + " | ".join(names) + " |", "|---|---|" + "---|" * len(names)]
             for job in sorted(b["jobs"]):
                 for seed in sorted(b["jobs"][job]["seeds"]):
                     r = b["jobs"][job]["seeds"][seed]
                     lines.append("| %s | %s | %s |" % (job, seed, " | ".join(
-                        "%s (%+d)" % (r["panels"][n], r["panel_change"][n])
+                        "%s (%+d)%s" % (r["panels"][n], r["panel_change"][n],
+                                        _cut_mark(r.get("panel_cuts"), n))
                         if n in r["panels"] and n in r["panel_change"] else "-" for n in names)))
 
         lines += ["", "### SQL learned alone", ""]

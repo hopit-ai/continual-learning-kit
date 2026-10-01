@@ -47,6 +47,7 @@ PANEL_FILE = HERE / "panels" / "general-v1.jsonl"
 FLOOR_PER_100 = -3
 DECODING = {"temperature": 0.0, "top_p": 1.0, "top_k": -1, "repetition_penalty": 1.0, "max_tokens": 2048}
 ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilization": 0.85, "max_model_len": 4096}
+PROMPT_BUDGET = 2048        # the trainer's `max_prompt_length`; with `--max-new-tokens` the context grows to fit prompt + cap
 
 _spec = importlib.util.spec_from_file_location("kit_scorers", HERE / "scorers.py")
 scorers = importlib.util.module_from_spec(_spec)
@@ -159,8 +160,11 @@ def cmd_generate(args) -> int:
     import vllm                                                             # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, m["prompt"]) for m in members]
-    llm = LLM(model=str(model), enable_lora=False, **ENGINE, **({"enforce_eager": True, "seed": 0} if eager else {}))
-    outputs = llm.generate(prompts, SamplingParams(n=1, **DECODING))
+    cap = int(args.max_new_tokens or DECODING["max_tokens"])
+    decoding = {**DECODING, "max_tokens": cap}
+    engine = {**ENGINE, "max_model_len": max(ENGINE["max_model_len"], PROMPT_BUDGET + cap)}   # context grows to fit prompt + cap
+    llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
+    outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
     responses, rows = {}, []
     for member, output in zip(members, outputs):
         completion = output.outputs[0]
@@ -175,8 +179,9 @@ def cmd_generate(args) -> int:
         slot["output_tokens_total"] = sum(tokens)
         slot["output_tokens_mean"] = round(sum(tokens) / max(1, len(tokens)), 3)
     write_result(out, panels=panels, panel_sha=digest,
-                 extra={"mode": "generate", "model": model_identity(model), "engine": {**ENGINE, "vllm": vllm.__version__, "batch_invariant": batch_invariant, "eager": eager, "deterministic": deterministic},
-                        "machine": machine_fingerprint(deterministic), "truncated_at_max_tokens": truncated})
+                 extra={"mode": "generate", "model": model_identity(model), "engine": {**engine, "vllm": vllm.__version__, "batch_invariant": batch_invariant, "eager": eager, "deterministic": deterministic},
+                        "machine": machine_fingerprint(deterministic), "truncated_at_max_tokens": truncated,
+                        "max_new_tokens": cap, "decoding": decoding})      # a cap override replaces the default `decoding`
     return 0
 
 
@@ -202,6 +207,10 @@ def cmd_compare(args) -> int:
     base, after = (json.loads(Path(p).read_text()) for p in (args.base, args.after))
     if base["panel_file_sha256"] != after["panel_file_sha256"]:
         raise SystemExit("the two results were scored on different panel files")
+    caps = [(r.get("decoding") or {}).get("max_tokens", DECODING["max_tokens"]) for r in (base, after)]
+    if caps[0] != caps[1]:
+        raise SystemExit("the two results were scored at different answer caps (%s and %s new tokens): an answer cut at "
+                         "one cap and finished at the other is not the same measurement" % tuple(caps))
     out = fresh_dir(Path(args.out))
     machines = [(r.get("machine") or {}).get("id") for r in (base, after)]
     same_machine = machines[0] is not None and machines[0] == machines[1]
@@ -302,6 +311,10 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Score a saved model for forgetting on three general panels.")
     sub = parser.add_subparsers(dest="action", required=True)
     g = sub.add_parser("generate"); g.add_argument("--model", required=True); g.add_argument("--out", required=True)
+    g.add_argument("--max-new-tokens", type=int, default=None,
+                   help="answer cap instead of the panel's 2,048: a DEPARTURE from the bar of record, for diagnosis only "
+                        "(e.g. 8192, the trainer's own cap); recorded in `max_new_tokens` and `decoding.max_tokens`, and "
+                        "`compare` refuses two results scored at different caps")
     s = sub.add_parser("score"); s.add_argument("--responses", required=True); s.add_argument("--out", required=True)
     c = sub.add_parser("compare"); c.add_argument("--base", required=True); c.add_argument("--after", required=True); c.add_argument("--out", required=True)
     c.add_argument("--allow-different-machines", action="store_true", help="judge anyway; recorded in the result")

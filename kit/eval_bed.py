@@ -46,6 +46,7 @@ ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilizatio
 # a truncated answer here means the same thing it means there. Kept per bed because a bed whose
 # answers are longer would need its own number, and that change must be visible.
 MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048}
+PROMPT_BUDGET = 2048        # the trainer's `max_prompt_length`; with `--max-new-tokens` the context grows to fit prompt + cap
 BED_FILES = {"spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
              "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py"}
 DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout"}
@@ -199,7 +200,7 @@ def grade(module, args, items: list, answers: dict) -> dict:
 def write_result(out: Path, *, bed: str, split: str, graded: dict, extra: dict) -> dict:
     result = {"schema": SCHEMA, "bed": bed, "split": split,
               "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "decoding": DECODING, **graded, **extra}
+              "decoding": DECODING, **graded, **extra}      # `extra` may carry its own `decoding` (a cap override)
     (out / "bed-score.json").write_text(json.dumps(result, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print("%s %s: %d of %d correct (%.4f), %d answers in the wrong format"
           % (bed, split, graded["correct"], graded["n"], graded["accuracy"], graded["incorrect_format"]))
@@ -231,8 +232,11 @@ def cmd_generate(args) -> int:
     import vllm                                                             # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, item["prompt"]) for item in items]
-    decoding = {**DECODING, "max_tokens": MAX_NEW_TOKENS[args.bed]}
-    llm = LLM(model=str(model), enable_lora=False, **ENGINE, **({"enforce_eager": True, "seed": 0} if eager else {}))
+    cap = int(args.max_new_tokens or MAX_NEW_TOKENS[args.bed])
+    decoding = {**DECODING, "max_tokens": cap}
+    # A longer cap than the bed's needs a longer context: the trainer's prompt budget (2,048) plus the cap.
+    engine = {**ENGINE, "max_model_len": max(ENGINE["max_model_len"], PROMPT_BUDGET + cap)}
+    llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
     answers, rows = {}, []
     for item, output in zip(items, outputs):
@@ -245,11 +249,12 @@ def cmd_generate(args) -> int:
     write_result(out, bed=args.bed, split=split_of(args), graded=grade(module, args, items, answers),
                  extra={"mode": "generate", "model": str(model), "items_sha256": items_digest(items),
                         "limit": int(args.limit or 0),
-                        "max_new_tokens": MAX_NEW_TOKENS[args.bed], "truncated_at_max_tokens": truncated,
+                        "max_new_tokens": cap, "truncated_at_max_tokens": truncated,
+                        "decoding": decoding,          # overrides the bed default written by write_result
                         # what a correct answer costs (kit/density.py): the whole set's output tokens
                         "output_tokens_total": sum(r["output_tokens"] for r in rows),
                         "output_tokens_mean": round(sum(r["output_tokens"] for r in rows) / max(1, len(rows)), 3),
-                        "engine": {**ENGINE, "vllm": vllm.__version__, "batch_invariant": batch_invariant,
+                        "engine": {**engine, "vllm": vllm.__version__, "batch_invariant": batch_invariant,
                                    "eager": eager, "deterministic": deterministic},
                         "machine": machine_fingerprint(deterministic)})
     return 0
@@ -288,6 +293,11 @@ def main(argv=None) -> int:
         p.add_argument("--allow-subset", action="store_true", help="GSM8K only: the copy is not the published dataset")
         if name == "generate":
             p.add_argument("--model", required=True)
+            p.add_argument("--max-new-tokens", type=int, default=None,
+                           help="answer cap instead of the bed's %s. A DEPARTURE from the bar of record, for diagnosis "
+                                "(e.g. 8192, the trainer's own cap, to see whether answers cut at 2,048 were right); "
+                                "recorded as `max_new_tokens` and `decoding.max_tokens`, and a result scored at another "
+                                "cap is not comparable with this one" % MAX_NEW_TOKENS["gsm8k"])
         else:
             p.add_argument("--responses", required=True)
     args = parser.parse_args(argv)

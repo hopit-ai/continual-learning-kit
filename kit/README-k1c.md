@@ -144,3 +144,13 @@ If you can spare the space, these let us re-check any number without re-running 
 **We do not know what any of this will show.** GRPO beating SDPO, losing to it, or not moving at all are three results and all three are worth the same to us; so are LoRA matching full training, forgetting less, or failing to learn. The one thing we would not learn anything from is a number we cannot trust, which is what all those bars are for. Please send the report whichever way it comes out.
 
 One thing to say in advance about the seeds. A seed here sets the data order and the parameter initialisation, but the reference leaves vLLM's sampling unseeded, so two runs at one seed still differ in their rollouts. Part A's ten seeds are ten independent repeats of the same dose, and the readout shows every seed as well as the mean, so you can see the spread rather than take our word for it. Part B's launcher reads its training file in written order (`data.shuffle=False`, as the reference's own SQL runs did), so there a seed changes only the sampling.
+
+## Rescoring at the trainer's cap (added 1 October, after the first archive)
+
+The first archive showed that, in the eight of ten Part B runs that collapsed, the "wrong format" answers are answers cut at the kit's 2,048-new-token scoring
+cap: the trained models' answers grew to 1,500 to 8,000 tokens (the trainer allows 8,192), and most answers that
+finished were right. `campaigns/k1c-rescore.yaml` scores the same ten Part B checkpoints and the untrained model again
+at 8,192 new tokens (`eval_bed.py` and `score_forgetting.py` now take `--max-new-tokens`; the result records the cap and
+`compare` refuses two results scored at different caps) and writes a second report under `k1c/report8k-a1`. The bar
+of record stays the 2,048 scoring in `report-a1`: a model that needs four times the tokens to finish has failed the
+cost bar whatever it scores at 8,192. The rescoring answers one question only: is the arithmetic still there.

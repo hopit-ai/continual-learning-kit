@@ -836,6 +836,114 @@ def test_the_density_is_summed_from_a_responses_file_when_the_result_carries_no_
     assert "| finqa | 0 | finqa | 955.8 | 2400.0 | 2.51 | over bar |" in k1c_report.render(report)
 
 
+# ------------------------------------------------------------------------ the scoring cap (K1c read)
+CAP = 2048
+
+
+def _capped_scoring(directory: Path, rows: list, *, cap=CAP, incorrect_format=0, kind="bed") -> None:
+    """Rewrite one scoring so its answers say why they stopped. `rows` is [(finish_reason, right)];
+    a bed scoring gets `per_item` and the scorer's own cut count, a forgetting scoring a panel each."""
+    if kind == "bed":
+        result = json.loads((directory / "bed-score.json").read_text())
+        result.update({"per_item": {"q%d" % i: int(right) for i, (_, right) in enumerate(rows)},
+                       "truncated_at_max_tokens": sum(1 for reason, _ in rows if reason == "length"),
+                       "max_new_tokens": cap, "incorrect_format": incorrect_format,
+                       "n": len(rows), "correct": sum(1 for _, right in rows if right)})
+        (directory / "bed-score.json").write_text(json.dumps(result))
+        lines = [{"id": "q%d" % i, "output_tokens": cap if reason == "length" else 100,
+                  "finish_reason": reason} for i, (reason, _) in enumerate(rows)]
+    else:
+        result = json.loads((directory / "forgetting.json").read_text())
+        result["decoding"] = {"max_tokens": cap}
+        (directory / "forgetting.json").write_text(json.dumps(result))
+        lines = [{"id": "%s-%d" % (panel, i), "panel": panel, "finish_reason": reason}
+                 for panel, reasons in rows for i, reason in enumerate(reasons)]
+    (directory / "responses.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+
+def _gsm8k_seed0_cut(tree, *, untrained_cap=CAP):
+    """gsm8k seed 0 in miniature: ten answers, seven cut at the cap (six of them wrong, all
+    wrong-format), three that finished of which two are right; the untrained model finished all ten."""
+    _capped_scoring(tree["eval"] / "gsm8k-seed0-gsm8k-a1",
+                    [("length", False)] * 6 + [("length", True)] + [("stop", True)] * 2 + [("stop", False)],
+                    incorrect_format=6)
+    _capped_scoring(tree["eval"] / "base17b-gsm8k-a1", [("stop", True)] * 8 + [("stop", False)] * 2,
+                    cap=untrained_cap)
+    _capped_scoring(tree["forgetting"] / "gsm8k-seed0-forget-a1",
+                    [("maths", ["length"] * 4 + ["stop"] * 6), ("knowledge", ["stop"] * 10),
+                     ("instructions", ["length"] + ["stop"] * 9)], kind="forgetting")
+    _capped_scoring(tree["forgetting"] / "base17b-a1",
+                    [(panel, ["stop"] * 10) for panel in ("maths", "knowledge", "instructions")],
+                    kind="forgetting")
+
+
+def test_the_cap_columns_count_cut_answers_and_the_finished_ones_that_were_right(tree):
+    _gsm8k_seed0_cut(tree)
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    assert report["schema"] == "kit-k1c-report.v2"
+    b = report["part_b"]
+    row = b["jobs"]["gsm8k"]["seeds"][0]
+    assert row["length"] == {"cap": CAP, "cut_at_cap": 7, "cut_and_wrong": 6, "finished": 3,
+                             "finished_right": 2}
+    assert row["panel_cuts"] == {"instructions": 1, "knowledge": 0, "maths": 4}
+    assert b["base"]["length"]["gsm8k"]["finished_right"] == 8
+    assert b["base"]["panel_cuts"] == {"instructions": 0, "knowledge": 0, "maths": 0}
+    assert b["bed_caps"] == [CAP]
+    assert not any("CAP DIFFERS" in f for f in row["flags"])
+    text = k1c_report.render(report)
+    assert "at most 2048 new tokens (`max_new_tokens`)" in text
+    assert "| wrong format | cut at cap | finished, right | s/step |" in text
+    assert "| gsm8k | gsm8k | 0 | 10 | 8 | 3 | -5 | 6 | 7 | 2 of 3 | 55.0 |" in text
+    assert "gsm8k 0 cut, 8 of 10 finished right" in text
+    assert "running past the scoring cap rather than lost arithmetic" in text
+    assert "`finished, right`" in text
+    assert "| gsm8k | 0 | 82 (+0) (c 1) | 80 (+0) (c 0) | 90 (+0) (c 4) |" in text
+    assert "Untrained Qwen3-1.7B: instructions 82 (c 0), knowledge 80 (c 0), maths 90 (c 0)" in text
+    # a scoring with no responses.jsonl keeps the scorer's count and prints `-` for the rest
+    finqa = b["jobs"]["finqa"]["seeds"][0]
+    assert finqa["length"]["finished"] is None and finqa["panel_cuts"] is None
+    assert "| finqa | finqa | 0 | 300 | 60 | 100 | +40 | 0 | - | - | 55.0 |" in text
+    assert "| finqa | 0 | 82 (+0) | 80 (+0) | 90 (+0) |" in text
+
+
+def test_an_untrained_and_an_after_scoring_at_two_caps_is_flagged_not_compared_silently(tree):
+    _gsm8k_seed0_cut(tree, untrained_cap=4096)
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    flags = report["part_b"]["jobs"]["gsm8k"]["seeds"][0]["flags"]
+    assert [f for f in flags if "CAP DIFFERS" in f] == [
+        k1c_report.cap_flag("the gsm8k bed", 4096, CAP)]
+    assert sum("CAP DIFFERS" in f for s in range(1, len(B_SEEDS))
+               for f in report["part_b"]["jobs"]["gsm8k"]["seeds"][s]["flags"]) == 0
+    text = k1c_report.render(report)
+    assert "decoded at different caps (2048, 4096 new tokens" in text
+    assert "- **gsm8k seed 0** CAP DIFFERS on the gsm8k bed: the untrained model was scored at most " \
+           "4096 new tokens per answer and this run at most 2048." in text
+
+
+def test_a_panel_cap_that_differs_is_flagged_too(tree):
+    _gsm8k_seed0_cut(tree)
+    result = json.loads((tree["forgetting"] / "base17b-a1" / "forgetting.json").read_text())
+    result["decoding"] = {"max_tokens": 1024}
+    (tree["forgetting"] / "base17b-a1" / "forgetting.json").write_text(json.dumps(result))
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    flags = report["part_b"]["jobs"]["gsm8k"]["seeds"][0]["flags"]
+    assert any("CAP DIFFERS on the forgetting panels" in f for f in flags)
+
+
+def test_the_report_still_runs_with_no_responses_file_anywhere(tree):
+    report = k1c_report.build(tree["runs"], tree["forgetting"], tree["eval"], tree["k0"])
+    b = report["part_b"]
+    row = b["jobs"]["gsm8k"]["seeds"][0]
+    assert row["length"] == {"cap": None, "cut_at_cap": None, "cut_and_wrong": None, "finished": None,
+                             "finished_right": None}
+    assert row["panel_cuts"] is None and b["bed_caps"] == []
+    text = k1c_report.render(report)
+    assert "| gsm8k | gsm8k | 0 | 300 | 20 | 100 | +80 | 0 | - | - | 55.0 |" in text
+    assert "(c " not in text and "rather than lost arithmetic" not in text
+    assert "Untrained Qwen3-1.7B: instructions 82, knowledge 80, maths 90" in text
+    assert "do not record their cap" in text
+
+
 def test_the_report_renders_and_never_overwrites(tree, tmp_path):
     out = tmp_path / "report-a1"
     code = k1c_report.main(["--runs", str(tree["runs"]), "--forgetting", str(tree["forgetting"]),
