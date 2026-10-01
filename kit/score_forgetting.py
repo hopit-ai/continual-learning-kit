@@ -52,6 +52,9 @@ PROMPT_BUDGET = 4096        # with `--max-new-tokens` the context grows to this 
 _spec = importlib.util.spec_from_file_location("kit_scorers", HERE / "scorers.py")
 scorers = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(scorers)
+_tokens_spec = importlib.util.spec_from_file_location("kit_tokens_io", HERE / "tokens_io.py")
+tokens_io = importlib.util.module_from_spec(_tokens_spec)          # generated token ids beside responses.jsonl
+_tokens_spec.loader.exec_module(tokens_io)
 
 
 def load_panel(path: Path = PANEL_FILE) -> tuple[list, str]:
@@ -163,15 +166,22 @@ def cmd_generate(args) -> int:
     cap = int(args.max_new_tokens or DECODING["max_tokens"])
     decoding = {**DECODING, "max_tokens": cap}
     engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
+    if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
+        engine["max_model_len"] = int(args.max_model_len)
     llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
-    responses, rows = {}, []
-    for member, output in zip(members, outputs):
+    responses, rows, token_rows = {}, [], []
+    for member, prompt, output in zip(members, prompts, outputs):
         completion = output.outputs[0]
         responses[(member["panel"], member["id"])] = completion.text
         rows.append({"panel": member["panel"], "id": member["id"], "response": completion.text,
                      "output_tokens": len(completion.token_ids), "finish_reason": completion.finish_reason})
+        prompt_ids = getattr(output, "prompt_token_ids", None)
+        token_rows.append({"panel": member["panel"], "id": member["id"], "ids": list(completion.token_ids),   # for prefix budgets (kit/tokens_io.py)
+                           "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+                           "prompt_tokens": len(prompt_ids) if prompt_ids is not None else None})
     (out / "responses.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    tokens_io.write(out / tokens_io.FILE_NAME, token_rows)
     truncated = sum(r["finish_reason"] == "length" for r in rows)
     panels = grade(members, responses)
     for name, slot in panels.items():                      # what a correct answer costs (kit/density.py)
@@ -181,7 +191,11 @@ def cmd_generate(args) -> int:
     write_result(out, panels=panels, panel_sha=digest,
                  extra={"mode": "generate", "model": model_identity(model), "engine": {**engine, "vllm": vllm.__version__, "batch_invariant": batch_invariant, "eager": eager, "deterministic": deterministic},
                         "machine": machine_fingerprint(deterministic), "truncated_at_max_tokens": truncated,
-                        "max_new_tokens": cap, "decoding": decoding})      # a cap override replaces the default `decoding`
+                        "max_new_tokens": cap, "decoding": decoding,       # a cap override replaces the default `decoding`
+                        "tokens_file": tokens_io.FILE_NAME, "token_encoding": tokens_io.ENCODING,
+                        "prompts_sha256": hashlib.sha256("".join(r["prompt_sha256"] + "\n" for r in token_rows).encode("utf-8")).hexdigest(),
+                        "generation": {"n": 1, "enable_lora": False, "enforce_eager": eager, "seed": 0 if eager else None,
+                                       "chat_template": {"add_generation_prompt": True, "enable_thinking": False}}})
     return 0
 
 
@@ -315,6 +329,9 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Score a saved model for forgetting on three general panels.")
     sub = parser.add_subparsers(dest="action", required=True)
     g = sub.add_parser("generate"); g.add_argument("--model", required=True); g.add_argument("--out", required=True)
+    g.add_argument("--max-model-len", type=int, default=None,
+                   help="the engine's context length, overriding the default (4,096, or 4,096 plus the cap when --max-new-tokens "
+                        "is given); a budget audit passes the same value to a short-cap and a long-cap scoring; recorded in `engine`")
     g.add_argument("--max-new-tokens", type=int, default=None,
                    help="answer cap instead of the panel's 2,048: a DEPARTURE from the bar of record, for diagnosis only "
                         "(e.g. 8192, the trainer's own cap); recorded in `max_new_tokens` and `decoding.max_tokens`, and "

@@ -471,16 +471,30 @@ def test_a_failed_seed_run_does_not_stop_run_all_and_the_report_records_the_want
     assert start["wants_not_passed"] == ["w-seed0"]
 
 
-def test_a_failed_row_a_later_row_needs_still_stops_run_all_naming_that_row(work, tmp_path, capsys):
+def test_a_failed_row_costs_only_the_rows_that_need_it(work, tmp_path, capsys):
+    """One failed training run of twenty-four must not stop the other twenty-three (found by the review of send 4):
+    the row that needs it is refused, the independent row still runs."""
     path = seeded(tmp_path, "needed", failing=(0,), report={"id": "report", "needs": ["w-seed0"], "command": ["true"]})
     assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
     out = capsys.readouterr().out
-    assert "STOP: w-seed0 did not pass and report needs it; nothing after it runs" in out and "continuing" not in out
-    assert not (work / "campaign" / "needed" / "w-seed1").exists() and not (work / "campaign" / "needed" / "report").exists()
+    assert "continuing: w-seed0 did not pass; the 1 later row(s) that need it will be refused (first: report), every other row still runs" in out
+    assert "STOP" not in out
+    assert row_verdict(work, "needed", "w-seed1")["verdict"] == "PASS", "the independent row ran"
+    assert not (work / "campaign" / "needed" / "report" / "attempt-1" / "verdict.json").exists(), "the row that needs it launched nothing"
     assert runner.main(["run", str(path), "--row", "report"]) == runner.EXIT_REFUSED
 
 
-def test_a_need_through_another_row_stops_run_all_too_and_so_does_batch(work, tmp_path, capsys):
+def test_a_failed_pilot_still_stops_run_all_naming_the_row(work, tmp_path, capsys):
+    path = campaign_file(tmp_path, "gate", [{"id": "p", "pilot": True, "command": ["false"], "bars": PASSING_PILOT["bars"]},
+                                             {"id": "a", "needs": ["p"], "command": ["true"]},
+                                             {"id": "b", "needs": ["p"], "command": ["true"]}])
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    out = capsys.readouterr().out
+    assert "STOP: p did not pass and a needs it; nothing after it runs" in out and "continuing" not in out
+    assert not (work / "campaign" / "gate" / "a").exists() and not (work / "campaign" / "gate" / "b").exists()
+
+
+def test_a_need_through_another_row_is_refused_too_and_so_in_batch(work, tmp_path, capsys):
     """`sum` needs `mid`, which needs the failing `w-seed0`: the need is transitive, and `batch` applies the same rule."""
     def rows(mid: dict) -> list:
         return [{"id": "w-seed0", "command": ["false"]}, {"id": "w-seed1", "command": ["true"]},
@@ -490,8 +504,12 @@ def test_a_need_through_another_row_stops_run_all_too_and_so_does_batch(work, tm
     campaign = runner.load_campaign(through)
     assert runner.needed_later(campaign, campaign["rows"], "w-seed0") == ["mid", "sum"]
     assert runner.main(["batch", str(through)]) == runner.EXIT_FAILED
-    assert "STOP: w-seed0 did not pass and mid needs it; nothing after it runs" in capsys.readouterr().out
-    assert not (work / "campaign" / "through" / "w-seed1").exists()
+    out = capsys.readouterr().out
+    assert "continuing: w-seed0 did not pass; the 2 later row(s) that need it will be refused (first: mid), every other row still runs" in out
+    assert row_verdict(work, "through", "w-seed1")["verdict"] == "PASS"
+    assert row_verdict(work, "through", "report")["verdict"] == "PASS" and row_verdict(work, "through", "report")["wants_not_passed"] == ["w-seed0"]
+    for refused in ("mid", "sum"):
+        assert not (work / "campaign" / "through" / refused / "attempt-1" / "verdict.json").exists()
     around = campaign_file(tmp_path, "around", rows({"wants": ["w-seed0"]}))
     assert runner.main(["batch", str(around)]) == runner.EXIT_FAILED
     assert "continuing: w-seed0 failed; no later row needs it (wanted by: mid, report)" in capsys.readouterr().out
@@ -635,9 +653,10 @@ def test_the_dose_probe_filters_each_arm_with_its_scoring_and_delta(work, capsys
 # ------------------------------------------------------------------------------------ report rows in the committed campaigns
 # A report row NEEDS only pilots and the untrained (base) scorings and WANTS every per-seed row it reads, so a
 # reduced-seed run (`--seeds 0-4`) still writes a report and records its verdict. The count pins each one.
-REPORT_WANTS = {"k1a-forgetting-of-k0.yaml": 5, "k1c-grpo-baselines.yaml": 100, "k2-recovery-test.yaml": 0,
+REPORT_WANTS = {"k1a-forgetting-of-k0.yaml": 5, "k1c-control.yaml": 54, "k1c-grpo-baselines.yaml": 100, "k2-recovery-test.yaml": 0,
                 "k2b-route.yaml": 60, "k3-anchor.yaml": 33, "k3-dose-2.yaml": 12, "k3-dose-probe.yaml": 4,
-                "k3-replay.yaml": 140, "k4-hints.yaml": 200, "k4a-stuck-problems.yaml": 18, "k5-sequence.yaml": 24}
+                "k3-replay.yaml": 140, "k4-hints.yaml": 200, "k4a-stuck-problems.yaml": 18, "k5-sequence.yaml": 24,
+                "k8b-pilot.yaml": 198}
 
 
 def test_every_campaign_with_a_report_row_is_listed():
@@ -659,5 +678,117 @@ def test_every_report_row_needs_only_pilots_and_base_scorings_and_wants_its_seed
 
     report = rows["report"]
     assert [n for n in report["_stated_needs"] if rows[n].get("pilot") or not per_seed(n)] == report["_stated_needs"]
-    assert all(per_seed(w) for w in report["wants"]) and len(report["wants"]) == REPORT_WANTS[name]
+    # a wanted pilot is allowed: a report that reads what a pilot wrote (a prefix check) must be written again if the pilot is
+    assert all(per_seed(w) or rows[w].get("pilot") for w in report["wants"]) and len(report["wants"]) == REPORT_WANTS[name]
     assert any(per_seed(rid) for rid in rows) == bool(report["wants"])
+
+
+# ------------------------------------------------------------------------------------ a PASS is about the inputs it read
+def latest_row_verdict(work: Path, campaign: str, row: str) -> dict:
+    found = sorted((work / "campaign" / campaign / row).glob("attempt-*/verdict.json"), key=lambda p: int(p.parent.name.split("-")[1]))
+    return json.loads(found[-1].read_text())
+
+
+def test_a_pass_made_before_its_producer_was_retried_runs_again(work, tmp_path, capsys):
+    """Found by the review of send 4: a training row retried after its scoring had passed left the old scoring standing
+    (SKIP: already PASS), and a report then compared it with the continuation of the new model."""
+    rows = [{"id": "train", "command": ["true"]}, {"id": "score", "needs": ["train"], "command": ["true"]},
+            {"id": "sweep", "needs": ["score"], "command": ["true"]}, {"id": "other", "command": ["true"]}]
+    path = campaign_file(tmp_path, "lineage", rows)
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    assert row_verdict(work, "lineage", "score")["inputs"] == {"train": [1, "PASS"]} and row_verdict(work, "lineage", "other")["inputs"] == {}
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK                    # nothing changed: nothing runs
+    out = capsys.readouterr().out
+    assert out.count("SKIP") == 4 and "AGAIN" not in out
+    assert runner.main(["run", str(path), "--row", "train", "--attempt", "2"]) == runner.EXIT_OK   # the producer is retried
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "AGAIN score: its PASS (attempt 1) read train, which has been run again since" in out
+    assert "AGAIN sweep: its PASS (attempt 1) read score, which has been run again since" in out, "and so on down the chain"
+    assert "SKIP other: already PASS" in out and "SKIP train: already PASS" in out
+    assert latest_row_verdict(work, "lineage", "score")["attempt"] == 2 and latest_row_verdict(work, "lineage", "score")["inputs"] == {"train": [2, "PASS"]}
+    assert latest_row_verdict(work, "lineage", "sweep")["inputs"] == {"score": [2, "PASS"]}
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK                    # and it settles: no loop
+    assert "AGAIN" not in capsys.readouterr().out
+
+
+def test_a_report_written_while_a_run_had_failed_is_written_again_once_it_passes(work, tmp_path, capsys):
+    flag = tmp_path / "fixed"
+    rows = [{"id": "w-seed0", "seed": 0, "command": ["test", "-f", str(flag)]}, {"id": "w-seed1", "seed": 1, "command": ["true"]},
+            {"id": "report", "wants": ["w-seed0", "w-seed1"], "command": ["true"]}]
+    path = campaign_file(tmp_path, "retry", rows)
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    assert row_verdict(work, "retry", "report")["inputs"] == {"w-seed0": [1, "FAIL"], "w-seed1": [1, "PASS"]}
+    flag.write_text("")
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "AGAIN report: its PASS (attempt 1) read w-seed0, which has been run again since" in out
+    report = latest_row_verdict(work, "retry", "report")
+    assert report["attempt"] == 2 and report["wants_not_passed"] == [] and report["inputs"] == {"w-seed0": [2, "PASS"], "w-seed1": [1, "PASS"]}
+
+
+def test_a_reader_runs_again_when_what_it_read_is_retried_and_fails(work, tmp_path, capsys):
+    """Round 2 of the review: only a newer PASS counted, so a check that had passed and then failed on a retry left the
+    earlier report standing, and the statistics of one failed attempt stood for the next failed attempt's rollouts."""
+    flag = tmp_path / "ok"
+    flag.write_text("")
+    rows = [{"id": "check", "seed": 0, "command": ["test", "-f", str(flag)]}, {"id": "run", "seed": 0, "command": ["false"]},
+            {"id": "stats", "seed": 0, "wants": ["run"], "command": ["true"]}, {"id": "report", "wants": ["check", "stats"], "command": ["true"]}]
+    path = campaign_file(tmp_path, "failing-inputs", rows)
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    assert row_verdict(work, "failing-inputs", "report")["inputs"] == {"check": [1, "PASS"], "stats": [1, "PASS"]}
+    assert row_verdict(work, "failing-inputs", "stats")["inputs"] == {"run": [1, "FAIL"]}
+    flag.unlink()                                                                       # the check is retried, and fails
+    assert runner.main(["run", str(path), "--row", "check", "--attempt", "2"]) == runner.EXIT_FAILED
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_FAILED
+    out = capsys.readouterr().out
+    assert "AGAIN stats: its PASS (attempt 1) read run, which has been run again since" in out, "failed, retried, failed again: other partial output"
+    assert "AGAIN report: its PASS (attempt 1) read check, stats, which has been run again since" in out
+    assert latest_row_verdict(work, "failing-inputs", "report")["inputs"]["check"][1] == "FAIL"
+
+
+def test_a_retried_pilot_makes_nothing_stale_unless_a_row_wants_it_and_an_old_verdict_is_never_stale(work, tmp_path, capsys):
+    rows = [dict(PASSING_PILOT), {"id": "a", "needs": ["p"], "command": ["true"]}, {"id": "report", "needs": ["p"], "wants": ["p"], "command": ["true"]}]
+    (work / "nowhere.json").write_text(json.dumps({"x": 1}))                       # the pilot's bar
+    path = campaign_file(tmp_path, "gated", rows)
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    assert row_verdict(work, "gated", "a")["inputs"] == {}, "a pilot a row only waits for is a gate, not a producer"
+    assert row_verdict(work, "gated", "report")["inputs"] == {"p": [1, "PASS"]}, "a pilot a row WANTS is read"
+    assert runner.main(["run", str(path), "--row", "p", "--attempt", "2"]) == runner.EXIT_OK
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "SKIP a: already PASS" in out and "AGAIN report" in out and out.count("AGAIN") == 1
+    campaign = runner.load_campaign(path)
+    assert runner.stale_inputs(campaign, campaign["rows"][1], {"verdict": "PASS", "attempt": 1}) == [], "a verdict from before `inputs` existed"
+
+
+def test_a_wanted_row_that_only_orders_makes_nothing_stale_and_one_that_is_read_does(work, tmp_path, capsys):
+    """`wants` also puts rows in order (one scoring after another on one GPU). The first form of the rule treated every
+    wanted row as an input, and the dry run of the pilot showed what that costs: one retried run re-scored ninety
+    models. A second form ignored a wanted row that was run again, and the dry run then left an old report standing
+    beside a re-scored model. So a row says which of its wanted rows it does not read: `order`."""
+    rows = [{"id": "score-1", "command": ["true"]},
+            {"id": "score-2", "wants": ["score-1"], "order": ["score-1"], "command": ["true"]},
+            {"id": "score-3", "wants": ["score-2"], "order": ["score-2"], "command": ["true"]},
+            {"id": "report", "wants": ["score-1", "score-2", "score-3"], "command": ["true"]}]
+    path = campaign_file(tmp_path, "ordered", rows)
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    assert row_verdict(work, "ordered", "score-2")["inputs"] == {}
+    assert runner.main(["run", str(path), "--row", "score-1", "--attempt", "2"]) == runner.EXIT_OK
+    capsys.readouterr()
+    assert runner.main(["run", str(path), "--all"]) == runner.EXIT_OK
+    out = capsys.readouterr().out
+    assert "AGAIN report: its PASS (attempt 1) read score-1, which has been run again since" in out, "the report reads what it wants"
+    assert out.count("AGAIN") == 1 and out.count("SKIP") == 3, "the scorings after it are not scored again"
+
+
+def test_order_is_a_subset_of_wants(work, tmp_path, capsys):
+    path = campaign_file(tmp_path, "stray", [{"id": "a", "command": ["true"]}, {"id": "b", "order": ["a"], "command": ["true"]}])
+    assert runner.main(["plan", str(path)]) == runner.EXIT_REFUSED
+    assert "order names rows it does not want" in capsys.readouterr().err

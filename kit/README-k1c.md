@@ -145,14 +145,27 @@ If you can spare the space, these let us re-check any number without re-running 
 
 One thing to say in advance about the seeds. A seed here sets the data order and the parameter initialisation, but the reference leaves vLLM's sampling unseeded, so two runs at one seed still differ in their rollouts. Part A's ten seeds are ten independent repeats of the same dose, and the readout shows every seed as well as the mean, so you can see the spread rather than take our word for it. Part B's launcher reads its training file in written order (`data.shuffle=False`, as the reference's own SQL runs did), so there a seed changes only the sampling.
 
-## Rescoring at the trainer's cap (added 1 October, after the first archive)
+## The budget audit (added 1 October, after the first archive)
 
 The first archive showed that in eight of the ten Part B runs the answers had grown during training (the trainer
 allows 8,192 new tokens) and were cut at the kit's 2,048-token scoring cap; on those runs the answers cut and wrong
 are at least nine tenths of the "wrong format" count. A cut answer is scored as it stood, so that count cannot
-separate an answer that was wrong from one that did not end. `campaigns/k1c-rescore.yaml` scores the same ten
-checkpoints and the untrained model again at 8,192 new tokens, on one GPU, under `k1c/cap8192/`, and writes a second
-report under `k1c/report8k-a1`. `eval_bed.py` and `score_forgetting.py` take `--max-new-tokens` for it: the result
-records the cap, the context grows to 4,096 prompt tokens plus the cap, and `compare`, `summarize` and `delta.py`
-refuse two results scored at different caps. The bar of record stays the 2,048 scoring in `report-a1`: a model that
-needs several times the tokens to finish has failed the cost bar whatever it scores at 8,192.
+separate an answer that was wrong from one that did not end.
+
+`campaigns/k1c-audit.yaml` (plan v3, package 1) therefore generates each of the ten checkpoints and the untrained
+model ONCE at 8,192 new tokens, on one GPU, with the generated token ids kept beside the answers (`tokens.jsonl`), and
+reads the score at every shorter budget from prefixes of that one generation:
+
+- `eval_bed.py` and `score_forgetting.py` take `--max-new-tokens` and `--max-model-len`; a result records its cap and
+  context, and `compare`, `summarize` and `delta.py` refuse two results scored at different caps.
+- `cap_sweep.py` reads the score at each budget (256 to 8,192) two ways: by the bed's own strict rule, and by
+  `canonical.py`, a gold-blind rule that takes the last answer the model had stated. `cap_sweep.py check` compares a
+  long generation's prefix with a direct generation at the shorter cap; the campaign runs it for two checkpoints on
+  the same GPU and against all twelve 2,048 scorings K1c left on disk.
+- `budget_report.py` writes, per checkpoint, the signed accounting of its loss against the untrained model: the
+  change in budget sensitivity, the change in extraction sensitivity, and what remains at the long cap. It is
+  bookkeeping, not a split into causes; "intact" means the score recovers within five points at the long cap and
+  "degraded" that a measured failure remains, and neither proves the arithmetic was preserved or destroyed.
+
+Everything lands under `k1c/cap8192/`, where `collect.py` packs it. The bar of record stays the 2,048 scoring in
+`report-a1`: a model that needs several times the tokens to finish has failed the cost bar whatever it scores at 8,192.

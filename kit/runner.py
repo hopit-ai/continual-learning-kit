@@ -21,9 +21,9 @@ a row that does not reach every earlier pilot through `needs` is an implicit ord
 `wants` is ordering only: a row runs after the rows it wants when they are scheduled, but a wanted row
 that failed, was refused or is not scheduled does not block it at the gate (a report row wants its
 per-seed scorings and needs only the pilots and the base scorings; its bars judge what it found).
-After a row fails or is refused, `run --all` (and so `batch`) goes on when no later scheduled row needs it,
-directly or through rows it needs ("continuing: ..."), and stops there, naming the row, when one does; it
-exits non-zero either way. A row that only wants the failed row runs, and its start.json and verdict.json
+After a row fails or is refused, `run --all` (and so `batch`) goes on ("continuing: ..."): the later rows that
+need it, directly or through rows they need, are refused when reached, and every other row still runs. Only a
+failed PILOT stops the run there, naming the row. It exits non-zero either way. A row that only wants the failed row runs, and its start.json and verdict.json
 list it under `wants_not_passed`.
 
 `--seeds 0,1,2` or `--seeds 0-4` (plan, prepare, run, batch) skips every row whose `seed:` is outside the
@@ -53,6 +53,15 @@ What is recorded, and when. `start.json` is written and fsynced BEFORE the comma
 crash still leaves the identity of what ran. `verdict.json` is written after. Nothing is ever
 overwritten: a second try of a row is a new attempt (`--attempt 2`) in its own directory, and the
 gate reads the latest attempt.
+
+A PASS is about the inputs it read. Every start.json and verdict.json records, under `inputs`, which attempt of each
+row it reads stood at when it started: its attempt and verdict (the rows it needs, pilots left out; the rows it wants,
+pilots included). When `run --all` meets a row that has passed but a row it read has since been run again, whatever
+the outcome (a training run retried after its scoring passed, a run that had failed when the report was written, a
+check retried and failed), it prints "AGAIN ..." and runs the row as a new attempt instead of skipping it, so a retry
+can never leave an old scoring or an old report standing. A row may list under `order` the wanted rows it does not
+read and wants only so as to run after them (one scoring after another on one GPU): those make nothing out of date.
+`order` is a subset of `wants`.
 
 A missing file, a missing key or a crashed command is a FAIL with its reason, never a silent PASS.
 Standard library plus PyYAML (JSON campaigns need only the standard library). No network, no GPU
@@ -122,6 +131,15 @@ def load_campaign(path: Path) -> dict:
         unknown = [w for w in row["wants"] if w not in ids[:ids.index(row["id"])]]
         if unknown:
             raise CampaignError("row %s wants rows that do not come before it: %s" % (row["id"], unknown))
+        # `order`: the wanted rows this row does NOT read, wanted only so that it runs after them (one scoring after
+        # another on one GPU). They stay in `wants`, so a dispatcher that reads only `needs` and `wants` still puts
+        # the rows in order; here they are left out of what makes a PASS out of date.
+        if not isinstance(row.get("order") or [], list):
+            raise CampaignError("row %s: order must be a list of row ids" % row["id"])
+        row["order"] = list(dict.fromkeys(row.get("order") or []))
+        stray = [o for o in row["order"] if o not in row["wants"]]
+        if stray:
+            raise CampaignError("row %s: order names rows it does not want: %s (order is a subset of wants)" % (row["id"], stray))
         if "seed" in row and (not isinstance(row["seed"], int) or isinstance(row["seed"], bool) or row["seed"] < 0):
             raise CampaignError("row %s: seed must be a whole number, found %r" % (row["id"], row["seed"]))
         if row.get("pilot"):
@@ -456,6 +474,37 @@ def gate(campaign: dict, row: dict) -> list:
     return reasons
 
 
+def inputs_of(campaign: dict, row: dict) -> dict:
+    """{row id: [attempt, verdict] of that row's latest attempt, or None if it never ran} for every row this one reads:
+    the rows it needs, pilots left out (a pilot it merely has to wait for is a gate, not a producer: re-running one
+    must not make a whole campaign stale), and the rows it wants, pilots included (a report that wants a pilot reads
+    what that pilot wrote), except those it lists under `order`."""
+    pilots = {r["id"] for r in campaign["rows"] if r.get("pilot")}
+    order = set(row.get("order") or [])
+    read = [n for n in row["needs"] if n not in pilots] + [w for w in row.get("wants") or [] if w not in order]
+    found = {}
+    for other in dict.fromkeys(read):
+        verdict = latest_verdict(campaign, other)
+        found[other] = [verdict.get("attempt"), verdict.get("verdict")] if verdict else None
+    return found
+
+
+def stale_inputs(campaign: dict, row: dict, verdict: dict) -> list:
+    """The rows this PASS read whose latest attempt is no longer the one it read: `run --all` then runs the row again
+    as a new attempt instead of skipping it. That covers a training run retried after its scoring passed (the scoring
+    is of a model that is no longer the run's), a report written while a run had failed or before a model was
+    re-scored, and a row that had passed and has since been run again and FAILED (a check retried and failed leaves no
+    earlier report standing; a failed run retried and failed again has other partial rollouts to summarise).
+    A wanted row listed under `order` is not read (the row wants it only so as to run after it: one scoring after
+    another on one GPU) and makes nothing stale; without that, re-scoring one model would re-score every later one,
+    which the dry run of the pilot did, ninety models after one retry. A verdict written before `inputs` was recorded
+    is never stale."""
+    then = verdict.get("inputs")
+    if not isinstance(then, dict):
+        return []
+    return sorted(other for other, state in inputs_of(campaign, row).items() if state is not None and then.get(other) != state)
+
+
 def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     reasons = gate(campaign, row) + not_ready(campaign, row)
     if reasons:
@@ -470,12 +519,13 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     out = row_dir(campaign, row["id"]) / ("attempt-%d" % number)
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     unmet = [w for w in row.get("wants") or [] if (latest_verdict(campaign, w) or {}).get("verdict") != "PASS"]
+    inputs = inputs_of(campaign, row)                                  # which attempt of each producer this attempt reads
     if unmet:
         print("note %s: runs without %d wanted row(s) that have not passed: %s" % (row["id"], len(unmet), ", ".join(unmet)))
     write_durably(out / "start.json", {"schema": SCHEMA, "campaign": campaign["name"], "campaign_sha256": campaign["_sha256"],
                                        "row": row["id"], "attempt": number, "pilot": bool(row.get("pilot")), "needs": row["needs"],
                                        "wants": row.get("wants") or [], "wants_not_passed": unmet, "seeds": campaign.get("_seeds"),
-                                       "started_at": started, **{k: spec[k] for k in ("command", "env", "cwd")}})
+                                       "inputs": inputs, "started_at": started, **{k: spec[k] for k in ("command", "env", "cwd")}})
     print("RUN %s attempt %d: %s" % (row["id"], number, " ".join(spec["command"])))
     clock = time.monotonic()
     with (out / "output.log").open("w") as log:
@@ -495,7 +545,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         verdict, reason = "PASS", None
     write_durably(out / "verdict.json", {"schema": SCHEMA, "row": row["id"], "attempt": number, "verdict": verdict, "reason": reason,
                                          "returncode": returncode, "bars": bars, "started_at": started,
-                                         "seeds": campaign.get("_seeds"), "wants_not_passed": unmet,
+                                         "seeds": campaign.get("_seeds"), "wants_not_passed": unmet, "inputs": inputs,
                                          "seconds": round(time.monotonic() - clock, 1)})
     print("%s %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
     return EXIT_OK if verdict == "PASS" else EXIT_FAILED
@@ -574,16 +624,24 @@ def needed_later(campaign: dict, rows: list, failed: str) -> list:
 
 
 def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int:
-    """Rows in file order, so a row's wants (always earlier rows) run first when scheduled. With --all, a row that
-    fails or is refused stops the run when a later scheduled row needs it (directly or transitively), and otherwise
-    the run goes on and exits with the first failure's code. A row the seed filter skips is passed over."""
+    """Rows in file order, so a row's wants (always earlier rows) run first when scheduled. With --all, a PILOT that
+    fails or is refused stops the run when a later scheduled row needs it (every later row does). Any other row that
+    fails or is refused costs only the rows that need it, directly or transitively: each of those is refused at its
+    own gate, and the run goes on with every independent row and exits with the first failure's code. (Until
+    1 October 2026 any needed failure stopped the whole run, so one failed training run of twenty-four would have
+    stopped the other twenty-three and the report.) A row the seed filter skips is passed over."""
     first = EXIT_OK
     for row in rows:
         if row["id"] in campaign.get("_skipped", ()):
             continue                                                  # printed once when the filter was applied
-        if every and (latest_verdict(campaign, row["id"]) or {}).get("verdict") == "PASS":
-            print("SKIP %s: already PASS" % row["id"])
-            continue
+        passed = latest_verdict(campaign, row["id"]) or {}
+        if every and passed.get("verdict") == "PASS":
+            stale = stale_inputs(campaign, row, passed)
+            if not stale:
+                print("SKIP %s: already PASS" % row["id"])
+                continue
+            print("AGAIN %s: its PASS (attempt %s) read %s, which has been run again since"
+                  % (row["id"], passed.get("attempt"), ", ".join(stale)))
         code = None
         if every and producers(campaign, row) and not gate(campaign, row) and not deferred(campaign, row):
             done = latest_preparation(campaign, row["id"])
@@ -600,9 +658,15 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int
             return code
         first = first or code
         needing = needed_later(campaign, rows, row["id"])
-        if needing:
+        if needing and row.get("pilot"):
             print("STOP: %s did not pass and %s needs it; nothing after it runs" % (row["id"], needing[0]))
             return first
+        if needing:
+            # Not a pilot: only the rows that need it are lost. Each is refused at its own gate when it is reached
+            # (nothing is launched), and every row that does not need it still runs, the reports included.
+            print("continuing: %s did not pass; the %d later row(s) that need it will be refused (first: %s), every other row still runs"
+                  % (row["id"], len(needing), needing[0]))
+            continue
         wanting = [r["id"] for r in rows[rows.index(row) + 1:] if row["id"] in (r.get("wants") or [])
                    and r["id"] not in campaign.get("_skipped", ())]
         print("continuing: %s failed; no later row needs it (wanted by: %s)" % (row["id"], ", ".join(wanting) or "none"))

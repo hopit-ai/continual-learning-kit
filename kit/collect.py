@@ -11,7 +11,9 @@ What goes in (text only):
   - the runner's own records under campaign/<name>/<row>/: prepare-*.json, attempt-*/start.json and
     attempt-*/verdict.json, and the output.log of any attempt that did not PASS (the log we ask for when a row fails).
 What never goes in: model weights (*.safetensors, *.bin, *.pt, *.pth, *.ckpt, *.gguf), checkpoint folders
-(checkpoint*, global_step*, hf-step*), *.parquet over 5 MB, and any other file over 50 MB. Symbolic links are not
+(checkpoint*, global_step*, hf-step*), *.parquet over 5 MB, and any other file over 50 MB. A wanted text
+file over 50 MB is not dropped silently: its last 5 MB are packed as `<name>.tail`, the manifest lists it under
+`truncated`, and the last lines printed name it (INCOMPLETE: ...). Symbolic links are not
 followed; they are listed in the manifest with their targets.
 
 The archive holds one folder (named after the archive) with `collect.manifest.json` inside it: every file's path,
@@ -37,8 +39,10 @@ MB = 1024 * 1024
 REPORT_DIRS = {"eval", "forgetting", "deltas", "stuck", "plasticity", "scorecard"}
 TEXT = {".json", ".md", ".jsonl", ".txt"}
 NAMED = {"train-summary.json", "run-summary.json", "fold.json", "merge.log"}
+RUN_IDENTITY = {"argv.txt", "sdpo-commit.txt", "sdpo-dirty.txt", "started-at.txt", "finished-at.txt", "data-sha256.txt", "model-files.txt"}
 WEIGHTS = {".safetensors", ".bin", ".pt", ".pth", ".ckpt", ".gguf"}
 PARQUET_LIMIT, FILE_LIMIT = 5 * MB, 50 * MB
+TAIL_BYTES = 5 * MB                # of a wanted file over FILE_LIMIT, this much of its END is packed as `<name>.tail`
 
 
 def pruned(name: str) -> bool:
@@ -52,6 +56,11 @@ def wanted(rel: Path, root_rel: Path) -> bool:
     if rel.name in NAMED:
         return True
     if rel.name == "metrics.jsonl" and len(parts) >= 3 and parts[-3] == "runs":
+        return True
+    # What a run WAS: the launcher's `env/` folder (the exact command, the trainer's commit and whether it was clean,
+    # start and finish times, the data hashes). A few kilobytes a run, and without the command a returned number
+    # cannot be tied to a recipe. `pip-freeze.txt` and `nvidia-smi.txt` are left out: large and the same for every run.
+    if len(parts) >= 4 and parts[-4] == "runs" and parts[-2] == "env" and rel.name in RUN_IDENTITY:
         return True
     if rel.suffix in TEXT and any(p in REPORT_DIRS or p.startswith("report") for p in parts[:-1]):
         return True
@@ -169,6 +178,10 @@ def main(argv=None) -> int:
         print("REFUSED: cannot read a --campaign file: %s" % exc, file=sys.stderr)
         return EXIT_REFUSED
     files, excluded, links = gather(work, roots)
+    # A wanted file over the limit (a failed row's log, a very long answers file) is left out whole, but never
+    # silently: its last TAIL_BYTES go in as `<path>.tail`, the manifest lists it under `truncated` with the full size
+    # and hash, and the summary line below names it.
+    tails = [e for e in excluded if e["reason"] == "over 50 MB" and wanted(Path(e["path"]), work)]
     if not files:
         print("NOTHING TO COLLECT under %s: no reports, scorings, run summaries or runner records found" % work,
               file=sys.stderr)
@@ -178,11 +191,20 @@ def main(argv=None) -> int:
     manifest = {"schema": SCHEMA, "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "work": str(work), "campaigns": campaigns, "roots": [str(r) for r in roots],
                 "files": entries, "file_count": len(entries), "total_bytes": sum(e["bytes"] for e in entries),
-                "excluded": excluded, "symlinks": links}
+                "excluded": excluded, "symlinks": links,
+                "truncated": [{"path": e["path"], "bytes": e["bytes"], "sha256": sha256(work / e["path"]),
+                               "packed_as": e["path"] + ".tail", "packed_bytes": min(TAIL_BYTES, e["bytes"])} for e in tails]}
     try:
         with out.open("xb") as handle, tarfile.open(fileobj=handle, mode="w:gz") as archive:
             for path, rel, _ in files:
                 archive.add(str(path), arcname="%s/%s" % (top, rel), recursive=False)
+            for entry in manifest["truncated"]:
+                with (work / entry["path"]).open("rb") as source:
+                    source.seek(max(0, entry["bytes"] - TAIL_BYTES))
+                    tail = source.read()
+                info = tarfile.TarInfo("%s/%s" % (top, entry["packed_as"]))
+                info.size, info.mtime = len(tail), int(datetime.now(timezone.utc).timestamp())
+                archive.addfile(info, io.BytesIO(tail))
             blob = json.dumps(manifest, indent=1, sort_keys=True).encode()
             info = tarfile.TarInfo("%s/collect.manifest.json" % top)
             info.size, info.mtime = len(blob), int(datetime.now(timezone.utc).timestamp())
@@ -195,6 +217,9 @@ def main(argv=None) -> int:
         raise
     print("%d files, %.1f MB of results, %d left out (see collect.manifest.json)"
           % (len(entries), manifest["total_bytes"] / MB, len(excluded)))
+    for entry in manifest["truncated"]:
+        print("INCOMPLETE: %s is %.0f MB, over the 50 MB limit; only its last %d MB are in the archive (as %s). "
+              "Please send that file separately." % (entry["path"], entry["bytes"] / MB, TAIL_BYTES // MB, entry["packed_as"]))
     print("ARCHIVE %s (%.1f MB)" % (out, out.stat().st_size / MB))
     return EXIT_OK
 

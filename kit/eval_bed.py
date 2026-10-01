@@ -35,6 +35,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+_tokens_spec = importlib.util.spec_from_file_location("kit_tokens_io", HERE / "tokens_io.py")
+tokens_io = importlib.util.module_from_spec(_tokens_spec)          # generated token ids beside responses.jsonl
+_tokens_spec.loader.exec_module(tokens_io)
 SCHEMA = "kit-bed-score.v1"
 
 # ---- duplicated from score_forgetting.py, deliberately; the drift test compares them --------------
@@ -45,12 +48,17 @@ ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilizatio
 # One bed's answer budget. All three are 2,048 new tokens, the same cap the forgetting panel uses, so
 # a truncated answer here means the same thing it means there. Kept per bed because a bed whose
 # answers are longer would need its own number, and that change must be visible.
-MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048}
+MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048, "chemistry": 2048, "toolalpaca": 2048}
 PROMPT_BUDGET = 4096        # with `--max-new-tokens` the context grows to this plus the cap. Not the trainer's 2,048 prompt limit: 18 FinQA test prompts are longer (up to 2,558 tokens, docs/phase2/k1c/feasibility.md), and a prompt over the budget would be given less than the cap and still be counted as cut at it
+# `chemistry` and `toolalpaca` (plan v3) are the SDPO authors' own two tasks: their data, their chat messages, their
+# scorer, read from the pinned checkout (kit/beds/_authors.py). They are scored here and trained through the two
+# ToolAlpaca launchers; they are NOT in kit/beds/rewards.py, which would need the checkout at import time.
 BED_FILES = {"spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
-             "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py"}
-DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout"}
-SPLITS = {"spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout")}
+             "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py",
+             "chemistry": HERE / "beds" / "chemistry.py", "toolalpaca": HERE / "beds" / "toolalpaca.py"}
+DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout", "chemistry": "test", "toolalpaca": "test"}
+SPLITS = {"spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout"),
+          "chemistry": ("train", "test"), "toolalpaca": ("train", "test")}
 
 
 class EvalBedError(ValueError):
@@ -75,6 +83,14 @@ def fresh_dir(path: Path) -> Path:
 def render(tokenizer, prompt: str) -> str:
     return tokenizer.apply_chat_template([{"role": "user", "content": prompt}], tokenize=False,
                                          add_generation_prompt=True, enable_thinking=False)
+
+
+def render_messages(tokenizer, messages: list) -> str:
+    """A bed whose prompt is already a list of chat messages (the authors' tasks carry a system message): the same
+    template call as `render`, which is the trainer's own (agent_loop: add_generation_prompt, thinking off), on the
+    messages as given. `render` itself is left exactly as it is: it is pinned against score_forgetting.py's."""
+    return tokenizer.apply_chat_template([{"role": str(m["role"]), "content": str(m["content"])} for m in messages],
+                                         tokenize=False, add_generation_prompt=True, enable_thinking=False)
 
 
 def machine_fingerprint(deterministic: bool = True) -> dict:
@@ -231,26 +247,38 @@ def cmd_generate(args) -> int:
     from vllm import LLM, SamplingParams                                    # noqa: PLC0415
     import vllm                                                             # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
-    prompts = [render(tokenizer, item["prompt"]) for item in items]
+    prompts = [render(tokenizer, item["prompt"]) if isinstance(item["prompt"], str) else render_messages(tokenizer, item["prompt"])
+               for item in items]
     cap = int(args.max_new_tokens or MAX_NEW_TOKENS[args.bed])
     decoding = {**DECODING, "max_tokens": cap}
     # A longer cap than the bed's needs a longer context: room for the longest prompt (PROMPT_BUDGET) plus the cap.
     engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
+    if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
+        engine["max_model_len"] = int(args.max_model_len)
     llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
-    answers, rows = {}, []
-    for item, output in zip(items, outputs):
+    answers, rows, token_rows = {}, [], []
+    for item, prompt, output in zip(items, prompts, outputs):
         completion = output.outputs[0]
         answers[item["id"]] = completion.text
         rows.append({"bed": args.bed, "split": split_of(args), "id": item["id"], "response": completion.text,
                      "output_tokens": len(completion.token_ids), "finish_reason": completion.finish_reason})
+        prompt_ids = getattr(output, "prompt_token_ids", None)
+        token_rows.append({"id": item["id"], "ids": list(completion.token_ids),          # the generated ids, for prefix budgets (kit/tokens_io.py)
+                           "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+                           "prompt_tokens": len(prompt_ids) if prompt_ids is not None else None})
     (out / "responses.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+    tokens_io.write(out / tokens_io.FILE_NAME, token_rows)
     truncated = sum(r["finish_reason"] == "length" for r in rows)
     write_result(out, bed=args.bed, split=split_of(args), graded=grade(module, args, items, answers),
                  extra={"mode": "generate", "model": str(model), "items_sha256": items_digest(items),
                         "limit": int(args.limit or 0),
                         "max_new_tokens": cap, "truncated_at_max_tokens": truncated,
                         "decoding": decoding,          # overrides the bed default written by write_result
+                        "tokens_file": tokens_io.FILE_NAME, "token_encoding": tokens_io.ENCODING,
+                        "prompts_sha256": hashlib.sha256("".join(r["prompt_sha256"] + "\n" for r in token_rows).encode("utf-8")).hexdigest(),
+                        "generation": {"n": 1, "enable_lora": False, "enforce_eager": eager, "seed": 0 if eager else None,
+                                       "chat_template": {"add_generation_prompt": True, "enable_thinking": False}},
                         # what a correct answer costs (kit/density.py): the whole set's output tokens
                         "output_tokens_total": sum(r["output_tokens"] for r in rows),
                         "output_tokens_mean": round(sum(r["output_tokens"] for r in rows) / max(1, len(rows)), 3),
@@ -293,6 +321,10 @@ def main(argv=None) -> int:
         p.add_argument("--allow-subset", action="store_true", help="GSM8K only: the copy is not the published dataset")
         if name == "generate":
             p.add_argument("--model", required=True)
+            p.add_argument("--max-model-len", type=int, default=None,
+                           help="the engine's context length, overriding the default (4,096, or 4,096 plus the cap when "
+                                "--max-new-tokens is given). A budget audit passes the SAME value to a short-cap and a "
+                                "long-cap scoring so that the cap is the only difference between them; recorded in `engine`")
             p.add_argument("--max-new-tokens", type=int, default=None,
                            help="answer cap instead of the bed's %s. A DEPARTURE from the bar of record, for diagnosis "
                                 "(e.g. 8192, the trainer's own cap, to see whether answers cut at 2,048 were right); "

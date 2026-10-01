@@ -29,6 +29,20 @@
 #            NAME       a fresh name per run (never reuse one; outputs are never overwritten)
 # Optional:  STEPS=17 TEST_FREQ=17 SEED= NGPU=4 (8 on 80 GB cards) TP=2 OFFLOAD=0 WORK=$PWD/sdpo-work DRY_RUN=0
 #
+# Three knobs added for plan v3's 8B pilot (1 October 2026). Left unset, the command is byte for byte the one K1c ran.
+#   DATASET=datasets/tooluse   a task directory inside the pinned checkout holding train.parquet and test.parquet,
+#                              e.g. datasets/sciknoweval/chemistry (run `python data/preprocess.py --data_source
+#                              datasets/sciknoweval/chemistry` there once; the campaign's prepare row does it).
+#   LR=                        empty = the arm's own rate (1e-5 full, 1e-4 LoRA). The SDPO paper's tuned GRPO
+#                              baseline is LR=1e-6 with MINI_BATCH=8 (its Table 13); 1e-5 with 32 is its
+#                              "on-policy" variant, which is what K1c ran.
+#   MINI_BATCH=32              `ppo_mini_batch_size`, in prompts: 8 means four optimizer steps per 32-prompt batch.
+#   KEEP_TRAINER_CKPT=1        0 deletes the trainer's own checkpoint (`global_step_$STEPS`, full-precision shards,
+#                              1.7 times the merged model: about 33 GB for the 8B) once the merged model is on disk. It
+#                              is only needed to resume training, which no campaign does. `run-summary.json` records it.
+# MODEL_DIR may be a previous run's `hf-step$STEPS` folder: the merger saves the tokenizer with it, so a second
+# task can be trained on top of a first.
+#
 # LORA=1 is the one arm this launcher adds (docs/phase2/k1c/feasibility.md (b)). It appends the three
 # declared model keys and RAISES the learning rate tenfold, and nothing else:
 #
@@ -67,6 +81,10 @@ OFFLOAD="${OFFLOAD:-0}"
 WORK="${WORK:-$PWD/sdpo-work}"
 DRY_RUN="${DRY_RUN:-0}"
 LORA="${LORA:-0}"
+DATASET="${DATASET:-datasets/tooluse}"
+LR="${LR:-}"
+MINI_BATCH="${MINI_BATCH:-32}"
+KEEP_TRAINER_CKPT="${KEEP_TRAINER_CKPT:-1}"
 
 # The LoRA arm's three numbers, fixed here rather than taken from the environment: they are a settled
 # decision, not a knob, and tests/test_kit_k1c.py pins them.
@@ -81,17 +99,23 @@ if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
 
 # Counted BEFORE the dry run, so a bad value is caught without a GPU.
 [[ "$LORA" == "0" || "$LORA" == "1" ]] || { echo "LORA must be 0 or 1, not $LORA" >&2; exit 2; }
-if [[ "$LORA" == "1" ]]; then ARM="lora"; LR="$LR_LORA"; else ARM="full"; LR="$LR_FULL"; fi
+[[ "$DATASET" =~ ^datasets/[A-Za-z0-9_/-]+$ && "$DATASET" != *//* ]] || { echo "DATASET must be a task directory inside the checkout like datasets/sciknoweval/chemistry, not $DATASET" >&2; exit 2; }
+[[ -z "$LR" || "$LR" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "LR must be empty or a number like 1e-6, not $LR" >&2; exit 2; }
+[[ "$MINI_BATCH" =~ ^[1-9][0-9]*$ ]] && (( 32 % MINI_BATCH == 0 )) || { echo "MINI_BATCH must divide the 32-prompt batch (1, 2, 4, 8, 16 or 32), not $MINI_BATCH" >&2; exit 2; }
+[[ "$KEEP_TRAINER_CKPT" == "0" || "$KEEP_TRAINER_CKPT" == "1" ]] || { echo "KEEP_TRAINER_CKPT must be 0 or 1, not $KEEP_TRAINER_CKPT" >&2; exit 2; }
+[[ "$KEEP_TRAINER_CKPT" == "1" || "$LORA" == "0" ]] || { echo "KEEP_TRAINER_CKPT=0 is for full training only: the LoRA arm's adapter lives in the trainer's checkpoint" >&2; exit 2; }
+if [[ "$LORA" == "1" ]]; then ARM="lora"; DEFAULT_LR="$LR_LORA"; else ARM="full"; DEFAULT_LR="$LR_FULL"; fi
+LR="${LR:-$DEFAULT_LR}"
 
 ARGV=(
   python -m verl.trainer.main_ppo --config-name baseline_grpo
-  "data.train_files=[$SDPO_DIR/datasets/tooluse/train.parquet]"
-  "data.val_files=[$SDPO_DIR/datasets/tooluse/test.parquet]"
+  "data.train_files=[$SDPO_DIR/$DATASET/train.parquet]"
+  "data.val_files=[$SDPO_DIR/$DATASET/test.parquet]"
   "actor_rollout_ref.model.path=$MODEL_DIR"
   "actor_rollout_ref.actor.strategy=fsdp2"
   "actor_rollout_ref.actor.optim.lr=$LR"
   "actor_rollout_ref.actor.optim.lr_warmup_steps=10"
-  "actor_rollout_ref.actor.ppo_mini_batch_size=32"
+  "actor_rollout_ref.actor.ppo_mini_batch_size=$MINI_BATCH"
   "actor_rollout_ref.rollout.n=8"
   "data.train_batch_size=32"
   "data.shuffle=True"
@@ -107,7 +131,7 @@ ARGV=(
   "trainer.project_name=r99-reference-runtime"
   "trainer.group_name=rep-grpo-toolalpaca"
   "vars.dir=$SDPO_DIR"
-  "vars.task=datasets/tooluse"
+  "vars.task=$DATASET"
   "vars.log_dir=$OUT/tool-grpo/logs"
   "vars.ckpt_dir=$OUT/tool-grpo"
   "custom_reward_function.path=$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"
@@ -152,7 +176,7 @@ if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
 
 if [[ -e "$OUT" ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
 for f in train.parquet test.parquet; do
-  [[ -f "$SDPO_DIR/datasets/tooluse/$f" ]] || { echo "missing $f: run data/preprocess.py first" >&2; exit 2; }
+  [[ -f "$SDPO_DIR/$DATASET/$f" ]] || { echo "missing $SDPO_DIR/$DATASET/$f: run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; exit 2; }
 done
 [[ -f "$MODEL_DIR/config.json" ]] || { echo "MODEL_DIR=$MODEL_DIR is not a HuggingFace model directory" >&2; exit 2; }
 [[ "$LORA" == "0" || -f "$KIT/fold_lora.py" ]] || { echo "LORA=1 needs $KIT/fold_lora.py" >&2; exit 2; }
@@ -170,7 +194,7 @@ nvidia-smi > "$OUT/env/nvidia-smi.txt" 2>/dev/null || true
 ls "$MODEL_DIR" > "$OUT/env/model-files.txt"
 date -u +%FT%TZ > "$OUT/env/started-at.txt"
 
-export USER="${USER:-$(whoami)}" TASK="datasets/tooluse" EXPERIMENT="$NAME"
+export USER="${USER:-$(whoami)}" TASK="$DATASET" EXPERIMENT="$NAME"
 export VLLM_USE_V1=1 WANDB_MODE=disabled
 export PYTHONPATH="$SDPO_DIR:${PYTHONPATH:-}"
 export VERL_FILE_LOGGER_PATH="$OUT/metrics.jsonl"
@@ -186,7 +210,27 @@ date -u +%FT%TZ > "$OUT/env/finished-at.txt"
 # actor save -> a HuggingFace model we can score for retention; the reference's own merger. On the
 # LoRA arm the merger's output is the BASE model plus an adapter with lora_alpha 0, so it goes to a
 # directory of its own and hf-step$STEPS is written by the fold instead.
+# A merged model is COMPLETE when the merger exited 0 and left a config, a tokenizer (it saves the tokenizer last) and
+# every weight file its own index names (or the single model.safetensors), none empty. A merger that died half-way
+# leaves a config and some shards: that is not a model, `merged` stays 0, and nothing is deleted.
+complete_export() {
+  python - "$1" <<'PY'
+import json, sys
+from pathlib import Path
+d = Path(sys.argv[1])
+ok = (d / "config.json").is_file() and (d / "tokenizer_config.json").is_file()
+index = d / "model.safetensors.index.json"
+if index.is_file():
+    shards = set(json.loads(index.read_text()).get("weight_map", {}).values())
+    ok = ok and bool(shards) and all((d / s).is_file() and (d / s).stat().st_size > 0 for s in shards)
+else:
+    ok = ok and (d / "model.safetensors").is_file() and (d / "model.safetensors").stat().st_size > 0
+sys.exit(0 if ok else 1)
+PY
+}
+
 MERGED=0
+MERGE_STATUS=-1
 FOLDED=0
 FOLD_CHANGED=0
 EXPECTED_CHANGED=0
@@ -197,6 +241,7 @@ if [[ "$STATUS" == "0" && -d "$CKPT" ]]; then
   set +e
   python -m verl.model_merger merge --backend fsdp --local_dir "$CKPT" --target_dir "$MERGE_TARGET" \
     2>&1 | tee "$OUT/merge.log"
+  MERGE_STATUS=${PIPESTATUS[0]}
   set -e
   if [[ "$LORA" == "1" && -f "$MERGE_TARGET/config.json" ]]; then
     # The fold, and the check that a silent no-op cannot pass. --checkpoint-adapter is the trainer's
@@ -209,18 +254,27 @@ if [[ "$STATUS" == "0" && -d "$CKPT" ]]; then
   fi
   # A merge or fold that produced nothing must still reach the summary below: `merged: 0` is what a
   # campaign's bar reads, and a run that stopped here would leave no summary at all.
-  if [[ -f "$FINAL/config.json" ]]; then
+  if [[ "$LORA" == "1" && -f "$FINAL/config.json" ]]; then
+    MERGED=1                                    # the LoRA arm's model is the fold's, judged by the fold check below
+  elif [[ "$LORA" == "0" && "$MERGE_STATUS" == "0" ]] && complete_export "$FINAL"; then
     MERGED=1
   elif [[ "$LORA" == "1" ]]; then
     echo "no scoreable model at $FINAL: see $OUT/merge.log and $OUT/fold.log" >&2
   else
-    echo "the merge left no model at $FINAL: see $OUT/merge.log" >&2
+    echo "the merge (exit $MERGE_STATUS) left no complete model at $FINAL: see $OUT/merge.log. The trainer's checkpoint is kept." >&2
   fi
   if [[ "$LORA" == "1" && -f "$FINAL/fold.json" ]]; then
     FOLDED=1
     FOLD_CHANGED=$(python -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["changed_tensors"]))' "$FINAL/fold.json" || echo 0)
     EXPECTED_CHANGED=$(python -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["expected_changed"]))' "$FINAL/fold.json" || echo 0)
   fi
+fi
+
+# The trainer's checkpoint goes only after a merged model with weights is on disk, and only when asked.
+CKPT_KEPT=1
+if [[ "$KEEP_TRAINER_CKPT" == "0" && "$LORA" == "0" && "$MERGED" == "1" ]]; then   # MERGED=1 means exit 0 and a complete export
+  rm -rf "$OUT/tool-grpo/global_step_$STEPS"
+  CKPT_KEPT=0
 fi
 
 # One small JSON of numbers, so a campaign row can gate on what this run actually produced. It says
@@ -238,6 +292,11 @@ cat > "$OUT/run-summary.json" <<JSON
  "lora_rank": $LORA_RANK,
  "lora_alpha": $LORA_ALPHA,
  "learning_rate": "$LR",
+ "mini_batch": $MINI_BATCH,
+ "dataset": "$DATASET",
+ "model_dir": "$MODEL_DIR",
+ "merge_returncode": $MERGE_STATUS,
+ "trainer_checkpoint_kept": $CKPT_KEPT,
  "folded": $FOLDED,
  "fold_changed_tensors": $FOLD_CHANGED,
  "fold_expected_changed": $EXPECTED_CHANGED,
@@ -254,4 +313,6 @@ if [[ "$STATUS" == "0" && "$LORA" == "1" && "$FOLDED" == "0" ]]; then
   echo "$OUT would score the UNTRAINED base model. See $OUT/fold.log" >&2
   exit 3
 fi
+# A run that trained and has no complete merged model is a failed run: nothing can be scored from it.
+if [[ "$STATUS" == "0" && "$MERGED" == "0" ]]; then exit 4; fi
 exit "$STATUS"

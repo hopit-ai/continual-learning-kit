@@ -1,3 +1,6 @@
+> **RETIRED, NEVER SENT (1 October 2026).** This runbook and its tags `kit-batch2-v1` to `-v3` are superseded by
+> `README-send4.md`. The rescoring campaign it names was replaced by `campaigns/k1c-audit.yaml`. Kept only as a record.
+
 # Send 3: the dose-and-anchor test, K2b and a K1c rescoring, one command each, one archive back each
 
 Send 2's K1c showed that our reference dose (learning rate 1e-5; 20 steps on Spider, 40 on GSM8K and FinQA) makes

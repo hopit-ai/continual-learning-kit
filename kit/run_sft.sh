@@ -175,6 +175,8 @@ cat > "$OUT/train-summary.json" <<JSON
  "entropy_coeff": "0",
  "kl_coef": "0",
  "length_budget_chars": null,
+ "max_response_length": null,
+ "finish_gate": 0,
  "n_gpus": $NGPU,
  "seconds": $(( $(date -u +%s) - STARTED )),
  "model_dir": "$MODEL_DIR",

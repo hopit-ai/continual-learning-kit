@@ -143,3 +143,39 @@ def test_an_empty_or_missing_work_is_refused_and_writes_nothing(tmp_path, capsys
     assert collect.main(["--work", str(tmp_path / "empty"), "--out", str(out)]) == collect.EXIT_FAILED
     assert not out.exists()
     assert "NOTHING TO COLLECT" in capsys.readouterr().err
+
+
+def test_a_runs_identity_files_are_collected_and_its_environment_dump_is_not():
+    """The exact command and the trainer's commit tie a returned number to a recipe (plan v3: four recipes that differ
+    only in a few command values). They live in runs/<run>/env/."""
+    for name in ("argv.txt", "sdpo-commit.txt", "sdpo-dirty.txt", "started-at.txt", "finished-at.txt", "data-sha256.txt", "model-files.txt"):
+        assert collect.wanted(Path("runs/g8-chem-r1-a1/env") / name, Path(".")), name
+    for name in ("pip-freeze.txt", "nvidia-smi.txt"):
+        assert not collect.wanted(Path("runs/g8-chem-r1-a1/env") / name, Path(".")), name
+    assert not collect.wanted(Path("elsewhere/env/argv.txt"), Path("."))
+    assert collect.wanted(Path("k8b/report-rollouts/g8-chem-r1-a1/rollout-stats.json"), Path("."))
+    assert not collect.wanted(Path("runs/g8-chem-r1-a1/rollouts/3.jsonl"), Path(".")), "raw rollouts stay on his disk"
+    assert not collect.wanted(Path("runs/g8-chem-r1-a1/validation/20.jsonl"), Path("."))
+
+
+def test_a_wanted_file_over_the_limit_is_named_and_its_end_is_packed(tmp_path, capsys, monkeypatch):
+    """A failed row's log is the one file we ask for when something breaks. Over 50 MB it used to be dropped while the
+    collector still printed success (found by the review of send 4)."""
+    monkeypatch.setattr(collect, "FILE_LIMIT", 1000)
+    monkeypatch.setattr(collect, "TAIL_BYTES", 100)
+    work = tmp_path / "work"
+    attempt = work / "campaign" / "c" / "row" / "attempt-1"
+    attempt.mkdir(parents=True)
+    (attempt / "verdict.json").write_text(json.dumps({"verdict": "FAIL"}))
+    (attempt / "start.json").write_text("{}")
+    log = "".join("line %06d\n" % n for n in range(400))                         # 4,400 bytes
+    (attempt / "output.log").write_text(log)
+    out = tmp_path / "back.tar.gz"
+    assert collect.main(["--work", str(work), "--out", str(out)]) == collect.EXIT_OK
+    members, manifest = unpack(out)
+    assert "campaign/c/row/attempt-1/output.log" not in members
+    assert members["campaign/c/row/attempt-1/output.log.tail"] == log[-100:].encode()
+    (entry,) = manifest["truncated"]
+    assert entry["path"] == "campaign/c/row/attempt-1/output.log" and entry["bytes"] == len(log) and entry["packed_bytes"] == 100
+    assert entry["sha256"] == collect.sha256(attempt / "output.log")
+    assert "INCOMPLETE: campaign/c/row/attempt-1/output.log" in capsys.readouterr().out

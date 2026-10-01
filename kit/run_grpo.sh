@@ -26,6 +26,13 @@
 #            LR=1e-5  (the reference's actor learning rate; the K3 stage-A dose probe sets 3e-5 on one arm.
 #            Warm-up stays at the reference's 10 steps whatever LR is, so a 20-step run spends half its
 #            steps warming up: that is part of what the probe measures, not a knob.)
+#            MAX_RESPONSE=  (empty = the pinned config's 8192 new tokens, nothing passed; a positive integer sets
+#            `data.max_response_length`, the trainer's one cap for training rollouts and its own validation.
+#            K1c trained at 8192 and was scored at 2048; plan v3's control trains at the serving budget.)
+#            FINISH_GATE=0  (1 exports KIT_FINISH_GATE=1 to the reward function: a rollout the trainer cut at
+#            the cap scores 0, so the policy is paid only for answers that end; see kit/beds/rewards.py.)
+#            DUMP_ATTEMPTS=0  (1 sets `trainer.rollout_data_dir=$OUT/rollouts`: every training rollout's text,
+#            score and reward keys, one file per step, about 256 lines each. Off by default: K3's command had none.)
 #            TASK=datasets/spider_sql WORK=$PWD/k3-work DRY_RUN=0 FILE_LOG=0
 #
 # FILE_LOG=1 adds `file` to trainer.logger, so the per-step metrics land in $OUT/metrics.jsonl (the
@@ -63,6 +70,9 @@ FILE_LOG="${FILE_LOG:-0}"
 LR="${LR:-1e-5}"
 ENTROPY_COEF="${ENTROPY_COEF:-}"
 LENGTH_BUDGET="${LENGTH_BUDGET:-}"
+MAX_RESPONSE="${MAX_RESPONSE:-}"
+FINISH_GATE="${FINISH_GATE:-0}"
+DUMP_ATTEMPTS="${DUMP_ATTEMPTS:-0}"
 REWARD="${REWARD:-$KIT/beds/rewards.py}"
 
 [[ "$FILE_LOG" == "0" || "$FILE_LOG" == "1" ]] || { echo "FILE_LOG must be 0 or 1, not $FILE_LOG" >&2; exit 2; }
@@ -74,6 +84,10 @@ if [[ -n "$LENGTH_BUDGET" ]]; then
 else
   unset KIT_LENGTH_BUDGET_CHARS
 fi
+[[ -z "$MAX_RESPONSE" || "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be empty or a positive integer of tokens, not $MAX_RESPONSE" >&2; exit 2; }
+[[ "$FINISH_GATE" == "0" || "$FINISH_GATE" == "1" ]] || { echo "FINISH_GATE must be 0 or 1, not $FINISH_GATE" >&2; exit 2; }
+[[ "$DUMP_ATTEMPTS" == "0" || "$DUMP_ATTEMPTS" == "1" ]] || { echo "DUMP_ATTEMPTS must be 0 or 1, not $DUMP_ATTEMPTS" >&2; exit 2; }
+if [[ "$FINISH_GATE" == "1" ]]; then export KIT_FINISH_GATE=1; else unset KIT_FINISH_GATE; fi
 if [[ "$FILE_LOG" == "1" ]]; then LOGGER="[console,file]"; else LOGGER="[console]"; fi
 
 OUT="$WORK/runs/$NAME"
@@ -150,6 +164,16 @@ fi
 
 if [[ -n "$ENTROPY_COEF" ]]; then
   ARGV+=("actor_rollout_ref.actor.entropy_coeff=$ENTROPY_COEF")
+fi
+
+# The training cap. One key in the pinned config governs training rollouts and the trainer's own validation
+# (user.yaml:15, `rollout.response_length` reads it). The trainer keeps the first MAX_RESPONSE generated tokens of a
+# rollout and marks it cut when no end token is among them; FINISH_GATE is what makes the reward depend on that mark.
+if [[ -n "$MAX_RESPONSE" ]]; then
+  ARGV+=("data.max_response_length=$MAX_RESPONSE")
+fi
+if [[ "$DUMP_ATTEMPTS" == "1" ]]; then
+  ARGV+=("trainer.rollout_data_dir=$OUT/rollouts")
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
@@ -231,6 +255,8 @@ cat > "$OUT/train-summary.json" <<JSON
  "entropy_coeff": "${ENTROPY_COEF:-0}",
  "kl_coef": "$KL_COEF",
  "length_budget_chars": ${LENGTH_BUDGET:-null},
+ "max_response_length": ${MAX_RESPONSE:-8192},
+ "finish_gate": $FINISH_GATE,
  "n_gpus": $NGPU,
  "seconds": $(( $(date -u +%s) - STARTED )),
  "model_dir": "$MODEL_DIR",
