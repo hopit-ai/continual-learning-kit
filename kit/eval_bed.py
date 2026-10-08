@@ -31,6 +31,7 @@ import importlib.util
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -71,6 +72,35 @@ def load_bed(name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+#: the authors' scoring module each bed loads from the pinned checkout (kit/beds/_authors.py `scorer`)
+AUTHORS_SCORERS = {"chemistry": "mcq", "toolalpaca": "tooluse"}
+
+
+def _file_sha256(path: Path):
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def scorer_identity(bed: str) -> dict:
+    """The implementation identity of this bed's scorer (package-4 review round 3, F5): the sha256 of every source file
+    that decides a verdict -- this scoring module, the bed module (with kit/beds/_authors.py for the authors' beds), the
+    authors' reward source it loads from $SDPO_DIR, and kit/canonical.py -- keyed by a name that holds no absolute path,
+    and `scorer_sha256`, the sha256 of that map (sorted keys). A file that cannot be read is recorded as null, so the
+    hash differs from any complete one."""
+    files = {"kit/eval_bed.py": HERE / "eval_bed.py", "kit/beds/%s.py" % bed: BED_FILES[bed], "kit/canonical.py": HERE / "canonical.py"}
+    if bed == "finqa":
+        files["kit/beds/_authors.py"] = HERE / "beds" / "_authors.py"
+    if bed in AUTHORS_SCORERS:
+        files["kit/beds/_authors.py"] = HERE / "beds" / "_authors.py"
+        root = os.environ.get("SDPO_DIR")
+        name = "sdpo/verl/utils/reward_score/feedback/%s.py" % AUTHORS_SCORERS[bed]
+        files[name] = (Path(root) / name[len("sdpo/"):]) if root else Path("/nonexistent")
+    hashes = {name: _file_sha256(path) for name, path in sorted(files.items())}
+    return {"scorer_sha256": hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest(), "scorer_files": hashes}
 
 
 def fresh_dir(path: Path) -> Path:
@@ -153,6 +183,9 @@ def items_of(module, args) -> list:
     else:
         items = [{"id": item["id"], "prompt": module.render_prompt(item), "ground_truth": module.gold_of(item)}
                  for item in module.load(Path(root), split)]
+    if os.environ.get("KIT_V4_ARM") or "v4_" in str(root):
+        from kit.v4_contract import check_eval_items
+        check_eval_items(items, args.bed, split)
     if args.limit:
         items = items[: args.limit]
     if not items:
@@ -193,6 +226,9 @@ def read_responses(path: Path) -> dict:
 
 def grade(module, args, items: list, answers: dict) -> dict:
     """Every item's answer scored by the bed. Missing or foreign ids are refused, never counted as wrong."""
+    if os.environ.get("KIT_V4_ARM"):
+        from kit.v4_contract import check_eval_items
+        check_eval_items(items, args.bed, split_of(args))
     wanted = [item["id"] for item in items]
     missing = [key for key in wanted if key not in answers]
     extra = sorted(set(answers) - set(wanted))
@@ -216,7 +252,7 @@ def grade(module, args, items: list, answers: dict) -> dict:
 def write_result(out: Path, *, bed: str, split: str, graded: dict, extra: dict) -> dict:
     result = {"schema": SCHEMA, "bed": bed, "split": split,
               "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "decoding": DECODING, **graded, **extra}      # `extra` may carry its own `decoding` (a cap override)
+              "decoding": DECODING, **graded, **scorer_identity(bed), **extra}      # `extra` may carry its own `decoding` (a cap override)
     (out / "bed-score.json").write_text(json.dumps(result, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print("%s %s: %d of %d correct (%.4f), %d answers in the wrong format"
           % (bed, split, graded["correct"], graded["n"], graded["accuracy"], graded["incorrect_format"]))
@@ -226,6 +262,24 @@ def write_result(out: Path, *, bed: str, split: str, graded: dict, extra: dict) 
 
 def items_digest(items: list) -> str:
     return hashlib.sha256("".join(item["id"] + "\n" for item in items).encode("utf-8")).hexdigest()
+
+
+def panel_labels(module, args) -> dict:
+    """Carry a shortened FinQA smoke panel's identity into generated and rescored results."""
+    if args.bed != "finqa":
+        return {}
+    root, split = Path(bed_root(args)), split_of(args)
+    marker = root / "technical-smoke-panel.json"
+    if not marker.is_file() or not (root / (split + ".parquet")).is_file():
+        return {}
+    labels = json.loads(marker.read_text())
+    declared, published = labels["rows"][split], module.SPLIT_SIZES[split]
+    if declared >= published:
+        return {}
+    return {"profile": "technical-smoke", "technical_smoke": True, "stand_in": labels["stand_in"],
+            "scientific_phase_allowed": False,
+            "technical_smoke_panel": {"declared_rows": declared, "published_rows": published,
+                                      "marker_sha256": _file_sha256(marker)}}
 
 
 # ------------------------------------------------------------------------------------ subcommands
@@ -246,6 +300,7 @@ def cmd_generate(args) -> int:
     from transformers import AutoTokenizer                                  # noqa: PLC0415
     from vllm import LLM, SamplingParams                                    # noqa: PLC0415
     import vllm                                                             # noqa: PLC0415
+    reload_started=datetime.now(timezone.utc).isoformat();reload_clock=time.monotonic()
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, item["prompt"]) if isinstance(item["prompt"], str) else render_messages(tokenizer, item["prompt"])
                for item in items]
@@ -255,8 +310,26 @@ def cmd_generate(args) -> int:
     engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
     if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
         engine["max_model_len"] = int(args.max_model_len)
-    llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
+    from kit.v4_teacher import atomic_json
+    expected={**ENGINE,'max_model_len':12288}
+    configuration_ok=all(engine.get(k)==v for k,v in expected.items()) and eager and batch_invariant
+    try:
+        llm = LLM(model=str(model), enable_lora=False, **engine, **({'enforce_eager': True, 'seed': 0} if eager else {}))
+    except Exception as error:
+        atomic_json(out/'engine-status.json',{'engine_ok':False,'configuration_ok':bool(configuration_ok),
+            'failure_type':'scoring_engine_start','error_type':type(error).__name__,'error':str(error)})
+        raise
+    atomic_json(out/'engine-status.json',{'engine_ok':True,'configuration_ok':bool(configuration_ok),
+        'engine':engine,'attention_backend':os.environ.get('VLLM_ATTENTION_BACKEND'),'machine':machine_fingerprint(deterministic)})
+    reload_seconds=time.monotonic()-reload_clock
+    generate_started=datetime.now(timezone.utc).isoformat();generate_clock=time.monotonic()
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
+    generate_seconds=time.monotonic()-generate_clock
+    if os.environ.get('V4_TELEMETRY')=='1':
+        sys.path.insert(0,str(HERE.parent))
+        from kit.v4_timing import receipt
+        (out/'timing.json').write_text(json.dumps({'reload':receipt(reload_started,reload_seconds),
+            'generate':receipt(generate_started,generate_seconds)},sort_keys=True)+'\n')
     answers, rows, token_rows = {}, [], []
     for item, prompt, output in zip(items, prompts, outputs):
         completion = output.outputs[0]
@@ -269,9 +342,12 @@ def cmd_generate(args) -> int:
                            "prompt_tokens": len(prompt_ids) if prompt_ids is not None else None})
     (out / "responses.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     tokens_io.write(out / tokens_io.FILE_NAME, token_rows)
+    # the raw files bound to this scoring attempt by hash (package-4 review round 3, finding 4: a scoring with no sweep,
+    # the qualification scorings, is bound by these)
+    raw_hashes = {"responses_sha256": _file_sha256(out / "responses.jsonl"), "tokens_sha256": _file_sha256(out / tokens_io.FILE_NAME)}
     truncated = sum(r["finish_reason"] == "length" for r in rows)
     write_result(out, bed=args.bed, split=split_of(args), graded=grade(module, args, items, answers),
-                 extra={"mode": "generate", "model": str(model), "items_sha256": items_digest(items),
+                 extra={**panel_labels(module, args), "mode": "generate", "model": str(model), "items_sha256": items_digest(items), **raw_hashes,
                         "limit": int(args.limit or 0),
                         "max_new_tokens": cap, "truncated_at_max_tokens": truncated,
                         "decoding": decoding,          # overrides the bed default written by write_result
@@ -300,7 +376,7 @@ def cmd_score(args) -> int:
     graded = grade(module, args, items, answers)
     out = fresh_dir(out)
     write_result(out, bed=args.bed, split=split_of(args), graded=graded,
-                 extra={"mode": "score", "items_sha256": items_digest(items), "limit": int(args.limit or 0),
+                 extra={**panel_labels(module, args), "mode": "score", "items_sha256": items_digest(items), "limit": int(args.limit or 0),
                         "responses_file": str(Path(args.responses).resolve()),
                         "responses_sha256": hashlib.sha256(Path(args.responses).read_bytes()).hexdigest()})
     return 0

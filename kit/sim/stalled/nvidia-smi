@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""A STALLING stand-in for `nvidia-smi` (round-6 ruling J1; tests and scripts/simulate_p4.py's stalled-discovery phase).
+
+While the file named by $SIM_STALL_FILE exists, a `--query-compute-apps` call blocks for $SIM_STALL_SECONDS (default
+600) before it answers -- longer than any shutdown allowance -- as a hung driver would. One process (no child holds the
+pipes), so a caller's timeout ends it. Otherwise, and for every other query, it is scripts/sim/bin/nvidia-smi.
+"""
+import os
+import sys
+import time
+
+stall = os.environ.get("SIM_STALL_FILE")
+if stall and os.path.exists(stall) and any(a.startswith("--query-compute-apps") for a in sys.argv[1:]):
+    time.sleep(float(os.environ.get("SIM_STALL_SECONDS", "600")))
+here = os.path.dirname(os.path.abspath(__file__))
+plain = os.path.join(os.path.dirname(here), "bin", "nvidia-smi")
+if not os.path.isfile(plain):                                       # a copy of this folder beside a copy of bin/
+    plain = os.path.join(here, "nvidia-smi.plain")
+os.execv(sys.executable, [sys.executable, plain] + sys.argv[1:])

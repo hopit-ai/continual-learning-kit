@@ -43,6 +43,16 @@
 # MODEL_DIR may be a previous run's `hf-step$STEPS` folder: the merger saves the tokenizer with it, so a second
 # task can be trained on top of a first.
 #
+# Two knobs added for plan v3's package 4 (`cap-gate`, 4 October 2026), with kit/run_grpo.sh's semantics. Left at their
+# defaults, the command is byte for byte the pilot's (tests/test_kit_p4_launchers.py compares it with HEAD's launcher).
+#   MAX_RESPONSE=              empty = the pinned config's 8192 new tokens, nothing passed; a positive integer sets
+#                              `data.max_response_length`, the trainer's one cap for training rollouts and its own
+#                              validation (user.yaml:15). Package 4's intervention trains at 2048.
+#   FINISH_GATE=0              1 exports KIT_FINISH_GATE=1 AND points `custom_reward_function.path` at
+#                              kit/beds/authors_gate.py, which calls the authors' own reward function unchanged and pays 0
+#                              for a rollout the trainer cut at the cap (naive.py:84 marks it); see that file. 0 unsets
+#                              KIT_FINISH_GATE and leaves the reward path the authors' own, exactly as before.
+#
 # LORA=1 is the one arm this launcher adds (docs/phase2/k1c/feasibility.md (b)). It appends the three
 # declared model keys and RAISES the learning rate tenfold, and nothing else:
 #
@@ -85,6 +95,10 @@ DATASET="${DATASET:-datasets/tooluse}"
 LR="${LR:-}"
 MINI_BATCH="${MINI_BATCH:-32}"
 KEEP_TRAINER_CKPT="${KEEP_TRAINER_CKPT:-1}"
+MAX_RESPONSE="${MAX_RESPONSE:-}"
+FINISH_GATE="${FINISH_GATE:-0}"
+# Optional absolute custom reward path. Unset preserves every pilot argv token.
+REWARD_FILE="${REWARD_FILE:-}"
 
 # The LoRA arm's three numbers, fixed here rather than taken from the environment: they are a settled
 # decision, not a knob, and tests/test_kit_k1c.py pins them.
@@ -106,6 +120,24 @@ if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
 [[ "$KEEP_TRAINER_CKPT" == "1" || "$LORA" == "0" ]] || { echo "KEEP_TRAINER_CKPT=0 is for full training only: the LoRA arm's adapter lives in the trainer's checkpoint" >&2; exit 2; }
 if [[ "$LORA" == "1" ]]; then ARM="lora"; DEFAULT_LR="$LR_LORA"; else ARM="full"; DEFAULT_LR="$LR_FULL"; fi
 LR="${LR:-$DEFAULT_LR}"
+[[ -z "$MAX_RESPONSE" || "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be empty or a positive integer of tokens, not $MAX_RESPONSE" >&2; exit 2; }
+[[ "$FINISH_GATE" == "0" || "$FINISH_GATE" == "1" ]] || { echo "FINISH_GATE must be 0 or 1, not $FINISH_GATE" >&2; exit 2; }
+# The reward function verl loads. The pilot's is the authors' own, inside the pinned checkout; the gate wraps it.
+if [[ "$FINISH_GATE" == "1" ]]; then
+  export KIT_FINISH_GATE=1
+  REWARD="$KIT/beds/authors_gate.py"
+else
+  unset KIT_FINISH_GATE                       # an inherited KIT_FINISH_GATE=1 must not reach a control's reward workers
+  REWARD="$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"
+fi
+
+if [[ -n "$REWARD_FILE" ]]; then
+  [[ "$REWARD_FILE" == /* ]] || { echo "REWARD_FILE must be an absolute path" >&2; exit 2; }
+  [[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; exit 2; }
+  [[ "$FINISH_GATE" != 1 || "$REWARD_FILE" == "$KIT/beds/v4_reward.py" || "$REWARD_FILE" == "$KIT/beds/authors_gate.py" ]] || { echo 'custom reward is not verified finish-gate aware' >&2; exit 2; }
+  [[ "${FEEDBACK:-0}" == 0 ]] || { echo 'refusing REWARD_FILE with FEEDBACK=1' >&2; exit 2; }
+  REWARD="$REWARD_FILE"
+fi
 
 ARGV=(
   python -m verl.trainer.main_ppo --config-name baseline_grpo
@@ -134,7 +166,7 @@ ARGV=(
   "vars.task=$DATASET"
   "vars.log_dir=$OUT/tool-grpo/logs"
   "vars.ckpt_dir=$OUT/tool-grpo"
-  "custom_reward_function.path=$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"
+  "custom_reward_function.path=$REWARD"
   "custom_reward_function.name=compute_score"
   "trainer.total_training_steps=$STEPS"
   "actor_rollout_ref.rollout.val_kwargs.n=16"
@@ -172,14 +204,72 @@ if [[ "$LORA" == "1" ]]; then
   )
 fi
 
+# The training cap (package 4). Appended last, so with MAX_RESPONSE unset nothing is added. The trainer keeps the first
+# MAX_RESPONSE generated tokens of a rollout and marks it cut when no end token is among them (naive.py:84);
+# FINISH_GATE is what makes the reward depend on that mark.
+if [[ -n "$MAX_RESPONSE" ]]; then
+  ARGV+=("data.max_response_length=$MAX_RESPONSE")
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
 
+# The launcher's own progress, durably (package 4, round-6 ruling J3): env/stage.json names this attempt (NAME, and the
+# KIT_P4_JOB marker the wrapper set) and lists every stage reached -- started, config-resolved, trainer-invoked,
+# trainer-exited (with its status), merged -- each written to disk (fsync, atomic rename) before the launcher goes on.
+# On ANY exit the EXIT trap appends `exited` with the launcher's status and the last stage reached (a TERM, INT or HUP
+# exits through it too). Only a record that ends before `trainer-invoked` WITH that `exited` entry shows that a failed
+# attempt rolled nothing out (kit/rollout_stats.py); a record that stops without it shows nothing.
+STAGE_FILE=""
+LAST_STAGE=""
+stage() {                                                         # stage NAME [STATUS]
+  [[ -n "$STAGE_FILE" ]] || return 0
+  [[ "$1" == "exited" ]] || LAST_STAGE="$1"
+  python - "$STAGE_FILE" "$NAME" "${KIT_P4_JOB:-}" "$1" "${2:-}" "$LAST_STAGE" <<'PY'
+import json, os, sys
+from datetime import datetime, timezone
+path, attempt, job, name, status, last = sys.argv[1:7]
+try:
+    doc = json.load(open(path))
+except (OSError, ValueError):
+    doc = {"schema": "kit-launcher-stage.v1", "attempt": attempt, "job": job, "stages": []}
+entry = {"stage": name, "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+if status != "":
+    entry["returncode"] = int(status)
+if name == "exited":
+    entry["last_stage"] = last or None
+doc["stages"].append(entry)
+tmp = "%s.tmp-%d" % (path, os.getpid())
+with open(tmp, "w") as handle:
+    json.dump(doc, handle, indent=1)
+    handle.flush()
+    os.fsync(handle.fileno())
+os.replace(tmp, path)
+folder = os.open(os.path.dirname(path), os.O_RDONLY)
+os.fsync(folder)
+os.close(folder)
+PY
+}
+on_exit() {
+  local status=$1
+  trap - EXIT
+  stage exited "$status" || true
+  exit "$status"
+}
+
 if [[ -e "$OUT" ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
+mkdir -p "$OUT/env"
+STAGE_FILE="$OUT/env/stage.json"
+trap 'on_exit $?' EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+trap 'exit 129' HUP
+stage started
 for f in train.parquet test.parquet; do
   [[ -f "$SDPO_DIR/$DATASET/$f" ]] || { echo "missing $SDPO_DIR/$DATASET/$f: run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; exit 2; }
 done
 [[ -f "$MODEL_DIR/config.json" ]] || { echo "MODEL_DIR=$MODEL_DIR is not a HuggingFace model directory" >&2; exit 2; }
 [[ "$LORA" == "0" || -f "$KIT/fold_lora.py" ]] || { echo "LORA=1 needs $KIT/fold_lora.py" >&2; exit 2; }
+[[ -f "$REWARD" || ( "$FINISH_GATE" == "0" && -z "$REWARD_FILE" ) ]] || { echo "missing reward function $REWARD" >&2; exit 2; }
 mkdir -p "$OUT/env" "$OUT/tool-grpo/logs"
 
 # What the run was: recorded before it starts, so a crash still leaves an identity behind.
@@ -192,6 +282,9 @@ git -C "$SDPO_DIR" status --short > "$OUT/env/sdpo-dirty.txt" 2>/dev/null || tru
 pip freeze > "$OUT/env/pip-freeze.txt" 2>/dev/null || true
 nvidia-smi > "$OUT/env/nvidia-smi.txt" 2>/dev/null || true
 ls "$MODEL_DIR" > "$OUT/env/model-files.txt"
+# The task data the run read, by content (package 4, round 3, F4: a later run proves the same data by these hashes).
+sha256sum "$SDPO_DIR/$DATASET/train.parquet" "$SDPO_DIR/$DATASET/test.parquet" > "$OUT/env/data-sha256.txt" 2>/dev/null || \
+  shasum -a 256 "$SDPO_DIR/$DATASET/train.parquet" "$SDPO_DIR/$DATASET/test.parquet" > "$OUT/env/data-sha256.txt" 2>/dev/null || true
 date -u +%FT%TZ > "$OUT/env/started-at.txt"
 
 export USER="${USER:-$(whoami)}" TASK="$DATASET" EXPERIMENT="$NAME"
@@ -201,11 +294,25 @@ export VERL_FILE_LOGGER_PATH="$OUT/metrics.jsonl"
 
 STARTED=$(date -u +%s)
 cd "$SDPO_DIR"
+# The trainer's own resolved configuration of exactly this command (package 4, amendment 3 B6), before any training:
+# Hydra's `--cfg job --resolve` prints the job configuration with every interpolation resolved, and exits. A command
+# whose configuration cannot be resolved does not train (exit 2, before any GPU work, and no run-summary.json).
+if ! "${ARGV[@]:0:5}" --cfg job --resolve "${ARGV[@]:5}" > "$OUT/env/resolved-config.yaml" 2> "$OUT/env/resolved-config.err" \
+   || [[ ! -s "$OUT/env/resolved-config.yaml" ]]; then
+  echo "the trainer could not resolve its configuration (see $OUT/env/resolved-config.err): nothing is trained" >&2
+  exit 2
+fi
+stage config-resolved
+stage trainer-invoked
+# The trainer is invoked NOW (package 4, round-5 ruling H3). Kept as a timestamp; since round 6 (J3) its ABSENCE is no
+# evidence of anything: only env/stage.json, ending before `trainer-invoked` with its `exited` entry, shows no rollout.
+date -u +%FT%TZ > "$OUT/env/trainer-started-at.txt"
 set +e
 "${ARGV[@]}" 2>&1 | tee "$OUT/console.log"
 STATUS=${PIPESTATUS[0]}
 set -e
 date -u +%FT%TZ > "$OUT/env/finished-at.txt"
+stage trainer-exited "$STATUS"
 
 # actor save -> a HuggingFace model we can score for retention; the reference's own merger. On the
 # LoRA arm the merger's output is the BASE model plus an adapter with lora_alpha 0, so it goes to a
@@ -270,6 +377,8 @@ if [[ "$STATUS" == "0" && -d "$CKPT" ]]; then
   fi
 fi
 
+stage merged "$MERGE_STATUS"                                     # -1: no merge was attempted
+
 # The trainer's checkpoint goes only after a merged model with weights is on disk, and only when asked.
 CKPT_KEPT=1
 if [[ "$KEEP_TRAINER_CKPT" == "0" && "$LORA" == "0" && "$MERGED" == "1" ]]; then   # MERGED=1 means exit 0 and a complete export
@@ -301,6 +410,10 @@ cat > "$OUT/run-summary.json" <<JSON
  "fold_changed_tensors": $FOLD_CHANGED,
  "fold_expected_changed": $EXPECTED_CHANGED,
  "n_gpus": $NGPU,
+ "max_response_length": ${MAX_RESPONSE:-8192},
+ "finish_gate": $FINISH_GATE,
+ "reward_function": "$REWARD",
+ "seed": "$SEED",
  "seconds": $(( $(date -u +%s) - STARTED )),
  "merged_dir": "$FINAL"
 }

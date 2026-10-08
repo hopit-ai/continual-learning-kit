@@ -1,13 +1,16 @@
 # continual-learning-kit
 
+The current runbook is [PHASE-0](kit/README-phase0.md).
+
 Small, dependency-light tools for running continual-learning experiments on any GPU machine and sending
 back a report. Open source under Apache 2.0. Maintained by Hopit AI as the public half of a research
 programme on small models that keep learning new tasks without forgetting old ones.
 
 | File | What it does |
 |---|---|
+| `kit/README-phase0.md`, `kit/read_v4_phase0.py`, `kit/simulate_v4_phase0.py`, `kit/sim/bin/` | Bounded technical phase 0: confirmed host-venv payload, zero-GPU download job and Slurm header, archive reader, nine-case CPU rehearsal and process-only Slurm stand-ins. All entry points ship under kit/. |
 | `kit/runner.py` | Runs a campaign file row by row **with a pilot gate**: a row marked `pilot` is judged against bars written in advance, and every later row is refused unless the pilot passed. A `prepare` stage does all IO on a CPU machine before any GPU is held. Records a start file before launch and a verdict after; never overwrites. |
-| `kit/README-send4.md` | **Send 4, the current runbook** (tag `kit-batch3-v1`): the budget audit of the ten K1c checkpoints, the 1.7B control on GSM8K (learning rate by training limit with a finish-gated reward), and the Qwen3-8B pilot on the SDPO authors' Chemistry and ToolAlpaca tasks under four recipes. Three commands, two archives. The runner now loses only the rows that need a failed run, and runs a row again by itself when the run it read was retried. |
+| `kit/README-send4.md` | **Send 4, archived pilot runbook** (tag `kit-batch3-v1`): the budget audit of the ten K1c checkpoints, the 1.7B control on GSM8K (learning rate by training limit with a finish-gated reward), and the Qwen3-8B pilot on the SDPO authors' Chemistry and ToolAlpaca tasks under four recipes. Three commands, two archives. The runner now loses only the rows that need a failed run, and runs a row again by itself when the run it read was retried. |
 | `kit/campaigns/k1c-control.yaml`, `kit/run_grpo.sh` (`MAX_RESPONSE`, `FINISH_GATE`), `kit/beds/rewards.py` | The small-model control: K1c trained with an 8,192-token response limit and was served at 2,048, and the trainer paid for whatever answer a cut rollout happened to contain. `MAX_RESPONSE` sets the training limit; `FINISH_GATE=1` scores 0 for a rollout the trainer marks as cut (it reads the trainer's own mark and refuses to run without it). Three cells, three runs each, against K1c's own five. |
 | `kit/campaigns/k8b-pilot.yaml`, `kit/beds/chemistry.py`, `kit/beds/toolalpaca.py`, `kit/pilot_report.py`, `kit/rollout_stats.py`, the two ToolAlpaca launchers (`DATASET`, `LR`, `MINI_BATCH`, `TEACHER_RATE`) | The 8B discovery pilot: the SDPO authors' two tasks as scored beds (their data, their messages, their scorer), each learned alone and on top of the other under tuned GRPO (1e-6, minibatch 8), K1c's GRPO (1e-5, 32), SDPO, and SDPO with a frozen teacher. The report gives acquisition, retention of an acquired task with its signed accounting across answer budgets, and the training-side statistics. A discovery run: four recipes differ in several settings at once. |
 | `kit/README-send3.md` | RETIRED, never sent. Send 3 as one runbook: the dose-and-anchor test, the K1c rescoring, then K2b; the runner now refuses a campaign whose row order is implicit, writes pilot dependencies into `needs`, continues past a failed run that nothing later needs, and runs reduced-seed sets with `--seeds`. |

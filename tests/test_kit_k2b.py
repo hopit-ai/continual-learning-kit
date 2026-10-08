@@ -16,6 +16,26 @@ from pathlib import Path
 
 import pytest
 
+
+# ------------------------------------------------------------------ the shell that runs pytest decides nothing here
+def _launcher_variables() -> frozenset:
+    """Every variable a kit launcher reads from its environment (`${NAME:-default}` or `${NAME:?required}`), collected
+    from the launchers themselves so that a new knob is covered the day it is added, plus the two the launchers
+    export for the reward function."""
+    kit = __import__("pathlib").Path(__file__).resolve().parents[1] / "kit"
+    found = set()
+    for script in sorted(kit.glob("*.sh")):
+        found |= set(__import__("re").findall(r"\$\{([A-Z_][A-Z0-9_]*):[-?]", script.read_text()))
+    return frozenset(found - {"PYTHONPATH", "USER"}) | {"KIT_FINISH_GATE", "KIT_LENGTH_BUDGET_CHARS"}
+
+
+def shell() -> dict:
+    """os.environ WITHOUT any launcher variable. A test passes every setting it means and inherits none: the partner
+    README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
+    default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
+    names = _launcher_variables()
+    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
 SCRIPT = KIT / "run_sft.sh"
@@ -303,7 +323,7 @@ EXPECTED = [
 
 
 def dry(**extra):
-    env = {k: v for k, v in os.environ.items() if k not in ("SEED", "STEPS", "SAVE_FREQ", "NGPU", "LR", "FILE_LOG")}
+    env = {k: v for k, v in shell().items() if k not in ("SEED", "STEPS", "SAVE_FREQ", "NGPU", "LR", "FILE_LOG")}
     env.update(SDPO_DIR="/sdpo", MODEL_DIR="/m/Qwen3-1.7B", NAME="sft-seed3-a1", TRAIN_FILE="/d/sft/train.parquet",
                VAL_FILE="/d/sft/heldout.parquet", WORK="/w", DRY_RUN="1", STEPS="40", SAVE_FREQ="40", SEED="3", NGPU="8", FILE_LOG="1")
     env.update(extra)
@@ -381,7 +401,7 @@ def stubbed(tmp_path):
     pq.write_table(pa.Table.from_pylist([{"prompt": "p", "response": "Answer: 1"}] * 8), val)
     (binaries / "python").write_text(STUB)
     (binaries / "python").chmod(0o755)
-    env = {**os.environ, "PATH": "%s:%s" % (binaries, os.environ["PATH"]), "RECORD": str(record), "REAL_PYTHON": sys.executable,
+    env = {**shell(), "PATH": "%s:%s" % (binaries, os.environ["PATH"]), "RECORD": str(record), "REAL_PYTHON": sys.executable,
            "SDPO_DIR": str(sdpo), "MODEL_DIR": str(model), "NAME": "sft-seed0-a1", "TRAIN_FILE": str(train), "VAL_FILE": str(val),
            "WORK": str(work), "DRY_RUN": "0", "STEPS": "40", "SAVE_FREQ": "40", "SEED": "0", "NGPU": "8"}
     return {"env": env, "record": record, "out": work / "runs" / "sft-seed0-a1", "train": train, "tmp": tmp_path}

@@ -16,13 +16,32 @@ from pathlib import Path
 
 import pytest
 
+# ------------------------------------------------------------------ the shell that runs pytest decides nothing here
+def _launcher_variables() -> frozenset:
+    """Every variable a kit launcher reads from its environment (`${NAME:-default}` or `${NAME:?required}`), collected
+    from the launchers themselves so that a new knob is covered the day it is added, plus the two the launchers
+    export for the reward function."""
+    kit = __import__("pathlib").Path(__file__).resolve().parents[1] / "kit"
+    found = set()
+    for script in sorted(kit.glob("*.sh")):
+        found |= set(__import__("re").findall(r"\$\{([A-Z_][A-Z0-9_]*):[-?]", script.read_text()))
+    return frozenset(found - {"PYTHONPATH", "USER"}) | {"KIT_FINISH_GATE", "KIT_LENGTH_BUDGET_CHARS"}
+
+
+def shell() -> dict:
+    """os.environ WITHOUT any launcher variable. A test passes every setting it means and inherits none: the partner
+    README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
+    default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
+    names = _launcher_variables()
+    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+
 KIT = Path(__file__).resolve().parents[1] / "kit"
 GRPO, SDPO = KIT / "run_grpo_toolalpaca.sh", KIT / "run_sdpo_toolalpaca.sh"
 KNOBS = ("DATASET", "LR", "MINI_BATCH", "TEACHER_RATE", "KEEP_TRAINER_CKPT", "LORA", "FEEDBACK", "SOFT", "TEMP", "SEED", "STEPS", "TEST_FREQ", "NGPU", "TP", "OFFLOAD")
 
 
 def dry(script: Path, **extra):
-    env = {k: v for k, v in os.environ.items() if k not in KNOBS}
+    env = {k: v for k, v in shell().items() if k not in KNOBS}
     env.update({"SDPO_DIR": "/ref/SDPO", "MODEL_DIR": "/models/Qwen3-8B", "NAME": "run-a1", "WORK": "/work", "DRY_RUN": "1", **extra})
     done = subprocess.run(["bash", str(script)], env=env, capture_output=True, text=True)
     return done.returncode, done.stdout.split("\n")[:-1], done.stderr
@@ -111,12 +130,19 @@ def test_the_trainer_checkpoint_knob_changes_no_argument_and_refuses_what_it_can
 FAKE_TRAINER = """import sys
 from pathlib import Path
 cfg = dict(a.split("=", 1) for a in sys.argv[1:] if "=" in a)
+if "--cfg" in sys.argv:                          # Hydra's --cfg job --resolve (the launchers ask before training)
+    import os
+    if os.environ.get("FAKE_RESOLVE") == "fail":
+        sys.exit(1)
+    print("\\n".join("%s: %s" % kv for kv in sorted(cfg.items())))
+    sys.exit(0)
 ckpt = Path(cfg["trainer.default_local_dir"]) / ("global_step_%s" % cfg["trainer.total_training_steps"]) / "actor"
 ckpt.mkdir(parents=True)
 (ckpt / "model_world_size_8_rank_0.pt").write_text("full-precision shard")
 """
 FAKE_MERGER = """import json, os, sys
 from pathlib import Path
+
 target = Path(sys.argv[sys.argv.index("--target_dir") + 1])
 target.mkdir(parents=True)
 mode = os.environ.get("FAKE_MERGE", "complete")
@@ -157,9 +183,10 @@ def run_for_real(tmp_path: Path, script: Path, name: str, **extra) -> tuple:
             subprocess.run(git + command, check=True, capture_output=True)
         model.mkdir()
         (model / "config.json").write_text("{}")
-    env = {k: v for k, v in os.environ.items() if k not in KNOBS and k != "PYTHONPATH"}
+    env = {k: v for k, v in shell().items() if k not in KNOBS and k != "PYTHONPATH"}
     env.update({"SDPO_DIR": str(checkout), "MODEL_DIR": str(model), "NAME": name, "WORK": str(work), "STEPS": "2", **extra})
     env.pop("FAKE_MERGE", None) if "FAKE_MERGE" not in extra else None
+    env.pop("FAKE_RESOLVE", None) if "FAKE_RESOLVE" not in extra else None
     done = subprocess.run(["bash", str(script)], env=env, capture_output=True, text=True)
     run = work / "runs" / name
     return done, run, json.loads((run / "run-summary.json").read_text()) if (run / "run-summary.json").is_file() else None
@@ -188,3 +215,16 @@ def test_a_merge_that_is_not_complete_is_not_merged_fails_the_run_and_never_cost
     assert summary["returncode"] == 0 and summary["merged"] == 0 and summary["trainer_checkpoint_kept"] == 1
     assert summary["merge_returncode"] == {"dies-after-one-shard": 1, "exits-nonzero-after-writing-everything": 3}.get(mode, 0)
     assert done.returncode == 4 and "left no complete model" in done.stderr, "the row fails, so nothing is scored from it"
+
+
+@pytest.mark.parametrize("script, folder", [(GRPO, "tool-grpo"), (SDPO, "tool-sdpo")])
+def test_the_trainer_resolves_the_exact_command_before_training_and_a_failed_resolve_trains_nothing(tmp_path, script, folder):
+    """Round 2, finding 5 / amendment 3 B6: each run archives the trainer's own resolved configuration of its command
+    (`--cfg job --resolve` on the same overrides), and a command that cannot be resolved never reaches the GPUs."""
+    done, run, summary = run_for_real(tmp_path, script, "resolved")
+    assert done.returncode == 0, done.stderr[-800:]
+    resolved = (run / "env" / "resolved-config.yaml").read_text()
+    assert "trainer.total_training_steps: 2" in resolved and "trainer.experiment_name: resolved" in resolved
+    done, run, summary = run_for_real(tmp_path, script, "unresolved", FAKE_RESOLVE="fail")
+    assert done.returncode == 2 and "could not resolve its configuration" in done.stderr
+    assert summary is None and not (run / folder / "global_step_2").exists(), "nothing was trained"

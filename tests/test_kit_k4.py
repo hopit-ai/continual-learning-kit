@@ -31,6 +31,26 @@ from pathlib import Path
 
 import pytest
 
+
+# ------------------------------------------------------------------ the shell that runs pytest decides nothing here
+def _launcher_variables() -> frozenset:
+    """Every variable a kit launcher reads from its environment (`${NAME:-default}` or `${NAME:?required}`), collected
+    from the launchers themselves so that a new knob is covered the day it is added, plus the two the launchers
+    export for the reward function."""
+    kit = __import__("pathlib").Path(__file__).resolve().parents[1] / "kit"
+    found = set()
+    for script in sorted(kit.glob("*.sh")):
+        found |= set(__import__("re").findall(r"\$\{([A-Z_][A-Z0-9_]*):[-?]", script.read_text()))
+    return frozenset(found - {"PYTHONPATH", "USER"}) | {"KIT_FINISH_GATE", "KIT_LENGTH_BUDGET_CHARS"}
+
+
+def shell() -> dict:
+    """os.environ WITHOUT any launcher variable. A test passes every setting it means and inherits none: the partner
+    README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
+    default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
+    names = _launcher_variables()
+    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
 BED_LAUNCHER = KIT / "run_sdpo_bed.sh"
@@ -87,7 +107,7 @@ BED_ENV = {"TRAIN_FILE": "/work/data/spider/train.parquet",
 
 def dry(script: Path, **extra):
     done = subprocess.run(["bash", str(script)], capture_output=True, text=True,
-                          env={**os.environ, **COMMON, **extra})
+                          env={**shell(), **COMMON, **extra})
     return done.returncode, [line for line in done.stdout.split("\n") if line], done.stderr
 
 
@@ -185,12 +205,12 @@ def test_the_launcher_refuses_to_run_either_sdpo_arm_with_no_hints(tmp_path, fee
            "MODEL_DIR": str(tmp_path / "model"), "TRAIN_FILE": str(tmp_path / "train.parquet"),
            "VAL_FILE": str(tmp_path / "heldout.parquet"), "TASK": "datasets/spider_sql"}
     done = subprocess.run(["bash", str(BED_LAUNCHER)], capture_output=True, text=True,
-                          env={**os.environ, **env})
+                          env={**shell(), **env})
     assert done.returncode != 0 and "HINTS_FILE" in done.stderr
     empty = tmp_path / "empty.jsonl"
     empty.write_text("")
     done = subprocess.run(["bash", str(BED_LAUNCHER)], capture_output=True, text=True,
-                          env={**os.environ, **env, "HINTS_FILE": str(empty)})
+                          env={**shell(), **env, "HINTS_FILE": str(empty)})
     assert done.returncode == 2 and "missing or empty" in done.stderr
 
 
@@ -989,7 +1009,7 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          capture_output=True, text=True, env={**os.environ, "WORK": str(work)})
+                          capture_output=True, text=True, env={**shell(), "WORK": str(work)})
     assert done.returncode == 0, done.stderr
     assert list(work.iterdir()) == []
     assert "PILOT" in done.stdout

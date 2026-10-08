@@ -45,6 +45,28 @@ NUMBER = re.compile(r"[-+]?\(?\$?\s*\d[\d,]*\.?\d*\)?\s*%?|[-+]?\.\d+\s*%?")
 
 
 def load(root: Path, split: str) -> list:
+    # Plan v4 ships trainer rows. Keep their original FinQA ids and messages so
+    # eval_bed asks and judges precisely the same questions as training.
+    if (Path(root) / (split + ".parquet")).is_file():
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("finqa_trainer_rows", Path(__file__).with_name("_authors.py"))
+        authors = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(authors)
+        items = authors.load(root, split, DATA_SOURCE)
+        import pyarrow.parquet as pq
+        rows = pq.read_table(Path(root) / (split + ".parquet")).to_pylist()
+        expected = 1441 if split == "train" and len(items) == 1441 else SPLIT_SIZES[split]
+        marker = Path(root) / "technical-smoke-panel.json"
+        if marker.is_file():
+            labels = json.loads(marker.read_text())
+            if labels.get("profile") != "technical-smoke" or labels.get("stand_in") is not True:
+                raise ValueError("invalid technical smoke panel label")
+            expected = labels["rows"][split]
+        if len(items) != expected:
+            raise ValueError(f"FinQA {split} parquet has {len(items)} rows, expected {expected}")
+        items = [{**item, "gold_consistent": bool(row["extra_info"].get("gold_consistent", False))} for item, row in zip(items, rows)]
+        prefix = DATA_SOURCE + "-" + split + "-"
+        return [{**item, "id": item["id"][len(prefix):]} for item in items]
     items = json.loads((Path(root) / ("%s.json" % split)).read_text())
     if len(items) != SPLIT_SIZES[split]:
         raise SystemExit("FinQA %s has %d items, expected %d: not the pinned dataset (%s)" % (split, len(items), SPLIT_SIZES[split], DATASET_COMMIT[:7]))
@@ -55,13 +77,17 @@ def render_table(table: list) -> str:
     return "\n".join("| " + " | ".join(str(cell).strip() for cell in row) + " |" for row in table)
 
 
-def render_prompt(item: dict) -> str:
+def render_prompt(item: dict) -> str | list:
+    if "messages" in item:
+        return item["messages"]
     parts = [INSTRUCTION, "", "Report excerpt:", " ".join(item["pre_text"]).strip(), "", render_table(item["table"]), "",
              " ".join(item["post_text"]).strip(), "", "Question: " + item["qa"]["question"].strip()]
     return "\n".join(parts)
 
 
 def gold_of(item: dict) -> str:
+    if "gold" in item:
+        return item["gold"]
     return str(item["qa"]["exe_ans"]).strip()
 
 
@@ -133,6 +159,8 @@ def gold_consistent(item: dict) -> bool:
     dataset (a wrong sign, a program that contradicts the written answer, prose where a number should
     be), and no model can be fairly judged on them: PROCESS 3c excludes items whose gold does not score.
     """
+    if "qa" not in item:
+        return item.get("gold_consistent") is True
     shown = str(item["qa"].get("answer", "")).strip()
     return bool(shown) and is_correct(extract_answer("Answer: " + shown), gold_of(item))
 

@@ -152,5 +152,6 @@ def test_one_context_for_two_caps(tmp_path, engine, name):
     for cap in ("2048", "8192"):
         assert module.main(["generate", *extra, "--model", model, "--out", str(tmp_path / cap), "--max-new-tokens", cap, "--max-model-len", "12288"]) == 0
         assert engine["params"]["max_tokens"] == int(cap) and engine["engine"]["max_model_len"] == 12288
-        result = json.loads(next((tmp_path / cap).glob("*.json")).read_text())
+        receipt = "bed-score.json" if name == "eval_bed" else "forgetting.json"
+        result = json.loads((tmp_path / cap / receipt).read_text())
         assert result["engine"]["max_model_len"] == 12288 and result["max_new_tokens"] == int(cap)

@@ -391,6 +391,9 @@ def test_every_generated_campaign_is_what_its_generator_builds(path):
     spec = importlib.util.spec_from_file_location(path.stem, path)
     generator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator)
+    if hasattr(generator, "files"):                     # one generator, several files (scripts/make_p4_campaign.py)
+        assert all(out.read_text() == text for out, text in generator.files().items()), "re-run %s" % path.relative_to(ROOT)
+        return
     assert generator.OUT.read_text() == generator.build(), "re-run %s" % path.relative_to(ROOT)
 
 
@@ -620,9 +623,13 @@ def test_a_seed_that_is_not_a_whole_number_refuses(work, tmp_path, capsys, seed)
 
 # ------------------------------------------------------------------------------------ `seed:` in the committed campaigns
 SEEDED = re.compile(r"seed(\d+)|-r(\d+)(?:-|$)")
+#: Package 4 (kit/campaigns/k8b-p4-*.yaml) runs whole or not at all: `-r1`/`-r2` there name the two LINEAGES of one
+#: registered experiment, which is never cut to one lineage (registration section 6), so its rows carry no `seed:` and
+#: `--seeds` can filter none of them. tests/test_kit_p4_campaign.py pins that, and its report's needs and wants.
+WHOLE = ("k8b-p4-",)
 
 
-@pytest.mark.parametrize("path", CAMPAIGNS, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", [p for p in CAMPAIGNS if not p.name.startswith(WHOLE)], ids=lambda p: p.name)
 def test_every_seeded_row_states_its_seed(path):
     """A row whose id or run NAME is built per seed (`seed<N>`) or per run (`-r<N>`) carries `seed:`, and agrees."""
     for row in yaml.safe_load(path.read_text())["rows"]:
@@ -660,7 +667,7 @@ REPORT_WANTS = {"k1a-forgetting-of-k0.yaml": 5, "k1c-control.yaml": 54, "k1c-grp
 
 
 def test_every_campaign_with_a_report_row_is_listed():
-    assert sorted(p.name for p in CAMPAIGNS if "\n  - id: report\n" in p.read_text()) == sorted(REPORT_WANTS)
+    assert sorted(p.name for p in CAMPAIGNS if "\n  - id: report\n" in p.read_text() and not p.name.startswith(WHOLE)) == sorted(REPORT_WANTS)
 
 
 @pytest.mark.parametrize("name", sorted(REPORT_WANTS))

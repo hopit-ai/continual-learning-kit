@@ -246,7 +246,20 @@ def _common(scoring: dict, budgets: list, decode_equal: int, mismatches: list) -
             "decode_equals_text": decode_equal, "reproduces_scoring": not mismatches,
             "reproduces_scoring_mismatches": len(mismatches), "reproduces_scoring_mismatched_ids": mismatches[:MISMATCHES_SHOWN],
             "responses_sha256": _sha256(scoring["responses_path"]), "tokens_sha256": _sha256(scoring["tokens_path"]),
-            "canonical_rule": canonical.RULE}
+            "canonical_rule": canonical.RULE,
+            # the scorer's implementation identity, copied from the scoring, and this sweep's own (round 3, F5)
+            "scorer_sha256": result.get("scorer_sha256"), "sweep_source_sha256": sweep_source_sha256()}
+
+
+def sweep_source_sha256() -> str:
+    """The sha256 of this sweep's own source (kit/cap_sweep.py and the kit modules it reads answers with), by name."""
+    hashes = {}
+    for name in ("cap_sweep.py", "canonical.py", "tokens_io.py"):
+        try:
+            hashes["kit/%s" % name] = _sha256(HERE / name)
+        except OSError:
+            hashes["kit/%s" % name] = None
+    return hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()
 
 
 def _fresh(out: Path) -> Path:
@@ -431,7 +444,14 @@ def check(args) -> dict:
               "ids_agree": sum(g["ids_agree"] for g in groups.values()) if with_ids else None,
               "by_short_finish": groups, "mismatched": mismatched, "mismatches": shown,
               "max_model_len": {"long": engines[0], "short": engines[1]}, "same_max_model_len": engines[0] is not None and engines[0] == engines[1],
-              "machine_ids": {"long": machines[0], "short": machines[1]}, "same_machine": machines[0] is not None and machines[0] == machines[1]}
+              "machine_ids": {"long": machines[0], "short": machines[1]}, "same_machine": machines[0] is not None and machines[0] == machines[1],
+              # the raw evidence of BOTH scorings and their scorers (round 3, F5): a report binds the short scoring as it binds the long
+              "long_responses_sha256": _sha256(long["responses_path"]), "long_tokens_sha256": _sha256(long["tokens_path"]),
+              "short_responses_sha256": _sha256(short["responses_path"]),
+              "short_tokens_sha256": _sha256(short["tokens_path"]) if short.get("tokens_path") else None,
+              "long_scorer_sha256": long["result"].get("scorer_sha256"), "short_scorer_sha256": short["result"].get("scorer_sha256"),
+              "long_model": long["result"].get("model"), "short_model": short["result"].get("model"),
+              "sweep_source_sha256": sweep_source_sha256()}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return report

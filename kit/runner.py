@@ -75,11 +75,16 @@ import json
 import os
 import re
 import statistics
+import signal
+import tempfile
 import subprocess
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 SCHEMA = "kit-campaign.v1"
 EXIT_OK, EXIT_FAILED, EXIT_REFUSED = 0, 1, 2
@@ -302,6 +307,7 @@ def producers(campaign: dict, row: dict) -> dict:
     Such a path is an input that an earlier GPU row writes (K2's `small-before` reads the model `small-make-damaged`
     merges with `--out`), so it cannot exist when `prepare --all` runs before anything has run. A row writes the path
     when it names the path itself as an output, or a folder the path lies in (below {work} itself)."""
+    if not row.get('requires'):return {}
     ids = [r["id"] for r in campaign["rows"]]
     written = [(other["id"], outputs(resolve(other, campaign, 1))) for other in campaign["rows"][:ids.index(row["id"])]]
     found = {}
@@ -393,10 +399,10 @@ def prepare_row(campaign: dict, row: dict) -> int:
     for command in spec["prepare"]:
         print("PREPARE %s: %s" % (row["id"], " ".join(command)))
         started = time.monotonic()
-        done = subprocess.run(command, env={**os.environ, **spec["env"]}, cwd=spec["cwd"])
-        steps.append({"command": command, "returncode": done.returncode, "seconds": round(time.monotonic() - started, 1)})
-        if done.returncode != 0:
-            reason = "prepare command exited %d: %s" % (done.returncode, " ".join(command))
+        done = bounded_command(command, timeout=row.get("prepare_timeout_seconds", 3600), env={**os.environ, **spec["env"]}, cwd=spec["cwd"])
+        steps.append({"command": command, **done})
+        if done["returncode"] != 0:
+            reason = done["failure_type"] + ": prepare command exited %d: %s" % (done["returncode"], " ".join(command))
             break
     missing = [path for path in spec["requires"] if not Path(path).exists()]
     if reason is None and missing:
@@ -410,13 +416,50 @@ def prepare_row(campaign: dict, row: dict) -> int:
 
 
 def write_durably(path: Path, payload: dict) -> None:
-    if path.exists():
-        raise FileExistsError("refusing to overwrite %s" % path)
+    """Publish complete fsynced bytes atomically and exclusively, including races.
+
+    POSIX link is the portable atomic rename-if-absent equivalent: the target
+    acquires the fully written inode only if absent. Never replace evidence.
+    """
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as handle:
-        handle.write(json.dumps(payload, indent=1, sort_keys=True))
-        handle.flush()
-        os.fsync(handle.fileno())
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix='.publish-', delete=False) as handle:
+            temporary = handle.name
+            json.dump(payload, handle, indent=1, sort_keys=True, allow_nan=False)
+            handle.write('\n'); handle.flush(); os.fsync(handle.fileno())
+        os.link(temporary, path)
+        fd = os.open(path.parent, os.O_RDONLY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+    finally:
+        if temporary is not None: os.unlink(temporary)
+
+
+def bounded_command(command, *, timeout, log=None, env=None, cwd=None):
+    """A CPU command cannot hold an allocation indefinitely, including children."""
+    if isinstance(timeout, bool) or not 0 < float(timeout) < float('inf'):
+        raise CampaignError('command needs a finite positive deadline')
+    started = time.monotonic()
+    handle = Path(log).open('w') if log else None
+    failure = None
+    try:
+        process = subprocess.Popen(command, env=env, cwd=cwd, start_new_session=True,
+                                   stdout=handle, stderr=subprocess.STDOUT if handle else None)
+        try: code = process.wait(timeout=float(timeout))
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=5)
+            code, failure = 124, 'cpu_deadline'
+        if code and failure is None: failure = 'cpu_exit'
+    except OSError as error:
+        code, failure = 127, 'cpu_start'
+        if handle: handle.write(str(error)+'\n')
+    finally:
+        if handle: handle.close()
+    return {'returncode': code, 'failure_type': failure, 'seconds': time.monotonic()-started,
+            'timeout_seconds': float(timeout)}
 
 
 # ------------------------------------------------------------------------------------ bars
@@ -506,20 +549,80 @@ def stale_inputs(campaign: dict, row: dict, verdict: dict) -> list:
 
 
 def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
+    dispatch_clock=time.monotonic()
     reasons = gate(campaign, row) + not_ready(campaign, row)
     if reasons:
         print("REFUSED %s: %s" % (row["id"], "; ".join(reasons)))
         return EXIT_REFUSED
+    if campaign.get('v4') and os.environ.get('SLURM_JOB_ID'):
+        ledger_path=work_root(campaign)/'k8b4/containment/allocation-ledger.json'
+        ledger=json.loads(ledger_path.read_text())
+        entry=ledger['allocations'][os.environ['SLURM_JOB_ID']]
+        if campaign['v4'].get('phase')=='phase0':
+            from kit.v4_phase0 import allocation_cap
+            try: allocation_cap(ledger)
+            except ValueError as exc:
+                from kit.p4_contain import hard_stop
+                hard_stop(work_root(campaign),'block reached: '+str(exc));return EXIT_REFUSED
+        from kit.v4_budget import stamp
+        command=resolve(row,campaign,1)['command']
+        cap=row.get('timeout_seconds',3600)
+        if '--time-cap' in command:
+            cap=int(command[command.index('--time-cap')+1])
+            if campaign['v4'].get('phase')=='main':
+                from kit.v4_campaign_ops import registered_caps
+                cap=registered_caps(work_root(campaign))[row['id'].split('-')[0]]
+        elif campaign['v4'].get('phase')=='main' and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','owner-registration-gate'):
+            from kit.v4_campaign_ops import registered_caps
+            cap=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
+        if float(stamp(entry['planned_end'])) < time.time()+cap:
+            print('allocation exhausted; resume in a new allocation: '+row['id'])
+            return 75  # No start/attempt exists; not an infrastructure retry.
     done = attempts(campaign, row["id"])
     number = attempt if attempt is not None else (done[-1] + 1 if done else 1)
     if number in done:
         print("REFUSED %s: attempt %d already exists; pass --attempt %d" % (row["id"], number, done[-1] + 1))
         return EXIT_REFUSED
     spec = resolve(row, campaign, number)
+    if campaign.get('v4',{}).get('phase')=='main' and '--time-cap' in spec['command']:
+        from kit.v4_campaign_ops import registered_caps
+        caps=registered_caps(work_root(campaign))
+        operation=row['id'].split('-')[0]
+        if operation=='baseline':operation='score'
+        spec['command'][spec['command'].index('--time-cap')+1]=str(caps[operation])
+    if campaign.get('v4'):
+        cpu_timeout=row.get('timeout_seconds',3600)
+        if campaign['v4'].get('phase')=='main' and '--time-cap' not in spec['command'] and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','owner-registration-gate'):
+            from kit.v4_campaign_ops import registered_caps
+            cpu_timeout=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
+            row={**row,'timeout_seconds':cpu_timeout}
+        spec['env']['V4_COMMAND_TIMEOUT']=str(cpu_timeout)
+        if '--time-cap' in spec['command']:spec['env']['V4_COMMAND_TIMEOUT']=spec['command'][spec['command'].index('--time-cap')+1]
     out = row_dir(campaign, row["id"]) / ("attempt-%d" % number)
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     unmet = [w for w in row.get("wants") or [] if (latest_verdict(campaign, w) or {}).get("verdict") != "PASS"]
     inputs = inputs_of(campaign, row)                                  # which attempt of each producer this attempt reads
+    if campaign.get('v4') and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']) and 'row' in spec['command']:
+        # Review occurs before a containment row or its optimizer can launch.
+        spec['env']['OFFLOAD'] = '0'
+        spec['env']['V4_RUNNER_ATTEMPT'] = str(number)
+        if done:
+            previous_dir=row_dir(campaign,row['id'])/('attempt-%d'%done[-1])
+            previous=json.loads((previous_dir/'start.json').read_text())
+            verdict_path=previous_dir/'verdict.json'
+            if verdict_path.exists() and json.loads(verdict_path.read_text()).get('verdict')=='PASS':
+                print('REFUSED %s: first valid result cannot be replaced'%row['id']);return EXIT_REFUSED
+            try:
+                from kit.v4_retry import admit, automatic
+                review_path=work_root(campaign)/'v4/retries'/campaign['name']/row['id']/('attempt-%d.json'%number)
+                if not review_path.exists():automatic(work_root(campaign),campaign['name'],row['id'],number,previous)
+                review=json.loads(review_path.read_text())
+                spec['env']['OFFLOAD']='1' if review['reason_code']=='out_of_memory' else previous['env'].get('OFFLOAD','0')
+                if review.get('state_policy')=='resume_valid_state':spec['env']['V4_RESUME_PATH']=review['saved_state_path']
+                admit(work_root(campaign),campaign['name'],row['id'],number,
+                      {'attempt':number,'command':spec['command'],'env':spec['env'],'inputs':inputs},previous)
+            except (OSError,ValueError,KeyError,TypeError) as exc:
+                print('REFUSED %s: infrastructure review: %s'%(row['id'],exc));return EXIT_REFUSED
     if unmet:
         print("note %s: runs without %d wanted row(s) that have not passed: %s" % (row["id"], len(unmet), ", ".join(unmet)))
     write_durably(out / "start.json", {"schema": SCHEMA, "campaign": campaign["name"], "campaign_sha256": campaign["_sha256"],
@@ -528,13 +631,17 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
                                        "inputs": inputs, "started_at": started, **{k: spec[k] for k in ("command", "env", "cwd")}})
     print("RUN %s attempt %d: %s" % (row["id"], number, " ".join(spec["command"])))
     clock = time.monotonic()
-    with (out / "output.log").open("w") as log:
-        process = subprocess.Popen(spec["command"], env={**os.environ, **spec["env"]}, cwd=spec["cwd"],
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        for line in process.stdout:
-            sys.stdout.write(line)
-            log.write(line)
-        returncode = process.wait()
+    # GPU commands retain their independent Slurm cap; this outer deadline also
+    # bounds wrappers. CPU rows explicitly register their maximum wall seconds.
+    deadline = row.get('timeout_seconds', 3600)
+    if '--time-cap' in spec['command']:
+        deadline = int(spec['command'][spec['command'].index('--time-cap')+1]) + 120
+    command_result = bounded_command(spec['command'], timeout=deadline, log=out/'output.log',
+        env={**os.environ, **spec['env']}, cwd=spec['cwd'])
+    command_seconds=time.monotonic()-clock
+    returncode = command_result['returncode']
+    with (out/'output.log').open() as log:
+        for line in log: sys.stdout.write(line)
     bars = [judge_bar(bar) for bar in spec["bars"]]
     failed = [b for b in bars if not b["ok"]]
     if returncode != 0:
@@ -544,10 +651,26 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     else:
         verdict, reason = "PASS", None
     write_durably(out / "verdict.json", {"schema": SCHEMA, "row": row["id"], "attempt": number, "verdict": verdict, "reason": reason,
-                                         "returncode": returncode, "bars": bars, "started_at": started,
+                                         "returncode": returncode, "failure_type": command_result["failure_type"], "timeout_seconds": deadline, "bars": bars, "started_at": started,
                                          "seeds": campaign.get("_seeds"), "wants_not_passed": unmet, "inputs": inputs,
                                          "seconds": round(time.monotonic() - clock, 1)})
+    if campaign.get('v4'):
+        write_durably(out/'runner-overhead.json',{'ok':True,'allocation_id':os.environ.get('SLURM_JOB_ID'),
+            'row':row['id'],'wall_seconds':max(0,time.monotonic()-dispatch_clock-command_seconds),
+            'command_seconds':command_seconds,'campaign_sha256':campaign['_sha256']})
     print("%s %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
+    if verdict=='FAIL' and campaign.get('v4') and 'row' in spec['command'] and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']):
+        try:
+            if (work_root(campaign)/'k8b4/containment/v4-stop.json').exists():return 75
+            from kit.v4_retry import failure_record
+            _,contained=failure_record(work_root(campaign),spec['command'])
+            if contained.get('stop_class') in ('allocation_preempted','hard'):return 75
+            if number<3:
+                from kit.v4_retry import automatic
+                automatic(work_root(campaign),campaign['name'],row['id'],number+1,
+                    json.loads((out/'start.json').read_text()))
+                return run_row(campaign,row,None)
+        except (OSError,ValueError,KeyError,TypeError):pass
     return EXIT_OK if verdict == "PASS" else EXIT_FAILED
 
 
@@ -623,13 +746,18 @@ def needed_later(campaign: dict, rows: list, failed: str) -> list:
             and (latest_verdict(campaign, row["id"]) or {}).get("verdict") != "PASS"]
 
 
-def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int:
+def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, parallel=True) -> int:
     """Rows in file order, so a row's wants (always earlier rows) run first when scheduled. With --all, a PILOT that
     fails or is refused stops the run when a later scheduled row needs it (every later row does). Any other row that
     fails or is refused costs only the rows that need it, directly or transitively: each of those is refused at its
     own gate, and the run goes on with every independent row and exits with the first failure's code. (Until
     1 October 2026 any needed failure stopped the whole run, so one failed training run of twenty-four would have
     stopped the other twenty-three and the report.) A row the seed filter skips is passed over."""
+    jobs=(campaign.get('v4') or {}).get('parallel_jobs',1)
+    if type(jobs) is not int or not 1<=jobs<=8:
+        raise CampaignError('parallel_jobs must be an integer in 1..8')
+    if every and parallel and jobs>1:
+        return cmd_run_parallel(campaign,rows,attempt,jobs)
     first = EXIT_OK
     for row in rows:
         if row["id"] in campaign.get("_skipped", ()):
@@ -654,6 +782,7 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int
             code = run_row(campaign, row, attempt)
         if code == EXIT_OK:
             continue
+        if code==75:return code
         if not every:
             return code
         first = first or code
@@ -673,7 +802,85 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None) -> int
     return first
 
 
-def cmd_batch(paths: list, plan_only: bool, seeds: list | None = None) -> int:
+def cmd_run_parallel(campaign: dict, rows: list, attempt: int | None, jobs: int) -> int:
+    """Execute the stated DAG with existing prepare/run/skip/verdict operations.
+
+    Only campaigns explicitly registering parallel_jobs opt in. A failed pilot
+    prevents new dispatch; already admitted independent work finishes and keeps
+    its chronology. Resource admission remains the containment row's decision.
+    """
+    from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+    if type(jobs) is not int or not 1<=jobs<=8:raise CampaignError('parallel_jobs must be an integer in 1..8')
+    pending={row['id']:row for row in rows if row['id'] not in campaign.get('_skipped',())}
+    scheduled=set(pending);done=set();running={};first=EXIT_OK;stopped=False
+    with ThreadPoolExecutor(max_workers=jobs) as executor:
+        while pending or running:
+            if not stopped:
+                for ident,row in list(pending.items()):
+                    dependencies=set(row['needs'])|set(row.get('wants') or [])
+                    if (dependencies & scheduled) <= done and len(running)<jobs:
+                        future=executor.submit(cmd_run,campaign,[row],True,attempt,parallel=False)
+                        running[future]=row;del pending[ident]
+            if not running:
+                if stopped:return first
+                if pending:raise CampaignError('parallel dependency graph could not advance')
+                break
+            finished,_=wait(running,return_when=FIRST_COMPLETED)
+            for future in finished:
+                row=running.pop(future);code=future.result();done.add(row['id'])
+                if code!=EXIT_OK:
+                    first=first or code
+                    if row.get('pilot') or code==75:
+                        stopped=True
+                        print('STOP: %s did not pass; no further parallel rows are dispatched' % row['id'])
+            if stopped and not running:return first
+    return first
+
+
+def allocation_rows(campaign: dict, stage: str | None = None) -> tuple[list, dict | None]:
+    """Select a registered single-block allocation without changing the full DAG."""
+    stages = (campaign.get('v4') or {}).get('allocation_stages')
+    if not stages:
+        if stage: raise CampaignError('--stage requires registered allocation_stages')
+        return campaign['rows'], None
+    if stage is None:
+        if len(stages) != 1: raise CampaignError('select --stage teacher, rewrite or scientific; budget block cannot change inside an allocation')
+        stage = next(iter(stages))
+    if stage not in stages: raise CampaignError('unknown allocation stage: '+stage)
+    registration = stages[stage]
+    ids = [r['id'] for r in campaign['rows']]
+    rows = campaign['rows'][ids.index(registration['first']):ids.index(registration['last'])+1]
+    expected = {'qualification':100, 'scientific':560}
+    block = registration['block']
+    if expected.get(block) != registration['block_limit']: raise CampaignError('allocation block/limit differs from containment contract')
+    for row in rows:
+        command = row['command']
+        if '{kit}/p4_contain.py' not in command: continue
+        if command[2] not in ('selftest','row'): raise CampaignError('allocation may contain only selftest and row containment commands')
+        for option,value in (('--block',block),('--block-limit',str(expected[block])),('--ceiling','560')):
+            if option not in command or command[command.index(option)+1] != value:
+                raise CampaignError('mixed or implicit containment block in allocation stage')
+    if rows[0]['command'][1:3] != ['{kit}/p4_contain.py','selftest']: raise CampaignError('first allocation containment command must be selftest')
+    return rows, registration
+
+
+def allocation_selftest(campaign: dict, rows: list, registration: dict | None) -> None:
+    """FIRST live containment command on every runner entry, including resume.
+
+    No reconcile/check/tracking precedes this. A successful frozen current-job
+    verdict is reused by containment; a refused verdict remains immutable.
+    """
+    if registration is None or not os.environ.get('SLURM_JOB_ID'): return
+    command = resolve(rows[0],campaign,1)['command']
+    if bounded_command(command,timeout=600 if (campaign.get('v4') or {}).get('phase')=='phase0' else 900,env=os.environ.copy())['returncode']:
+        raise CampaignError('current allocation selftest refused; end the job and return its frozen receipt')
+    if (campaign.get('v4') or {}).get('phase') in ('main','phase0'):
+        from kit.v4_allocation import verify_plan
+        try:verify_plan(work_root(campaign),campaign['v4']['phase'],rows[0]['id'])
+        except (OSError,ValueError,KeyError,TypeError) as exc:raise CampaignError(str(exc)) from exc
+
+
+def cmd_batch(paths: list, plan_only: bool, seeds: list | None = None, stage: str | None = None) -> int:
     """prepare --all then run --all for each campaign in order (inside one, a failure stops the run only when a later
     row needs it, as in `run --all`); stop at the first campaign whose run does not pass."""
     results, code = [], EXIT_OK
@@ -687,10 +894,12 @@ def cmd_batch(paths: list, plan_only: bool, seeds: list | None = None) -> int:
                 continue
             if refuse_implicit(campaign):
                 raise CampaignError("its row order is implied, not stated (the IMPLICIT ORDER lines above)")
+            rows, registration = allocation_rows(campaign,stage)
+            allocation_selftest(campaign,rows,registration)
             print("\n=== BATCH %s: prepare --all" % campaign["name"])
-            prepared = cmd_prepare(campaign, campaign["rows"], True)
+            prepared = cmd_prepare(campaign, rows, True)
             print("\n=== BATCH %s: run --all" % campaign["name"])
-            code = cmd_run(campaign, campaign["rows"], True, None)
+            code = cmd_run(campaign, rows, True, None)
         except CampaignError as exc:
             print("CAMPAIGN ERROR in %s: %s" % (path, exc), file=sys.stderr)
             results.append((str(path), "REFUSED (campaign file: %s)" % exc))
@@ -719,13 +928,14 @@ def main(argv=None) -> int:
         parser.add_argument("campaigns", type=Path, nargs="+")
         parser.add_argument("--plan", action="store_true", help="print every campaign's plan; executes nothing")
         parser.add_argument("--seeds", help="only these seeds, e.g. 0,1,2 or 0-4; rows with no seed always run")
+        parser.add_argument('--stage', help='one registered allocation stage; each stage uses a new sbatch')
         args = parser.parse_args(argv[1:])
         try:
             seeds = parse_seeds(args.seeds) if args.seeds else None
         except CampaignError as exc:
             print("CAMPAIGN ERROR: %s" % exc, file=sys.stderr)
             return EXIT_REFUSED
-        return cmd_batch(args.campaigns, args.plan, seeds)
+        return cmd_batch(args.campaigns, args.plan, seeds,args.stage)
     parser = argparse.ArgumentParser(description="Run a campaign of experiment rows with a pilot gate.",
                                      epilog="Several campaigns in order, one command: runner.py batch a.yaml b.yaml ... "
                                             "(prepare --all then run --all for each; --plan prints and executes nothing).")
@@ -734,6 +944,7 @@ def main(argv=None) -> int:
     parser.add_argument("--row")
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--attempt", type=int)
+    parser.add_argument('--stage', help='one registered allocation stage; each stage uses a new sbatch')
     parser.add_argument("--seeds", help="plan/prepare/run only these seeds, e.g. 0,1,2 or 0-4; rows with no seed are kept")
     args = parser.parse_args(argv)
     try:
@@ -746,11 +957,13 @@ def main(argv=None) -> int:
             return cmd_status(campaign)
         if bool(args.row) == bool(args.all):
             raise CampaignError("%s needs exactly one of --row ID or --all" % args.action)
-        rows = campaign["rows"] if args.all else [r for r in campaign["rows"] if r["id"] == args.row]
+        available, registration = allocation_rows(campaign,args.stage)
+        rows = available if args.all else [r for r in available if r["id"] == args.row]
         if not rows:
             raise CampaignError("no row named %r" % args.row)
         if refuse_implicit(campaign):
             raise CampaignError("its row order is implied, not stated: add each row named above to the row's needs")
+        allocation_selftest(campaign,available,registration)
         if args.action == "prepare":
             return cmd_prepare(campaign, rows, args.all)
         return cmd_run(campaign, rows, args.all, args.attempt)

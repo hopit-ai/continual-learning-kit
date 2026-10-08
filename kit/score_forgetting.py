@@ -132,8 +132,21 @@ def grade(members: list, responses: dict) -> dict:
     return panels
 
 
+def scorer_identity() -> dict:
+    """The implementation identity of the panel's scorer (package-4 review round 3, F5): the sha256 of this scoring
+    module, the panel scorers (kit/scorers.py) and kit/canonical.py, keyed by name (no absolute path), and
+    `scorer_sha256`, the sha256 of that map (sorted keys). The panel's own content is `panel_file_sha256`."""
+    hashes = {}
+    for name in ("score_forgetting.py", "scorers.py", "canonical.py"):
+        try:
+            hashes["kit/%s" % name] = hashlib.sha256((HERE / name).read_bytes()).hexdigest()
+        except OSError:
+            hashes["kit/%s" % name] = None
+    return {"scorer_sha256": hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest(), "scorer_files": hashes}
+
+
 def write_result(out: Path, *, panels: dict, panel_sha: str, extra: dict) -> dict:
-    result = {"schema": SCHEMA, "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    result = {"schema": SCHEMA, "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), **scorer_identity(),
               "panel_file_sha256": panel_sha, "decoding": DECODING, "panels": panels,
               "total": {"n": sum(p["n"] for p in panels.values()), "correct": sum(p["correct"] for p in panels.values())},
               "total_correct": sum(p["correct"] for p in panels.values()), **extra}

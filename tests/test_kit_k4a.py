@@ -29,6 +29,26 @@ from pathlib import Path
 
 import pytest
 
+
+# ------------------------------------------------------------------ the shell that runs pytest decides nothing here
+def _launcher_variables() -> frozenset:
+    """Every variable a kit launcher reads from its environment (`${NAME:-default}` or `${NAME:?required}`), collected
+    from the launchers themselves so that a new knob is covered the day it is added, plus the two the launchers
+    export for the reward function."""
+    kit = __import__("pathlib").Path(__file__).resolve().parents[1] / "kit"
+    found = set()
+    for script in sorted(kit.glob("*.sh")):
+        found |= set(__import__("re").findall(r"\$\{([A-Z_][A-Z0-9_]*):[-?]", script.read_text()))
+    return frozenset(found - {"PYTHONPATH", "USER"}) | {"KIT_FINISH_GATE", "KIT_LENGTH_BUDGET_CHARS"}
+
+
+def shell() -> dict:
+    """os.environ WITHOUT any launcher variable. A test passes every setting it means and inherits none: the partner
+    README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
+    default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
+    names = _launcher_variables()
+    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
 LAUNCHER = KIT / "run_sdpo_toolalpaca.sh"
@@ -127,7 +147,7 @@ DECLARED = {
 def dry_run(**extra):
     """The launcher's argv, with everything that would touch a disk skipped."""
     done = subprocess.run(["bash", str(LAUNCHER)], capture_output=True, text=True,
-                          env={**os.environ, **DRY_ENV, **extra})
+                          env={**shell(), **DRY_ENV, **extra})
     return done.returncode, done.stdout.splitlines(), done.stderr
 
 
@@ -524,7 +544,7 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          capture_output=True, text=True, env={**os.environ, "WORK": str(work)})
+                          capture_output=True, text=True, env={**shell(), "WORK": str(work)})
     assert done.returncode == 0, done.stderr
     assert list(work.iterdir()) == []
     assert "PILOT" in done.stdout

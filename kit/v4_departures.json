@@ -1,0 +1,95 @@
+{
+  "schema": "kit-v4-departures.v1",
+  "references": {
+    "SDFT": "d775732",
+    "SDPO": "7c457fc1b1f6"
+  },
+  "departures": [
+    {
+      "id": "weight_decay",
+      "value": 0.01,
+      "reason": "Matched AdamW across all four arms; accepted recipe decision in plan section 13.",
+      "probe": "all-four resolved configs and optimizer parameter groups"
+    },
+    {
+      "id": "learning_rate",
+      "value": 1e-05,
+      "reason": "The SDFT reference leaves the training LR unregistered; matched pilot choice, ten absolute warmup updates then constant, first update at LR zero; reset optimizer each stage.",
+      "probe": "per-step used LR and all-four resolved configs"
+    },
+    {
+      "id": "response_cap",
+      "value": 2048,
+      "reason": "Matched training and deployment budget B for four arms; accepted plan registration rather than upstream per-model defaults.",
+      "probe": "B/H diagnostic and TOKEN80 comparisons"
+    },
+    {
+      "id": "finish_gate",
+      "value": 1,
+      "reason": "Training S/D unfinished rollouts receive zero; no held-out finish gate. Teacher cap hits are recorded rejections, never silently truncated inputs.",
+      "probe": "training reward finish-reason parity and raw corpus rejection audit"
+    },
+    {
+      "id": "teacher_input_cap",
+      "value": 6144,
+      "reason": "D teacher and rewrite question-plus-demonstration require allowance above the 4096 unaided teacher input; accepted common teacher/rewrite allowance, no truncation.",
+      "probe": "tokenized input counts and input_cap rejection"
+    },
+    {
+      "id": "cleaned_chemistry",
+      "reason": "Frozen cleaned Chemistry panel and eligible pools remove the registered template families and leakage; upstream panel differs.",
+      "probe": "G1 raw source, row, pool and subset hash audit"
+    },
+    {
+      "id": "new_baseline",
+      "reason": "The pilot initializes a new campaign; every gain uses fresh untrained 8B B/H scores on the designated physical GPU.",
+      "probe": "two independent same-task agreement pairs per task and full B/H baseline"
+    },
+    {
+      "id": "paper_numbers",
+      "reason": "No paper-number reproduction is claimed: cleaned panels, new baseline, fixed 40-update dose and matched recipe differ from reference experiments.",
+      "probe": "G1 identity and all six registered seed/order cells"
+    },
+    {
+      "id": "sft_eos",
+      "reason": "F/R supervise the EOS label; the upstream SFT mask excluded EOS after verl's shift. Explicit plan section 13 decision so SFT learns to stop at the same cap.",
+      "probe": "real tokenizer EOS and shifted loss-mask regression"
+    },
+    {
+      "id": "ordered_sft",
+      "reason": "Common frozen seed schedule is used without upstream SFT sampler shuffling; warmup uses absolute steps instead of epoch-derived WSD decay.",
+      "probe": "common exposure IDs, resolved config, scheduler and loader smoke"
+    },
+    {
+      "id": "sft_unpinned_loader",
+      "reason": "Pinned torchdata pin-memory API crashes on the first batch; scoped patch disables pinning without changing dataset or order.",
+      "probe": "partner CPU first-batch import smoke"
+    },
+    {
+      "id": "d_chunked_projection",
+      "reason": "Full-vocabulary forward KL is computed in chunks for memory while retaining reference reduction, skip-three mask and upper importance cap two.",
+      "probe": "reference numeric and gradient parity, real-stack memory qualification"
+    },
+    {
+      "id": "inference_placement",
+      "reason": "27B BF16 needs TP2 and a separate exactly pinned vLLM >=0.17 environment; four replicas in one eight-GPU row; 8B rewrites use eight TP1 shards in the trainer environment.",
+      "probe": "shard coverage, configuration and environment hashes, qualification determinism"
+    },
+    {
+      "id": "batch_invariance_fallback",
+      "reason": "Explicit FLASH_ATTN batch-invariant teacher startup is attempted first; one labelled restart may disable invariance. Frozen corpus hashes remain required; serial equivalence and regeneration then are not guaranteed.",
+      "probe": "qualification same-prompt/seed differently composed batch determinism"
+    },
+    {
+      "id": "restoration_gate",
+      "reason": "Saved-state restoration stays disabled until a real-stack save/kill/resume comparison passes; completed optimizer doses are exported and scored without retraining.",
+      "probe": "per-arm optimizer/RNG/dataloader/EMA restoration hashes and next-step loss"
+    },
+    {
+      "id": "teacher_output_cap",
+      "value": 2560,
+      "reason": "Registered 25% teacher-token allowance over B=2048; empirical tokenizer-ratio qualification is required. This is not a universal bound on student-token length; over-B responses are rejected by student-token verification.",
+      "probe": "qualification empirical tokenizer ratio and student-token response verification"
+    }
+  ]
+}

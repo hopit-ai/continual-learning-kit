@@ -73,7 +73,10 @@ def unpack(archive: Path) -> tuple:
         members = {m.name: tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()}
     top = archive.name[:-len(".tar.gz")]
     manifest = json.loads(members.pop("%s/collect.manifest.json" % top))
-    return {name[len(top) + 1:]: data for name, data in members.items()}, manifest
+    members = {name[len(top) + 1:]: data for name, data in members.items()}
+    snapshot = {name: data for name, data in members.items() if name.startswith("kit-snapshot/")}
+    assert set(snapshot) == set(manifest["kit_snapshot"]["files"]), "the analysis source is packed and listed (round 2, finding 9)"
+    return {name: data for name, data in members.items() if not name.startswith("kit-snapshot/")}, manifest
 
 
 def test_results_go_in_and_weights_checkpoints_and_big_files_stay_out(work, tmp_path, capsys):
@@ -96,12 +99,16 @@ def test_the_manifest_hashes_match_the_archived_files(work, tmp_path):
     out = tmp_path / "back.tar.gz"
     assert collect.main(["--work", str(work), "--out", str(out)]) == collect.EXIT_OK
     members, manifest = unpack(out)
-    assert manifest["schema"] == collect.SCHEMA and manifest["file_count"] == len(members) == len(INCLUDED)
+    snapshot = len(manifest["kit_snapshot"]["files"])
+    assert manifest["schema"] == collect.SCHEMA and manifest["file_count"] == len(members) + snapshot and len(members) == len(INCLUDED)
     for entry in manifest["files"]:
+        if entry["path"].startswith("kit-snapshot/"):
+            continue
         data = members[entry["path"]]
         assert entry["bytes"] == len(data) and entry["sha256"] == hashlib.sha256(data).hexdigest()
         assert entry["sha256"] == hashlib.sha256((work / entry["path"]).read_bytes()).hexdigest()
-    assert manifest["total_bytes"] == sum(len(d) for d in members.values())
+    assert manifest["total_bytes"] == sum(len(d) for d in members.values()) + sum(
+        e["bytes"] for e in manifest["files"] if e["path"].startswith("kit-snapshot/"))
 
 
 def test_an_existing_archive_is_never_overwritten(work, tmp_path, capsys):
@@ -148,7 +155,8 @@ def test_an_empty_or_missing_work_is_refused_and_writes_nothing(tmp_path, capsys
 def test_a_runs_identity_files_are_collected_and_its_environment_dump_is_not():
     """The exact command and the trainer's commit tie a returned number to a recipe (plan v3: four recipes that differ
     only in a few command values). They live in runs/<run>/env/."""
-    for name in ("argv.txt", "sdpo-commit.txt", "sdpo-dirty.txt", "started-at.txt", "finished-at.txt", "data-sha256.txt", "model-files.txt"):
+    for name in ("argv.txt", "sdpo-commit.txt", "sdpo-dirty.txt", "started-at.txt", "finished-at.txt", "data-sha256.txt", "model-files.txt",
+                 "trainer-started-at.txt", "stage.json"):          # round-6 ruling J3: the launcher's own stage record
         assert collect.wanted(Path("runs/g8-chem-r1-a1/env") / name, Path(".")), name
     for name in ("pip-freeze.txt", "nvidia-smi.txt"):
         assert not collect.wanted(Path("runs/g8-chem-r1-a1/env") / name, Path(".")), name
@@ -179,3 +187,55 @@ def test_a_wanted_file_over_the_limit_is_named_and_its_end_is_packed(tmp_path, c
     assert entry["path"] == "campaign/c/row/attempt-1/output.log" and entry["bytes"] == len(log) and entry["packed_bytes"] == 100
     assert entry["sha256"] == collect.sha256(attempt / "output.log")
     assert "INCOMPLETE: campaign/c/row/attempt-1/output.log" in capsys.readouterr().out
+
+
+def test_package_4s_selection_reservation_and_ledger_are_collected():
+    """Found by the package-4 dry run (scripts/simulate_p4.py): kit/p4_select.py writes WORK/k8b4/selection/... and
+    kit/p4_budget.py WORK/k8b4/budget/ (the reservation and the GPU-hour ledger); without them the report cannot be
+    recomputed from the archive (registration section 5) and the ledger of every launch decision is lost."""
+    for name in ("k8b4/selection/k8b-p4-sema-chemtool-a1/selection.json", "k8b4/selection/k8b-p4-sema-chemtool-a1/check.json",
+                 "k8b4/budget/ledger.jsonl", "k8b4/budget/reservation-k8b-p4-sema-chemtool-a1.json"):
+        assert collect.wanted(Path(name), Path(".")), name
+    assert not collect.wanted(Path("k8b4/selection/model.safetensors"), Path("."))
+
+
+def test_the_archive_carries_the_reduced_rollouts_the_resolved_configurations_and_the_analysis_source(tmp_path):
+    """Round 2, finding 9 / amendment 3 B8: the archive lacked the rollout evidence, the resolved configurations and the
+    exact analysis source, so the report could be recomputed only with the checkout's tools."""
+    work = tmp_path / "w"
+    write(work / "k8b4" / "report-rollouts" / "p4-r1-gate1-a1" / "rollout-rows.jsonl.gz", "gz")
+    write(work / "k8b4" / "report-rollouts" / "p4-r1-gate1-a1" / "other.gz", "gz")
+    write(work / "runs" / "p4-r1-gate1-a1" / "env" / "resolved-config.yaml", "a: 1\n")
+    write(work / "runs" / "p4-r1-gate1-a1" / "rollouts" / "1.jsonl", "{}")
+    write(work / "k8b4" / "recipe-check" / "a1" / "proposed" / "p4-r1-ctl1.resolved.yaml", "a: 1\n")
+    write(work / "k8b4" / "recipe-check" / "baseline.json", {"ok": True})
+    pilot = collect.HERE / "campaigns" / "k8b-pilot.yaml"
+    digest = hashlib.sha256(pilot.read_text().encode()).hexdigest()
+    write(work / "campaign" / "k8b-pilot" / "r" / "attempt-1" / "start.json", {"campaign_sha256": digest})
+    write(work / "campaign" / "not-a-kit-campaign" / "r" / "attempt-1" / "start.json", {"campaign_sha256": "x"})
+    out = tmp_path / "send5-k8b4.tar.gz"
+    assert collect.main(["--work", str(work), "--out", str(out)]) == collect.EXIT_OK
+    with tarfile.open(out) as tar:
+        names = {m.name.split("/", 1)[1]: m for m in tar.getmembers() if m.isfile()}
+    for name in ("k8b4/report-rollouts/p4-r1-gate1-a1/rollout-rows.jsonl.gz", "runs/p4-r1-gate1-a1/env/resolved-config.yaml",
+                 "k8b4/recipe-check/a1/proposed/p4-r1-ctl1.resolved.yaml", "k8b4/recipe-check/baseline.json",
+                 "kit-snapshot/p4_report.py", "kit-snapshot/p4_intervals.py", "kit-snapshot/pilot_report.py", "kit-snapshot/runner.py",
+                 "kit-snapshot/p4_recipe.py", "kit-snapshot/budget_report.py", "kit-snapshot/campaigns/k8b-pilot.yaml"):
+        assert name in names, name
+    assert "k8b4/report-rollouts/p4-r1-gate1-a1/other.gz" not in names and "runs/p4-r1-gate1-a1/rollouts/1.jsonl" not in names
+    with tarfile.open(out) as tar:
+        manifest = json.loads(tar.extractfile("send5-k8b4/collect.manifest.json").read())
+    listed = {e["path"]: e["sha256"] for e in manifest["files"]}
+    assert listed["kit-snapshot/p4_report.py"] == hashlib.sha256((collect.HERE / "p4_report.py").read_bytes()).hexdigest()
+    campaigns = {c["name"]: c for c in manifest["kit_snapshot"]["campaigns"]}
+    assert campaigns["k8b-pilot"]["matches_every_run"] is True and campaigns["not-a-kit-campaign"]["file"] is None
+
+
+def test_collector_keeps_successful_runner_dispatch_timing(work,tmp_path):
+    path=work/'campaign/v4-main/cpu/attempt-1'
+    write(path/'verdict.json',{'verdict':'PASS'})
+    write(path/'runner-overhead.json',{'ok':True,'wall_seconds':.01,'command_seconds':1})
+    out=tmp_path/'overhead.tar.gz'
+    assert collect.main(['--work',str(work),'--out',str(out)])==collect.EXIT_OK
+    members,manifest=unpack(out)
+    assert json.loads(members['campaign/v4-main/cpu/attempt-1/runner-overhead.json'])['wall_seconds']==.01

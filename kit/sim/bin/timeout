@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""A stand-in for GNU `timeout [-k DURATION] DURATION COMMAND...` (scripts/simulate_p4.py and tests, on machines without
+it): runs COMMAND in its own process group and, after DURATION seconds, sends SIGTERM to the whole group, then SIGKILL
+after the -k grace; exit 124 when it timed out (137 when the kill was needed), else COMMAND's status."""
+import os
+import signal
+import subprocess
+import sys
+
+args = sys.argv[1:]
+kill_after = None
+while args and args[0].startswith("-"):
+    flag = args.pop(0)
+    if flag in ("-k", "--kill-after"):
+        kill_after = float(args.pop(0))
+    elif flag.startswith("--kill-after="):
+        kill_after = float(flag.split("=", 1)[1])
+    else:
+        sys.exit("timeout stand-in: unsupported option %s" % flag)
+limit, command = float(args[0]), args[1:]
+process = subprocess.Popen(command, start_new_session=True)
+try:
+    sys.exit(process.wait(timeout=limit if limit > 0 else None))
+except subprocess.TimeoutExpired:
+    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=kill_after)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+        sys.exit(137)
+    sys.exit(124)

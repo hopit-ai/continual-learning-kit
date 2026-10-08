@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""A stand-in for `nvidia-smi` (scripts/simulate_p4.py and tests only).
+
+  --query-gpu=...             one line per stand-in GPU (8, the same every call), as `name, uuid, driver`
+  --query-compute-apps=pid    the pids listed in $SIM_GPU_BUSY_FILE when that file exists (a GPU "still busy"), and
+                              every pid listed in a file of the folder $SIM_GPU_OWNERS whose process is ALIVE (a worker that
+                              holds a GPU while it lives: package-4 review round 3, F1); else nothing: every GPU idle
+  anything else               a one-line banner
+"""
+import os
+import re
+import sys
+
+args = sys.argv[1:]
+if any(a.startswith("--query-gpu") for a in args):
+    selected = args[args.index('-i')+1].split(',') if '-i' in args else [str(i) for i in range(8)]
+    local_mapping = os.environ.get('SIM_VISIBLE_GPU_IDS', '').split(',')
+    for item in selected:
+        if os.environ.get('SIM_VISIBLE_GPU_IDS') and item.isdigit():
+            item = local_mapping[int(item)]
+        i = int(item) if item.isdigit() else int(item.rsplit('-', 1)[-1])
+        if '--query-gpu=uuid' in args:
+            print('GPU-stand-in-%04d' % i)
+        else:
+            print("NVIDIA STAND-IN GPU, GPU-stand-in-%04d, 0.0" % i)
+elif any(a.startswith("--query-compute-apps") for a in args):
+    busy = os.environ.get("SIM_GPU_BUSY_FILE")
+    if busy and os.path.isfile(busy):
+        sys.stdout.write(open(busy).read())
+    owners = os.environ.get("SIM_GPU_OWNERS")
+    if owners and os.path.isdir(owners):
+        selected = args[args.index('-i')+1].split(',') if '-i' in args else None
+        def physical_id(device):
+            if device.startswith('GPU-stand-in-'):
+                return str(int(device.rsplit('-', 1)[-1]))
+            return device
+        if selected and os.environ.get('SIM_VISIBLE_GPU_IDS'):
+            mapping = os.environ['SIM_VISIBLE_GPU_IDS'].split(',')
+            selected = [mapping[int(d)] if d.isdigit() else d for d in selected]
+        for name in sorted(os.listdir(owners)):
+            tagged = re.fullmatch(r'late-gpu(.*)-(\d+)', name)
+            if tagged and selected and physical_id(tagged[1]) not in {physical_id(d) for d in selected}:
+                continue
+            # Untagged historical owners remain conservatively busy on every GPU.
+            try:
+                pids = [int(x) for x in open(os.path.join(owners, name)).read().split()]
+            except (OSError, ValueError):
+                continue
+            for pid in pids:
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    continue                                  # gone: it holds nothing
+                except PermissionError:
+                    pass
+                try:                                          # a zombie holds no GPU either
+                    state = open("/proc/%d/stat" % pid).read().rsplit(")", 1)[1].split()[0]
+                except OSError:
+                    import subprocess
+                    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1]
+                if state == "Z":
+                    continue
+                print(pid)
+else:
+    print("nvidia-smi stand-in (scripts/sim/bin): no GPU here")

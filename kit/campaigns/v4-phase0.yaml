@@ -1,0 +1,1075 @@
+{
+  "schema": "kit-campaign.v1",
+  "name": "v4-phase0",
+  "workdir_env": "WORK",
+  "rows": [
+    {
+      "id": "containment-selftest",
+      "needs": [],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "selftest",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/k8b4/containment",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 600,
+      "allocation_cpu_cap_seconds": 600
+    },
+    {
+      "id": "verify-prepare",
+      "needs": [
+        "containment-selftest"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "verify-prepare",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "verify-prepare"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60,
+      "pilot": true,
+      "bars": [
+        {
+          "source": "{work}/v4/report-status/verify-prepare.json",
+          "key": "ok",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "score-agreement1-finqa-2048",
+      "needs": [
+        "verify-prepare"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-agreement1-finqa-2048",
+        "--checkpoint",
+        "agreement1",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "score-agreement2-finqa-2048",
+      "needs": [
+        "score-agreement1-finqa-2048",
+        "verify-prepare"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-agreement2-finqa-2048",
+        "--checkpoint",
+        "agreement2",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "score-agreement3-finqa-2048",
+      "needs": [
+        "score-agreement2-finqa-2048",
+        "verify-prepare"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-agreement3-finqa-2048",
+        "--checkpoint",
+        "agreement3",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "score-agreement4-finqa-2048",
+      "needs": [
+        "score-agreement3-finqa-2048",
+        "verify-prepare"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-agreement4-finqa-2048",
+        "--checkpoint",
+        "agreement4",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "scoring-agreement",
+      "needs": [
+        "score-agreement4-finqa-2048",
+        "verify-prepare"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "agreement",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "scoring-agreement"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "120",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 120,
+      "allocation_cpu_cap_seconds": 120,
+      "pilot": true,
+      "bars": [
+        {
+          "source": "{work}/v4/report-status/scoring-agreement.json",
+          "key": "ok",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "teacher-finqa",
+      "needs": [
+        "scoring-agreement"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "600",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "teacher",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "teacher-finqa",
+        "--task",
+        "finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_INFERENCE": "1"
+      },
+      "timeout_seconds": 720
+    },
+    {
+      "id": "rewrite-finqa",
+      "needs": [
+        "teacher-finqa",
+        "scoring-agreement"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "rewrite",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "rewrite-finqa",
+        "--task",
+        "finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "training-set",
+      "needs": [
+        "rewrite-finqa",
+        "scoring-agreement"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "training-set",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "training-set"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "120",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 120,
+      "allocation_cpu_cap_seconds": 120,
+      "pilot": true,
+      "bars": [
+        {
+          "source": "{work}/v4/report-status/training-set.json",
+          "key": "ok",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "schedule-q-S-finqa",
+      "needs": [
+        "training-set"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "schedule",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "schedule-q-S-finqa",
+        "--slot",
+        "q-S-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60
+    },
+    {
+      "id": "resolved-configs",
+      "needs": [
+        "schedule-q-S-finqa",
+        "training-set"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "configs",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "resolved-configs"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "120",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 120,
+      "allocation_cpu_cap_seconds": 120,
+      "pilot": true,
+      "bars": [
+        {
+          "source": "{work}/v4/report-status/resolved-configs.json",
+          "key": "ok",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "train-q-S-finqa",
+      "needs": [
+        "resolved-configs",
+        "scoring-agreement"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "train",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "train-q-S-finqa",
+        "--slot",
+        "q-S-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "merge-q-S-finqa",
+      "needs": [
+        "train-q-S-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "merge",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "merge-q-S-finqa",
+        "--slot",
+        "q-S-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60
+    },
+    {
+      "id": "score-q-S-finqa-finqa-2048",
+      "needs": [
+        "merge-q-S-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-q-S-finqa-finqa-2048",
+        "--checkpoint",
+        "q-S-finqa",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "train-q-F-finqa",
+      "needs": [
+        "score-q-S-finqa-finqa-2048",
+        "scoring-agreement",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "train",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "train-q-F-finqa",
+        "--slot",
+        "q-F-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "merge-q-F-finqa",
+      "needs": [
+        "train-q-F-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "merge",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "merge-q-F-finqa",
+        "--slot",
+        "q-F-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60
+    },
+    {
+      "id": "score-q-F-finqa-finqa-2048",
+      "needs": [
+        "merge-q-F-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-q-F-finqa-finqa-2048",
+        "--checkpoint",
+        "q-F-finqa",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "train-q-R-finqa",
+      "needs": [
+        "score-q-F-finqa-finqa-2048",
+        "scoring-agreement",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "train",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "train-q-R-finqa",
+        "--slot",
+        "q-R-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "merge-q-R-finqa",
+      "needs": [
+        "train-q-R-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "merge",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "merge-q-R-finqa",
+        "--slot",
+        "q-R-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60
+    },
+    {
+      "id": "score-q-R-finqa-finqa-2048",
+      "needs": [
+        "merge-q-R-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-q-R-finqa-finqa-2048",
+        "--checkpoint",
+        "q-R-finqa",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "train-q-D-finqa",
+      "needs": [
+        "score-q-R-finqa-finqa-2048",
+        "scoring-agreement",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "train",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "train-q-D-finqa",
+        "--slot",
+        "q-D-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "merge-q-D-finqa",
+      "needs": [
+        "train-q-D-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "merge",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "merge-q-D-finqa",
+        "--slot",
+        "q-D-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60
+    },
+    {
+      "id": "score-q-D-finqa-finqa-2048",
+      "needs": [
+        "merge-q-D-finqa",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "300",
+        "--block",
+        "qualification",
+        "--block-limit",
+        "100",
+        "--ceiling",
+        "560",
+        "--",
+        "python",
+        "{kit}/v4_phase0.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "score-q-D-finqa-finqa-2048",
+        "--checkpoint",
+        "q-D-finqa",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "300",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 420
+    },
+    {
+      "id": "report",
+      "needs": [
+        "score-q-D-finqa-finqa-2048",
+        "resolved-configs"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "report",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "report"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 60,
+      "allocation_cpu_cap_seconds": 60,
+      "pilot": true,
+      "bars": [
+        {
+          "source": "{work}/v4/report-status/report.json",
+          "key": "ok",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "PAUSE",
+      "needs": [
+        "report"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "pause",
+        "--work",
+        "{work}",
+        "--phase",
+        "phase0",
+        "--row",
+        "PAUSE"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_COMMAND_TIMEOUT": "30",
+        "V4_PHASE0_INFERENCE": "0"
+      },
+      "timeout_seconds": 30,
+      "allocation_cpu_cap_seconds": 30
+    }
+  ],
+  "v4": {
+    "phase": "phase0",
+    "steps": 2,
+    "seeds": [
+      101
+    ],
+    "parallel_jobs": 1,
+    "scientific_phase_allowed": false,
+    "cpu_prepare": {
+      "command": [
+        "python",
+        "{kit}/v4_phase0.py",
+        "prepare",
+        "--work",
+        "{work}"
+      ]
+    },
+    "allocation_stages": {
+      "phase0": {
+        "first": "containment-selftest",
+        "last": "PAUSE",
+        "block": "qualification",
+        "block_limit": 100
+      }
+    },
+    "maximum_gpu_hours": 22,
+    "allocation_allowance": 1.5,
+    "outputs": {
+      "schema": "v4-phase0-output-policy.v1",
+      "scope": "technical",
+      "scientific_phase_allowed": false,
+      "usable_as_scientific_initialisations": false
+    },
+    "dispatch_seconds_per_row": 15,
+    "environment_check_seconds": 300,
+    "scoring_gpu": "one stable Slurm-assigned physical GPU",
+    "training_questions": 20,
+    "scoring_pairs": 2,
+    "scoring_questions": 50,
+    "post_training_questions": 20,
+    "slot_order": [
+      {
+        "id": "q-S-finqa",
+        "arm": "S",
+        "task": "finqa",
+        "seed": 101,
+        "incoming": null
+      },
+      {
+        "id": "q-F-finqa",
+        "arm": "F",
+        "task": "finqa",
+        "seed": 101,
+        "incoming": null
+      },
+      {
+        "id": "q-R-finqa",
+        "arm": "R",
+        "task": "finqa",
+        "seed": 101,
+        "incoming": null
+      },
+      {
+        "id": "q-D-finqa",
+        "arm": "D",
+        "task": "finqa",
+        "seed": 101,
+        "incoming": null
+      }
+    ]
+  }
+}

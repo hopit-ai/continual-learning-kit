@@ -16,7 +16,7 @@ Using 8 GPUs instead of 4 does **not** change the experiment: 32 questions and 8
 
 ## 0. Get the kit (on the host, before starting the container)
 
-Clone the kit onto the disk you will mount into the container, and pin it to the tag for this package so nothing shifts under you:
+Clone the public kit onto the disk you will mount into the container, and pin it to the tag for this package so nothing shifts under you:
 
 ```bash
 git clone https://github.com/hopit-ai/continual-learning-kit.git /your/fast/disk/continual-learning-kit

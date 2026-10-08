@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Process-only Slurm stand-in; limitations and configuration: slurm_sim.py."""
+from pathlib import Path
+import sys
+from slurm_sim import main
+sys.exit(main(Path(sys.argv[0]).name, sys.argv[1:]))

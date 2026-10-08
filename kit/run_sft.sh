@@ -36,6 +36,10 @@
 set -euo pipefail
 
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "${ARM:-}" == "F" || "${ARM:-}" == "R" ]]; then
+  export SFT_ARM="$ARM"
+  exec bash "$KIT/run_sft_f.sh" "$@"
+fi
 
 : "${SDPO_DIR:?set SDPO_DIR to the pinned lasgroup/SDPO checkout}"
 : "${MODEL_DIR:?set MODEL_DIR to the model directory this stage starts from}"
