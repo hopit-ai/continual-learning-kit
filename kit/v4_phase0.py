@@ -243,7 +243,7 @@ def validate_prepare_inputs(work,paste,qos,verified_environments=False):
             try:
                 config=json.loads((path/'config.json').read_text())
                 if (config.get('_commit_hash') or path.name)!=revision:errors.append(key+' revision differs: expected '+revision)
-                if key=='TEACHER_MODEL_DIR' and config.get('vocab_size')!=248320:errors.append(key+' is not the registered 27B architecture')
+                if key=='TEACHER_MODEL_DIR' and (config.get('text_config') or config).get('vocab_size')!=248320:errors.append(key+' is not the registered 27B architecture')
                 index=path/'model.safetensors.index.json'
                 shards=set(json.loads(index.read_text())['weight_map'].values()) if index.is_file() else {'model.safetensors'}
                 if not shards or any(not (path/name).is_file() or not (path/name).stat().st_size for name in shards):errors.append(key+' has missing/empty weight shards')

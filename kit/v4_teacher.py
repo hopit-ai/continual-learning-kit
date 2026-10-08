@@ -962,7 +962,7 @@ def scientific_identity_allowed(teachers, rewriters):
                 weights = {name: digest for name, digest in doc.get("model_file_hashes", {}).items() if name.endswith((".safetensors", ".bin"))}
                 if (doc.get("model_revision") != REGISTERED_TEACHER_REVISION
                         or weights != REGISTERED_TEACHER_WEIGHT_HASHES
-                        or doc.get("model_config", {}).get("vocab_size") != 248320):
+                        or (doc.get("model_config", {}).get("text_config") or doc.get("model_config", {})).get("vocab_size") != 248320):
                     return False
             else:
                 weights = {name: digest for name, digest in doc.get("model_file_hashes", {}).items() if name.endswith((".safetensors", ".bin"))}

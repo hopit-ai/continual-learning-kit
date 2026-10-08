@@ -40,7 +40,7 @@ def environment(archive,phase):
         weights(doc)
     require(set(identities)=={'teacher','initial'},'missing model identity')
     require(identities['initial']['model_revision']==INITIAL_8B_REVISION,'initial 8B revision differs')
-    require(identities['teacher'].get('model')=='Qwen/Qwen3.6-27B' and identities['teacher']['model_config'].get('vocab_size')==248320,'not the registered 27B architecture')
+    require(identities['teacher'].get('model')=='Qwen/Qwen3.6-27B' and (identities['teacher']['model_config'].get('text_config') or identities['teacher']['model_config']).get('vocab_size')==248320,'not the registered 27B architecture')
     if phase=='main':
         require(t.REGISTERED_TEACHER_REVISION and t.REGISTERED_TEACHER_WEIGHT_HASHES and t.INITIAL_8B_WEIGHT_HASHES,'C-B2 model registration missing')
         require(identities['teacher']['model_revision']==t.REGISTERED_TEACHER_REVISION and weights(identities['teacher'])==t.REGISTERED_TEACHER_WEIGHT_HASHES,'27B registered revision/shards differ')
