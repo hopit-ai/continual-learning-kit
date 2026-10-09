@@ -70,8 +70,11 @@ def check_metrics(metrics, arm, steps, *, movement_required=True):
     for metric in metrics:
         step=metric.get('step')
         if step not in range(1,steps+1):continue
+        data=metric.get('data',metric)
+        # The pinned SFT trainer also logs a validation-only record for the last step (val/loss, no train/loss).
+        if loss_key not in data:continue
         if step in rows:raise ValueError('duplicate optimizer step')
-        data=metric.get('data',metric); rows[step]=data
+        rows[step]=data
         for key in (loss_key,lr_key):
             value=data.get(key)
             if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):

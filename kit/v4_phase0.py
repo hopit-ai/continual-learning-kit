@@ -780,7 +780,7 @@ def evidence_report(evidence,final=True):
                     require(scores['fingerprint']==agree['fingerprint'],'post-training scoring GPU/environment differs')
                     metrics=evidence.jsonl('runs/'+ident+'/metrics.jsonl')
                     key='train/time(s)' if arm in 'FR' else 'timing_s/step'
-                    seconds=[float(number(m.get('data',m)[key],'seconds per step')) for m in metrics if m['step'] in (1,2)]
+                    seconds=[float(number(m.get('data',m)[key],'seconds per step')) for m in metrics if m['step'] in (1,2) and key in m.get('data',m)]
                     require(len(seconds)==2 and all(s>0 for s in seconds),'missing step speed')
                     exports=evidence.jsonl('runs/'+ident+'/env/export-timings.jsonl')
                     merged=evidence.json('runs/'+ident+'/env/merge-timing.json')
@@ -792,7 +792,9 @@ def evidence_report(evidence,final=True):
                         token_totals[key]=sum(row[key] for row in tokens)
                     export_seconds=sum(float(number(row['wall_seconds'],'export seconds')) for row in exports)
                     physical=evidence.scheduler_rows.get(('phase0','train-'+ident),{}).get('slurm',{}).get('gpu_uuids',[])
-                    require(set(physical)=={r['uuid'] for r in summary['peak_memory_per_gpu'].values()},'training memory physical GPU assignment differs')
+                    # nvidia-smi reports GPU-<uuid>; torch's device properties give the bare uuid. Compare without the prefix.
+                    bare=lambda u:str(u).lower().removeprefix('gpu-')
+                    require({bare(u) for u in physical}=={bare(r['uuid']) for r in summary['peak_memory_per_gpu'].values()},'training memory physical GPU assignment differs')
                     from kit.v4_timing import sample
                     ledger=evidence.json('k8b4/containment/allocation-ledger.json')
                     sample(ledger,merged)

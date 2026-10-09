@@ -31,3 +31,29 @@ def test_s_launcher_checks_the_resolved_data_dir_not_a_joined_path():
     text=(KIT/'run_sdpo_toolalpaca.sh').read_text()
     assert '[[ -f "$SDPO_DIR/$DATASET/$f" ]]' not in text
     assert '[[ -f "$DATA_DIR/$f" ]]' in text
+
+
+def sft_metrics():
+    rows=[]
+    for step in (1,2):
+        rows.append({'step':step,'data':{'train/loss':1.0/step,'train/lr':1e-5*min((step-1)/10,1),'train/time(s)':3.0,
+                                         'v4/completed_optimizer_updates':step}})
+    rows.append({'step':2,'data':{'val/loss':0.9}})  # the pinned SFT trainer's final validation record
+    return rows
+
+
+def test_sft_final_validation_record_is_not_a_duplicate_step():
+    from kit.v4_qualification import check_metrics
+    try:check_metrics(sft_metrics(),'F',2,movement_required=False)
+    except ValueError as exc:assert 'duplicate' not in str(exc),exc
+
+
+def test_two_training_records_for_one_step_still_refuse():
+    from kit.v4_qualification import check_metrics
+    rows=sft_metrics()[:2]+[sft_metrics()[1]]
+    with pytest.raises(ValueError,match='duplicate'):check_metrics(rows,'F',2,movement_required=False)
+
+
+def test_reader_compares_gpu_uuids_with_and_without_the_gpu_prefix():
+    text=(KIT/'v4_phase0.py').read_text()
+    assert "removeprefix('gpu-')" in text and "'training memory physical GPU assignment differs'" in text

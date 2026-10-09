@@ -268,7 +268,8 @@ def run_record(archive,ident,phase):
     measured=check_metrics(metrics,arm,steps)
     if summary.get('ema_movement')!=measured['ema_movement']:raise ValueError('EMA summary differs from per-step metrics')
     if not set(range(1,steps+1))<={m.get('step') for m in metrics}:raise ValueError('missing optimizer steps: '+ident)
-    counts=[m.get('data',m).get('v4/completed_optimizer_updates') for m in metrics]
+    loss_key='train/loss' if arm in 'FR' else 'actor/pg_loss'
+    counts=[m.get('data',m).get('v4/completed_optimizer_updates') for m in metrics if loss_key in m.get('data',m)]
     if not counts or counts[-1]!=steps or any(value is None or value<0 or value>steps for value in counts):raise ValueError('optimizer metric dose differs: '+ident)
     if seed not in (101,102,103):raise ValueError('wrong seed: '+ident)
     resolved_seed=config['trainer']['seed'] if arm in 'FR' else config['data']['seed']
