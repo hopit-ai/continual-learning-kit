@@ -143,8 +143,10 @@ def timer(sid, command):
     # phase/jitter is independent of the requested minute, even on fast clocks.
     check_period = float(cfg.get('PeriodicTimeout', 30))*period/60
     next_check = started_clock + float(cfg.get('TimeoutJitter', 27))*period/60
+    client_lost_at=None
     while True:
         snapshot = tree()
+        if d.get('ClientPid') is not None and d['ClientPid'] not in snapshot:client_lost_at=client_lost_at or time.monotonic()
         if proc.pid in snapshot:
             members.setdefault(proc.pid, snapshot[proc.pid][1])
         changed = True
@@ -165,6 +167,11 @@ def timer(sid, command):
                 patch(sid, PreemptedAt=time.time(), GraceTimeSeconds=int(cfg.get('GraceTime', 600)))
             elif due and time.monotonic() >= limit:
                 why = 'TIMEOUT'
+            elif cfg.get('CancelOnClientLossSeconds') is not None and client_lost_at is not None and time.monotonic()-client_lost_at>=float(cfg['CancelOnClientLossSeconds']):
+                why='CANCELLED'
+                # Stand-in of the partner's observed whole-step cancellation;
+                # six seconds is total client-loss-to-empty, not six plus KillWait.
+                patch(sid, ClientLossCancellation=True)
             elif d.get('Cancel'):
                 why, cancelled_at = 'CANCELLED', d.get('CancelTime')
             elif proc.poll() is not None:
@@ -181,7 +188,7 @@ def timer(sid, command):
             if due and time.monotonic() >= limit and why in ('TIMEOUT', 'PREEMPTED') and not d.get('StepTimeoutAt'):
                 kill_at = min(kill_at, time.monotonic() + max(0, int(cfg.get('KillWait', 40))))
                 patch(sid, StepTimeoutAt=time.time(), KillBy=time.time()+max(0, kill_at-time.monotonic()))
-            sig = signal.SIGKILL if time.monotonic() >= kill_at else signal.SIGTERM
+            sig = signal.SIGKILL if d.get('ClientLossCancellation') or time.monotonic() >= kill_at else signal.SIGTERM
             targets = living if cfg.get('KillDetached', True) else {p: b for p, b in living.items() if _group(p) == proc.pid}
             for pid in targets:
                 try:

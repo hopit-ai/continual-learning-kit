@@ -30,7 +30,7 @@ DIRECTORY = Path('k8b4/containment')
 RECEIPT = DIRECTORY / 'containment-receipt.json'
 SELFTEST = DIRECTORY / 'containment-selftest.json'
 ALLOWANCE = 60
-START_WAIT = 120
+START_WAIT = 600
 EXPECTED = {'ProctrackType': 'proctrack/cgroup', 'TaskPlugin': 'task/cgroup,task/affinity',
             'JobAcctGatherType': 'jobacct_gather/cgroup', 'KillWait': 40, 'GraceTime': 600}
 SELFTEST_SECONDS = 600
@@ -91,7 +91,7 @@ def allowance():
     return value
 
 
-def command(argv, timeout=10):
+def command(argv, timeout=600):
     """Every external observation retains stdout, stderr, status and their exact sha256."""
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=max(.01, timeout))
@@ -437,7 +437,7 @@ def verify_receipts(work, *, selftest=True, job=None):
     return problems, docs
 
 
-def gpu_identity(devices=None, count=None, timeout=10):
+def gpu_identity(devices=None, count=None, timeout=600):
     r = command(['nvidia-smi', '--query-gpu=uuid', '--format=csv,noheader'] + (['-i', devices] if devices else []), timeout)
     uuids = [line.strip() for line in r['stdout'].splitlines() if line.strip()]
     if r['returncode'] or not uuids or any(not u.startswith('GPU-') for u in uuids):
@@ -476,7 +476,7 @@ def step_values(raw):
     return [values(part) for part in re.split(r'(?=\bStepId=)', raw) if part.startswith('StepId=')]
 
 
-def steps(job, timeout=10):
+def steps(job, timeout=600):
     r = command(['scontrol', 'show', 'step', str(job)], timeout)
     return step_values(r['stdout']), r
 
@@ -907,7 +907,7 @@ def scheduler_problems(work, record):
             errors.append('attempt deadlines differ from scheduler evidence')
         if len(s['gpu_uuids']) != s['gpu_count'] or s['gpu_uuids'] != s.get('expected_gpu_uuids'):
             errors.append('physical GPU identity/count changed')
-        if not s['node_list'] or not s['actual_command'] or s['start_wait_seconds'] != START_WAIT or s['gpu_count'] < 1:
+        if not s['node_list'] or not s['actual_command'] or (isinstance(s['start_wait_seconds'],bool) or not isinstance(s['start_wait_seconds'],(int,float)) or not math.isfinite(s['start_wait_seconds']) or s['start_wait_seconds']<=0) or s['gpu_count'] < 1:
             errors.append('invalid scheduler command/node/start-wait/count evidence')
         if s['job_id'] != docs['receipt']['job_id'] or ((record.get('gate') or {}).get('gpus') not in (None, s['gpu_count'])):
             errors.append('scheduler allocation/GPU count differs from admission')
@@ -936,7 +936,8 @@ def valid_command(raw):
 
 
 # The payload deliberately retains no environment dependency after exec. It writes
-# each pid before detaching, and exercises GPU after delay.
+# each pid before detaching. Device restriction is exercised while clients live;
+# the same detached holder re-touches CUDA after client loss when the step survives.
 PAYLOAD = r'''
 import json, os, signal, subprocess, sys, time
 from pathlib import Path
@@ -951,12 +952,12 @@ import json, os, sys, time
 from pathlib import Path
 folder, delay, duration, owners, simulated = Path(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5] == 'yes'
 sim_state = sys.argv[6]
-time.sleep(delay)
 try:
     if simulated:
         if not owners: raise RuntimeError('stand-in GPU acquisition disabled')
         cfg_path = Path(sim_state) / 'config.json'
         cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+        time.sleep(float(cfg.get('GPUImportDelay', 0)))
         accessible = 1 if cfg.get('ConstrainDevices', True) in (True, 'yes') else 8
         if accessible != 1: raise RuntimeError('one-GPU step exposes %d CUDA devices; need effective ConstrainDevices=yes' % accessible)
         Path(owners).mkdir(parents=True, exist_ok=True)
@@ -974,7 +975,20 @@ try:
         result = {'ok': True, 'exercised': 'torch CUDA allocation', 'accessible_cuda_devices': accessible}
 except Exception as e:
     result = {'ok': False, 'why': 'gpu acquisition not exercised: %s' % e}
-(folder / 'gpu.json').write_text(json.dumps(result))
+# This receipt proves device restriction independently of cancellation latency.
+path=folder/'gpu.json'
+tmp=folder/'gpu.json.tmp';tmp.write_text(json.dumps(result));os.replace(tmp,path)
+while not (folder/'clients-lost.json').exists(): time.sleep(.02)
+time.sleep(delay)
+try:
+    if not result['ok']:raise RuntimeError(result['why'])
+    if not simulated:
+        x.add_(1);torch.cuda.synchronize()
+    else:
+        Path(owners, 'late-gpu%s-%d' % (sys.argv[7], os.getpid())).write_text(str(os.getpid()))
+    late={'ok':True,'exercised':'CUDA re-touch after client loss' if not simulated else 'stand-in re-touch'}
+except Exception as e:late={'ok':False,'why':str(e)}
+(folder/'gpu-late.json').write_text(json.dumps(late))
 time.sleep(duration)
 while True: time.sleep(.1)
 """
@@ -1053,7 +1067,7 @@ def cpu_probe(work, out, until):
         pidfile = folder / 'grandchild.pid'
         pid = int(pidfile.read_text()) if pidfile.exists() else None
         doc['grandchild_pid'] = pid
-        termination = evidence(job, sid, '0', min(until, time.time()+60))
+        termination = evidence(job, sid, '0', until)
         doc['termination'] = termination
         if not termination.get('verified') or termination.get('state') != 'COMPLETED' or termination.get('failure_type'):
             doc['problems'].append('CPU step did not complete with verified empty containment; need normal-exit cgroup cleanup')
@@ -1112,7 +1126,7 @@ def cpu_preflight():
     if settings.get('simulation'):
         argv = [sys.executable, '-c', 'print("stand-in: no real torch/CUDA qualification")']
     try:
-        result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=600)
         imported = raw_observation(argv, result.stdout, result.stderr, result.returncode)
     except (OSError, subprocess.SubprocessError) as error:
         imported = raw_observation(argv, '', str(error), -1)
@@ -1207,7 +1221,7 @@ def allocation_budget(work, live, cap, block, block_limit, ceiling):
 
 
 def _allocation_budget(work, live, cap, block, block_limit, ceiling):
-    """Reserve the allocation through its planned end; never substitute a row cap."""
+    """Charge phase 0 by elapsed time; other campaigns reserve through planned end."""
     if any(not math.isfinite(x) or x<=0 for x in (cap,block_limit,ceiling)):
         raise Refused('budget inputs must be positive finite values')
     path=Path(work)/DIRECTORY/'allocation-ledger.json'
@@ -1233,6 +1247,7 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
             if not prior.get('end') or obs.get('state') not in TERMINAL:
                 raise Refused('previous allocation end unknown; reconcile allocation before budget admission')
     ledger=refresh_allocation_ledger(work); entry=ledger['allocations'][job]
+    phase0 = False
     plan_path = os.environ.get('V4_ALLOCATION_PLAN')
     if plan_path:
         plan_bytes = Path(plan_path).read_bytes()
@@ -1240,6 +1255,7 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
             raise Refused('changed safety settings: allocation plan hash differs')
         plan_doc = json.loads(plan_bytes)
         if plan_doc.get('phase') == 'phase0':
+            phase0 = True
             from kit.v4_phase0 import allocation_cap, ALLOCATION_CAP_GPU_HOURS
             entry['phase0'] = True
             wd.write_durably(path, ledger)  # refused allocations and their tails stay charged
@@ -1272,8 +1288,11 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
     allowed=sbatch_time(permitted) if permitted>=60 else None
     if any(name not in ledger['block_limits'] for name in blocks): raise Refused('budget history has unknown block limits')
     historical=any(charge>ledger['block_limits'][name] for name,charge in blocks.items())
-    if historical or reserved>remaining+1e-9:
+    # Phase 0 has one owner-approved 64-GPU-hour reservation; the block charges
+    # actual elapsed allocation time, including idle time and failed setup.
+    if historical or (spent>ceiling if phase0 else reserved>remaining+1e-9):
         reason=('allocation budget refused: request sbatch --time=%s or shorter in a new allocation (block %s, ceiling %s)'%(allowed,block_limit,ceiling) if allowed else 'allocation budget refused: no positive sbatch --time is available; block or ceiling exhausted')
+        if phase0:reason='allocation budget refused: actual phase0 spend exceeds block or ceiling; stop and return evidence; no replacement job'
         doc=frozen_write(refusal_path,{'schema':'kit-v4-allocation-admission.v1','job_id':job,'ok':False,
             'reason':reason,'allowed_sbatch_time':allowed,'allowed_seconds':math.floor(permitted/60)*60,
             'requested_sbatch_time':sbatch_time(duration),'planned_end':entry['planned_end'],
@@ -1321,10 +1340,10 @@ def refresh_allocation_ledger(work,row=None):
 
 
 @tracked_allocation
-def reconcile(work, out, seconds=60, *, force=False):
+def reconcile(work, out, seconds=600, *, force=False):
     """Cancel and verify each abandoned owning step; preserve failures and never restart argv."""
-    if not math.isfinite(seconds) or not 0 < seconds <= 60:
-        raise Refused('reconcile observation window must be 0..60 seconds')
+    if not math.isfinite(seconds) or not seconds>0:
+        raise Refused('reconcile observation window must be finite positive seconds')
     work = Path(work); rows = []; until = time.time()+seconds
     with containment_lock(work):
         ledger_path=work/DIRECTORY/'allocation-ledger.json'
@@ -1500,7 +1519,17 @@ def selftest(work, out, gpu_seconds=5, attempt_record=None, *, block='qualificat
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise Refused('selftest already running for this allocation; no second experiment') from None
-        return _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, _overall_started)
+        previous_handler=signal.getsignal(signal.SIGALRM)
+        previous_timer=signal.getitimer(signal.ITIMER_REAL)
+        def expired(signum,frame):raise Refused('containment selftest exceeded its registered 600-second safety bound')
+        signal.signal(signal.SIGALRM,expired)
+        seconds=max(.001,SELFTEST_SECONDS-(time.time()-_overall_started)) if _overall_started is not None else SELFTEST_SECONDS
+        signal.setitimer(signal.ITIMER_REAL,seconds)
+        try:return _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, _overall_started)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL,0)
+            signal.signal(signal.SIGALRM,previous_handler)
+            signal.setitimer(signal.ITIMER_REAL,*previous_timer)
 
 
 def _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, overall_started=None):
@@ -1616,8 +1645,11 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             'deadline':wd.precise_text(wd.from_epoch(started+SELFTEST_SECONDS))}
         wd.write_durably(work/DIRECTORY/'allocation-ledger.json', budget)
     cpu = cpu_probe(work, out, min(started+SELFTEST_SECONDS, time.time()+120))
-    if cpu['ok'] and time.time()+START_WAIT+GPU_PROBE_SECONDS+40 > started+SELFTEST_SECONDS:
-        cpu = {**cpu, 'ok':False, 'problems':['insufficient ten-minute self-test window for GPU startup, 160-second probe and 40-second cleanup/ledger window']}
+    # Remaining time is observed, not a prediction gate. Actual receipt/death
+    # deadlines and the independent scheduler limits still determine the verdict.
+    cpu['remaining_selftest_seconds']=max(0,started+SELFTEST_SECONDS-time.time())
+    if time.time()>=started+SELFTEST_SECONDS-40:
+        cpu={**cpu,'ok':False,'problems':['containment self-test hard deadline reached before GPU launch']}
     if not cpu['ok']:
         failed = frozen_write(target, {'schema': 'kit-p4-containment-selftest.v1', 'ok': False,
                               'problems': cpu['problems'], 'cpu_probe': cpu, 'settings': docs['receipt'],
@@ -1636,7 +1668,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
     wd.write_durably(request_path, request)
     wrapper = None
     info, problems, deaths = None, [], {}
-    until = min(started + SELFTEST_SECONDS, time.time() + START_WAIT)
+    until = min(started + SELFTEST_SECONDS-40, time.time() + START_WAIT)
     try:
         wrapper = subprocess.Popen([sys.executable, str(HERE / 'p4_contain.py'), '_selftest-wrapper', str(request_path)], start_new_session=True)
         while time.time() < until:
@@ -1648,11 +1680,33 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             time.sleep(.05)
         if not info or not info.get('ready'):
             raise Refused('selftest did not start')
-        # All clients die before delayed GPU acquisition. Scheduler alone must enforce.
+        # Observe early CUDA restriction before removing clients; scheduler alone then enforces cleanup.
+        # Invariant: prove one-device CUDA restriction with living clients FIRST.
+        # Only then remove all client enforcement and require every adversarial PID
+        # dead plus idle GPUs by kill_by. Slurm may cancel promptly on client loss;
+        # a late receipt is observational, never required after that valid cleanup.
+        early_until=min(time.time()+180, started+SELFTEST_SECONDS-40, epoch(info['slurm']['deadline']))
+        gpu=None
+        while time.time()<early_until:
+            gpu=wd.read_json(folder/'gpu.json')
+            if gpu is not None:break
+            if wrapper.poll() is not None:break
+            time.sleep(.05)
+        if gpu is None:raise Refused('early GPU acquisition not exercised before client removal (bounded wait up to 180 seconds)')
+        if not gpu.get('ok') or gpu.get('accessible_cuda_devices')!=1:
+            problems.append(gpu.get('why','one-GPU device restriction failed'))
         for pid in [wrapper.pid, info['srun_pid'], info['watchdog_pid']]:
             try: os.kill(pid, signal.SIGKILL)
             except ProcessLookupError: pass
         wrapper.wait(timeout=5)
+        clients=[wrapper.pid,info['srun_pid'],info['watchdog_pid']]
+        client_deadline=min(epoch(info['slurm']['kill_by']),started+SELFTEST_SECONDS-40)
+        while time.time()<client_deadline and any(pid_alive(pid) for pid in clients):time.sleep(.02)
+        if any(pid_alive(pid) for pid in clients):raise Refused('enforcing self-test clients did not die by the containment deadline')
+        # Release the late touch only AFTER observed client death. This prevents
+        # a slow client teardown from making a supposedly adversarial touch early.
+        client_loss_at=wd.precise_text()
+        wd.write_durably(folder/'clients-lost.json',{'client_loss_at':client_loss_at,'observed_dead_clients':clients})
         slurm = info['slurm']; S = epoch(slurm['scheduler_start'])
         limit, kill_by, deadline = probe_bounds(S, slurm['J'], slurm['W'])
         kill_by = min(kill_by, epoch(slurm['kill_by']))
@@ -1686,11 +1740,13 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         gpu = wd.read_json(folder / 'gpu.json') or {'ok': False, 'why': 'gpu acquisition not exercised: no acquisition receipt'}
         if not gpu.get('ok'):
             problems.append(gpu.get('why', 'gpu acquisition not exercised'))
+        late_gpu=wd.read_json(folder/'gpu-late.json')
+        if late_gpu is not None and not late_gpu.get('ok'):problems.append('late GPU re-touch failed: '+str(late_gpu.get('why')))
         expected = {'double-fork-setsid', 'double-fork-setsid-parent', 'cleared-exec', 'ignores-term',
                     'orphan-grandchild', 'orphan-grandchild-parent', 'later-gpu', 'launcher'}
         if set(pids) != expected or set(deaths) != expected:
             problems.append('not every adversarial pid was recorded and dead by kill_by')
-        terminated = evidence(slurm['job_id'], slurm['step_id'], ','.join(slurm['expected_gpu_uuids']), min(deadline, time.time()+60))
+        terminated = evidence(slurm['job_id'], slurm['step_id'], ','.join(slurm['expected_gpu_uuids']), deadline)
         if not terminated['verified'] or terminated.get('state') not in ('TIMEOUT', 'CANCELLED') or terminated.get('failure_type'):
             problems.append('step was not verified timeout/cancel with idle GPUs')
         if not terminated.get('scheduler_end') or epoch(terminated.get('verified_at')) > kill_by:
@@ -1701,7 +1757,8 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
                'elapsed_seconds': time.time()-started, 'cost_bounds': {'wall_seconds': 600, 'gpus': 1, 'gpu_seconds': 160},
                'receipt_sha256': docs['receipt']['content_sha256'], 'slurm': slurm,
                'killed_clients': {'wrapper': wrapper.pid, 'srun': info['srun_pid'], 'watchdog': info['watchdog_pid']},
-               'pids': pids, 'deaths': deaths, 'gpu_acquisition': gpu, 'termination': terminated,
+               'pids': pids, 'deaths': deaths, 'gpu_acquisition': gpu, 'late_gpu_acquisition':late_gpu,
+            'client_loss_at':client_loss_at, 'termination_mode':'client_loss_cancellation' if terminated.get('state')=='CANCELLED' else 'time_limit', 'termination': terminated,
                'stalled_discovery': stalled, 'death_time_kind': 'outside observation upper bound (including a deliberate discovery stall)',
                'limit_until': wd.precise_text(wd.from_epoch(limit)), 'kill_by': wd.precise_text(wd.from_epoch(kill_by)),
                'deadline': wd.precise_text(wd.from_epoch(deadline)), 'step_timeout_at': wd.precise_text(wd.from_epoch(S+60)), 'gpu_seconds': gpu_seconds,
@@ -1806,7 +1863,7 @@ def selftest_wrapper(request_path):
     r.update(state='running', launched=True, launched_at=r.data.get('launched_at') or wd.precise_text(),
              watchdog={'pid': watchdog_pid, 'record': str(folder/'watchdog.json')})
     release.touch()
-    end = time.time()+20
+    end = time.time()+600
     while time.time()<end:
         if len(list(folder.glob('*.pid'))) == 8:
             # The grandchildren overwrite their pid after the second fork.
@@ -1843,7 +1900,7 @@ def _main(argv=None):
     p.add_argument('--ceiling', type=float, required=True); p.add_argument('--concurrent', action='store_true')
     p.add_argument('command', nargs=argparse.REMAINDER)
     p = sub.add_parser('reconcile'); p.add_argument('--work', required=True); p.add_argument('--out', required=True)
-    p.add_argument('--seconds', type=float, default=60); p.add_argument('--force',action='store_true')
+    p.add_argument('--seconds', type=float, default=600); p.add_argument('--force',action='store_true')
     p = sub.add_parser('park'); p.add_argument('--ready', required=True); p.add_argument('--release', required=True)
     p.add_argument('--count', type=int, required=True); p.add_argument('command', nargs=argparse.REMAINDER)
     p.add_argument('--expected-uuids'); p.add_argument('--allocation-gpu-map',type=json.loads)
@@ -1890,12 +1947,12 @@ def _main(argv=None):
             record = run.Record(work, 'containment-selftest', args.attempt, {'block': 'prevention', 'kind': 'selftest', 'containment': 'slurm-step',
                                                                           'cuda_visible_devices': '0',
                                                                           'command': [sys.executable, str(HERE/'p4_contain.py')] + argv})
-            record.update(recovered=run.recover(work, record.path, 120))
+            record.update(recovered=run.recover(work, record.path, 600))
             acknowledged, note = run.acknowledgement_gate(work)
             if not acknowledged:
                 record.update(state='busy', reason=note, elapsed_seconds=0, ended_at=wd.now_text())
                 raise Refused(note)
-            idle, note = run.wait_idle('0', 120)
+            idle, note = run.wait_idle('0', 600)
             if not idle:
                 record.update(state='busy', reason=note, elapsed_seconds=0, ended_at=wd.now_text())
                 raise Refused(note)

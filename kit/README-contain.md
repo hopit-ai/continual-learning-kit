@@ -3,7 +3,7 @@
 **PHASE 0:** [README-phase0.md](README-phase0.md) is the controlling runbook
 (origin/main plan v4 §§15.5–15.6). Its FIRST CPU command automatically captures and selectively masks the five files;
 no separate partner settings message is requested. Use its frozen environment,
-one 01:50:00 allocation and 22 GPU-hour enforced cap. Historical full-campaign
+one 08:00:00 allocation and 64 GPU-hour enforced cap. Historical full-campaign
 qualification examples are superseded for phase 0 and grant no admission.
 
 **Historical manual capture reference (superseded for phase 0):**
@@ -59,8 +59,8 @@ Every job uses the exact planner-generated `sbatch --time=<HH:MM:00>`, the partn
 own account and QOS and `--no-requeue`. **Superseded examples:** the former
 06:00:00 / 48 GPU-hour first qualification and 12:30:00 maximum are historical
 full-campaign arithmetic, not phase-0 instructions and not permission to allocate.
-Phase 0 uses only README-phase0.md's 01:50:00, eight-GPU reservation (14.666667
-GPU-hours), within its enforced 22 GPU-hour cap and the qualification block.
+Phase 0 uses only README-phase0.md's 08:00:00, eight-GPU reservation (64
+GPU-hours), within its enforced 64 GPU-hour cap and the qualification block.
 Scientific allocations require their separate owner admission and freshly
 recomputed budget; nothing in this containment reference authorizes one.
 End the qualification job before the owner's pause and return its accounting.

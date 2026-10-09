@@ -128,7 +128,7 @@ def test_differing_duplicate_base_versions_leave_readable_blocker(tmp_path,monke
     assert 'some-pkg' in (tmp_path/'work/v4/report-phase0/setup-blocker.txt').read_text()
 
 
-@pytest.mark.parametrize('slowest,expected',[(1,180),(50,210),(80,300),(201,663),(1000,3060)])
+@pytest.mark.parametrize('slowest,expected',[(1,600),(50,600),(80,705),(201,1310),(1000,5305)])
 def test_import_deadline_adds_cuda_allowance_within_registered_budget(slowest,expected):
     """Sixteen CUDA contexts need 60 extra seconds; the full derivation must expose requirements above the budget."""
     from kit.v4_phase0_environment import environment_timing
@@ -147,3 +147,10 @@ def test_visible_owned_verl_exception_survives_duplicate_base_guard(tmp_path):
         with pytest.raises(ValueError,match='duplicate.*verl'):s.distribution_inventory(paths)
         rows=s.distribution_inventory(paths,allow_owned_verl=owned)
         assert {r['version'] for r in rows}=={'1','2'}
+
+
+@pytest.fixture(autouse=True)
+def native_cpu_runtime(monkeypatch):
+    """Old ML stand-ins also provide the independently observed native torch identity."""
+    from kit import v4_phase0_site as site
+    monkeypatch.setattr(site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})

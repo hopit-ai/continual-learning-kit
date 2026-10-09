@@ -550,6 +550,10 @@ def stale_inputs(campaign: dict, row: dict, verdict: dict) -> list:
 
 def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     dispatch_clock=time.monotonic()
+    if campaign.get('v4',{}).get('phase')=='phase0' and row['id']=='verify-prepare':
+        from kit.v4_phase0 import verification_row_cap
+        cap=verification_row_cap(work_root(campaign))
+        row={**row,'timeout_seconds':cap,'allocation_cpu_cap_seconds':cap}
     reasons = gate(campaign, row) + not_ready(campaign, row)
     if reasons:
         print("REFUSED %s: %s" % (row["id"], "; ".join(reasons)))
@@ -635,7 +639,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     # bounds wrappers. CPU rows explicitly register their maximum wall seconds.
     deadline = row.get('timeout_seconds', 3600)
     if '--time-cap' in spec['command']:
-        deadline = int(spec['command'][spec['command'].index('--time-cap')+1]) + 120
+        deadline = int(spec['command'][spec['command'].index('--time-cap')+1]) + (0 if campaign.get('v4',{}).get('phase')=='phase0' else 120)
     command_result = bounded_command(spec['command'], timeout=deadline, log=out/'output.log',
         env={**os.environ, **spec['env']}, cwd=spec['cwd'])
     command_seconds=time.monotonic()-clock

@@ -31,6 +31,7 @@ v4_phase0_download.verify_download_receipt=lambda *a:{}
 p.site.shutil.disk_usage=lambda path:SimpleNamespace(free=1000*1024**3)
 pins={k:v.rstrip('*')+'1' if v.endswith('*') else v for k,v in p.site.BASE_VERSIONS.items()}
 p.site.installed_versions=lambda:pins.copy()
+p.site.torch_runtime_identity=lambda:{'version':'2.9.0+cu128','cuda':'12.8'}
 def smoke(work,phase):
     path=Path(work)/'v4/report-inputs/import-smoke-phase0.json'
     write_durably(path,{'observations':[{'name':'phase0-trainer-imports','seconds':1,'returncode':0}]})
@@ -291,3 +292,10 @@ def test_containment_entry_keeps_short_job_tmpdir_for_contained_steps(tmp_path,m
         assert seen['env']['TMPDIR']==str(work/'phase0-cache'/'tmp')  # login node unchanged
     finally:
         import shutil;shutil.rmtree(job_tmp,ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def native_cpu_runtime(monkeypatch):
+    """Old ML stand-ins also provide the independently observed native torch identity."""
+    from kit import v4_phase0_site as site
+    monkeypatch.setattr(site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})

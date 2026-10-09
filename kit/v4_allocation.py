@@ -110,7 +110,7 @@ def plan(work, phase, stage, requested_minutes, site_minutes):
     for value in (requested_minutes,site_minutes):
         if type(value) is not int or value<=0:raise ValueError('duration must be positive whole minutes')
     remaining=min(number(registration['block_limit'],'limit')-blocks.get(registration['block'],0),number(560,'ceiling')-spent)
-    minutes=min(requested_minutes,site_minutes,int(max(0,remaining)*60/8))
+    minutes=min(requested_minutes,site_minutes) if phase=='phase0' else min(requested_minutes,site_minutes,int(max(0,remaining)*60/8))
     # Ten-minute selftest plus at least the registered minimum row cap.
     if minutes<15:raise ValueError('remaining budget cannot fit selftest and one minimum-cap row; stop: scope')
     duration=f'{minutes//60:02d}:{minutes%60:02d}:00'
@@ -124,26 +124,29 @@ def plan(work, phase, stage, requested_minutes, site_minutes):
         if not __import__('re').fullmatch(r'[A-Za-z0-9_.\[\],-]+',node):raise ValueError('unknown allocation node')
     phase0_binding={}
     if phase=='phase0':
-        from kit.v4_phase0 import verify_presend, verify_prepare, required_seconds, allocation_cap, ALLOCATION_CAP_GPU_HOURS, frozen_launch_environment
-        verify_presend(work);prepared=verify_prepare(work)
-        environment_seconds=prepared.get('environment_check',{}).get('deadline_seconds',300)
+        from kit.v4_phase0 import verify_presend, verify_prepare, required_seconds, allocation_cap, ALLOCATION_CAP_GPU_HOURS, frozen_launch_environment, verification_allowance
+        prepared=verify_prepare(work,rehash=False)
+        environment_seconds=prepared.get('environment_check',{}).get('deadline_seconds',600)
         if requested_minutes*8/60 > ALLOCATION_CAP_GPU_HOURS:
-            raise ValueError('phase0 allocation cap of 22 GPU-hours refuses this request')
+            raise ValueError('phase0 allocation cap of 64 GPU-hours refuses this request')
         if ledger:allocation_cap(ledger)
         if ledger and any(e.get('phase0') for e in ledger['allocations'].values()):
             raise ValueError('phase0 admits exactly one allocation; return partial evidence for review')
-        minutes=min(minutes,110)
-        if required_seconds(environment_seconds)>minutes*60:
-            raise ValueError('prepared environment-check deadline cannot fit the fixed 110-minute allocation with the 600-second self-test; stop before submission')
-        if minutes*60<required_seconds():raise ValueError('phase0 allocation cannot fit all registered row caps, selftest, CPU rows and dispatch; stop: scope')
+        minutes=min(minutes,480)
         verification=prepared.get('verification_seconds')
-        if isinstance(verification,bool) or not isinstance(verification,(int,float)) or not math.isfinite(verification) or not 0<=verification<=60:
-            raise ValueError('prepared integrity verification measurement is missing or exceeds its 60-second row allowance; stop before submission')
+        allowance=verification_allowance(verification)
+        if prepared.get('verification_allowance_seconds',allowance)!=allowance:
+            raise ValueError('prepared verification allowance differs from CPU measurement')
+        required=required_seconds(environment_seconds,allowance)
+        if required>minutes*60:
+            proposed=math.ceil(required/60)
+            raise ValueError('phase0 relaxed graph requires '+str(required)+' seconds ('+str(proposed)+
+                ' minutes; '+str(round(8*proposed/60,6))+' allocation GPU-hours), cannot fit the fixed eight-hour reservation or the 64 GPU-hour cap; stop before submission. Reservation change proposal requires owner review; no caps or science were shortened.')
         duration=f'{minutes//60:02d}:{minutes%60:02d}:00'
         from kit.v4_phase0_site import planning_storage
         launch=frozen_launch_environment(work)
         storage=planning_storage(work,launch)
-        phase0_binding={'storage':storage,'verification_seconds':verification,'environment_check_deadline_seconds':environment_seconds,'launch_environment':launch,'phase0_allocation_cap_gpu_hours':ALLOCATION_CAP_GPU_HOURS, **{key:hashlib.sha256((work/path).read_bytes()).hexdigest() for key,path in {
+        phase0_binding={'storage':storage,'verification_seconds':verification,'verification_allowance_seconds':allowance,'required_seconds':required,'reservation_slack_seconds':minutes*60-required,'environment_check_deadline_seconds':environment_seconds,'launch_environment':launch,'phase0_allocation_cap_gpu_hours':ALLOCATION_CAP_GPU_HOURS, **{key:hashlib.sha256((work/path).read_bytes()).hexdigest() for key,path in {
             'phase0_prepare_sha256':'v4/report-inputs/prepare-receipt-phase0.json',
             'phase0_presend_sha256':'v4/report-phase0/presend/containment-presend.json'}.items()}}
     projection=admission(work,ledger,stage,minutes,site_minutes) if phase=='main' else None

@@ -12,6 +12,7 @@ import sys
 import time
 if __package__ in (None, ''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit.runner import bounded_command, write_durably
+from kit.v4_phase0_timing import relaxed_timeout
 
 
 def cuda_probe(work,role,torch):
@@ -20,7 +21,7 @@ def cuda_probe(work,role,torch):
     path=Path(work)/('v4/report-phase0/environment-check-'+role+'-cuda.json')
     try:
         version,cuda=('2.9.0+cu128','12.8') if role=='trainer' else ('2.10.0+cu129','12.9')
-        if torch.__version__!=version or torch.version.cuda!=cuda:raise ValueError(role+' torch/CUDA runtime pins differ')
+        if (torch.__version__ not in ('2.9.0','2.9.0+cu128') if role=='trainer' else torch.__version__!=version) or torch.version.cuda!=cuda:raise ValueError(role+' torch/CUDA runtime pins differ')
         if not torch.cuda.is_available():raise ValueError(role+' CUDA unavailable')
         count=torch.cuda.device_count();doc['device_count']=count
         if count!=8:raise ValueError(role+' GPU count: expected allocated 8, found '+str(count))
@@ -30,7 +31,7 @@ def cuda_probe(work,role,torch):
             if not isinstance(value,int) or value<=0:raise ValueError('invalid CUDA driver version')
             doc['driver']={'source':'torch._C._cuda_getDriverVersion','version':value}
         else:
-            lines=subprocess.check_output(['nvidia-smi','--query-gpu=driver_version','--format=csv,noheader'],text=True,timeout=15).strip().splitlines()
+            lines=subprocess.check_output(['nvidia-smi','--query-gpu=driver_version','--format=csv,noheader'],text=True,timeout=600).strip().splitlines()
             if len(lines)!=8 or len(set(lines))!=1 or not all(__import__('re').fullmatch(r'[0-9]+(?:\.[0-9]+)+',x) for x in lines):raise ValueError('cannot record a consistent driver version for eight GPUs')
             doc['driver']={'source':'nvidia-smi','version':lines[0]}
         for index in range(8):
@@ -65,11 +66,13 @@ def probe(work, role):
         if not shutil.which(command):raise ValueError('host cannot find site command: '+command)
     import torch, verl, vllm, qwen_vl_utils  # noqa: F401
     from kit.v4_teacher import runtime_versions
-    from kit.v4_phase0_site import validate_base_versions,installed_versions
-    validate_base_versions(installed_versions())
+    from kit.v4_phase0_site import validate_base_versions,installed_versions,torch_runtime_identity
+    identity=torch_runtime_identity()
+    validate_base_versions(installed_versions(),identity)
     frozen=json.loads((work/'v4/report-phase0/environment.json').read_text())
     if installed_versions()!=frozen['trainer_dependency_versions']:raise ValueError('trainer dependencies differ from CPU prepare')
     if runtime_versions()!=frozen['runtime_versions']:raise ValueError('trainer versions differ from CPU prepare')
+    if frozen.get('trainer_torch_runtime',identity)!=identity:raise ValueError('trainer torch runtime differs from CPU prepare')
     return cuda_probe(work,role,torch)
 
 
@@ -77,16 +80,14 @@ def environment_timing(import_seconds):
     """Derive the full measured requirement, including 60 seconds for CUDA startup."""
     if set(import_seconds)!= {'trainer','inference'} or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<0 for v in import_seconds.values()):
         raise ValueError('prepare import timings must contain finite trainer and inference seconds')
-    return {'import_seconds':dict(import_seconds),'deadline_seconds':max(120,3*max(import_seconds.values()))+60}
+    return {'import_seconds':dict(import_seconds),'requirement_seconds':max(120,3*max(import_seconds.values()))+60,
+            'estimated_seconds':sum(import_seconds.values())+60,
+            'deadline_seconds':relaxed_timeout(sum(import_seconds.values())+60), 'timing_expectation':'record-only'}
 
 
 def admitted_environment_timing(import_seconds):
-    """Refuse on CPU when the measured requirement exceeds the fixed runtime allowance."""
-    timing=environment_timing(import_seconds)
-    if timing['deadline_seconds']>300:
-        raise ValueError('CPU prepare environment-check requirement '+str(timing['deadline_seconds'])+
-                         ' seconds exceeds the registered 300-second allowance; stop before submission; the 110-minute reservation is unchanged')
-    return timing
+    """Record import timing without a performance gate; the whole graph must fit."""
+    return environment_timing(import_seconds)
 
 
 def prepared_deadline(work):

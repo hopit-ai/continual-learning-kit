@@ -18,11 +18,12 @@ import time
 if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit import v4_teacher as t,v4_phase0_site as site
 from kit.runner import bounded_command,write_durably
-from kit.v4_prepare import digest,file_receipt,verify_files
+from kit.v4_prepare import digest,file_receipt,verify_files,verification_allowance
+from kit.v4_phase0_timing import relaxed_timeout
 KIT=Path(__file__).resolve().parent
 BASE='v4/report-phase0/'
 DISPATCH_SECONDS=15
-ALLOCATION_CAP_GPU_HOURS=22
+ALLOCATION_CAP_GPU_HOURS=64
 OUTPUT_POLICY={'schema':'v4-phase0-output-policy.v1','scope':'technical',
                'scientific_phase_allowed':False,'usable_as_scientific_initialisations':False}
 INFERENCE_PACKAGES=['vllm==0.18.0','torch==2.10.0+cu129','torchaudio==2.10.0+cu129',
@@ -53,11 +54,13 @@ def campaign():
         if pilots:row['needs']=list(dict.fromkeys([*row['needs'],pilots[-1]]))
         command=row['command'];gpu='--time-cap' in command
         if gpu:
-            cap=600 if name=='teacher-finqa' else 300
+            cap=600 if name=='teacher-finqa' else relaxed_timeout(300)
             command[command.index('--time-cap')+1]=str(cap)
-            row['timeout_seconds']=cap+120
+            # The Slurm row cap already includes teardown; do not add a duplicate wrapper allowance.
+            row['timeout_seconds']=cap
         else:
             cap=600 if name=='containment-selftest' else 120 if name in ('scoring-agreement','training-set','resolved-configs') else 30 if name=='PAUSE' else 60
+            if name not in ('containment-selftest','prepare'):cap=relaxed_timeout(cap)
             row['timeout_seconds']=row['allocation_cpu_cap_seconds']=cap
         if name!='containment-selftest':
             command[command.index('--row')+1]=row['id']
@@ -72,16 +75,16 @@ def campaign():
                   'cpu_prepare':{'command':['python','{kit}/v4_phase0.py','prepare','--work','{work}']},
                   'allocation_stages':{'phase0':{'first':'containment-selftest','last':'PAUSE','block':'qualification','block_limit':100}},
                   'maximum_gpu_hours':ALLOCATION_CAP_GPU_HOURS,
-                  'allocation_allowance':1.5, 'outputs':copy.deepcopy(OUTPUT_POLICY),'dispatch_seconds_per_row':DISPATCH_SECONDS,'environment_check_seconds':300,
+                  'allocation_allowance':1.0, 'outputs':copy.deepcopy(OUTPUT_POLICY),'dispatch_seconds_per_row':DISPATCH_SECONDS,'environment_check_seconds':600,
                   'scoring_gpu':'one stable Slurm-assigned physical GPU','training_questions':20,
                   'scoring_pairs':2,'scoring_questions':50,'post_training_questions':20,
                   'slot_order':[{'id':f'q-{arm}-finqa','arm':arm,'task':'finqa','seed':101,'incoming':None} for arm in 'SFRD']}}
 
 
-def required_seconds(environment_seconds=300):
+def required_seconds(environment_seconds=600,verification_seconds=60):
     rows=campaign()['rows']
     return sum(int(r['command'][r['command'].index('--time-cap')+1]) if '--time-cap' in r['command']
-               else r['allocation_cpu_cap_seconds'] for r in rows)+len(rows)*DISPATCH_SECONDS+environment_seconds
+               else verification_seconds if r['id']=='verify-prepare' else r['allocation_cpu_cap_seconds'] for r in rows)+len(rows)*DISPATCH_SECONDS+environment_seconds
 
 
 def label_checkpoint(path):
@@ -111,7 +114,7 @@ def allocation_cap(ledger, now=None):
         require(finish >= start, 'phase0 allocation cap: invalid allocation interval')
         if not entry.get('end'): finish = max(finish, now)
         used += (finish-start)*entry['width']/3600
-    require(used <= ALLOCATION_CAP_GPU_HOURS, 'phase0 allocation cap of 22 GPU-hours reached')
+    require(used <= ALLOCATION_CAP_GPU_HOURS, 'phase0 allocation cap of 64 GPU-hours reached')
     return used
 
 
@@ -137,7 +140,7 @@ def presend(work,paste,qos):
         shutil.copyfile(source,copied/source.name)
     argv=[sys.executable,str(KIT/'p4_contain.py'),'check','--work',str(work),'--out',str(folder),'--from-file',str(copied)]
     if qos:argv+=['--qos',qos]
-    observed=bounded_command(argv,timeout=120,log=folder/'check.log')
+    observed=bounded_command(argv,timeout=600,log=folder/'check.log')
     write_durably(folder/'check-command.json',{'argv':argv,**observed,'log_sha256':digest(folder/'check.log')})
     require(observed['returncode']==0,'partner Slurm paste check --from-file refused')
     result=json.loads((folder/'containment-presend.json').read_text())
@@ -164,17 +167,17 @@ def environment_build(work):
     commands=[('git',['clone','--no-hardlinks',os.environ['SDPO_DIR'],str(owned)]),
               ('git',['-C',str(owned),'checkout','--detach',SDPO_COMMIT]),
               (sys.executable,['-m','venv','--system-site-packages','--without-pip',str(trainer)]),
-              (str(trainer/'bin/python'),['-m','pip','install','--timeout','30','--retries','1','-c',str(constraints),'-e',str(owned),*TRAINER_PACKAGES]),
+              (str(trainer/'bin/python'),['-m','pip','install','--timeout','600','--retries','1','-c',str(constraints),'-e',str(owned),*TRAINER_PACKAGES]),
               (str(trainer/'bin/python'),[str(KIT/'v4_phase0_site.py'),'audit-trainer','--work',str(work)]),
               (str(trainer/'bin/python'),['-m','pip','check']),
               (sys.executable,['-m','venv',str(inference)]),
-              (str(inference/'bin/python'),['-m','pip','install','--timeout','30','--retries','1',*INFERENCE_PACKAGES,'--extra-index-url',
+              (str(inference/'bin/python'),['-m','pip','install','--timeout','600','--retries','1',*INFERENCE_PACKAGES,'--extra-index-url',
                                           'https://download.pytorch.org/whl/cu129','--only-binary=vllm'])]
     observations=[]
     for i,(python,args) in enumerate(commands):
         if i==3:site.bind_trainer_base(work,trainer,base)
         log=Path(work)/BASE/'environment-build'/f'{i}.log';log.parent.mkdir(parents=True,exist_ok=True)
-        result=bounded_command([python,*args],timeout=60 if i in (4,5) else 1800,env={**os.environ,**cache,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
+        result=bounded_command([python,*args],timeout=600 if i in (4,5) else 1800,env={**os.environ,**cache,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
         observations.append({'argv':[python,*args],**result,'log_sha256':digest(log)})
         pip_refusal=None
         if i==5:
@@ -258,7 +261,7 @@ def validate_prepare_inputs(work,paste,qos,verified_environments=False):
             for name in ('pyproject.toml','verl/utils/reward_score/feedback/mcq.py'):
                 if not (path/name).is_file():errors.append(key+' missing input: '+name)
             try:
-                commit=subprocess.check_output(['git','-C',str(path),'rev-parse','HEAD'],text=True,timeout=30,stderr=subprocess.DEVNULL).strip()
+                commit=subprocess.check_output(['git','-C',str(path),'rev-parse','HEAD'],text=True,timeout=600,stderr=subprocess.DEVNULL).strip()
                 if commit!=SDPO_COMMIT:errors.append(key+' commit differs: expected '+SDPO_COMMIT)
             except (OSError,subprocess.SubprocessError):errors.append(key+' is not a readable pinned git checkout')
     if not verified_environments and paste is not None:
@@ -329,7 +332,8 @@ def _prepare_owned(work,verified_environments):
         require(result['returncode']==0,'cpu_prepare: '+str(result['failure_type']))
         return work/'v4/report-inputs/prepare-receipt-phase0.json'
     verify_presend(work)
-    site.validate_base_versions(site.installed_versions())
+    trainer_torch_runtime=site.torch_runtime_identity()
+    site.validate_base_versions(site.installed_versions(),trainer_torch_runtime)
     from kit.v4_prepare import import_smoke
     smoke=import_smoke(work,'phase0')  # FIRST operation in the built trainer environment.
     inference=inference_check(work)
@@ -367,17 +371,17 @@ def _prepare_owned(work,verified_environments):
     shutil.copyfile(KIT/'v4_departures.json',inputs/'v4_departures.json')
     write_durably(inputs/'model-identities.json',{'initial':t.local_identity(os.environ['MODEL_DIR'],'Qwen/Qwen3-8B'),
                                                'teacher':t.local_identity(os.environ['TEACHER_MODEL_DIR'])})
-    trainer_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=30).strip()
+    trainer_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=600).strip()
     from kit.v4_datasets import SDPO_COMMIT
     require(trainer_commit==SDPO_COMMIT,'pinned trainer commit differs')
     from kit.v4_archive import DirectoryEvidence
     from kit.v4_evidence import environment
     host_base=json.loads((base/'environment-build/base-environment.json').read_text())
-    site.validate_base_versions(host_base['versions'])
+    site.validate_base_versions(host_base['versions'],host_base.get('torch_runtime'))
     trainer_inventory=json.loads((base/'environment-build/trainer-inventory.json').read_text())
     trainer_pip_check=json.loads((base/'environment-build/trainer-pip-check.json').read_text())
-    write_durably(base/'environment.json',{'trainer_pip_check':trainer_pip_check,'trainer_inventory':trainer_inventory['visible'],'trainer_own_inventory':trainer_inventory['own'],'host_base':host_base,'kit_tag':os.environ.get('V4_KIT_TAG') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=KIT,text=True,timeout=30).strip(),
-        'trainer_dependency_versions':site.installed_versions(),'runtime_versions':t.runtime_versions(),'trainer_commit':trainer_commit,
+    write_durably(base/'environment.json',{'trainer_pip_check':trainer_pip_check,'trainer_inventory':trainer_inventory['visible'],'trainer_own_inventory':trainer_inventory['own'],'host_base':host_base,'kit_tag':os.environ.get('V4_KIT_TAG') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=KIT,text=True,timeout=600).strip(),
+        'trainer_dependency_versions':site.installed_versions(),'trainer_torch_runtime':trainer_torch_runtime,'runtime_versions':t.runtime_versions(),'trainer_commit':trainer_commit,
         'inference_package_identity_sha256':inference['package_sha256'],'inference':inference,'trainer_prefix':sys.prefix})
     environment(DirectoryEvidence(work),'phase0')
     write_durably(inputs/'phase0-campaign.json',campaign())
@@ -406,19 +410,20 @@ def measure_prepare_verification(work):
     doc=verify_prepare(work)
     require('verification_seconds' not in doc,'prepare verification measurement is already frozen')
     doc['verification_seconds']=time.monotonic()-started
+    doc['verification_allowance_seconds']=verification_allowance(doc['verification_seconds'])
     from kit.p4_watchdog import write_durably as finalize_prepare
     finalize_prepare(Path(work)/'v4/report-inputs/prepare-receipt-phase0.json',doc)
     return doc['verification_seconds']
 
 
-def verify_prepare(work):
+def verify_prepare(work,*,rehash=True):
     verify_presend(work)
     path=Path(work)/'v4/report-inputs/prepare-receipt-phase0.json'
     require(path.is_file(),'phase0 CPU prepare is absent')
     doc=json.loads(path.read_text());require(doc['phase']=='phase0' and doc['before_allocation'] is True,'phase0 prepare identity differs')
     from kit.v4_phase0_environment import prepared_deadline
     prepared_deadline(work)
-    verify_files(doc)
+    if rehash:verify_files(doc)
     return doc
 
 
@@ -474,7 +479,8 @@ def verify_allocation_plan(work):
     doc=json.loads(raw)
     require(doc['phase']=='phase0' and doc['stage']=='phase0' and doc['block']=='qualification' and doc['block_limit']==100 and doc['ceiling']==560,'phase0 plan registration differs')
     seconds=sum(int(n)*unit for n,unit in zip(doc['sbatch_time'].split(':'),(3600,60,1)))
-    require(seconds==required_seconds() and seconds*8/3600<=ALLOCATION_CAP_GPU_HOURS and doc.get('phase0_allocation_cap_gpu_hours')==ALLOCATION_CAP_GPU_HOURS and doc['gpus']==8,'phase0 allocation window differs')
+    require(seconds<=28800 and seconds*8/3600<=ALLOCATION_CAP_GPU_HOURS and doc.get('phase0_allocation_cap_gpu_hours')==ALLOCATION_CAP_GPU_HOURS and doc['gpus']==8,'phase0 allocation window differs')
+    verification_plan(doc,json.loads((Path(work)/'v4/report-inputs/prepare-receipt-phase0.json').read_text()))
     pasted=verify_presend(work)
     for key,path in {'phase0_prepare_sha256':'v4/report-inputs/prepare-receipt-phase0.json','phase0_presend_sha256':BASE+'presend/containment-presend.json'}.items():
         require(doc[key]==digest(Path(work)/path),'phase0 CPU evidence changed since planning')
@@ -558,7 +564,8 @@ def archived_prepare(evidence):
     receipt=evidence.json('v4/report-inputs/prepare-receipt-phase0.json')
     require(receipt['phase']=='phase0' and receipt['before_allocation'] is True,'missing CPU prepare before allocation')
     measured=receipt.get('verification_seconds')
-    require(not isinstance(measured,bool) and isinstance(measured,(int,float)) and math.isfinite(measured) and 0<=measured<=60,'prepared integrity verification measurement is missing or exceeds its 60-second row allowance')
+    allowance=verification_allowance(measured)
+    require(receipt.get('verification_allowance_seconds',allowance)==allowance,'prepared verification allowance differs from CPU measurement')
     for name,digest_value in receipt['archived_files'].items():require(t.sha(evidence.files[name])==digest_value,'prepared archive input changed: '+name)
     require(evidence.json('v4/report-inputs/phase0-campaign.json')==campaign(),'frozen phase0 graph changed')
     raw=evidence.files['v4/report-inputs/import-smoke-phase0/receipt.json']
@@ -572,8 +579,8 @@ def archived_prepare(evidence):
     for i,o in enumerate(smoke['observations']):require(t.sha(evidence.files[f'v4/report-inputs/import-smoke-phase0/{i}.log'])==o['log_sha256'],'CPU smoke log changed')
     env=evidence.json(BASE+'environment.json')
     host_base=evidence.json(BASE+'environment-build/base-environment.json')
-    site.validate_base_versions(host_base['versions'])
-    site.validate_base_versions(env['trainer_dependency_versions'])
+    site.validate_base_versions(host_base['versions'],host_base.get('torch_runtime'))
+    site.validate_base_versions(env['trainer_dependency_versions'],env.get('trainer_torch_runtime'))
     require(env.get('host_base')==host_base and host_base.get('route')=='host-venv','host base receipt binding differs')
     bridge=evidence.json(BASE+'environment-build/base-inheritance.json')
     require(bridge['enabled']==host_base['is_venv'] and host_base['is_venv']==(host_base['prefix']!=host_base['base_prefix']) and bridge['base_site_packages']==host_base['site_packages'],'native base inheritance differs')
@@ -605,8 +612,8 @@ def archived_prepare(evidence):
     from kit.v4_datasets import SDPO_COMMIT
     owned=commands[0]['argv'][-1];trainer=env['trainer_prefix'];infer=inference['prefix']
     require(commands[0]['argv'][:3]==['git','clone','--no-hardlinks'] and commands[1]['argv']==['git','-C',owned,'checkout','--detach',SDPO_COMMIT],'owned trainer checkout recipe differs')
-    require(commands[2]['argv'][1:]==['-m','venv','--system-site-packages','--without-pip',trainer] and commands[3]['argv']==[trainer+'/bin/python','-m','pip','install','--timeout','30','--retries','1','-c',commands[3]['argv'][9],'-e',owned,*TRAINER_PACKAGES],'trainer build recipe differs')
-    require(commands[6]['argv'][1:]==['-m','venv',infer] and commands[7]['argv']==[infer+'/bin/python','-m','pip','install','--timeout','30','--retries','1',*INFERENCE_PACKAGES,'--extra-index-url','https://download.pytorch.org/whl/cu129','--only-binary=vllm'],'separate inference build recipe differs')
+    require(commands[2]['argv'][1:]==['-m','venv','--system-site-packages','--without-pip',trainer] and commands[3]['argv']==[trainer+'/bin/python','-m','pip','install','--timeout','600','--retries','1','-c',commands[3]['argv'][9],'-e',owned,*TRAINER_PACKAGES],'trainer build recipe differs')
+    require(commands[6]['argv'][1:]==['-m','venv',infer] and commands[7]['argv']==[infer+'/bin/python','-m','pip','install','--timeout','600','--retries','1',*INFERENCE_PACKAGES,'--extra-index-url','https://download.pytorch.org/whl/cu129','--only-binary=vllm'],'separate inference build recipe differs')
     require(commands[4]['argv'][0]==trainer+'/bin/python' and Path(commands[4]['argv'][1]).name=='v4_phase0_site.py' and commands[4]['argv'][2:]==['audit-trainer','--work',str(Path(trainer).parents[1])] and commands[5]['argv']==[trainer+'/bin/python','-m','pip','check'],'trainer audit/pip check recipe differs')
     base_check=host_base['pip_check'];trainer_check=evidence.json(BASE+'environment-build/trainer-pip-check.json')
     base_raw=evidence.files[BASE+'environment-build/base-pip-check.log'];trainer_raw=evidence.files[BASE+'environment-build/5.log']
@@ -705,13 +712,14 @@ def evidence_report(evidence,final=True):
             require('k8b4/containment/v4-stop.json' not in evidence.files,'phase0 has an active hard stop')
             report['tables']['containment']=containment(evidence)
             seconds=sum(int(n)*unit for n,unit in zip(plan['sbatch_time'].split(':'),(3600,60,1)))
-            require(required_seconds()<=seconds<=6600 and plan.get('phase0_allocation_cap_gpu_hours')==ALLOCATION_CAP_GPU_HOURS,'phase0 plan window differs')
+            require(seconds<=28800 and plan.get('phase0_allocation_cap_gpu_hours')==ALLOCATION_CAP_GPU_HOURS,'phase0 plan window differs')
+            verification_plan(plan,evidence.json('v4/report-inputs/prepare-receipt-phase0.json'))
             for key,path in {'phase0_prepare_sha256':'v4/report-inputs/prepare-receipt-phase0.json','phase0_presend_sha256':BASE+'presend/containment-presend.json'}.items():
                 require(plan[key]==t.sha(evidence.files[path]),'phase0 planned CPU evidence binding differs')
             total,all_blocks=allocation_spend(ledger)
             require(total<=560 and all_blocks.get('qualification',0)<=100,'phase0 qualification block or ceiling reached')
             used,blocks=allocation_spend({'allocations':new})
-            require(0<used<=ALLOCATION_CAP_GPU_HOURS and set(blocks)=={'qualification'},'phase0 exceeds 22 allocation GPU-hours cap or wrong block')
+            require(0<used<=ALLOCATION_CAP_GPU_HOURS and set(blocks)=={'qualification'},'phase0 exceeds 64 allocation GPU-hours cap or wrong block')
             report['allocation_gpu_hours']=float(used)
         scheduler_rows(evidence,'phase0')
         if final or submission_job is not None:
@@ -827,5 +835,33 @@ def main(argv=None):
     write_durably(base/'timings'/(args.row+'.json'),receipt(started,time.monotonic()-clock,row=args.row,phase='phase0',operation=args.operation))
     write_durably(args.work/'v4/report-status'/(args.row+'.json'),{'ok':1})
     return 0
+
+
+
+def verification_plan(doc,receipt):
+    """Re-derive the row allowance and its fit; retain legacy <=60-second plans."""
+    measured=receipt.get('verification_seconds');allowance=verification_allowance(measured)
+    require(doc.get('verification_seconds',measured)==measured,'planned verification measurement differs from prepare')
+    require(doc.get('verification_allowance_seconds',60)==allowance,'planned verification allowance differs from CPU measurement')
+    if 'verification_allowance_seconds' in receipt:
+        require(receipt['verification_allowance_seconds']==allowance,'prepared verification allowance differs')
+    environment=receipt.get('environment_check',{}).get('deadline_seconds',600)
+    require(doc.get('environment_check_deadline_seconds',environment)==environment,'planned environment-check deadline differs')
+    required=required_seconds(environment,allowance)
+    seconds=sum(int(n)*unit for n,unit in zip(doc['sbatch_time'].split(':'),(3600,60,1)))
+    require(required<=seconds<=28800,'prepared verification allowance cannot fit fixed eight-hour reservation')
+    require(doc.get('required_seconds',required)==required and doc.get('reservation_slack_seconds',seconds-required)==seconds-required,'planned verification fit arithmetic differs')
+    return allowance
+
+
+def verification_row_cap(work):
+    """Only verify-prepare gets the measured cap from the hash-bound CPU plan."""
+    path=os.environ.get('V4_ALLOCATION_PLAN')
+    if not path:return 60 # Unchanged tagged/rehearsal route without a new plan.
+    raw=Path(path).read_bytes();require(t.sha(raw)==os.environ.get('V4_ALLOCATION_PLAN_SHA256'),'phase0 plan hash differs')
+    doc=json.loads(raw);require(doc.get('phase')=='phase0','phase0 verification plan differs')
+    receipt_path=Path(work)/'v4/report-inputs/prepare-receipt-phase0.json'
+    require(doc['phase0_prepare_sha256']==digest(receipt_path),'phase0 CPU evidence changed since planning')
+    return verification_plan(doc,json.loads(receipt_path.read_text()))
 
 if __name__=='__main__':raise SystemExit(main())

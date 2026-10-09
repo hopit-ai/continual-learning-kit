@@ -26,11 +26,25 @@ CACHE_KEYS={'TMPDIR':'tmp','PIP_CACHE_DIR':'pip','XDG_CACHE_HOME':'xdg','TRITON_
     'NUMBA_CACHE_DIR':'numba','FLASHINFER_WORKSPACE_BASE':'flashinfer'}
 
 
-def validate_base_versions(versions):
+def validate_base_versions(versions,torch_runtime=None):
     for name,pin in BASE_VERSIONS.items():
         value=versions.get(name)
-        if not isinstance(value,str) or not (value.startswith(pin[:-1]) if pin.endswith('*') else value==pin):
-            raise ValueError('host trainer dependency '+name+': expected '+pin+', found '+str(value)+'; keep the existing base unchanged and return this setup blocker')
+        admitted=isinstance(value,str) and (value.startswith(pin[:-1]) if pin.endswith('*') else value==pin)
+        if name=='torch':
+            # Legacy receipts already admitted the complete cu128 metadata pin.
+            # Live CPU probes always provide the separately observed runtime.
+            if torch_runtime is not None:
+                if not isinstance(torch_runtime,dict):raise ValueError('host trainer dependency torch runtime identity is malformed')
+                runtime=torch_runtime.get('version');cuda=torch_runtime.get('cuda')
+                # Bare micromamba metadata may omit cu128; a present local
+                # suffix must agree with the runtime. The CUDA identity is
+                # mandatory, including when the runtime spells the cu128 pin.
+                admitted=(isinstance(value,str) and value.split('+',1)[0]=='2.9.0'
+                    and runtime in ('2.9.0',pin) and cuda=='12.8'
+                    and ('+' not in value or value==runtime))
+        if not admitted:
+            runtime_detail='; CPU runtime '+str(torch_runtime) if name=='torch' and torch_runtime is not None else ''
+            raise ValueError('host trainer dependency '+name+': expected '+pin+', found '+str(value)+runtime_detail+'; keep the existing base unchanged and return this setup blocker')
     return versions
 
 
@@ -222,11 +236,12 @@ def base_environment(work):
         doc['inventory']=distribution_inventory(skipped=doc['skipped_distributions'])
         log=folder/'base-pip-check.log';argv=[sys.executable,'-m','pip','check']
         with storage(work):
-            result=bounded_command(argv,timeout=60,env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
+            result=bounded_command(argv,timeout=600,env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
         doc['pip_check']={'argv':argv,**result,'output':pip_check_output(log.read_bytes()),'log_sha256':hashlib.sha256(log.read_bytes()).hexdigest()}
         if result['returncode'] not in (0,1) or result.get('failure_type') not in (None,'cpu_exit'):
             raise ValueError('base pip check could not finish; retain this setup blocker')
-        validate_base_versions(doc['versions'])
+        doc['torch_runtime']=torch_runtime_identity()
+        validate_base_versions(doc['versions'],doc['torch_runtime'])
     except (ValueError,OSError) as exc:
         doc['setup_blocker']=str(exc)
         (folder.parent/'setup-blocker.txt').write_text(str(exc)+'\n')
@@ -255,11 +270,11 @@ def bind_trainer_base(work,trainer,base):
 
 
 def check_network(urls):
-    """Fail within ten seconds per allowed login-node endpoint, never probe HF."""
+    """Use ten-minute patience per allowed login-node endpoint, never probe HF."""
     import urllib.request
     for url in urls:
         try:
-            with urllib.request.urlopen(urllib.request.Request(url,method='HEAD'),timeout=10) as response:
+            with urllib.request.urlopen(urllib.request.Request(url,method='HEAD'),timeout=600) as response:
                 if response.status>=400:raise ValueError('HTTP '+str(response.status))
         except Exception as exc:
             action=('Retain the setup blocker and return it; prepare cannot run under SLURM_JOB_ID.'
@@ -304,4 +319,12 @@ def main(argv=None):
             network_command(a.work,command,seconds=a.seconds,urls=a.url)
     except (ValueError,OSError) as exc:print('STOP: '+str(exc),file=sys.stderr);return 2
     return 0
+
+
+def torch_runtime_identity():
+    """CPU probe: module attributes only; never call a CUDA API or load a model."""
+    try:import torch
+    except ImportError as exc:raise ValueError('host trainer dependency torch runtime import failed: '+str(exc)) from exc
+    return {'version':str(torch.__version__),'cuda':torch.version.cuda}
+
 if __name__=='__main__':raise SystemExit(main())

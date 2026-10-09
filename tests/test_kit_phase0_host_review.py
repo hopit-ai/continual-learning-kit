@@ -102,7 +102,7 @@ def gpu_world(tmp_path,monkeypatch):
     paths={key:str(work/'phase0-envs/inference/bin/python') for key in ('MODEL_DIR','TEACHER_MODEL_DIR','QWEN3_8B_TOKENIZER','SDPO_DIR','FINQA_ROOT','V4_TEACHER_PYTHON')}
     paths['TMPDIR']='/tmp';monkeypatch.setenv('TMPDIR','/tmp')
     (inputs/'launch-inputs-phase0.json').write_text(json.dumps({'environment':paths}))
-    (inputs/'prepare-receipt-phase0.json').write_text(json.dumps({'environment_check':{'import_seconds':{'trainer':1,'inference':1},'deadline_seconds':180}}))
+    (inputs/'prepare-receipt-phase0.json').write_text(json.dumps({'environment_check':__import__('kit.v4_phase0_environment',fromlist=['admitted_environment_timing']).admitted_environment_timing({'trainer':1,'inference':1})}))
     (base/'environment.json').write_text(json.dumps({'trainer_dependency_versions':VERSIONS,'runtime_versions':{'torch':'stub'}}))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy());monkeypatch.setattr(t,'runtime_versions',lambda:{'torch':'stub'})
     monkeypatch.setattr(e.shutil,'which',lambda name:'/owned/bin/'+name)
@@ -186,7 +186,9 @@ def planner_work(monkeypatch):
         for name in ('v4/report-inputs/prepare-receipt-phase0.json','v4/report-phase0/presend/containment-presend.json'):
             path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
         monkeypatch.setattr(p,'verify_presend',lambda work:{})
-        monkeypatch.setattr(p,'verify_prepare',lambda work:{'verification_seconds':.5,'environment_check':{'deadline_seconds':180}})
+        # Isolate filesystem admission; the real relaxed graph is refused in v3 integration.
+        monkeypatch.setattr(p,'required_seconds',lambda *args:28800)
+        monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':.5,'environment_check':{'deadline_seconds':180}})
         from test_kit_phase0_storage import CONFIG
         model=work/'model';model.mkdir();(model/'config.json').write_text(json.dumps(CONFIG))
         monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work),'TMPDIR':str(work/'phase0-cache/tmp'),'MODEL_DIR':str(model),'TEACHER_MODEL_DIR':str(model)})
@@ -199,7 +201,7 @@ def test_planner_refuses_long_vllm_socket_base_before_gpu_submission(planner_wor
     from kit import v4_phase0 as p
     work,s=planner_work
     monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work),'TMPDIR':str(work/'phase0-cache/tmp'),'VLLM_RPC_BASE_PATH':'/'+('x'*70)})
-    with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',110,10080)
+    with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',480,10080)
 
 
 def test_planner_prices_four_merged_exports_and_caches_on_cpu(planner_work,monkeypatch):
@@ -207,7 +209,7 @@ def test_planner_prices_four_merged_exports_and_caches_on_cpu(planner_work,monke
     from kit.v4_allocation import plan
     work,s=planner_work
     monkeypatch.setattr(s.shutil,'disk_usage',lambda path:SimpleNamespace(free=40*1024**3))
-    with pytest.raises(ValueError,match='free space'):plan(work,'phase0','phase0',110,10080)
+    with pytest.raises(ValueError,match='free space'):plan(work,'phase0','phase0',480,10080)
 
 
 def test_real_trainer_audit_rejects_own_dist_info_shadow(tmp_path):
@@ -238,3 +240,10 @@ def test_blocked_wheels_leave_returnable_setup_blocker(tmp_path,monkeypatch):
     monkeypatch.setattr(s,'check_network',blocked)
     with pytest.raises(ValueError,match='403 denied'):p.environment_build(tmp_path/'work')
     assert '403 denied' in (tmp_path/'work/v4/report-phase0/setup-blocker.txt').read_text()
+
+
+@pytest.fixture(autouse=True)
+def native_cpu_runtime(monkeypatch):
+    """Old ML stand-ins also provide the independently observed native torch identity."""
+    from kit import v4_phase0_site as site
+    monkeypatch.setattr(site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})

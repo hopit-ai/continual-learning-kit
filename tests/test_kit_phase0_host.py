@@ -191,7 +191,7 @@ def test_cpu_endpoint_failure_is_bounded_readable_and_precedes_commands(tmp_path
     monkeypatch.setattr(runner,'bounded_command',lambda *a,**kw:pytest.fail('must not dispatch after blocked endpoint'))
     with pytest.raises(ValueError,match='403 denied.*zero-GPU'):
         s.network_command(tmp_path/'work',['git','clone','owned'],urls=['https://github.com'])
-    assert calls==[('https://github.com',10)]
+    assert calls==[('https://github.com',600)]
 
 
 def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path,monkeypatch):
@@ -263,3 +263,10 @@ def test_real_nested_trainer_inherits_native_base_without_modifying_it(tmp_path)
     import hashlib
     assert hashlib.sha256(Path(bridge['path']).read_bytes()).hexdigest()==bridge['sha256']
     assert json.loads((work/'v4/report-phase0/environment-build/base-inheritance.json').read_text())==bridge
+
+
+@pytest.fixture(autouse=True)
+def native_cpu_runtime(monkeypatch):
+    """Old ML stand-ins also provide the independently observed native torch identity."""
+    from kit import v4_phase0_site as site
+    monkeypatch.setattr(site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})

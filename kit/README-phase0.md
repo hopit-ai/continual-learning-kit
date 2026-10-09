@@ -1,3 +1,5 @@
+> Owner-approved 9 October: phase 0 uses one 08:00:00 reservation on eight GPUs, with a 64 GPU-hour allocation cap. The relaxed graph fits this reservation.
+
 # PHASE-0: technical FinQA check before the task decision
 
 **your route: host venv (confirmed 8 Oct)**. Your pilot runs directly as the batch step on the host with `export PATH=/home/<USER>/envs/train/bin:$PATH`, without an enclosing srun or container. Use that same existing native base on the login node and preserve that exact environment line in the copied pilot wrapper. No containerisation or new route question is required.
@@ -138,7 +140,7 @@ raw files, the checker output, per-command results and hashes are collected in
 the single return archive. You do not need to edit or send them separately.
 
 For `MaxTime=7-00:00:00`, the captured `SITE_MINUTES` is **10080**. The planner
-still requests only 110 minutes. If capture succeeds, continue CPU staging:
+still requests 480 minutes. If capture succeeds, continue CPU staging:
 
 Before the self-test, both trainer and inference probes require CUDA availability, exactly eight allocated devices, and a synchronized one-element CUDA operation on each device. Each records the driver version beside torch.version.cuda. A failure says “STOP before the self-test”; the measured environment-check deadline is unchanged.
 
@@ -234,7 +236,7 @@ Generate the sole allocation script on CPU. This plans; it does not submit:
 
 ```sh
 python "$KIT/v4_allocation.py" --work "$WORK" --phase phase0 --stage phase0 \
-  --minutes 110 --site-minutes "$SITE_MINUTES" \
+  --minutes 480 --site-minutes "$SITE_MINUTES" \
   --partition "$PARTITION" --qos "$QOS" --account "$ACCOUNT" \
   --activate "$WORK/phase0-envs/trainer/bin/activate" \
   --out "$WORK/v4/report-phase0/allocation/phase0.sh"
@@ -243,7 +245,7 @@ python "$KIT/v4_allocation.py" --work "$WORK" --phase phase0 --stage phase0 \
 The planner supplies **`phase0.header.sh`**, an `#SBATCH` header block, and
 **`phase0.sh`**, a payload to run directly in your existing host-venv batch process. It also
 retains `phase0.json`, binding the prepared environment and allocation plan. The
-header has `--no-requeue`, `--exclusive`, `--nodes=1`, `--gpus=8`, `--time=01:50:00`
+header has `--no-requeue`, `--exclusive`, `--nodes=1`, `--gpus=8`, `--time=08:00:00`
 and your captured partition, QOS and account. Scheduler stdout and stderr are
 `$WORK/v4/report-phase0/allocation/phase0-%j.out` and `phase0-%j.err` (`%j` is the
 job ID); collect includes these files. The payload exports all frozen data/model
@@ -251,32 +253,12 @@ paths, the prepared SDPO's PYTHONPATH, telemetry and offline settings.
 `SLURM_EXPORT_ENV=ALL` passes these values to steps.
 
 The payload's **first step, before the self-test**, is an **environment
-check whose full requirement is max(120 seconds, three times the slowest complete import
-measured at prepare) + 60 seconds for the sixteen CUDA context initialisations, recorded in the prepare receipt**. Imports of **80 seconds** fit exactly; above 80 seconds, **prepare and planning refuse on CPU** before submission. Admitted checks use that measured deadline, at most 300 seconds, for both prepared Pythons, imports and versions, shared paths, site Slurm clients
-and visibility of eight GPUs. It first rejects a numeric SLURM_STEP_ID and tests
-step creation with `srun --overlap -n1 true`. A mismatch or timeout prints `STOP before the
-self-test`, writes `environment-check.json` and import logs, and releases the job
-without training. Your unchanged native wrapper provides base Python and loader search paths;
-the payload activates the prepared trainer only after this check. Keep those
-scheduler logs if the base env failed before the payload could write a receipt.
-Planner reruns refuse clearly and preserve the existing plan/header/payload. CPU prepare measures the exact verify_prepare rehash; planning refuses if that measurement exceeds its fixed 60-second row allowance. Integrity verification still runs in full; a CPU measurement does not guarantee shared-storage throughput in the job.
-A measured environment requirement above 300 seconds cannot fit that fixed allowance;
-prepare and the planner refuse on CPU before submission. The runtime cap and the 110-minute reservation remain unchanged.
+check whose full requirement is max(600 seconds, ceil(5 × (trainer import + inference import + 60 seconds for sixteen CUDA context initialisations))), recorded in the prepare receipt**. Import duration is record-only: slow imports do not themselves refuse prepare. The planner must fit this deadline and every serial row into the unchanged allocation reservation. It first rejects a numeric SLURM_STEP_ID, checks job-private scratch/socket paths, and tests step creation with `srun --overlap -n1 true`; both prepared runtimes then perform the eight-device CUDA and version checks. A real mismatch or expiry prints `STOP before the self-test`, saves receipts/logs, and releases the job without training. Keep the existing native wrapper's base Python and loader search paths.
+CPU prepare measures the full prepared-byte rehash. The reviewed allowance is **max(60, ceil(1.5 × measured seconds))**; an 84-second measurement gets 126 seconds. Prepare no longer refuses a measurement above 60 seconds. Planning binds the receipt without rehashing all model bytes again; the allocation still performs full integrity verification.
 
-The registered graph requires **6,600 seconds** including a combined 900-second environment/self-test
-allowance (300 seconds for the environment and 600 for the self-test), serial GPU row caps, bounded in-allocation CPU rows and 15 seconds
-of runner dispatch/import allowance per row. The exact allocation header for a fitting
-site and qualification remainder includes **`--no-requeue --account="$ACCOUNT" --qos="$QOS" --time=01:50:00`**, one exclusive
-node with **eight GPUs**, **14.666667 allocation GPU-hours**, charged to the
-**100 GPU-hour qualification block**, also inside the 560-hour ceiling. Phase 0 deliberately keeps ceiling 560 conservatively; the campaign ceiling is 955 per plan 15.11, while phase 0's own 22-hour cap and the 100-hour qualification block are unchanged. This is a
-conservative reservation, not a measured completion-time forecast. The planner
-refuses rather than silently shortening the package if the site or remaining block
-cannot fit it. The registered 1.5 allowance makes the enforced PHASE-0 allocation cap
-**22 GPU-hours = 14.666667 × 1.5**. The campaign refuses a request or live allocation
-reservation/actual charge above that cap before any probe or row; refused allocations
-and teardown still count. The reader recomputes the cap from the returned ledger.
-The single planned allocation remains 110 minutes; the allowance does not extend it
-or authorize a replacement job. Submit only the
+The v3 relaxed graph requires **27,816 seconds** with a 600-second environment check and the partner's 84-second rehash (126-second allowance), including every serial row and 15 seconds of dispatch per row. It fits the owner's approved **08:00:00 / 480-minute** reservation with **984 seconds** of slack. The planner still checks the full graph against the reservation and the site's time limit; it does not shorten scientific work.
+The exact allocation header includes **`--no-requeue --account="$ACCOUNT" --qos="$QOS" --time=08:00:00`**, one exclusive node with **eight GPUs**, and a **64 GPU-hour allocation cap = 8 × 8**. Phase 0's actual elapsed allocation time is charged to the **100 GPU-hour qualification block** and conservative ceiling **560** (the campaign ceiling is 955 per plan 15.11); unused reservation time is not charged against the block. Slurm charges actual elapsed time, so expected phase-0 use stays about **15 GPU-hours**, rather than the 64 GPU-hour worst-case cap.
+Phase 0 remains **one allocation, no requeue and no replacement job**. The cap does not authorize extending that allocation; refused jobs and teardown still count, and the reader recomputes actual charges from the returned ledger. Submit only the
 header and payload printed by that planner. You previously launched the pilot as
 **`sbatch --parsable /home/<USER>/scripts/k8b_pilot_run.sbatch`**. Launch phase 0
 exactly as you launched `k8b_pilot_run.sbatch`: copy your wrapper to
@@ -322,7 +304,7 @@ The 26 serial rows then do exactly this technical work:
 5. Recompute the technical report and **PAUSE**, ending the allocation before the
    owner reviews anything. Do not chain another allocation or scientific work.
 
-GPU rows have containment deadlines of 300 seconds (teacher 600). A row that
+GPU row containment deadlines are now 1,500 seconds (teacher 600); CPU rows are at least 600 seconds except the measured prepared-byte verifier. The former 300-second GPU caps were unmeasured estimates, so the v3 policy uses five times those estimates. The redundant 120-second wrapper allowance is removed; the Slurm row cap already includes teardown. A row that
 cannot fit its actual remaining window refuses before dispatch. Verified row
 failures follow the existing typed infrastructure retry admission (at most two
 retries, one OOM retry with OFFLOAD=1); there is no outcome-based retry or extension
@@ -337,7 +319,7 @@ After Slurm ends the job, reconcile **on the login node**, close its full alloca
 accounting, and collect success or failure alike. Owner review happens afterwards:
 
 ```sh
-python3 "$KIT/p4_contain.py" reconcile --work "$WORK" --out "$WORK/reconcile" --seconds 60
+python3 "$KIT/p4_contain.py" reconcile --work "$WORK" --out "$WORK/reconcile" --seconds 600
 python3 "$KIT/collect.py" --work "$WORK" --out "${WORK}-return.tar.gz"
 ```
 
@@ -454,3 +436,5 @@ Running `sacct` rows with `End=Unknown` never establish termination.
 Do you still have the 8B pilot's SDPO Chemistry checkpoints, **sema-chem runs r1
 and r2**? If so, please **keep both checkpoints** and mention their locations in
 your return message.
+
+The containment self-test proves exactly one CUDA-visible device with a one-element allocation and synchronization while the clients are alive (bounded early-receipt wait up to 180 seconds). It then kills the wrapper, srun client and watchdog. The detached holder attempts a later CUDA re-touch; a missing late receipt is acceptable if Slurm cancelled promptly, every adversarial PID died by kill_by and the GPU is idle. Both client-loss CANCELLED and time-limit TIMEOUT are recorded as valid scheduler cleanup. The test never infers device restriction from CUDA_VISIBLE_DEVICES alone.
