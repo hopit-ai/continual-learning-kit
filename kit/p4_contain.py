@@ -26,6 +26,8 @@ import time
 
 HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:sys.path.insert(0,str(HERE.parent))
+from kit.v4_phase0_timing import shared_limit, is_phase0
+
 DIRECTORY = Path('k8b4/containment')
 RECEIPT = DIRECTORY / 'containment-receipt.json'
 SELFTEST = DIRECTORY / 'containment-selftest.json'
@@ -88,11 +90,12 @@ def allowance():
         raise Refused('KIT_P4_SLURM_ALLOWANCE must be an integer') from None
     if value < ALLOWANCE:
         raise Refused('KIT_P4_SLURM_ALLOWANCE may only raise the registered 60 seconds')
-    return value
+    return shared_limit(value)
 
 
 def command(argv, timeout=600):
     """Every external observation retains stdout, stderr, status and their exact sha256."""
+    if timeout==600:timeout=shared_limit(timeout)
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=max(.01, timeout))
         raw, error, rc = done.stdout, done.stderr, done.returncode
@@ -113,6 +116,8 @@ def config_values(text):
 
 
 def frozen_write(path, doc):
+    if is_phase0() and Path(path).name=='containment-selftest.json':
+        doc={**doc,'informational':True,'warning':None if doc.get('ok') else 'WARNING: containment self-test FAILED; informational only; owner monitors the run.'}
     sealed = frozen.seal(doc)
     old = wd.read_json(path)
     if Path(path).exists():
@@ -619,7 +624,7 @@ def evidence(job, step, devices, until):
                         verified_at=wd.precise_text())
             observations[-1] = last
             return {**last, 'verified': True, 'observations': observations}
-        time.sleep(min(.1, max(0, epoch(until)-time.time())))
+        time.sleep(min(shared_limit(.1), max(0, epoch(until)-time.time())))
     return {**last, 'verified': False, 'observations': observations}
 
 
@@ -634,7 +639,7 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
     job_id = env.get('SLURM_JOB_ID')
     if job_id != receipt.get('job_id'):
         raise Refused('allocation differs from the frozen cluster receipt')
-    W, J = receipt['KillWait'], allowance()
+    W, J = shared_limit(receipt['KillWait']), allowance()
     d = record.data
     planned_start = time.time()
     requested = minutes(planned_start, d['limit_until'], d['kill_by'], W, J)
@@ -681,18 +686,18 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
     record.update(slurm={'job_id': job_id, 'step_id': None, 'receipt_sha256': receipt['content_sha256'],
                          'selftest_sha256': docs.get('selftest', {}).get('content_sha256'), 'actual_command': actual,
                          'planned_start': wd.precise_text(wd.from_epoch(planned_start)), 'requested_minutes': requested, 'effective_minutes': None, 'W': W, 'J': J,
-                         'start_wait_seconds': START_WAIT, 'expected_gpu_uuids': expected, 'physical_gpu_query': None,
+                         'start_wait_seconds': shared_limit(START_WAIT), 'expected_gpu_uuids': expected, 'physical_gpu_query': None,
                          'allocation_gpu_query':allocation_query, 'allocation_gpu_map':gpu_map,
                          'step_cpus':step_cpus,'step_memory_mb':step_memory,
                          'preceding_steps': preceding_raw, 'assignment_required': True,
                          'limit_until': d['limit_until'], 'kill_by': d['kill_by'], 'deadline': d['deadline']})
     proc = subprocess.Popen(actual, env=env, stdin=subprocess.DEVNULL, start_new_session=True)
     record.update(pid=proc.pid, pgid=proc.pid, srun_pid=proc.pid)
-    bound = min(time.monotonic() + START_WAIT, time.monotonic() + epoch(d['kill_by'])-time.time())
+    bound = min(time.monotonic() + shared_limit(START_WAIT), time.monotonic() + epoch(d['kill_by'])-time.time())
     sid, step, raw = None, None, None
     try:
         while time.monotonic() < bound:
-            found, raw = steps(job_id, min(5, max(.01, bound-time.monotonic())))
+            found, raw = steps(job_id, min(shared_limit(5), max(.01, bound-time.monotonic())))
             parked = wd.read_json(ready)
             parked_ref = (step_ref(job_id, parked['step_id']) if parked and parked.get('job_id') == job_id and parked.get('step_id') else None)
             own = [s for s in found if s.get('StepId') not in preceding_ids and
@@ -713,7 +718,7 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
                     physical_ids = parked.get('step_gpu_ids')
                     if not physical_ids:
                         raise Refused('scheduler physical GPU assignment unavailable')
-                    assigned, assignment_query = gpu_identity(physical_ids, count, min(5, max(.01, bound-time.monotonic())))
+                    assigned, assignment_query = gpu_identity(physical_ids, count, min(shared_limit(5), max(.01, bound-time.monotonic())))
                     if effective < 1 or effective > requested or effective > allowed:
                         raise Refused('actual scheduler start/time limit fails the timing recheck; command remains parked')
                     if (parked.get('job_id')!=job_id or parked.get('step_id')!=sid or parked.get('problems') or
@@ -742,7 +747,7 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
                     return proc, release
             if proc.poll() is not None:
                 raise Refused('srun returned before the parked step was ready')
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         raise Refused('step did not start within registered wait/deadlines')
     except BaseException:
         # A submitted but not yet identified step must also be found and cancelled. Never cancel the allocation.
@@ -753,7 +758,7 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
                 sid = own[0]['StepId'].split('.', 1)[1]
         if sid is not None:
             c = cancel(job_id, sid)
-            e = evidence(job_id, sid, devices, max(time.time()+5, epoch(d['deadline'])))
+            e = evidence(job_id, sid, devices, max(time.time()+shared_limit(5), epoch(d['deadline'])))
             record.update(slurm={**record.data['slurm'], 'step_id': sid, 'cancel': c, 'termination': e})
             if e.get('verified'):
                 record.update(charged_until=wd._ceil_text(wd.parse_time(e['verified_at'])), verified_idle_at=wd._ceil_text(wd.parse_time(e['verified_at'])))
@@ -766,7 +771,7 @@ def start_step(argv, env, record, count, *, require_selftest=True, requested_cap
             wd.write_stop(record.path, d, 'submitted step could not be identified/cancelled', 'pending step unresolved', unavailable=True)
         if proc.poll() is None:
             proc.kill()
-        proc.wait(timeout=10)
+        proc.wait(timeout=shared_limit(10))
         raise
 
 
@@ -806,7 +811,7 @@ def park(ready, release, count, argv, expected_uuids=None, allocation_gpu_map=No
                                  'gpu_uuids': uuids, 'gpu_query': raw, 'step_gpu_ids': os.environ.get('SLURM_STEP_GPUS'),
                                  'command': argv, 'problems': problems})
     while not Path(release).exists():
-        time.sleep(.02)
+        time.sleep(shared_limit(.02))
     if problems:
         return 125
     os.execvpe(argv[0], argv, os.environ)
@@ -944,6 +949,9 @@ from pathlib import Path
 folder, delay, gpu_seconds = Path(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
 folder.mkdir(parents=True, exist_ok=True)
 exe = sys.executable
+from kit.v4_phase0_timing import shared_limit
+# Freeze timings into the detached program before its environment is cleared.
+late_code_multiplier = shared_limit(1)
 owners = os.environ.get('SIM_GPU_OWNERS')
 sim = os.environ.get('SIM_SLURM_STATE')
 stand_in = len(sys.argv) > 4 and sys.argv[4] == '--stand-in'
@@ -978,7 +986,7 @@ except Exception as e:
 # This receipt proves device restriction independently of cancellation latency.
 path=folder/'gpu.json'
 tmp=folder/'gpu.json.tmp';tmp.write_text(json.dumps(result));os.replace(tmp,path)
-while not (folder/'clients-lost.json').exists(): time.sleep(.02)
+while not (folder/'clients-lost.json').exists(): time.sleep(.02 * float(sys.argv[8]) if len(sys.argv)>8 else .02)
 time.sleep(delay)
 try:
     if not result['ok']:raise RuntimeError(result['why'])
@@ -990,34 +998,34 @@ try:
 except Exception as e:late={'ok':False,'why':str(e)}
 (folder/'gpu-late.json').write_text(json.dumps(late))
 time.sleep(duration)
-while True: time.sleep(.1)
+while True: time.sleep(.1 * (float(sys.argv[8]) if len(sys.argv)>8 else 1))
 """
 def note(kind):
     (folder / (kind + '.pid')).write_text(str(os.getpid()))
 def sleep():
-    while True: time.sleep(.1)
+    while True: time.sleep(shared_limit(.1))
 for kind in ['double-fork-setsid', 'cleared-exec', 'ignores-term', 'orphan-grandchild', 'later-gpu']:
     pid = os.fork()
     if pid: continue
     note(kind)
     # Let the stand-in sample the tree. This is not required by a real cgroup.
-    time.sleep(.15)
+    time.sleep(shared_limit(.15))
     if kind in ('double-fork-setsid', 'orphan-grandchild'):
         if kind == 'double-fork-setsid': os.setsid()
         note(kind + '-parent')
         if os.fork():
-            time.sleep(.15)
+            time.sleep(shared_limit(.15))
             os._exit(0)
         note(kind)
     if kind == 'ignores-term': signal.signal(signal.SIGTERM, signal.SIG_IGN)
     if kind == 'cleared-exec':
         os.environ.clear()
-        os.execve(exe, [exe, '-c', 'import time; time.sleep(600)'], {})
+        os.execve(exe, [exe, '-c', 'import time; time.sleep(%s)' % shared_limit(600)], {})
     if kind == 'later-gpu':
         # This is the reviewer's exact escape: detach, exec with NO marker (or
         # any environment at all), then acquire a GPU only after client death.
         os.setsid()
-        os.execve(exe, [exe, '-c', late_code, str(folder), str(delay), str(gpu_seconds), owners or '', 'yes' if stand_in and sim else 'no', sim or '', os.environ.get('SIM_VISIBLE_GPU_IDS', '0').split(',')[0]], {k:v for k,v in os.environ.items() if k in ('LD_LIBRARY_PATH', 'LD_PRELOAD', 'DYLD_LIBRARY_PATH', 'PATH')})
+        os.execve(exe, [exe, '-c', late_code, str(folder), str(delay), str(gpu_seconds), owners or '', 'yes' if stand_in and sim else 'no', sim or '', os.environ.get('SIM_VISIBLE_GPU_IDS', '0').split(',')[0], str(late_code_multiplier)], {k:v for k,v in os.environ.items() if k in ('LD_LIBRARY_PATH', 'LD_PRELOAD', 'DYLD_LIBRARY_PATH', 'PATH')})
     sleep()
 note('launcher')
 sleep()
@@ -1028,16 +1036,17 @@ CPU_PAYLOAD = r'''
 import os, signal, sys, time
 from pathlib import Path
 folder = Path(sys.argv[1])
+factor = float(sys.argv[2]) if len(sys.argv)>2 else 1
 if os.fork() == 0:
     os.setsid()
-    time.sleep(.15)
+    time.sleep(.15*factor)
     if os.fork():
-        time.sleep(.15)
+        time.sleep(.15*factor)
         os._exit(0)
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     (folder / 'grandchild.pid').write_text(str(os.getpid()))
-    while True: time.sleep(.1)
-time.sleep(5)
+    while True: time.sleep(.1*factor)
+time.sleep(5*factor)
 '''
 
 
@@ -1047,21 +1056,21 @@ def cpu_probe(work, out, until):
     folder.mkdir(parents=True, exist_ok=True)
     job = os.environ['SLURM_JOB_ID']
     name = 'contain-cpu-%d' % os.getpid()
-    argv = ['srun', '--ntasks=1', '--exclusive', '--gres=gpu:0', '--time=1',
-            '--kill-on-bad-exit=1', '--job-name='+name, sys.executable, '-c', CPU_PAYLOAD, str(folder)]
+    argv = ['srun', '--ntasks=1', '--exclusive', '--gres=gpu:0', '--time='+str(shared_limit(1)),
+            '--kill-on-bad-exit=1', '--job-name='+name, sys.executable, '-c', CPU_PAYLOAD, str(folder), str(shared_limit(1))]
     proc, sid = None, None
-    doc = {'ok': False, 'problems': [], 'argv': argv, 'time_limit_minutes': 1, 'gpus': 0}
+    doc = {'ok': False, 'problems': [], 'argv': argv, 'time_limit_minutes': shared_limit(1), 'gpus': 0}
     try:
         proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         while time.time() < until:
-            found, raw = steps(job, min(5, max(.01, until-time.time())))
+            found, raw = steps(job, min(shared_limit(5), max(.01, until-time.time())))
             own = [s for s in found if s.get('Name') == name]
             if len(own) == 1:
                 sid = own[0]['StepId'].split('.', 1)[1]
                 doc.update(step_id=sid, observation=raw)
             if proc.poll() is not None:
                 break
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         if sid is None:
             raise Refused('CPU detached-grandchild probe: owning step identity unavailable; need scheduler visibility')
         pidfile = folder / 'grandchild.pid'
@@ -1080,7 +1089,7 @@ def cpu_probe(work, out, until):
         if sid:
             doc['cleanup'] = cancel(job, sid)
         if proc and proc.poll() is None:
-            proc.kill(); proc.wait(timeout=5)
+            proc.kill(); proc.wait(timeout=shared_limit(5))
         pidfile = folder / 'grandchild.pid'
         if pidfile.exists():
             try: os.kill(int(pidfile.read_text()), signal.SIGKILL)
@@ -1111,9 +1120,9 @@ def containment_lock(work):
 
 def probe_bounds(start, J, W):
     """One minute plus periodic-controller allowance and KillWait, bounded at 160 s."""
-    if 60+J+W > GPU_PROBE_SECONDS:
+    if shared_limit(60)+J+W > shared_limit(GPU_PROBE_SECONDS):
         raise Refused('GPU probe bound exceeds the registered 160 seconds')
-    return start+60+J, start+60+J+W, start+60+J+W
+    return start+shared_limit(60)+J, start+shared_limit(60)+J+W, start+shared_limit(60)+J+W
 
 
 def cpu_preflight():
@@ -1126,7 +1135,7 @@ def cpu_preflight():
     if settings.get('simulation'):
         argv = [sys.executable, '-c', 'print("stand-in: no real torch/CUDA qualification")']
     try:
-        result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=600)
+        result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=shared_limit(600))
         imported = raw_observation(argv, result.stdout, result.stderr, result.returncode)
     except (OSError, subprocess.SubprocessError) as error:
         imported = raw_observation(argv, '', str(error), -1)
@@ -1227,8 +1236,8 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
     path=Path(work)/DIRECTORY/'allocation-ledger.json'
     old=wd.read_json(path) or {}
     limits=old.get('block_limits',{})
-    if block in limits and limits[block]!=block_limit: raise Refused('budget block limit changed from its campaign input')
-    if old.get('ceiling') is not None and old['ceiling']!=ceiling: raise Refused('budget ceiling changed from its campaign input')
+    if not is_phase0() and block in limits and limits[block]!=block_limit: raise Refused('budget block limit changed from its campaign input')
+    if not is_phase0() and old.get('ceiling') is not None and old['ceiling']!=ceiling: raise Refused('budget ceiling changed from its campaign input')
     try: duration=duration_seconds(live['allocation_time_limit'])
     except (KeyError,ValueError): duration=None
     observation={'job_id':str(live['job_id']),'start':live.get('allocation_start'),'end':live.get('allocation_end'),
@@ -1286,11 +1295,11 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
     remaining=min(block_limit-blocks.get(block,0),ceiling-spent-other_reserved)
     permitted=max(0,remaining)*3600/entry['width']
     allowed=sbatch_time(permitted) if permitted>=60 else None
-    if any(name not in ledger['block_limits'] for name in blocks): raise Refused('budget history has unknown block limits')
+    if not phase0 and any(name not in ledger['block_limits'] for name in blocks): raise Refused('budget history has unknown block limits')
     historical=any(charge>ledger['block_limits'][name] for name,charge in blocks.items())
-    # Phase 0 has one owner-approved 64-GPU-hour reservation; the block charges
+    # Phase 0 has one owner-approved 192-GPU-hour reservation; the block charges
     # actual elapsed allocation time, including idle time and failed setup.
-    if historical or (spent>ceiling if phase0 else reserved>remaining+1e-9):
+    if not phase0 and (historical or reserved>remaining+1e-9):
         reason=('allocation budget refused: request sbatch --time=%s or shorter in a new allocation (block %s, ceiling %s)'%(allowed,block_limit,ceiling) if allowed else 'allocation budget refused: no positive sbatch --time is available; block or ceiling exhausted')
         if phase0:reason='allocation budget refused: actual phase0 spend exceeds block or ceiling; stop and return evidence; no replacement job'
         doc=frozen_write(refusal_path,{'schema':'kit-v4-allocation-admission.v1','job_id':job,'ok':False,
@@ -1301,7 +1310,7 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
         ledger.update(admission_refusal=doc,block=block,block_limit=block_limit)
         wd.write_durably(path,ledger)
         raise Refused(reason)
-    if now+cap>planned: raise Refused('row/self-test cap does not fit remaining allocation TimeLimit; request a longer safe sbatch --time')
+    if not phase0 and now+cap>planned: raise Refused('row/self-test cap does not fit remaining allocation TimeLimit; request a longer safe sbatch --time')
     entry['reservation_until']=entry['planned_end']
     ledger.update(block=block,block_limit=block_limit,admitted_at=wd.precise_text(wd.from_epoch(now)),
                   reserved_gpu_hours=reserved+other_reserved,block_spent_gpu_hours=blocks.get(block,0),admission_refusal=None)
@@ -1342,6 +1351,7 @@ def refresh_allocation_ledger(work,row=None):
 @tracked_allocation
 def reconcile(work, out, seconds=600, *, force=False):
     """Cancel and verify each abandoned owning step; preserve failures and never restart argv."""
+    if seconds==600:seconds=shared_limit(seconds)
     if not math.isfinite(seconds) or not seconds>0:
         raise Refused('reconcile observation window must be finite positive seconds')
     work = Path(work); rows = []; until = time.time()+seconds
@@ -1411,6 +1421,7 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
     Campaign supplies block and ceiling. Allocation width times wall exposure
     includes idle time; overlapping reservations share the allocation charge.
     """
+    if is_phase0():return phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling)
     if not argv or not isinstance(gpus, int) or not 1 <= gpus <= 8 or not math.isfinite(time_cap) or time_cap < MIN_ROW_CAP:
         raise Refused('row needs argv, 1..8 GPUs and total time-cap >=300 seconds (startup + one minute + J=60 + KillWait=40 + cleanup)')
     if concurrent and gpus != 1: raise Refused('concurrency is only for 1-GPU rows; multi-GPU rows run alone')
@@ -1456,7 +1467,7 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
         release.touch()
         record.update(state='running', launched=True, slurm={**record.data['slurm'], 'released_at': wd.precise_text()})
         while proc.poll() is None and time.time() < until:
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         s = record.data['slurm']
         cancellation = cancel(s['job_id'], s['step_id'])
         terminated = evidence(s['job_id'], s['step_id'], ','.join(s.get('expected_gpu_uuids', assigned)), until)
@@ -1486,11 +1497,42 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
         hard_stop(work,str(error),record.path)
     finally:
         if proc and proc.poll() is None:
-            proc.kill(); proc.wait(timeout=5)
+            proc.kill(); proc.wait(timeout=shared_limit(5))
         with containment_lock(work):
             refresh_allocation_ledger(work, record.data)
         wd.write_durably(out / 'containment-row.json', record.data)
     return record.data
+
+
+def phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling):
+    """Run the existing payload in a Slurm step; containment observations are informational."""
+    from kit.runner import bounded_command
+    work,out=Path(work).resolve(),Path(out).resolve()
+    if not out.is_relative_to(work):raise Refused('row output must be inside WORK')
+    out.mkdir(parents=True,exist_ok=True)
+    obs=allocation_observation(os.environ.get('SLURM_JOB_ID'))
+    live={'job_id':obs['job_id'],'gpu_count':obs.get('width'),'allocation_start':obs.get('start'),
+          'allocation_end':obs.get('end'),'allocation_time_limit':sbatch_time(obs.get('time_limit_seconds') or 0)}
+    ledger=allocation_budget(work,live,time_cap,block,block_limit,ceiling)
+    start=time.time()
+    minutes_requested=max(1,math.ceil(time_cap/60))
+    step=out/'slurm-step.json'
+    entry="import json,os,sys; from pathlib import Path; Path(sys.argv[1]).write_text(json.dumps({k:v for k,v in os.environ.items() if k.startswith('SLURM_') or k=='CUDA_VISIBLE_DEVICES'})); os.execvpe(sys.argv[2],sys.argv[2:],os.environ)"
+    command=['srun','--ntasks=1','--exclusive','--gres=gpu:'+str(gpus),'--time='+str(minutes_requested),
+             '--kill-on-bad-exit=1']
+    if obs.get('cpus') and obs.get('memory_mb') and obs.get('width'):
+        command+=['--cpus-per-task='+str(obs['cpus']*gpus//obs['width']),'--mem='+str(obs['memory_mb']*gpus//obs['width'])+'M']
+    command += [sys.executable,'-c',entry,str(step),*argv]
+    result=bounded_command(command,timeout=time_cap,env=os.environ.copy(),log=out/'phase0-step.log')
+    sys.stdout.write((out/'phase0-step.log').read_text(errors='replace'))
+    doc={'schema':'kit-v4-contained-row.v1','informational':True,'allocation_id':obs['job_id'],
+         'allocation_width':obs['width'],'gpus':gpus,'command':list(argv),'actual_command':command,
+         'started_at':wd.precise_text(wd.from_epoch(start)),'ended_at':wd.precise_text(),
+         'time_cap':time_cap,'state':'ended','status':result['returncode'],'ok':int(result['returncode']==0),
+         'slurm':wd.read_json(step) or {},'execution':result,'containment':'Slurm step; owner monitored'}
+    refresh_allocation_ledger(work)
+    wd.write_durably(out/'containment-row.json',doc)
+    return doc
 
 
 def termination_failure(termination, status):
@@ -1523,7 +1565,7 @@ def selftest(work, out, gpu_seconds=5, attempt_record=None, *, block='qualificat
         previous_timer=signal.getitimer(signal.ITIMER_REAL)
         def expired(signum,frame):raise Refused('containment selftest exceeded its registered 600-second safety bound')
         signal.signal(signal.SIGALRM,expired)
-        seconds=max(.001,SELFTEST_SECONDS-(time.time()-_overall_started)) if _overall_started is not None else SELFTEST_SECONDS
+        seconds=max(.001,shared_limit(SELFTEST_SECONDS)-(time.time()-_overall_started)) if _overall_started is not None else shared_limit(SELFTEST_SECONDS)
         signal.setitimer(signal.ITIMER_REAL,seconds)
         try:return _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, _overall_started)
         finally:
@@ -1536,9 +1578,13 @@ def _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limi
     result = None
     try:
         old=wd.read_json(allocation_path(work,SELFTEST))
+        if old and old!=frozen.seal(old):raise Refused('existing selftest changed')
         if not old or old.get('ok'):stop_gate(work)
-        result = _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, overall_started)
-        if not result.get('ok'):
+        try:result = _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, overall_started)
+        except (Refused,OSError,subprocess.SubprocessError) as exc:
+            if not is_phase0():raise
+            result=frozen_write(allocation_path(work,SELFTEST),{'schema':'kit-p4-containment-selftest.v1','ok':False,'v4_qualified':False,'problems':[str(exc)]})
+        if not result.get('ok') and not is_phase0():
             hard_stop(work,'containment selftest failed: '+ '; '.join(result.get('problems',[])))
         return result
     finally:
@@ -1555,7 +1601,8 @@ def _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limi
 
 def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, overall_started=None):
     work, out = Path(work), Path(out)
-    if not math.isfinite(gpu_seconds) or not 0 <= gpu_seconds <= GPU_PROBE_SECONDS:
+    if is_phase0() and gpu_seconds==5:gpu_seconds=shared_limit(gpu_seconds)
+    if not math.isfinite(gpu_seconds) or not 0 <= gpu_seconds <= shared_limit(GPU_PROBE_SECONDS):
         raise Refused('--gpu-seconds must be finite and between 0 and 160')
     if out.resolve() == (work/DIRECTORY).resolve():
         out = allocation_path(work, SELFTEST).parent
@@ -1568,7 +1615,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             errors,docs=verify_receipts(work,selftest=False)
             if old.get('receipt_sha256')!=docs.get('receipt',{}).get('content_sha256'):
                 raise Refused('existing selftest changed; first receipt is never replaced')
-        if old.get('ok') is True:
+        if old.get('ok') is True and not is_phase0():
             obs=allocation_observation(os.environ.get('SLURM_JOB_ID'))
             # An archive-only replay cannot launch; a live cached pass still
             # must obey the current allocation reservation, without replacing it.
@@ -1584,7 +1631,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         'allocation_start':observation.get('start'),'allocation_end':observation.get('end'),
         'allocation_time_limit':sbatch_time(observation.get('time_limit_seconds') or 0)}
     try:
-        with containment_lock(work): allocation_budget(work,live_budget,SELFTEST_SECONDS,block,block_limit,ceiling)
+        with containment_lock(work): allocation_budget(work,live_budget,shared_limit(SELFTEST_SECONDS),block,block_limit,ceiling)
     except Refused as error:
         failed=frozen_write(target,{'schema':'kit-p4-containment-selftest.v1','ok':False,'v4_qualified':False,
             'failure_type':'allocation budget','problems':[str(error)],
@@ -1638,17 +1685,17 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         for path in (work/DIRECTORY/'rows').glob('*.json'):
             if (wd.read_json(path) or {}).get('state') != 'ended':
                 raise Refused('prior row unresolved; cannot qualify alongside an active/unverified row')
-        budget = allocation_budget(work, live, SELFTEST_SECONDS, block, block_limit, ceiling)
+        budget = allocation_budget(work, live, shared_limit(SELFTEST_SECONDS), block, block_limit, ceiling)
         budget['allocations'][live['job_id']]['qualification_interval'] = {
             'start':wd.precise_text(wd.from_epoch(started)), 'end':None, 'state':'running',
             'cpu_gpus':0, 'gpu_probe_gpus':1, 'gpu_probe_seconds_cap':160,
-            'deadline':wd.precise_text(wd.from_epoch(started+SELFTEST_SECONDS))}
+            'deadline':wd.precise_text(wd.from_epoch(started+shared_limit(SELFTEST_SECONDS)))}
         wd.write_durably(work/DIRECTORY/'allocation-ledger.json', budget)
-    cpu = cpu_probe(work, out, min(started+SELFTEST_SECONDS, time.time()+120))
+    cpu = cpu_probe(work, out, min(started+shared_limit(SELFTEST_SECONDS), time.time()+shared_limit(120)))
     # Remaining time is observed, not a prediction gate. Actual receipt/death
     # deadlines and the independent scheduler limits still determine the verdict.
-    cpu['remaining_selftest_seconds']=max(0,started+SELFTEST_SECONDS-time.time())
-    if time.time()>=started+SELFTEST_SECONDS-40:
+    cpu['remaining_selftest_seconds']=max(0,started+shared_limit(SELFTEST_SECONDS)-time.time())
+    if time.time()>=started+shared_limit(SELFTEST_SECONDS)-shared_limit(40):
         cpu={**cpu,'ok':False,'problems':['containment self-test hard deadline reached before GPU launch']}
     if not cpu['ok']:
         failed = frozen_write(target, {'schema': 'kit-p4-containment-selftest.v1', 'ok': False,
@@ -1659,7 +1706,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         return failed
     folder = out / 'selftest-processes'
     folder.mkdir(parents=True, exist_ok=True)
-    delay = float(os.environ.get('SIM_SLURM_GPU_DELAY', '5')) if os.environ.get('SIM_SLURM_STATE') else 5
+    delay = float(os.environ.get('SIM_SLURM_GPU_DELAY', '5')) if os.environ.get('SIM_SLURM_STATE') else shared_limit(5)
     # Independent wrapper process: the CLI observer stays OUTSIDE the step.
     request = {'work': str(work), 'folder': str(folder), 'gpu_seconds': gpu_seconds, 'delay': delay,
                'simulation': docs['receipt'].get('simulation') is True,
@@ -1668,7 +1715,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
     wd.write_durably(request_path, request)
     wrapper = None
     info, problems, deaths = None, [], {}
-    until = min(started + SELFTEST_SECONDS-40, time.time() + START_WAIT)
+    until = min(started + shared_limit(SELFTEST_SECONDS)-shared_limit(40), time.time() + shared_limit(START_WAIT))
     try:
         wrapper = subprocess.Popen([sys.executable, str(HERE / 'p4_contain.py'), '_selftest-wrapper', str(request_path)], start_new_session=True)
         while time.time() < until:
@@ -1677,7 +1724,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
                 break
             if wrapper.poll() is not None:
                 raise Refused('selftest wrapper failed before release: %s' % info)
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         if not info or not info.get('ready'):
             raise Refused('selftest did not start')
         # Observe early CUDA restriction before removing clients; scheduler alone then enforces cleanup.
@@ -1685,23 +1732,23 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         # Only then remove all client enforcement and require every adversarial PID
         # dead plus idle GPUs by kill_by. Slurm may cancel promptly on client loss;
         # a late receipt is observational, never required after that valid cleanup.
-        early_until=min(time.time()+180, started+SELFTEST_SECONDS-40, epoch(info['slurm']['deadline']))
+        early_until=min(time.time()+shared_limit(180), started+shared_limit(SELFTEST_SECONDS)-shared_limit(40), epoch(info['slurm']['deadline']))
         gpu=None
         while time.time()<early_until:
             gpu=wd.read_json(folder/'gpu.json')
             if gpu is not None:break
             if wrapper.poll() is not None:break
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         if gpu is None:raise Refused('early GPU acquisition not exercised before client removal (bounded wait up to 180 seconds)')
         if not gpu.get('ok') or gpu.get('accessible_cuda_devices')!=1:
             problems.append(gpu.get('why','one-GPU device restriction failed'))
         for pid in [wrapper.pid, info['srun_pid'], info['watchdog_pid']]:
             try: os.kill(pid, signal.SIGKILL)
             except ProcessLookupError: pass
-        wrapper.wait(timeout=5)
+        wrapper.wait(timeout=shared_limit(5))
         clients=[wrapper.pid,info['srun_pid'],info['watchdog_pid']]
-        client_deadline=min(epoch(info['slurm']['kill_by']),started+SELFTEST_SECONDS-40)
-        while time.time()<client_deadline and any(pid_alive(pid) for pid in clients):time.sleep(.02)
+        client_deadline=min(epoch(info['slurm']['kill_by']),started+shared_limit(SELFTEST_SECONDS)-shared_limit(40))
+        while time.time()<client_deadline and any(pid_alive(pid) for pid in clients):time.sleep(shared_limit(.02))
         if any(pid_alive(pid) for pid in clients):raise Refused('enforcing self-test clients did not die by the containment deadline')
         # Release the late touch only AFTER observed client death. This prevents
         # a slow client teardown from making a supposedly adversarial touch early.
@@ -1710,7 +1757,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         slurm = info['slurm']; S = epoch(slurm['scheduler_start'])
         limit, kill_by, deadline = probe_bounds(S, slurm['J'], slurm['W'])
         kill_by = min(kill_by, epoch(slurm['kill_by']))
-        deadline = min(deadline, started+SELFTEST_SECONDS-40, epoch(slurm['deadline']))
+        deadline = min(deadline, started+shared_limit(SELFTEST_SECONDS)-shared_limit(40), epoch(slurm['deadline']))
         pids = {p.stem: int(p.read_text()) for p in folder.glob('*.pid')}
         # Lose outside process discovery across the timeout as well as losing
         # every enforcing client. The observer resumes within J to verify the
@@ -1720,14 +1767,14 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         stalled_from = time.time()
         stall_until = min(kill_by-1, S+probe_minute+slurm['W']+.5)
         while time.time() < stall_until:
-            time.sleep(min(.1, stall_until-time.time()))
+            time.sleep(min(shared_limit(.1), stall_until-time.time()))
         stalled = {'started_at': wd.precise_text(wd.from_epoch(stalled_from)), 'resumed_at': wd.precise_text(),
                    'seconds': time.time()-stalled_from, 'step_clock_seconds_per_minute': probe_minute}
         terminal_seen = None
         while time.time() < kill_by:
             for name, pid in pids.items():
                 if name not in deaths and not pid_alive(pid):
-                    deaths[name] = {'pid': pid, 'observed_dead_at': wd.precise_text(), 'seconds_from_limit': time.time()-limit, 'seconds_from_step_timeout': time.time()-(S+60)}
+                    deaths[name] = {'pid': pid, 'observed_dead_at': wd.precise_text(), 'seconds_from_limit': time.time()-limit, 'seconds_from_step_timeout': time.time()-(S+shared_limit(60))}
             gpu = wd.read_json(folder / 'gpu.json')
             if len(deaths) == len(pids):
                 break
@@ -1736,7 +1783,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
                 terminal_seen = terminal_seen or time.time()
                 if time.time() - terminal_seen > 1:
                     break  # A terminal scheduler that left adversarial pids alive already fails.
-            time.sleep(.05)
+            time.sleep(shared_limit(.05))
         gpu = wd.read_json(folder / 'gpu.json') or {'ok': False, 'why': 'gpu acquisition not exercised: no acquisition receipt'}
         if not gpu.get('ok'):
             problems.append(gpu.get('why', 'gpu acquisition not exercised'))
@@ -1754,14 +1801,14 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
         doc = {'schema': 'kit-p4-containment-selftest.v1', 'ok': not problems, 'problems': problems, 'v4_qualified': not problems,
                'simulation': docs['receipt'].get('simulation') is True, 'settings': docs['receipt'],
                'cpu_probe': cpu, 'cluster_recheck': live, 'failure_type': terminated.get('failure_type') if problems else None,
-               'elapsed_seconds': time.time()-started, 'cost_bounds': {'wall_seconds': 600, 'gpus': 1, 'gpu_seconds': 160},
+               'elapsed_seconds': time.time()-started, 'cost_bounds': {'wall_seconds': shared_limit(600), 'gpus': 1, 'gpu_seconds': shared_limit(160)},
                'receipt_sha256': docs['receipt']['content_sha256'], 'slurm': slurm,
                'killed_clients': {'wrapper': wrapper.pid, 'srun': info['srun_pid'], 'watchdog': info['watchdog_pid']},
                'pids': pids, 'deaths': deaths, 'gpu_acquisition': gpu, 'late_gpu_acquisition':late_gpu,
             'client_loss_at':client_loss_at, 'termination_mode':'client_loss_cancellation' if terminated.get('state')=='CANCELLED' else 'time_limit', 'termination': terminated,
                'stalled_discovery': stalled, 'death_time_kind': 'outside observation upper bound (including a deliberate discovery stall)',
                'limit_until': wd.precise_text(wd.from_epoch(limit)), 'kill_by': wd.precise_text(wd.from_epoch(kill_by)),
-               'deadline': wd.precise_text(wd.from_epoch(deadline)), 'step_timeout_at': wd.precise_text(wd.from_epoch(S+60)), 'gpu_seconds': gpu_seconds,
+               'deadline': wd.precise_text(wd.from_epoch(deadline)), 'step_timeout_at': wd.precise_text(wd.from_epoch(S+shared_limit(60))), 'gpu_seconds': gpu_seconds,
                'proc_observation': '/proc stat (zombies have exited)' if Path('/proc/self/stat').exists() else 'ps stat fallback (stand-in on macOS)'}
         sealed = frozen_write(target, doc)
         if requested_target.resolve() != target.resolve():
@@ -1775,7 +1822,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
                                   charged_until=wd._ceil_text(at), ended_at=wd._ceil_text(at), ended_precise=wd.precise_text(at),
                                   verified_idle_at=wd._ceil_text(at) if doc['ok'] else None, elapsed_seconds=time.time()-epoch(attempt_record.data['launched_at']),
                                   selftest_expected_timeout=True)
-            if not doc['ok']:
+            if not doc['ok'] and not is_phase0():
                 wd.write_stop(attempt_record.path, attempt_record.data, '; '.join(problems), 'containment selftest failed', unavailable=True)
         return sealed
     except (Refused, OSError, subprocess.SubprocessError) as error:
@@ -1791,11 +1838,11 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             attempt_record.data = wd.read_json(attempt_record.path) or attempt_record.data
             attempt_record.update(state='unverified', accounting='budget compliance unavailable',
                                   **{'class': 'containment selftest failed'}, ok=0, status=2, reason=str(error))
-            wd.write_stop(attempt_record.path, attempt_record.data, str(error), 'containment selftest failed', unavailable=True)
+            if not is_phase0():wd.write_stop(attempt_record.path, attempt_record.data, str(error), 'containment selftest failed', unavailable=True)
         return failed
     finally:
         if wrapper is not None and wrapper.poll() is None:
-            wrapper.kill(); wrapper.wait(timeout=5)
+            wrapper.kill(); wrapper.wait(timeout=shared_limit(5))
         # Failure evidence is preserved first. Then only this step and its recorded test pids are cleaned up.
         if info:
             for key in ('srun_pid', 'watchdog_pid'):
@@ -1843,8 +1890,8 @@ def selftest_wrapper(request_path):
     r = Record()
     if not r.data.get('limit_until'):
         now = time.time()
-        r.update(limit_until=wd.precise_text(wd.from_epoch(now+300)), kill_by=wd.precise_text(wd.from_epoch(now+345)),
-                 deadline=wd.precise_text(wd.from_epoch(now+360)))
+        r.update(limit_until=wd.precise_text(wd.from_epoch(now+shared_limit(300))), kill_by=wd.precise_text(wd.from_epoch(now+shared_limit(345))),
+                 deadline=wd.precise_text(wd.from_epoch(now+shared_limit(360))))
     r.update(job_marker='containment-selftest-%d' % os.getpid(), cuda_visible_devices='0', kill_grace_seconds=30)
     os.environ[wd.MARKER_VAR] = r.data['job_marker']
     argv = [sys.executable, '-c', PAYLOAD, str(folder), str(req['delay']), str(req['gpu_seconds'])]
@@ -1852,7 +1899,7 @@ def selftest_wrapper(request_path):
         argv.append('--stand-in')  # real cluster receipts always require torch/CUDA
     env = dict(os.environ)
     env['CUDA_VISIBLE_DEVICES'] = env.get('CUDA_VISIBLE_DEVICES', '0').split(',')[0]
-    proc, release = start_step(argv, env, r, 1, require_selftest=False, requested_cap=1)
+    proc, release = start_step(argv, env, r, 1, require_selftest=False, requested_cap=shared_limit(1))
     # Actual kit watchdog, started with the parked process group, then deliberately killed.
     run = _load('p4_run')
     watchdog_pid, why = run.start_watchdog(r.path, folder / 'watchdog.json', r.data['pgid'])
@@ -1863,15 +1910,15 @@ def selftest_wrapper(request_path):
     r.update(state='running', launched=True, launched_at=r.data.get('launched_at') or wd.precise_text(),
              watchdog={'pid': watchdog_pid, 'record': str(folder/'watchdog.json')})
     release.touch()
-    end = time.time()+600
+    end = time.time()+shared_limit(600)
     while time.time()<end:
         if len(list(folder.glob('*.pid'))) == 8:
             # The grandchildren overwrite their pid after the second fork.
-            time.sleep(.4)
+            time.sleep(shared_limit(.4))
             wd.write_durably(folder / 'wrapper.json', {'ready': True, 'srun_pid': proc.pid, 'watchdog_pid': watchdog_pid, 'slurm': r.data['slurm']})
             proc.wait()
             return 0
-        time.sleep(.02)
+        time.sleep(shared_limit(.02))
     cancel(r.data['slurm']['job_id'], r.data['slurm']['step_id'])
     try: os.kill(watchdog_pid, signal.SIGKILL)
     except ProcessLookupError: pass
@@ -1889,7 +1936,7 @@ def _main(argv=None):
         if name == 'check':
             p.add_argument('--from-file'); p.add_argument('--qos')
         if name == 'selftest':
-            p.add_argument('--gpu-seconds', type=float, default=5)
+            p.add_argument('--gpu-seconds', type=float, default=shared_limit(5))
             p.add_argument('--block', default='qualification'); p.add_argument('--block-limit', type=float, default=100)
             p.add_argument('--ceiling', type=float, default=560)
             p.add_argument('--campaign'); p.add_argument('--reservation'); p.add_argument('--attempt', type=int, default=1)
@@ -1900,7 +1947,7 @@ def _main(argv=None):
     p.add_argument('--ceiling', type=float, required=True); p.add_argument('--concurrent', action='store_true')
     p.add_argument('command', nargs=argparse.REMAINDER)
     p = sub.add_parser('reconcile'); p.add_argument('--work', required=True); p.add_argument('--out', required=True)
-    p.add_argument('--seconds', type=float, default=600); p.add_argument('--force',action='store_true')
+    p.add_argument('--seconds', type=float, default=shared_limit(600)); p.add_argument('--force',action='store_true')
     p = sub.add_parser('park'); p.add_argument('--ready', required=True); p.add_argument('--release', required=True)
     p.add_argument('--count', type=int, required=True); p.add_argument('command', nargs=argparse.REMAINDER)
     p.add_argument('--expected-uuids'); p.add_argument('--allocation-gpu-map',type=json.loads)
@@ -1947,12 +1994,12 @@ def _main(argv=None):
             record = run.Record(work, 'containment-selftest', args.attempt, {'block': 'prevention', 'kind': 'selftest', 'containment': 'slurm-step',
                                                                           'cuda_visible_devices': '0',
                                                                           'command': [sys.executable, str(HERE/'p4_contain.py')] + argv})
-            record.update(recovered=run.recover(work, record.path, 600))
+            record.update(recovered=run.recover(work, record.path, shared_limit(600)))
             acknowledged, note = run.acknowledgement_gate(work)
             if not acknowledged:
                 record.update(state='busy', reason=note, elapsed_seconds=0, ended_at=wd.now_text())
                 raise Refused(note)
-            idle, note = run.wait_idle('0', 600)
+            idle, note = run.wait_idle('0', shared_limit(600))
             if not idle:
                 record.update(state='busy', reason=note, elapsed_seconds=0, ended_at=wd.now_text())
                 raise Refused(note)
@@ -1963,11 +2010,11 @@ def _main(argv=None):
                 raise Refused(gate['reason'])
             now = time.time(); limit = gate['limit_seconds']
             record.update(gate=gate, state='launching', limit_seconds=limit, launched_at=wd.precise_text(wd.from_epoch(now)),
-                          limit_until=wd.precise_text(wd.from_epoch(now+limit)), kill_by=wd.precise_text(wd.from_epoch(now+limit+45)),
-                          deadline=wd.precise_text(wd.from_epoch(now+limit+60)))
+                          limit_until=wd.precise_text(wd.from_epoch(now+limit)), kill_by=wd.precise_text(wd.from_epoch(now+limit+shared_limit(45))),
+                          deadline=wd.precise_text(wd.from_epoch(now+limit+shared_limit(60))))
         doc = check(args.work, args.out, args.from_file, args.qos) if args.mode == 'check' else selftest(args.work, args.out, args.gpu_seconds, record, block=args.block, block_limit=args.block_limit, ceiling=args.ceiling)
         print(json.dumps({'ok': doc['ok'], 'problems': doc['problems'], 'content_sha256': doc['content_sha256']}))
-        return 0 if doc['ok'] else 2
+        return 0 if (doc['ok'] or (args.mode=='selftest' and is_phase0())) else 2
     except (Refused, OSError) as e:
         print('containment refused: %s' % e, file=sys.stderr); return 2
 

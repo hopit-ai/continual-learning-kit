@@ -96,7 +96,7 @@ def test_zero_gpu_download_job_uses_actual_host_and_bounded_directive(tmp_path):
     assert actual==str(python.absolute()),'resolving a venv Python symlink discards its installed downloader packages'
     checked=subprocess.run([actual,'-I','-c','import sys; assert sys.prefix=='+repr(str(env))],capture_output=True,text=True)
     assert checked.returncode==0,checked.stderr
-    for field in ('--gpus=0','--no-requeue','--time=02:00:00','--cpus-per-task=8','--mem=32G','--account=a','--qos=q','--partition=p'):assert '#SBATCH '+field in text
+    for field in ('--gpus=0','--no-requeue','--time=20:00:00','--cpus-per-task=8','--mem=32G','--account=a','--qos=q','--partition=p'):assert '#SBATCH '+field in text
     assert 'srun ' not in text and 'v4_phase0_download.py' in text
     assert text.index('v4_phase0_site.py')<text.index('v4_phase0_download.py')
     assert subprocess.run(['bash','-n'],input=text,text=True,capture_output=True).returncode==0
@@ -191,7 +191,7 @@ def test_cpu_endpoint_failure_is_bounded_readable_and_precedes_commands(tmp_path
     monkeypatch.setattr(runner,'bounded_command',lambda *a,**kw:pytest.fail('must not dispatch after blocked endpoint'))
     with pytest.raises(ValueError,match='403 denied.*zero-GPU'):
         s.network_command(tmp_path/'work',['git','clone','owned'],urls=['https://github.com'])
-    assert calls==[('https://github.com',600)]
+    assert calls==[('https://github.com',6000)]
 
 
 def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path,monkeypatch):

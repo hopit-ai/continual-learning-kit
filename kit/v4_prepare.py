@@ -14,6 +14,8 @@ if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().paren
 KIT=Path(__file__).resolve().parent
 
 
+from kit.v4_phase0_timing import scale
+
 def digest(path):
     result=hashlib.sha256()
     with Path(path).open('rb') as handle:
@@ -87,7 +89,7 @@ print('patched first CPU batch passed')
                 DRY_RUN='1',V4_PROFILE='technical-smoke',STEPS='2',DATA_MANIFEST=str(out/'future-manifest.json'),
                 TRAIN_FILE=str(out/'future-train.parquet'),VAL_FILE=str(out/'future-val.parquet'),
                 DATASET='datasets/v4_chem',REWARD_FILE=str(KIT/'beds/v4_reward.py'))
-        result=bounded_command(command,timeout=600 if phase=='phase0' else 120,env=command_env,log=out/f'{index}.log')
+        result=bounded_command(command,timeout=scale(600) if phase=='phase0' else 120,env=command_env,log=out/f'{index}.log')
         observations.append({'name':name,'command':command,**result,'log_sha256':digest(out/f'{index}.log')})
         if result['returncode']:
             write_durably(out/'failure.json',{'failure_type':'cpu_import_smoke','observations':observations})
@@ -95,7 +97,7 @@ print('patched first CPU batch passed')
     from kit.v4_teacher import runtime_versions
     write_durably(out/'receipt.json',{'schema':'v4-import-smoke.v1','ok':True,'inventory':inventory,
         'observations':observations,'environment':{'runtime_versions':runtime_versions(),'python':sys.version,
-        'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=600 if phase=='phase0' else 30).strip()}})
+        'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=scale(600) if phase=='phase0' else 30).strip()}})
     return out/'receipt.json'
 
 
@@ -115,7 +117,7 @@ def prepare(work,phase):
     if os.environ.get('V4_STATIC_PREPARE_PLAN'):
         plan=json.loads(Path(os.environ['V4_STATIC_PREPARE_PLAN']).read_text())
         for entry in plan['commands']:
-            result=bounded_command(entry['argv'],timeout=max(600,entry['timeout_seconds']) if phase=='phase0' else entry['timeout_seconds'])
+            result=bounded_command(entry['argv'],timeout=scale(max(600,entry['timeout_seconds'])) if phase=='phase0' else entry['timeout_seconds'])
             if result['returncode']:raise ValueError(result['failure_type']+': static preparation')
     from kit.v4_campaign_ops import prepare as data_prepare
     data_prepare(work,phase)

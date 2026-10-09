@@ -28,9 +28,11 @@ def require(value,message):
 def load(path): return json.loads(Path(path).read_text())
 
 
+from kit.v4_phase0_timing import shared_limit
+
 def run(argv,env=None):
     """Run exactly one existing tool, inheriting containment's device selection."""
-    subprocess.run(argv,env={**os.environ,**(env or {})},check=True,timeout=int(os.environ.get('V4_COMMAND_TIMEOUT','1800')))
+    subprocess.run(argv,env={**os.environ,**(env or {})},check=True,timeout=int(os.environ.get('V4_COMMAND_TIMEOUT',str(shared_limit(1800)))))
 
 
 def paths(work,phase):
@@ -109,7 +111,7 @@ def identity_gate(work):
     receipt=load(os.environ['V4_OWNER_PROCEED'])
     archive=Path(os.environ['V4_QUALIFICATION_ARCHIVE'])
     require(receipt.get('owner_proceed') is True and receipt['qualification_sha256']==t.sha(archive.read_bytes()),'owner proceed is missing or bound to another archive')
-    tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=30).strip()
+    tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=shared_limit(30)).strip()
     qualification=load(paths(work,'qualification')/'environment.json')
     require(tag==receipt['new_kit_tag'] and tag!=qualification['kit_tag'],'a new immutable manager tag is required')
     from kit.v4_readers import read_qualification
@@ -493,7 +495,7 @@ def qualification_configs(work,phase="qualification",task="chemistry"):
         ident=f'q-{arm}-{task}';scheduled=base/f'scheduled/{task}-s101'
         if not scheduled.exists():schedule(work,phase,ident)
         env={**os.environ,**launcher_env(work,arm,ident,scheduled),'DRY_RUN':'1'}
-        dry=subprocess.run(['bash',str(KIT/'run_v4.sh')],env=env,capture_output=True,text=True,timeout=120,check=True)
+        dry=subprocess.run(['bash',str(KIT/'run_v4.sh')],env=env,capture_output=True,text=True,timeout=shared_limit(120),check=True)
         argv=dry.stdout.strip().split('\n')
         if arm in 'FR':
             # Remove only the distributed process launcher. Keep the exact script,
@@ -502,14 +504,14 @@ def qualification_configs(work,phase="qualification",task="chemistry"):
             env.update(KIT_SFT_ARM_F='1',KIT_SFT_ARM=arm,KIT_SFT_SEED='101')
         else:command=[sys.executable]+argv[1:]
         command+=['--cfg','job','--resolve']
-        resolved=subprocess.run(command,env=env,cwd=os.environ['SDPO_DIR'],capture_output=True,text=True,timeout=180,check=True)
+        resolved=subprocess.run(command,env=env,cwd=os.environ['SDPO_DIR'],capture_output=True,text=True,timeout=shared_limit(180),check=True)
         from kit.runner import write_durably
         target=out/(arm+'.yaml')
         if target.exists():require(target.read_text()==resolved.stdout,'resolved qualification config changed')
         else:target.write_text(resolved.stdout)
         t.atomic_json(out/(arm+'-command.json'),{'launcher':'run_v4.sh','arm':arm,'argv':argv,'resolve_command':command,
             'returncode':resolved.returncode,'resolved_sha256':t.sha(resolved.stdout),'trainer_commit':subprocess.check_output(
-                ['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=30).strip()})
+                ['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=shared_limit(30)).strip()})
         configs[arm]=yaml.safe_load(resolved.stdout)
     validate_configs(configs)
     t.atomic_json(base/'resolved-configs.json',{'ok':True,'arms':list('SFRD')})
@@ -528,7 +530,7 @@ def scoring_environment_gate(work):
     require(current['versions']==baseline['versions'] and current['gpus']==baseline['gpus'],'scoring GPU or environment differs from qualification')
     selected=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')[0]
     require(bool(selected),'unknown designated scoring GPU')
-    actual=subprocess.check_output(['nvidia-smi','-i',selected,'--query-gpu=uuid','--format=csv,noheader'],text=True,timeout=30).strip()
+    actual=subprocess.check_output(['nvidia-smi','-i',selected,'--query-gpu=uuid','--format=csv,noheader'],text=True,timeout=shared_limit(30)).strip()
     require(actual==physical,'designated physical scoring GPU differs from qualification')
     return physical
 
@@ -564,9 +566,9 @@ def main(argv=None):
         scoring_environment_gate(args.work)
         registered_caps(args.work)
     if operation=='environment':
-        tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=30).strip()
+        tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=shared_limit(30)).strip()
         t.atomic_json(base/'environment.json',{'kit_tag':tag,'runtime_versions':t.runtime_versions(),
-             'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=30).strip(),
+             'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=shared_limit(30)).strip(),
              'inference_commit':os.environ.get('V4_INFERENCE_COMMIT')})
     elif operation=='prepare':
         from kit.v4_prepare import prepare as cpu_prepare
@@ -578,7 +580,7 @@ def main(argv=None):
         from kit.runner import bounded_command
         destination=base/'runner-profile';destination.mkdir(parents=True,exist_ok=True)
         result=bounded_command([sys.executable,str(KIT/'v4_runner_profile.py'),'--out',str(destination/'profile.json')],
-            timeout=900,log=destination/'output.log')
+            timeout=shared_limit(900),log=destination/'output.log')
         if result['returncode']:raise ValueError(result['failure_type']+': runner profile')
     elif operation=='agreement':
         from kit.v4_archive import DirectoryEvidence

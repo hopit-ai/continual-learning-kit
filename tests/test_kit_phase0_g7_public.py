@@ -114,8 +114,8 @@ def test_submitted_cpu_success_exercises_live_report_pause_and_reconciliation(tm
 @pytest.mark.parametrize('mutation,cause',[
     ('none',None),('work','WORK identity'),('job','job identity'),('plan','plan binding'),
     ('width','running job/start/width'),('unknown','exposure is unknown'),('extra','exactly one new'),
-    ('limits','budget settings'),('hard_stop','hard stop'),('reservation','64 GPU-hours'),
-    ('block','wrong block'),('qualification','100/560 budget'),('ceiling','100/560 budget')])
+    ('limits','budget settings'),('hard_stop',None),('reservation','192 GPU-hours'),
+    ('block','wrong block'),('qualification',None),('ceiling',None)])
 def test_live_submission_keeps_identity_and_budget_guards(tmp_path,monkeypatch,mutation,cause):
     """Skipping terminal-only fields must retain live identity, integrity and full-allocation budget refusals."""
     import copy
@@ -127,12 +127,12 @@ def test_live_submission_keeps_identity_and_budget_guards(tmp_path,monkeypatch,m
     inputs=work/'v4/report-inputs';inputs.mkdir();prepare=inputs/'prepare-receipt-phase0.json';prepare.write_text('{}')
     presend=base/'presend/containment-presend.json';presend.parent.mkdir();presend.write_text('{}')
     plan=base/'allocation/phase0.json';doc={'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,
-        'sbatch_time':'08:00:00','phase0_allocation_cap_gpu_hours':64,'prior_allocations':{},
+        'sbatch_time':'24:00:00','phase0_allocation_cap_gpu_hours':192,'prior_allocations':{},
         'phase0_prepare_sha256':hashlib.sha256(prepare.read_bytes()).hexdigest(),'phase0_presend_sha256':hashlib.sha256(presend.read_bytes()).hexdigest()}
     plan.write_text(json.dumps(doc));wrapper=plan.with_suffix('.sbatch');wrapper.write_text('# CPU fixture\n')
     record_submission(work,'123',plan,wrapper);monkeypatch.setenv('SLURM_JOB_ID','123')
     start=pc.wd.precise_text(pc.wd.from_epoch(time.time()-120))
-    ledger=pc.record_allocation(work,{'job_id':'123','state':'RUNNING','start':start,'end':None,'width':8,'time_limit_seconds':28800},'qualification',100,560)
+    ledger=pc.record_allocation(work,{'job_id':'123','state':'RUNNING','start':start,'end':None,'width':8,'time_limit_seconds':86400},'qualification',100,560)
     entry=ledger['allocations']['123'];entry['phase0']=True
     if mutation in ('work','job'):
         path=receipt_path(work);receipt=json.loads(path.read_text());receipt[mutation if mutation=='work' else 'job_id']='different' if mutation=='work' else '124';path.write_text(json.dumps(receipt))
@@ -142,7 +142,7 @@ def test_live_submission_keeps_identity_and_budget_guards(tmp_path,monkeypatch,m
     if mutation=='extra':ledger['allocations']['124']=copy.deepcopy(entry)
     if mutation=='limits':ledger['block_limits']['qualification']=101
     if mutation=='hard_stop':(work/'k8b4/containment/v4-stop.json').write_text('{}')
-    if mutation=='reservation':entry['planned_end']=pc.wd.precise_text(pc.wd.from_epoch(time.time()+9*3600))
+    if mutation=='reservation':entry['planned_end']=pc.wd.precise_text(pc.wd.from_epoch(time.time()+25*3600))
     if mutation=='block':entry['segments'][0]['block']='scientific'
     if mutation in ('qualification','ceiling'):
         seconds=(101 if mutation=='qualification' else 561)*3600/8

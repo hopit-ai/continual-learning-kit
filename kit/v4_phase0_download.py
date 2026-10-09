@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from kit.v4_phase0_timing import scale
 from kit.v4_phase0_site import storage,free_space
 from kit.runner import bounded_command,write_durably
 MODELS={'initial':('Qwen/Qwen3-8B','b968826d9c46dd6066d109eabc6255188de91218'),
@@ -63,7 +64,7 @@ def verify_download_receipt(work,doc=None,paths=None):
 def scheduler_job():
     job=os.environ.get('SLURM_JOB_ID','')
     if not job.isdecimal() or os.environ.get('SLURM_STEP_ID','').isdecimal():raise ValueError('download must run directly in the zero-GPU batch job on a compute node')
-    raw=subprocess.check_output(['scontrol','show','job',job],text=True,timeout=600)
+    raw=subprocess.check_output(['scontrol','show','job',job],text=True,timeout=scale(600))
     fields=dict(re.findall(r'(\w+)=([^\s]+)',raw))
     if fields.get('JobId')!=job or 'AllocTRES' not in fields:raise ValueError('download job identity/allocation not scheduler-verified')
     counts=[int(n) for n in re.findall(r'(?:^|,)gres/gpu(?:[:][^=,]+)?=(\d+)',fields['AllocTRES'])]
@@ -73,7 +74,7 @@ def scheduler_job():
 
 def download_snapshot(repo,revision,hf_home,seconds,log):
     code='from huggingface_hub import snapshot_download; import sys; print(snapshot_download(repo_id=sys.argv[1],revision=sys.argv[2],cache_dir=sys.argv[3]))'
-    result=bounded_command([sys.executable,'-c',code,repo,revision,str(Path(hf_home)/'hub')],timeout=seconds,env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'0','HF_HUB_DOWNLOAD_TIMEOUT':'600','HF_HUB_ETAG_TIMEOUT':'600'},log=log)
+    result=bounded_command([sys.executable,'-c',code,repo,revision,str(Path(hf_home)/'hub')],timeout=seconds,env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'0','HF_HUB_DOWNLOAD_TIMEOUT':str(scale(600)),'HF_HUB_ETAG_TIMEOUT':str(scale(600))},log=log)
     if result['returncode']:raise ValueError('compute HF download failed: '+repo+'; '+str(result.get('failure_type'))+'; see '+str(log))
     expected=snapshot_path(hf_home,repo,revision)
     lines=log.read_text(errors='replace').strip().splitlines()
@@ -94,7 +95,7 @@ def download(work,hf_home):
                 HUGGINGFACE_HUB_CACHE=str(hf_home/'hub'),TRANSFORMERS_CACHE=str(hf_home/'hub'))
             paths={}
             for role,(repo,revision) in MODELS.items():
-                left=7000-(time.monotonic()-clock)
+                left=scale(7000)-(time.monotonic()-clock)
                 if left<=0:raise ValueError('download job deadline reached before '+role)
                 paths[role]=download_snapshot(repo,revision,hf_home,left,folder/(role+'.log'))
             receipt=make_receipt(work,hf_home,paths,slurm);receipt['seconds']=time.monotonic()-clock
@@ -113,7 +114,7 @@ def download_script(work,task_root,kit,account,partition,qos,python):
     return f'''#!/bin/bash
 #SBATCH --no-requeue
 #SBATCH --gpus=0
-#SBATCH --time=02:00:00
+#SBATCH --time={scale(7200)//3600:02d}:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --account={account}

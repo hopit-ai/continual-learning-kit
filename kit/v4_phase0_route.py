@@ -8,6 +8,7 @@ import re
 import shlex
 import sys
 if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from kit.v4_phase0_timing import scale
 from kit.p4_watchdog import write_durably
 QUESTION="Does `k8b_pilot_run.sbatch` launch its container with `srun --container-image`, or directly as the batch process, and can that same image run on the login node without an allocation?"
 
@@ -33,7 +34,7 @@ def probe_route(work,pilot_wrapper):
 def header(work,pilot_wrapper):
     """A one-minute zero-GPU sbatch executes only dependency-light wrapper inspection."""
     kit=Path(__file__).resolve().parent
-    return '#!/bin/bash\n#SBATCH --no-requeue\n#SBATCH --time=00:01:00\n#SBATCH --gpus=0\nset -eu\npython3 '+shlex.quote(str(kit/'v4_phase0_route.py'))+' --work '+shlex.quote(str(Path(work).resolve()))+' --pilot-wrapper '+shlex.quote(str(Path(pilot_wrapper).resolve()))+'\n'
+    return '#!/bin/bash\n#SBATCH --no-requeue\n#SBATCH --time=00:'+str(scale(60)//60)+':00\n#SBATCH --gpus=0\nset -eu\npython3 '+shlex.quote(str(kit/'v4_phase0_route.py'))+' --work '+shlex.quote(str(Path(work).resolve()))+' --pilot-wrapper '+shlex.quote(str(Path(pilot_wrapper).resolve()))+'\n'
 
 
 def main(argv=None):

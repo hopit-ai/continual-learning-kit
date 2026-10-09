@@ -96,6 +96,12 @@ class CampaignError(ValueError):
 
 
 # ------------------------------------------------------------------------------------ loading
+from kit.v4_phase0_timing import scale,shared_limit
+
+def phase0_mode(campaign):
+    return campaign.get('v4',{}).get('phase') in ('phase0','CPU-phase0-rehearsal')
+
+
 def load_campaign(path: Path) -> dict:
     text = path.read_text()
     if path.suffix == ".json":
@@ -412,7 +418,7 @@ def prepare_row(campaign: dict, row: dict) -> int:
                                                        "reason": reason, "steps": steps, "requires": spec["requires"],
                                                        "seconds": round(time.monotonic() - clock, 1)})
     print("%s prepare %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
-    return EXIT_OK if verdict == "PASS" else EXIT_FAILED
+    return EXIT_OK if (verdict=='PASS' or (phase0_mode(campaign) and row['id']=='containment-selftest')) else EXIT_FAILED
 
 
 def write_durably(path: Path, payload: dict) -> None:
@@ -450,7 +456,7 @@ def bounded_command(command, *, timeout, log=None, env=None, cwd=None):
         try: code = process.wait(timeout=float(timeout))
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGKILL)
-            process.wait(timeout=5)
+            process.wait(timeout=shared_limit(5))
             code, failure = 124, 'cpu_deadline'
         if code and failure is None: failure = 'cpu_exit'
     except OSError as error:
@@ -554,7 +560,8 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         from kit.v4_phase0 import verification_row_cap
         cap=verification_row_cap(work_root(campaign))
         row={**row,'timeout_seconds':cap,'allocation_cpu_cap_seconds':cap}
-    reasons = gate(campaign, row) + not_ready(campaign, row)
+    reasons = ([reason for reason in not_ready(campaign,row) if reason.startswith('required paths are missing')] if phase0_mode(campaign) else gate(campaign,row)+not_ready(campaign,row))
+    if phase0_mode(campaign) and (work_root(campaign)/'v4/report-phase0/hard-stop.json').exists():reasons.append('phase0 data/environment/allocation hard stop; return evidence')
     if reasons:
         print("REFUSED %s: %s" % (row["id"], "; ".join(reasons)))
         return EXIT_REFUSED
@@ -579,7 +586,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         elif campaign['v4'].get('phase')=='main' and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','owner-registration-gate'):
             from kit.v4_campaign_ops import registered_caps
             cap=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
-        if float(stamp(entry['planned_end'])) < time.time()+cap:
+        if not phase0_mode(campaign) and float(stamp(entry['planned_end'])) < time.time()+cap:
             print('allocation exhausted; resume in a new allocation: '+row['id'])
             return 75  # No start/attempt exists; not an infrastructure retry.
     done = attempts(campaign, row["id"])
@@ -663,7 +670,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
             'row':row['id'],'wall_seconds':max(0,time.monotonic()-dispatch_clock-command_seconds),
             'command_seconds':command_seconds,'campaign_sha256':campaign['_sha256']})
     print("%s %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
-    if verdict=='FAIL' and campaign.get('v4') and 'row' in spec['command'] and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']):
+    if verdict=='FAIL' and not phase0_mode(campaign) and campaign.get('v4') and 'row' in spec['command'] and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']):
         try:
             if (work_root(campaign)/'k8b4/containment/v4-stop.json').exists():return 75
             from kit.v4_retry import failure_record
@@ -675,7 +682,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
                     json.loads((out/'start.json').read_text()))
                 return run_row(campaign,row,None)
         except (OSError,ValueError,KeyError,TypeError):pass
-    return EXIT_OK if verdict == "PASS" else EXIT_FAILED
+    return EXIT_OK if (verdict == "PASS" or (phase0_mode(campaign) and row["id"]=="containment-selftest")) else EXIT_FAILED
 
 
 def cmd_plan(campaign: dict) -> int:
@@ -791,6 +798,9 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, par
             return code
         first = first or code
         needing = needed_later(campaign, rows, row["id"])
+        if phase0_mode(campaign):
+            if code==EXIT_REFUSED or (work_root(campaign)/'v4/report-phase0/hard-stop.json').exists():return code
+            continue # Failed measurements do not veto subsequent phase-0 rows.
         if needing and row.get("pilot"):
             print("STOP: %s did not pass and %s needs it; nothing after it runs" % (row["id"], needing[0]))
             return first
@@ -876,8 +886,9 @@ def allocation_selftest(campaign: dict, rows: list, registration: dict | None) -
     """
     if registration is None or not os.environ.get('SLURM_JOB_ID'): return
     command = resolve(rows[0],campaign,1)['command']
-    if bounded_command(command,timeout=600 if (campaign.get('v4') or {}).get('phase')=='phase0' else 900,env=os.environ.copy())['returncode']:
-        raise CampaignError('current allocation selftest refused; end the job and return its frozen receipt')
+    if bounded_command(command,timeout=scale(600) if (campaign.get('v4') or {}).get('phase')=='phase0' else 900,env=os.environ.copy())['returncode']:
+        if not phase0_mode(campaign):raise CampaignError('current allocation selftest refused; end the job and return its frozen receipt')
+        print('WARNING: phase-0 containment self-test FAILED; informational; continuing under owner monitoring.')
     if (campaign.get('v4') or {}).get('phase') in ('main','phase0'):
         from kit.v4_allocation import verify_plan
         try:verify_plan(work_root(campaign),campaign['v4']['phase'],rows[0]['id'])

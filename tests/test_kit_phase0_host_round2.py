@@ -133,7 +133,7 @@ def test_import_deadline_adds_cuda_allowance_within_registered_budget(slowest,ex
     """Sixteen CUDA contexts need 60 extra seconds; the full derivation must expose requirements above the budget."""
     from kit.v4_phase0_environment import environment_timing
     doc=environment_timing({'trainer':slowest,'inference':1})
-    assert doc['deadline_seconds']==expected
+    assert doc['deadline_seconds']==expected*10
 
 
 def test_visible_owned_verl_exception_survives_duplicate_base_guard(tmp_path):

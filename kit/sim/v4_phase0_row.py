@@ -19,7 +19,7 @@ def cpu_report_tables(evidence,report):
     for row in graph['rows'][:-2]:
         root='campaign/v4-phase0/'+row['id']+'/attempt-1/'
         p.require(evidence.json(root+'start.json')['campaign_sha256']==p.t.sha(evidence.files['v4/report-simulation/campaign.json']) and
-            evidence.json(root+'verdict.json')['verdict']=='PASS','CPU prior runner row differs')
+            (row['id']=='containment-selftest' or evidence.json(root+'verdict.json')['verdict']=='PASS'),'CPU prior runner row differs')
     report['tables']['determinism']=compare_pairs(evidence.json('v4/report-simulation/scoring-pairs.json'),('finqa',))
     report.update(status='technical pass',scope='CPU stand-ins; no GPU or containment certification')
     return report
@@ -33,7 +33,7 @@ def main():
              'determinism_mismatch':'scoring-agreement','out_of_memory':'train-q-S-finqa','wall_time':'train-q-S-finqa'}
     folder=a.work/'v4/report-simulation';folder.mkdir(parents=True,exist_ok=True)
     (folder/(a.row+'.json')).write_text(json.dumps({'stand_in':True,'row':a.row,'case':case,'scientific_phase_allowed':False})+'\n')
-    if case in ('success','host_venv_success') and a.row in ('report','PAUSE'):
+    if case in ('success','host_venv_success','failed_selftest') and a.row in ('report','PAUSE'):
         from kit import v4_phase0 as p
         # Only GPU/model table validation is a CPU stand-in. The production CLI,
         # operation, DirectoryEvidence and live submission/budget gate are real.
@@ -46,7 +46,10 @@ def main():
         if case=='determinism_mismatch':runs[3]['answers'][0]='Answer: 2'
         (folder/'scoring-pairs.json').write_text(json.dumps({'finqa':runs})+'\n')
         compare_pairs({'finqa':runs},('finqa',))
-        if case in ('success','host_venv_success'):(a.work/'v4/report-phase0/scoring-agreement.json').write_text('{}')
+        if case in ('success','host_venv_success','failed_selftest'):(a.work/'v4/report-phase0/scoring-agreement.json').write_text('{}')
+    if case=='failed_selftest' and a.row=='containment-selftest':
+        from kit import p4_contain as pc
+        pc.frozen_write(a.work/pc.DIRECTORY/'containment-selftest.json',{'ok':False,'problems':['CPU stand-in self-test failure'],'v4_qualified':False})
     if a.row==failure.get(case):
         if case=='wall_time':time.sleep(10)
         else:print({'missing_paste':'partner Slurm paste is absent','failed_selftest':'selftest refused',

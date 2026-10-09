@@ -26,6 +26,7 @@ CACHE_KEYS={'TMPDIR':'tmp','PIP_CACHE_DIR':'pip','XDG_CACHE_HOME':'xdg','TRITON_
     'NUMBA_CACHE_DIR':'numba','FLASHINFER_WORKSPACE_BASE':'flashinfer'}
 
 
+from kit.v4_phase0_timing import scale
 def validate_base_versions(versions,torch_runtime=None):
     for name,pin in BASE_VERSIONS.items():
         value=versions.get(name)
@@ -204,7 +205,7 @@ def storage_environment(work,*,task_root=None,min_gib=0,allocation=False):
     env={key:str(work/'phase0-cache'/folder) for key,folder in CACHE_KEYS.items()}
     env.update(RAY_TMPDIR=RAY_JOB_TMP,VLLM_RPC_BASE_PATH=VLLM_JOB_TMP,HF_HOME=str(task/'hf-cache'),HF_HUB_CACHE=str(task/'hf-cache/hub'),HF_ASSETS_CACHE=str(task/'hf-cache/assets'),
         HUGGINGFACE_HUB_CACHE=str(task/'hf-cache/hub'),TRANSFORMERS_CACHE=str(task/'hf-cache/hub'),
-        PIP_DISABLE_PIP_VERSION_CHECK='1',PIP_DEFAULT_TIMEOUT='30',PIP_RETRIES='1',GIT_TERMINAL_PROMPT='0')
+        PIP_DISABLE_PIP_VERSION_CHECK='1',PIP_DEFAULT_TIMEOUT=str(scale(30)),PIP_RETRIES='1',GIT_TERMINAL_PROMPT='0')
     for key in (*CACHE_KEYS,'HF_HOME','HF_HUB_CACHE','HF_ASSETS_CACHE'):Path(env[key]).mkdir(parents=True,exist_ok=True)
     # Freeze the allocation route on CPU, but create its short directory only in
     # the batch payload, under the site's job-private job_container/tmpfs /tmp.
@@ -236,7 +237,7 @@ def base_environment(work):
         doc['inventory']=distribution_inventory(skipped=doc['skipped_distributions'])
         log=folder/'base-pip-check.log';argv=[sys.executable,'-m','pip','check']
         with storage(work):
-            result=bounded_command(argv,timeout=600,env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
+            result=bounded_command(argv,timeout=scale(600),env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'},log=log)
         doc['pip_check']={'argv':argv,**result,'output':pip_check_output(log.read_bytes()),'log_sha256':hashlib.sha256(log.read_bytes()).hexdigest()}
         if result['returncode'] not in (0,1) or result.get('failure_type') not in (None,'cpu_exit'):
             raise ValueError('base pip check could not finish; retain this setup blocker')
@@ -274,7 +275,7 @@ def check_network(urls):
     import urllib.request
     for url in urls:
         try:
-            with urllib.request.urlopen(urllib.request.Request(url,method='HEAD'),timeout=600) as response:
+            with urllib.request.urlopen(urllib.request.Request(url,method='HEAD'),timeout=scale(600)) as response:
                 if response.status>=400:raise ValueError('HTTP '+str(response.status))
         except Exception as exc:
             action=('Retain the setup blocker and return it; prepare cannot run under SLURM_JOB_ID.'
@@ -283,7 +284,7 @@ def check_network(urls):
             raise ValueError('CPU network unavailable at '+url+': '+str(exc)+'. '+action) from exc
 
 
-def network_command(work,argv,*,seconds=600,urls=()):
+def network_command(work,argv,*,seconds=scale(600),urls=()):
     from kit.runner import bounded_command
     with storage(work,min_gib=30 if 'pip' in argv else 0):
         check_network(urls)
@@ -297,7 +298,7 @@ def network_command(work,argv,*,seconds=600,urls=()):
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('operation',choices=('storage','network','audit-trainer','ray-check','socket-check'))
     p.add_argument('--work',type=Path,required=True);p.add_argument('--task-root',type=Path);p.add_argument('--min-gib',type=int,default=0)
-    p.add_argument('--url',action='append',default=[]);p.add_argument('--seconds',type=int,default=600)
+    p.add_argument('--url',action='append',default=[]);p.add_argument('--seconds',type=int,default=scale(600))
     p.add_argument('--allocation',action='store_true')
     argv=list(sys.argv[1:] if argv is None else argv);command=[]
     if '--' in argv:

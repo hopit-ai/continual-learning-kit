@@ -28,10 +28,10 @@ def planner(monkeypatch):
                 'MODEL_DIR':str(models),'TEACHER_MODEL_DIR':str(models)}
         monkeypatch.setattr(p,'verify_presend',lambda work:{})
         # Isolate filesystem admission; the real relaxed graph is refused in v3 integration.
-        monkeypatch.setattr(p,'required_seconds',lambda *args:28800)
+        monkeypatch.setattr(p,'required_seconds',lambda *args:86400)
         monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':.5,'environment_check':{'deadline_seconds':180}})
         monkeypatch.setattr(p,'frozen_launch_environment',lambda work:launch)
-        yield work,launch,s,lambda:plan(work,'phase0','phase0',480,10080)
+        yield work,launch,s,lambda:plan(work,'phase0','phase0',1440,10080)
 
 
 def test_old_96_gib_refuses_through_cpu_planner(planner,monkeypatch):
@@ -52,7 +52,7 @@ def test_computed_capacity_boundary_keeps_gpu_budgets(planner,monkeypatch,free_g
     else:
         doc=plan();disk=doc['storage']
         assert disk['required_gib']==869 and disk['free_bytes']==869*GIB
-        assert (doc['sbatch_time'],doc['block_limit'],doc['ceiling'],doc['phase0_allocation_cap_gpu_hours'])==('08:00:00',100,560,64)
+        assert (doc['sbatch_time'],doc['block_limit'],doc['ceiling'],doc['phase0_allocation_cap_gpu_hours'])==('24:00:00',100,560,192)
         assert disk['initial_parameters']==PARAMETERS
         arms=disk['arms']
         assert set(arms)=={'S','F','R','D'}

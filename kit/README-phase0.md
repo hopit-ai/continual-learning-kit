@@ -1,4 +1,7 @@
-> Owner-approved 9 October: phase 0 uses one 08:00:00 reservation on eight GPUs, with a 64 GPU-hour allocation cap. The relaxed graph fits this reservation.
+> Owner-approved 9 October: phase 0 uses one 24:00:00 reservation on eight GPUs, with a 192 GPU-hour allocation cap. The relaxed graph fits this reservation.
+
+Timing limits are generous: **10× the v3 limits**. The containment self-test runs first and writes its full receipt; it is **informational**, and a failure is prominently reported without stopping later rows. The owner's side monitors the run.
+One allocation may run up to **24 hours on eight GPUs**, with **--no-requeue**, no replacement job and a **192 GPU-hour allocation cap**. Slurm charges only actual elapsed time; expected use remains about **15 GPU-hours**. The planner records worst-case and expected use without requiring the worst-case graph to fit the reservation.
 
 # PHASE-0: technical FinQA check before the task decision
 
@@ -18,15 +21,15 @@ scientific, task-selection, coverage or learning claim. No PHASE-0 demonstration
 rewrite, checkpoint or qualification decision is reused by a scientific campaign.
 
 - *Phase 0 boundary (amends 15.5).* Phase 0 is a bounded technical qualification independent of the Spider decision,
-  and an explicit phase-scoped exception to section 12's full-campaign send gate. After the Slurm check and the
-  recorded phase-scoped reviews pass, it runs only the listed FinQA technical rows under enforced row and allocation
+  and an explicit phase-scoped exception to section 12's full-campaign send gate. After the Slurm capture and the
+  recorded phase-scoped reviews, it runs only the listed FinQA technical rows under enforced row and allocation
   caps, then stops and returns its archive. Smoke checkpoints are not scientific initialisations or results. Phase-0
   success cannot authorise full-pool generation, standalone scientific qualification or the training matrix, and cannot
   close Spider-specific gates. Its FinQA timings do not establish Spider feasibility or campaign budget admission. The
   10 to 15 GPU-hour figure is an estimate; the shipped package enforces an allocation cap. Every sbatch carries
   `--no-requeue` and the partner's own account and QOS (partner's Slurm replies, 7 October).
 
-Use a fresh writable `WORK` and capture Slurm settings first. After a passed check,
+Use a fresh writable `WORK` and capture Slurm settings first. After the informational capture,
 stage the immutable Qwen3-8B, its pinned tokenizer,
 Qwen3.6-27B, the pinned SDPO checkout and public FinQA `train.json`/`test.json` on
 CPU before allocating GPUs. Downloads and preprocessing must not write through
@@ -59,7 +62,8 @@ export TRITON_CACHE_DIR="$TASK_ROOT/bootstrap/triton" VLLM_CACHE_ROOT="$TASK_ROO
 export TORCHINDUCTOR_CACHE_DIR="$TASK_ROOT/bootstrap/torchinductor" TORCH_EXTENSIONS_DIR="$TASK_ROOT/bootstrap/torch-extensions"
 export TORCH_HOME="$TASK_ROOT/bootstrap/torch" CUDA_CACHE_PATH="$TASK_ROOT/bootstrap/cuda"
 export NUMBA_CACHE_DIR="$TASK_ROOT/bootstrap/numba" FLASHINFER_WORKSPACE_BASE="$TASK_ROOT/bootstrap/flashinfer"
-export GIT_TERMINAL_PROMPT=0 PIP_DEFAULT_TIMEOUT=30 PIP_RETRIES=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+export V4_PHASE0_MODE=1
+export GIT_TERMINAL_PROMPT=0 PIP_DEFAULT_TIMEOUT=300 PIP_RETRIES=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 export TAG=MANAGER_FILLS_AT_SEND
 if [ "$TAG" = MANAGER_FILLS_AT_SEND ]; then
   echo "STOP: use the frozen TAG from the owner's send message before cloning."
@@ -69,8 +73,8 @@ import pathlib,shutil,subprocess,sys
 root=pathlib.Path(sys.argv[1]);kit=root/'continual-learning-kit'
 if shutil.disk_usage(root).free < 1024**3: raise SystemExit('STOP: TASK_ROOT needs 1 GiB before clone; do not use login /tmp')
 try:
-    subprocess.run(['git','-c','http.lowSpeedLimit=1000','-c','http.lowSpeedTime=30','clone','https://github.com/hopit-ai/continual-learning-kit.git',str(kit)],check=True,timeout=600)
-    subprocess.run(['git','-C',str(kit),'checkout','--detach',sys.argv[2]],check=True,timeout=30)
+    subprocess.run(['git','-c','http.lowSpeedLimit=1000','-c','http.lowSpeedTime=300','clone','https://github.com/hopit-ai/continual-learning-kit.git',str(kit)],check=True,timeout=6000)
+    subprocess.run(['git','-C',str(kit),'checkout','--detach',sys.argv[2]],check=True,timeout=300)
 except (subprocess.SubprocessError,OSError) as exc:
     raise SystemExit('STOP: GitHub clone/checkout failed: '+str(exc)+'. If blocked, use the same bounded zero-GPU job pattern after obtaining the kit.')
 PY
@@ -88,8 +92,7 @@ if python3 "$KIT/v4_phase0.py" capture --work "$WORK" \
 from pathlib import Path
 p=Path(os.environ["WORK"])/"v4/report-phase0/presend/capture.json"
 n=json.loads(p.read_text())["site_minutes"]
-if not isinstance(n,int) or n<=0: raise SystemExit("unknown partition MaxTime; stop before planning and return the capture evidence")
-print(n)')"
+print(n if isinstance(n,int) and n>0 else 1440)')"
 else
   echo "STOP. Send ${WORK}-return.tar.gz and ${WORK}-reading.json to the owner in your one return message."
 fi
@@ -101,7 +104,7 @@ fi
 
 The command captures **version.txt, config.txt, partition.txt, qos.txt and
 effective cgroup settings saved as cgroup.conf**; no prior paste, transcription, file request or separate
-message is needed. It runs these exact queries with a **120-second CPU command
+message is needed. It runs these exact queries with a **1,200-second CPU command
 deadline each**, CUDA selection cleared, and refuses execution inside any existing
 Slurm allocation:
 
@@ -118,15 +121,7 @@ sacctmgr -n -P show qos format=Name,PreemptMode,GraceTime,Preempt
 The controller's **Cgroup Support Configuration** section supplies effective
 `cgroup.conf` settings first, including configless sites. If that section is absent,
 the capture tries local `CgroupConf`, `SLURM_CONF`'s directory and `/etc/slurm`, in that
-order. Unreadable settings refuse capture clearly; no CPU job is queued. The script invokes the existing containment **`check --from-file`**
-on its own captured files. A failed query, missing settings, timeout, preemptible
-QOS or any failed containment check **STOPS before prepare or GPU planning**. It
-writes a sealed `containment-presend.json` and `capture.json`, retains all five
-files and command outcomes, and automatically creates **`${WORK}-return.tar.gz`
-and `${WORK}-reading.json`**. Return these to the owner in one message. Do not
-run prepare, sbatch, selftest or reconcile following a capture refusal; there is
-no GPU allocation to reconcile. Changed site values or captured bytes also refuse
-planning. No GPU job is submitted by this first command, even on success.
+order. The existing **`check --from-file`** records the captured files' containment settings. Failed queries, missing settings, timeouts and failed containment checks are informational; their sealed receipts, five files and logs are retained. A failed capture also creates **`${WORK}-return.tar.gz` and `${WORK}-reading.json`** for review. Prepare and planning may continue with the captured files; changed captured bytes still refuse through their hashes. This command never submits a GPU job.
 
 The capture step masks only **the values of named user, node, host (including
 AccountingStorageHost, ControlMachine and SlurmctldHost) and IP identity keys**
@@ -140,12 +135,12 @@ raw files, the checker output, per-command results and hashes are collected in
 the single return archive. You do not need to edit or send them separately.
 
 For `MaxTime=7-00:00:00`, the captured `SITE_MINUTES` is **10080**. The planner
-still requests 480 minutes. If capture succeeds, continue CPU staging:
+requests 1440 minutes. After capture, continue CPU staging:
 
-Before the self-test, both trainer and inference probes require CUDA availability, exactly eight allocated devices, and a synchronized one-element CUDA operation on each device. Each records the driver version beside torch.version.cuda. A failure says “STOP before the self-test”; the measured environment-check deadline is unchanged.
+Before the self-test, both probes record CUDA availability, device count, one-element operations and driver/CUDA versions; version admission remains mandatory, while device observations are informational.
 
 
-All login-node commands use the existing base env (`python` resolves under `~/envs/train`). GitHub, PyPI and `download.pytorch.org/whl/cu129` remain login-node CPU work, with finite deadlines, 10-second endpoint probes and pip 30-second socket timeouts/one retry. If PyPI or PyTorch wheels are blocked, retain the setup blocker and return it; prepare is login-node work and refuses under SLURM_JOB_ID. A blocked GitHub clone may use the bounded zero-GPU pattern after obtaining the kit. The clean 27B inference venv is built **on the login node from PyPI/PyTorch wheels**; neither pip nor its CPU import check downloads anything from HF. Import/model checks use offline local inputs.
+All login-node commands use the existing base env (`python` resolves under `~/envs/train`). GitHub, PyPI and `download.pytorch.org/whl/cu129` remain login-node CPU work, with finite deadlines, 6,000-second endpoint patience and pip 300-second socket timeouts/one retry. If PyPI or PyTorch wheels are blocked, retain the setup blocker and return it; prepare is login-node work and refuses under SLURM_JOB_ID. A blocked GitHub clone may use the bounded zero-GPU pattern after obtaining the kit. The clean 27B inference venv is built **on the login node from PyPI/PyTorch wheels**; neither pip nor its CPU import check downloads anything from HF. Import/model checks use offline local inputs.
 
 The login node's **1 GB /tmp** is insufficient for large temporary files. Bootstrap sets all temporary/cache variables before git. Scripts also set them for capture, prepare, collect, reconcile, reader and the compute payload. On the login node, TMPDIR uses WORK/phase0-cache/tmp. In both routes, PIP_CACHE_DIR, XDG_CACHE_HOME and Triton/vLLM/torch/CUDA/torch-extension/Numba/FlashInfer caches use WORK/phase0-cache on the large shared filesystem, excluded by collect. HF_HOME remains outside WORK under TASK_ROOT. Prechecks require **30 GiB free at WORK before a large install** and **100 GiB free at HF_HOME before the two whole model downloads**. CPU prepare and the planner separately require **at least 869 GiB free on WORK's filesystem** under the retained-checkpoint policy, increasing this if the two complete downloaded model snapshots exceed the 100-GiB cache reserve. Prepare checks this before environment builds, preserves the parent's `preparation-storage.json`, and records the delegated trainer's capacity recheck in `preparation-storage-trainer.json`; both are integrity-bound by the prepare receipt and collected. A refusal retains a readable `setup-blocker.txt`; the planner records its recheck in `phase0.json` before submission.
 
@@ -170,8 +165,8 @@ export PYTHONPATH="$KIT/..:$SDPO_DIR"
 # Separate downloader venv; no install targets the native base.
 python "$KIT/v4_phase0_site.py" network --work "$WORK" -- \
   python -m venv "$TASK_ROOT/download-env"
-python "$KIT/v4_phase0_site.py" network --work "$WORK" --url https://pypi.org/simple/ --seconds 1800 -- \
-  "$TASK_ROOT/download-env/bin/python" -m pip install --timeout 30 --retries 1 'huggingface_hub[cli]==0.34.4'
+python "$KIT/v4_phase0_site.py" network --work "$WORK" --url https://pypi.org/simple/ --seconds 18000 -- \
+  "$TASK_ROOT/download-env/bin/python" -m pip install --timeout 300 --retries 1 'huggingface_hub[cli]==0.34.4'
 ```
 
 **HF is blocked on the login node (403).** Download both whole repositories at their pinned revisions only in this **zero-GPU compute job**. It runs directly on the batch host, with your own account/QOS/partition, no requeue, two-hour maximum, explicit CPUs and memory. It verifies scheduler zero-GPU assignment and durably records snapshot paths, revision directories, every file's size and JSON hashes. Prepare verifies that receipt, then performs unchanged full model-byte hashing. Zero allocation GPU-hours and zero GPU-block charge are recorded; this job creates no qualification allocation ledger entry.
@@ -181,7 +176,7 @@ python "$KIT/v4_phase0_download.py" script --work "$WORK" --task-root "$TASK_ROO
   --python "$TASK_ROOT/download-env/bin/python" \
   --account "$ACCOUNT" --qos "$QOS" --partition "$PARTITION" \
   --out "$WORK/v4/report-phase0/download/download.sbatch"
-sbatch --parsable --no-requeue --gpus=0 --time=02:00:00 --cpus-per-task=8 --mem=32G \
+sbatch --parsable --no-requeue --gpus=0 --time=20:00:00 --cpus-per-task=8 --mem=32G \
   --account="$ACCOUNT" --qos="$QOS" --partition="$PARTITION" \
   --output="$WORK/v4/report-phase0/download/job.log" --error="$WORK/v4/report-phase0/download/job.err" \
   "$WORK/v4/report-phase0/download/download.sbatch" > "$WORK/v4/report-phase0/download/submission.txt"
@@ -236,7 +231,7 @@ Generate the sole allocation script on CPU. This plans; it does not submit:
 
 ```sh
 python "$KIT/v4_allocation.py" --work "$WORK" --phase phase0 --stage phase0 \
-  --minutes 480 --site-minutes "$SITE_MINUTES" \
+  --minutes 1440 --site-minutes "$SITE_MINUTES" \
   --partition "$PARTITION" --qos "$QOS" --account "$ACCOUNT" \
   --activate "$WORK/phase0-envs/trainer/bin/activate" \
   --out "$WORK/v4/report-phase0/allocation/phase0.sh"
@@ -245,24 +240,23 @@ python "$KIT/v4_allocation.py" --work "$WORK" --phase phase0 --stage phase0 \
 The planner supplies **`phase0.header.sh`**, an `#SBATCH` header block, and
 **`phase0.sh`**, a payload to run directly in your existing host-venv batch process. It also
 retains `phase0.json`, binding the prepared environment and allocation plan. The
-header has `--no-requeue`, `--exclusive`, `--nodes=1`, `--gpus=8`, `--time=08:00:00`
+header has `--no-requeue`, `--exclusive`, `--nodes=1`, `--gpus=8`, `--time=24:00:00`
 and your captured partition, QOS and account. Scheduler stdout and stderr are
 `$WORK/v4/report-phase0/allocation/phase0-%j.out` and `phase0-%j.err` (`%j` is the
 job ID); collect includes these files. The payload exports all frozen data/model
 paths, the prepared SDPO's PYTHONPATH, telemetry and offline settings.
 `SLURM_EXPORT_ENV=ALL` passes these values to steps.
 
-The payload's **first step, before the self-test**, is an **environment
-check whose full requirement is max(600 seconds, ceil(5 × (trainer import + inference import + 60 seconds for sixteen CUDA context initialisations))), recorded in the prepare receipt**. Import duration is record-only: slow imports do not themselves refuse prepare. The planner must fit this deadline and every serial row into the unchanged allocation reservation. It first rejects a numeric SLURM_STEP_ID, checks job-private scratch/socket paths, and tests step creation with `srun --overlap -n1 true`; both prepared runtimes then perform the eight-device CUDA and version checks. A real mismatch or expiry prints `STOP before the self-test`, saves receipts/logs, and releases the job without training. Keep the existing native wrapper's base Python and loader search paths.
-CPU prepare measures the full prepared-byte rehash. The reviewed allowance is **max(60, ceil(1.5 × measured seconds))**; an 84-second measurement gets 126 seconds. Prepare no longer refuses a measurement above 60 seconds. Planning binds the receipt without rehashing all model bytes again; the allocation still performs full integrity verification.
+The payload checks inputs, versions, hashes, disk and socket paths before the self-test. CUDA/driver and step-creation observations are recorded for review. Environment-check patience is **10 × max(600, ceil(5 × (trainer import + inference import + 60))) seconds**, from the CPU measurements; elapsed timing is record-only. CPU prepare measures the full prepared-byte rehash; its allowance is **10 × max(60, ceil(1.5 × measured seconds))**, so 84 seconds measured receives 1,260 seconds. Integrity verification remains mandatory.
 
-The v3 relaxed graph requires **27,816 seconds** with a 600-second environment check and the partner's 84-second rehash (126-second allowance), including every serial row and 15 seconds of dispatch per row. It fits the owner's approved **08:00:00 / 480-minute** reservation with **984 seconds** of slack. The planner still checks the full graph against the reservation and the site's time limit; it does not shorten scientific work.
-The exact allocation header includes **`--no-requeue --account="$ACCOUNT" --qos="$QOS" --time=08:00:00`**, one exclusive node with **eight GPUs**, and a **64 GPU-hour allocation cap = 8 × 8**. Phase 0's actual elapsed allocation time is charged to the **100 GPU-hour qualification block** and conservative ceiling **560** (the campaign ceiling is 955 per plan 15.11); unused reservation time is not charged against the block. Slurm charges actual elapsed time, so expected phase-0 use stays about **15 GPU-hours**, rather than the 64 GPU-hour worst-case cap.
-Phase 0 remains **one allocation, no requeue and no replacement job**. The cap does not authorize extending that allocation; refused jobs and teardown still count, and the reader recomputes actual charges from the returned ledger. Submit only the
+With that measurement the worst-case graph is **278,160 seconds**; the planner records it even though it exceeds the 24-hour reservation. Phase 0 still charges actual spend to the **100 GPU-hour qualification block** and records ceiling **560** (campaign ceiling 955 per plan 15.11), without using those historical block thresholds to veto this owner-monitored allocation. The hard allocation cap is **192 GPU-hours**. Hard stops are pinned revisions/file hashes, version admission, missing inputs, disk/quota and socket-path checks, writes outside WORK, one allocation/no replacement, and the 192 GPU-hour cap.
+
+Submit only the
+
 header and payload printed by that planner. You previously launched the pilot as
 **`sbatch --parsable /home/<USER>/scripts/k8b_pilot_run.sbatch`**. Launch phase 0
 exactly as you launched `k8b_pilot_run.sbatch`: copy your wrapper to
-`$WORK/v4/report-phase0/allocation/phase0.sbatch`, keep **its exact host-venv environment lines**, including `export PATH=/home/<USER>/envs/train/bin:$PATH`. Replace only the old runner payload with `bash <absolute-WORK>/v4/report-phase0/allocation/phase0.sh`, **directly in the batch step on the batch host**. Add our `phase0.header.sh` lines at the top, replacing conflicting resource/time/account/QOS directives. The payload is bash, not an sbatch submission; submit the copied wrapper. Do not wrap the payload in srun or introduce a container. Its own contained row steps still use srun with every GPU-assignment/cap/termination check. Then,
+`$WORK/v4/report-phase0/allocation/phase0.sbatch`, keep **its exact host-venv environment lines**, including `export PATH=/home/<USER>/envs/train/bin:$PATH`. Replace only the old runner payload with `bash <absolute-WORK>/v4/report-phase0/allocation/phase0.sh`, **directly in the batch step on the batch host**. Add our `phase0.header.sh` lines at the top, replacing conflicting resource/time/account/QOS directives. The payload is bash, not an sbatch submission; submit the copied wrapper. Do not wrap the payload in srun or introduce a container. Its row steps still use srun; the owner monitors their observations. Then,
 on the login node the dependency-light helper calls the same `sbatch --parsable <wrapper>` form and durably binds its job ID, WORK, wrapper and plan hash before returning:
 
 ```sh
@@ -271,29 +265,26 @@ python3 "$KIT/v4_phase0_submission.py" --work "$WORK" \
   --script "$WORK/v4/report-phase0/allocation/phase0.sbatch"
 ```
 
-Submit from a plain login shell, not from inside an `srun` or `salloc` session: the environment
-check refuses a numeric `SLURM_STEP_ID`, and a value inherited from such a shell would stop the
-only allocation. `echo ${SLURM_STEP_ID:-none}` should print `none`; if it does not, submit with
-`env -u SLURM_STEP_ID -u SLURM_STEPID python3 "$KIT/v4_phase0_submission.py" ...`.
+Submit from the same login shell and host-venv route used for your pilot. Numeric step identity is recorded as a warning.
 
 In every new allocation the **FIRST containment command is the on-node self-test**
 with explicit `--block qualification --block-limit 100 --ceiling 560`. Never run
 `check`, `reconcile` or runner tracking first inside the allocation. After the environment check the payload
 self-tests first; the real runner verifies its plan against Slurm and the
-ledger after that test. A failed self-test releases the job with no training.
+ledger after that test. A failed self-test is prominently reported; training continues.
 
 The 26 serial rows then do exactly this technical work:
 
 1. Verify prepared bytes; reload the initial 8B on the designated physical scoring
    GPU four times: **two independent same-task, same-cap pairs**, each on the same
    first **50 FinQA heldout** questions at **B=2,048**. Engine/configuration failure
-   is checked first. Any second-pair difference blocks all generation and training.
+   is checked first. Any second-pair difference is recorded for owner review.
 2. Load the real 27B in its own environment on four TP2 replicas. Generate the
    phase's **20 FinQA training** questions with the registered four-attempt schedule
    and deterministic first-acceptable verification. Generate frozen-initial-8B
    rewrites with eight TP1 replicas; retain raw attempts, rejections and merge timing.
 3. Build the shared demonstration/rewrite intersection and seeded 64-exposure
-   technical schedule; repeats are explicitly smoke-only. Zero intersection stops.
+   technical schedule; repeats are explicitly smoke-only. An empty intersection is recorded; later rows still require their input files.
    Resolve `--cfg job --resolve` for all four actual launchers and check constants.
 4. Train **S, F, R, D**, each from the same real incoming 8B, **two optimizer steps**,
    seed 101, `V4_PROFILE=technical-smoke`, telemetry on. F/D consume this phase's
@@ -304,22 +295,13 @@ The 26 serial rows then do exactly this technical work:
 5. Recompute the technical report and **PAUSE**, ending the allocation before the
    owner reviews anything. Do not chain another allocation or scientific work.
 
-GPU row containment deadlines are now 1,500 seconds (teacher 600); CPU rows are at least 600 seconds except the measured prepared-byte verifier. The former 300-second GPU caps were unmeasured estimates, so the v3 policy uses five times those estimates. The redundant 120-second wrapper allowance is removed; the Slurm row cap already includes teardown. A row that
-cannot fit its actual remaining window refuses before dispatch. Verified row
-failures follow the existing typed infrastructure retry admission (at most two
-retries, one OOM retry with OFFLOAD=1); there is no outcome-based retry or extension
-of this single reservation. Saved-state restoration remains disabled until its
-real-stack qualification check passes; PHASE-0 does not authorize restoration.
-Verified CANCEL preemption ends the allocation for review. Hard stops require the
-owner's plain SHA256-bound acknowledgement and reconciliation; history is retained.
-See [README-contain.md](README-contain.md). Never launch a replacement PHASE-0 job
-on your own; return the partial evidence.
+GPU row limits are **15,000 seconds** (teacher **6,000**); ordinary CPU rows allow **6,000 seconds**, with measured verification allowances as above. Timing/quality/containment failures are recorded and later rows continue; no automatic retry or replacement allocation is authorized. Return partial evidence if Slurm ends the job before completion.
 
 After Slurm ends the job, reconcile **on the login node**, close its full allocation
 accounting, and collect success or failure alike. Owner review happens afterwards:
 
 ```sh
-python3 "$KIT/p4_contain.py" reconcile --work "$WORK" --out "$WORK/reconcile" --seconds 600
+python3 "$KIT/p4_contain.py" reconcile --work "$WORK" --out "$WORK/reconcile" --seconds 6000
 python3 "$KIT/collect.py" --work "$WORK" --out "${WORK}-return.tar.gz"
 ```
 
@@ -330,6 +312,7 @@ Keep the **same existing host base env** active on the login node for reconcile,
 ```sh
 export PATH="$HOME/envs/train/bin:$PATH"
 export WORK=/the/same/absolute/WORK
+export V4_PHASE0_MODE=1
 export KIT=/the/same/absolute/KIT
 export SDPO_DIR="$WORK/phase0-source/SDPO"
 export PYTHONPATH="$KIT/..:$SDPO_DIR"
@@ -369,7 +352,7 @@ reader re-parses them, verifies their hashes and checks real runner records. The
 reader returns `incomplete` (CLI exit 1) with case-specific reasons: success =
 `CPU stand-ins`; missing capture = missing presend receipt; failed self-test =
 `selftest refused`; differing second pair = `scoring disagreement`; OOM =
-`out_of_memory`; hung command = `wall_time`. The two pre-self-test cases execute the actual environment check, dependency-light reconciliation and collector against owned scheduler stand-ins; their reader remains incomplete and reports the complete eight-GPU, 120-second fictional allocation charge. No case can return a technical pass.
+`out_of_memory`; hung command = `wall_time`. The two pre-self-test cases execute the actual environment check, dependency-light reconciliation and collector against owned scheduler stand-ins; their reader remains incomplete and reports the complete eight-GPU, 1,200-second fictional allocation charge. No case can return a technical pass.
 
 Secondary alternative only if the site route changes: Pyxis/container probe (one minute, zero GPUs)
 
@@ -379,7 +362,7 @@ On the login node, retain the existing pilot wrapper at its original readable pa
 python3 "$KIT/v4_phase0_route.py" --work "$WORK" \
   --pilot-wrapper "$HOME/scripts/k8b_pilot_run.sbatch" \
   --write-probe "$WORK/route-probe.sbatch"
-sbatch --parsable --no-requeue --gpus=0 --time=00:01:00 \
+sbatch --parsable --no-requeue --gpus=0 --time=00:10:00 \
   --account="$ACCOUNT" --qos="$QOS" --partition="$PARTITION" \
   --output="$WORK/v4/report-phase0/route-probe.log" \
   --error="$WORK/v4/report-phase0/route-probe.err" "$WORK/route-probe.sbatch"

@@ -27,7 +27,7 @@ def shared_work(tmp_path,monkeypatch):
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
     monkeypatch.setattr(p,'verify_presend',lambda work:{})
     # Isolate filesystem admission; the real relaxed graph is refused in v3 integration.
-    monkeypatch.setattr(p,'required_seconds',lambda *args:28800)
+    monkeypatch.setattr(p,'required_seconds',lambda *args:86400)
     monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':.5,'environment_check':{'deadline_seconds':180}})
     monkeypatch.setattr(p,'frozen_launch_environment',lambda work:launch)
     monkeypatch.setattr(s.shutil,'disk_usage',lambda path:SimpleNamespace(free=1000*GIB))
@@ -38,11 +38,11 @@ def test_realistic_lustre_task_root_plans_successfully(shared_work):
     """Shared WORK paths over eighty bytes must pass when the actual socket bases are short."""
     from kit.v4_allocation import plan
     task,work,launch,p,s=shared_work
-    doc=plan(work,'phase0','phase0',480,10080)
+    doc=plan(work,'phase0','phase0',1440,10080)
     assert doc['storage']['tmpdir']==launch['TMPDIR']
     assert doc['storage']['vllm']['socket_suffix_bytes']==37
     assert doc['storage']['ray']['socket_suffix_bytes']==68
-    assert (doc['storage']['required_gib'],doc['sbatch_time'],doc['block_limit'],doc['ceiling'])==(869,'08:00:00',100,560)
+    assert (doc['storage']['required_gib'],doc['sbatch_time'],doc['block_limit'],doc['ceiling'])==(869,'24:00:00',100,560)
 
 
 def test_frozen_socket_paths_fit_while_large_caches_stay_shared(shared_work):
@@ -67,7 +67,7 @@ def test_overlong_vllm_socket_base_refuses(shared_work,monkeypatch,capsys,where)
     task,work,launch,p,s=shared_work
     launch.update(TMPDIR='/tmp/short',VLLM_RPC_BASE_PATH='/'+('x'*70))
     if where=='planner':
-        with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',480,10080)
+        with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',1440,10080)
     else:
         monkeypatch.setenv('VLLM_RPC_BASE_PATH',launch['VLLM_RPC_BASE_PATH'])
         assert s.main(['socket-check','--work',str(work)])==2

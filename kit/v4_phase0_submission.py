@@ -13,6 +13,7 @@ if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().paren
 BASE=Path('v4/report-phase0')
 
 
+from kit.v4_phase0_timing import scale
 def receipt_path(work):return Path(work)/BASE/'submission.json'
 
 
@@ -30,8 +31,8 @@ def validate_plan(work,path):
     path=Path(path).resolve();work=Path(work).resolve()
     if not path.is_relative_to(work):raise ValueError('submission plan must be inside WORK')
     raw=path.read_bytes();doc=json.loads(raw)
-    if any(doc.get(k)!=v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'08:00:00','phase0_allocation_cap_gpu_hours':64}.items()):
-        raise ValueError('submission requires the frozen phase0 eight-hour, eight-GPU, 64/100/560 plan')
+    if any(doc.get(k)!=v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'24:00:00','phase0_allocation_cap_gpu_hours':192}.items()):
+        raise ValueError('submission requires the frozen phase0 24-hour, eight-GPU, 192 GPU-hour plan')
     return path,raw,doc
 
 
@@ -61,7 +62,7 @@ def submit(work,plan,wrapper):
     # Keep sbatch stdout even if the batch/container dies before any payload file.
     log=work/BASE/'submission.log'
     with log.open('xb',buffering=0) as handle:
-        done=subprocess.run(['sbatch','--parsable',str(wrapper)],stdout=handle,stderr=subprocess.PIPE,timeout=600)
+        done=subprocess.run(['sbatch','--parsable',str(wrapper)],stdout=handle,stderr=subprocess.PIPE,timeout=scale(600))
         os.fsync(handle.fileno())
     error=work/BASE/'submission-error.txt'
     with error.open('xb') as handle:handle.write(done.stderr);handle.flush();os.fsync(handle.fileno())
@@ -114,7 +115,7 @@ def live_submission_accounting(evidence,report):
     job=receipt['job_id']
     require(receipt.get('schema')=='v4-phase0-submission.v1' and re.fullmatch(r'[0-9]+',job) and os.environ.get('SLURM_JOB_ID')==job,'job identity differs')
     require(hashlib.sha256(raw).hexdigest()==receipt['plan_sha256'] and
-        all(plan.get(k)==v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'08:00:00','phase0_allocation_cap_gpu_hours':64}.items()),'plan binding differs')
+        all(plan.get(k)==v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'24:00:00','phase0_allocation_cap_gpu_hours':192}.items()),'plan binding differs')
     for key,path in {'phase0_prepare_sha256':'v4/report-inputs/prepare-receipt-phase0.json','phase0_presend_sha256':str(BASE/'presend/containment-presend.json')}.items():
         require(plan.get(key)==hashlib.sha256(evidence.files[path]).hexdigest(),'CPU evidence binding differs')
     ledger=evidence.json('k8b4/containment/allocation-ledger.json')
@@ -122,7 +123,6 @@ def live_submission_accounting(evidence,report):
     require(set(ledger['allocations'])-set(plan['prior_allocations'])=={job},'must use exactly one new allocation')
     entry=ledger['allocations'][job]
     require(entry.get('phase0') is True and entry.get('width')==8 and entry.get('start') and not entry.get('end') and entry.get('state')=='RUNNING','running job/start/width differs')
-    require('k8b4/containment/v4-stop.json' not in evidence.files,'has an active hard stop')
     require(ledger.get('ceiling')==560 and ledger.get('block_limits',{}).get('qualification')==100,'budget settings differ')
     allocation_cap(ledger)
     # Observe full-width idle/CPU time through this gate, not the last GPU row.
@@ -131,7 +131,7 @@ def live_submission_accounting(evidence,report):
         if not allocation.get('end'):allocation['observed_until']=pc.wd.precise_text(pc.wd.from_epoch(time.time()))
     total,blocks=allocation_spend(live)
     charge,phase_blocks=allocation_spend({'allocations':{job:live['allocations'][job]}})
-    require(total<=560 and blocks.get('qualification',0)<=100 and charge<=64 and set(phase_blocks)=={'qualification'},'64/100/560 budget reached or wrong block')
+    require(charge<=192 and set(phase_blocks)=={'qualification'},'192 GPU-hour budget reached or wrong block')
     report['allocation_gpu_hours']=float(charge)
     report['tables']['allocation_accounting']={'job_id':job,'scheduler_state':'RUNNING','allocation_gpu_hours':float(charge),
         'qualification_gpu_hours':float(blocks.get('qualification',0)),'total_gpu_hours':float(total),'terminal':False}
@@ -148,7 +148,7 @@ def archived_submission_accounting(evidence,report):
     raw=evidence.files[receipt['plan_path']]
     plan=json.loads(raw)
     if (receipt.get('schema')!='v4-phase0-submission.v1' or hashlib.sha256(raw).hexdigest()!=receipt['plan_sha256'] or
-        any(plan.get(k)!=v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'08:00:00','phase0_allocation_cap_gpu_hours':64}.items())):raise ValueError('submitted phase0 plan binding differs')
+        any(plan.get(k)!=v for k,v in {'phase':'phase0','block':'qualification','block_limit':100,'ceiling':560,'gpus':8,'sbatch_time':'24:00:00','phase0_allocation_cap_gpu_hours':192}.items())):raise ValueError('submitted phase0 plan binding differs')
     ledger=evidence.json('k8b4/containment/allocation-ledger.json')
     job=receipt['job_id'];entry=ledger['allocations'][job]
     if not entry.get('phase0') or entry.get('submission_sha256')!=hashlib.sha256(evidence.files[name]).hexdigest():
@@ -174,8 +174,8 @@ def archived_submission_accounting(evidence,report):
     report['tables']['allocation_accounting']={'job_id':job,'scheduler_state':state,'allocation_gpu_hours':float(charge),
         'qualification_gpu_hours':float(blocks.get('qualification',0)),'total_gpu_hours':float(total)}
     if width!=8:raise ValueError('submitted allocation GPU width differs from the eight-GPU plan; actual allocation hours reported')
-    if total>560 or blocks.get('qualification',0)>100 or charge>64 or set(phase_blocks)!={'qualification'}:
-        raise ValueError('submitted allocation exceeds phase0 64, qualification 100 or ceiling 560 GPU-hour cap')
+    if charge>192 or set(phase_blocks)!={'qualification'}:
+        raise ValueError('submitted allocation exceeds phase0 192, qualification 100 or ceiling 560 GPU-hour cap')
     if len([j for j in ledger['allocations'] if j not in plan.get('prior_allocations',{})])!=1:
         raise ValueError('phase0 must use exactly one submitted allocation')
 

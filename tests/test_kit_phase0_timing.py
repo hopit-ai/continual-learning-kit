@@ -10,7 +10,7 @@ def test_requirement_is_untruncated(slowest,raw,deadline):
     from kit.v4_phase0_environment import environment_timing,admitted_environment_timing
     doc=environment_timing({'trainer':1,'inference':slowest})
     assert doc['requirement_seconds']==pytest.approx(raw)
-    assert doc['deadline_seconds']==deadline and admitted_environment_timing(doc['import_seconds'])==doc
+    assert doc['deadline_seconds']==deadline*10 and admitted_environment_timing(doc['import_seconds'])==doc
     assert doc['timing_expectation']=='record-only'
 
 @pytest.mark.parametrize('role',['trainer','inference'])
@@ -47,8 +47,8 @@ def test_runtime_binds_relaxed_receipt(tmp_path,slowest):
 def test_runbook_states_approved_reservation_and_actual_accounting():
     """The partner must see the approved reservation, actual billing and unchanged quota distinction."""
     text=(ROOT/'kit/README-phase0.md').read_text()
-    assert 'record-only' in text and '27,816 seconds' in text and '984 seconds' in text
-    assert '--minutes 480' in text and '--time=08:00:00' in text and '64 GPU-hour allocation cap' in text
+    assert 'record-only' in text and '278,160 seconds' in text and 'informational' in text
+    assert '--minutes 1440' in text and '--time=24:00:00' in text and '192 GPU-hour allocation cap' in text
     assert 'actual elapsed time' in text and '15 GPU-hours' in text and 'no replacement job' in text
     assert 'Confirm your quota' in text and '869 GiB' in text
     assert 'quota -s' in text and 'lfs quota -u $USER' in text and 'mmlsquota' in text

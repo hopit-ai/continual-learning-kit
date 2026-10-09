@@ -139,7 +139,9 @@ def test_both_probes_refuse_bad_cuda_before_selftest(gpu_world,role,kind,cause):
     """Import success must not spend the job on a CUDA runtime that cannot use every allocated device."""
     work,e,calls,fault=gpu_world;fault.update(role=role,kind=kind)
     result=e.check_environment(work)
-    assert not result['ok'] and 'STOP before the self-test' in result['message'] and cause in result['message']
+    assert result['ok'] and not result.get('hard_stop')
+    cuda=json.loads((work/('v4/report-phase0/environment-check-'+role+'-cuda.json')).read_text())
+    assert not cuda['ok'] and cause in cuda['cause']
     assert not (work/'k8b4/containment').exists()
 
 
@@ -187,7 +189,7 @@ def planner_work(monkeypatch):
             path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
         monkeypatch.setattr(p,'verify_presend',lambda work:{})
         # Isolate filesystem admission; the real relaxed graph is refused in v3 integration.
-        monkeypatch.setattr(p,'required_seconds',lambda *args:28800)
+        monkeypatch.setattr(p,'required_seconds',lambda *args:86400)
         monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':.5,'environment_check':{'deadline_seconds':180}})
         from test_kit_phase0_storage import CONFIG
         model=work/'model';model.mkdir();(model/'config.json').write_text(json.dumps(CONFIG))
@@ -201,7 +203,7 @@ def test_planner_refuses_long_vllm_socket_base_before_gpu_submission(planner_wor
     from kit import v4_phase0 as p
     work,s=planner_work
     monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work),'TMPDIR':str(work/'phase0-cache/tmp'),'VLLM_RPC_BASE_PATH':'/'+('x'*70)})
-    with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',480,10080)
+    with pytest.raises(ValueError,match='vLLM.*107'):plan(work,'phase0','phase0',1440,10080)
 
 
 def test_planner_prices_four_merged_exports_and_caches_on_cpu(planner_work,monkeypatch):
@@ -209,7 +211,7 @@ def test_planner_prices_four_merged_exports_and_caches_on_cpu(planner_work,monke
     from kit.v4_allocation import plan
     work,s=planner_work
     monkeypatch.setattr(s.shutil,'disk_usage',lambda path:SimpleNamespace(free=40*1024**3))
-    with pytest.raises(ValueError,match='free space'):plan(work,'phase0','phase0',480,10080)
+    with pytest.raises(ValueError,match='free space'):plan(work,'phase0','phase0',1440,10080)
 
 
 def test_real_trainer_audit_rejects_own_dist_info_shadow(tmp_path):

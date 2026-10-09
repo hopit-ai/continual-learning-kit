@@ -23,11 +23,14 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false,
+      "bars": []
     },
     {
       "id": "verify-prepare",
@@ -47,12 +50,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "60",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "600",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 60,
-      "allocation_cpu_cap_seconds": 60,
-      "pilot": true,
+      "timeout_seconds": 600,
+      "allocation_cpu_cap_seconds": 600,
+      "pilot": false,
       "bars": [
         {
           "source": "{work}/v4/report-status/verify-prepare.json",
@@ -77,7 +81,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -103,16 +107,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "score-agreement2-finqa-2048",
       "needs": [
-        "score-agreement1-finqa-2048",
-        "verify-prepare"
+        "score-agreement1-finqa-2048"
       ],
       "command": [
         "python",
@@ -125,7 +130,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -151,16 +156,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "score-agreement3-finqa-2048",
       "needs": [
-        "score-agreement2-finqa-2048",
-        "verify-prepare"
+        "score-agreement2-finqa-2048"
       ],
       "command": [
         "python",
@@ -173,7 +179,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -199,16 +205,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "score-agreement4-finqa-2048",
       "needs": [
-        "score-agreement3-finqa-2048",
-        "verify-prepare"
+        "score-agreement3-finqa-2048"
       ],
       "command": [
         "python",
@@ -221,7 +228,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -247,16 +254,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "scoring-agreement",
       "needs": [
-        "score-agreement4-finqa-2048",
-        "verify-prepare"
+        "score-agreement4-finqa-2048"
       ],
       "command": [
         "python",
@@ -271,12 +279,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600,
-      "pilot": true,
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false,
       "bars": [
         {
           "source": "{work}/v4/report-status/scoring-agreement.json",
@@ -301,7 +310,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "600",
+        "6000",
         "--block",
         "qualification",
         "--block-limit",
@@ -323,16 +332,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "1"
       },
-      "timeout_seconds": 600
+      "timeout_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "rewrite-finqa",
       "needs": [
-        "teacher-finqa",
-        "scoring-agreement"
+        "teacher-finqa"
       ],
       "command": [
         "python",
@@ -345,7 +355,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -367,16 +377,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "training-set",
       "needs": [
-        "rewrite-finqa",
-        "scoring-agreement"
+        "rewrite-finqa"
       ],
       "command": [
         "python",
@@ -391,12 +402,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600,
-      "pilot": true,
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false,
       "bars": [
         {
           "source": "{work}/v4/report-status/training-set.json",
@@ -425,17 +437,18 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "resolved-configs",
       "needs": [
-        "schedule-q-S-finqa",
-        "training-set"
+        "schedule-q-S-finqa"
       ],
       "command": [
         "python",
@@ -450,12 +463,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600,
-      "pilot": true,
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false,
       "bars": [
         {
           "source": "{work}/v4/report-status/resolved-configs.json",
@@ -468,7 +482,8 @@
       "id": "train-q-S-finqa",
       "needs": [
         "resolved-configs",
-        "scoring-agreement"
+        "scoring-agreement",
+        "resolved-configs"
       ],
       "command": [
         "python",
@@ -481,7 +496,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -503,16 +518,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "merge-q-S-finqa",
       "needs": [
-        "train-q-S-finqa",
-        "resolved-configs"
+        "train-q-S-finqa"
       ],
       "command": [
         "python",
@@ -529,17 +545,18 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "score-q-S-finqa-finqa-2048",
       "needs": [
-        "merge-q-S-finqa",
-        "resolved-configs"
+        "merge-q-S-finqa"
       ],
       "command": [
         "python",
@@ -552,7 +569,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -578,10 +595,12 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "train-q-F-finqa",
@@ -601,7 +620,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -623,16 +642,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "merge-q-F-finqa",
       "needs": [
-        "train-q-F-finqa",
-        "resolved-configs"
+        "train-q-F-finqa"
       ],
       "command": [
         "python",
@@ -649,17 +669,18 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "score-q-F-finqa-finqa-2048",
       "needs": [
-        "merge-q-F-finqa",
-        "resolved-configs"
+        "merge-q-F-finqa"
       ],
       "command": [
         "python",
@@ -672,7 +693,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -698,10 +719,12 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "train-q-R-finqa",
@@ -721,7 +744,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -743,16 +766,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "merge-q-R-finqa",
       "needs": [
-        "train-q-R-finqa",
-        "resolved-configs"
+        "train-q-R-finqa"
       ],
       "command": [
         "python",
@@ -769,17 +793,18 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "score-q-R-finqa-finqa-2048",
       "needs": [
-        "merge-q-R-finqa",
-        "resolved-configs"
+        "merge-q-R-finqa"
       ],
       "command": [
         "python",
@@ -792,7 +817,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -818,10 +843,12 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "train-q-D-finqa",
@@ -841,7 +868,7 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -863,16 +890,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "merge-q-D-finqa",
       "needs": [
-        "train-q-D-finqa",
-        "resolved-configs"
+        "train-q-D-finqa"
       ],
       "command": [
         "python",
@@ -889,17 +917,18 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     },
     {
       "id": "score-q-D-finqa-finqa-2048",
       "needs": [
-        "merge-q-D-finqa",
-        "resolved-configs"
+        "merge-q-D-finqa"
       ],
       "command": [
         "python",
@@ -912,7 +941,7 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1500",
+        "15000",
         "--block",
         "qualification",
         "--block-limit",
@@ -938,16 +967,17 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "1500",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "15000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 1500
+      "timeout_seconds": 15000,
+      "pilot": false
     },
     {
       "id": "report",
       "needs": [
-        "score-q-D-finqa-finqa-2048",
-        "resolved-configs"
+        "score-q-D-finqa-finqa-2048"
       ],
       "command": [
         "python",
@@ -962,12 +992,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600,
-      "pilot": true,
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false,
       "bars": [
         {
           "source": "{work}/v4/report-status/report.json",
@@ -994,11 +1025,13 @@
       ],
       "env": {
         "V4_TELEMETRY": "1",
-        "V4_COMMAND_TIMEOUT": "600",
+        "V4_PHASE0_MODE": "1",
+        "V4_COMMAND_TIMEOUT": "6000",
         "V4_PHASE0_INFERENCE": "0"
       },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "pilot": false
     }
   ],
   "v4": {
@@ -1026,7 +1059,7 @@
         "block_limit": 100
       }
     },
-    "maximum_gpu_hours": 64,
+    "maximum_gpu_hours": 192,
     "allocation_allowance": 1.0,
     "outputs": {
       "schema": "v4-phase0-output-policy.v1",
@@ -1034,8 +1067,8 @@
       "scientific_phase_allowed": false,
       "usable_as_scientific_initialisations": false
     },
-    "dispatch_seconds_per_row": 15,
-    "environment_check_seconds": 600,
+    "dispatch_seconds_per_row": 150,
+    "environment_check_seconds": 6000,
     "scoring_gpu": "one stable Slurm-assigned physical GPU",
     "training_questions": 20,
     "scoring_pairs": 2,

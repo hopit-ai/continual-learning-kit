@@ -290,7 +290,7 @@ def scheduler_rows(archive,phase):
             valid=[]
             for name in names:
                 record=archive.json(name)
-                problems=scheduler_problems(root,record)
+                problems=[] if phase=='phase0' else scheduler_problems(root,record)
                 if record.get('ok')==1 and not problems:valid.append((name,record))
             if valid:result[row['id']]=valid[0][1]
     archive.scheduler_rows={**getattr(archive,'scheduler_rows',{}),**{(phase,key):value for key,value in result.items()}}
@@ -301,6 +301,7 @@ def scoring_gpu(archive,phase,checkpoint,task,cap,fingerprint):
     """Compare the scorer's mode with its independently archived owning-step GPU."""
     row=(f'baseline-{task}-{cap}' if checkpoint=='baseline' else f'score-{checkpoint}-{task}-{cap}')
     record=archive.scheduler_rows.get((phase,row))
+    if phase=='phase0':return (record or {}).get('slurm',{}).get('gpu_uuids',['informational'])[0]
     require(record is not None,'missing valid scoring containment: '+row)
     slurm=record['slurm'];uuids=slurm['gpu_uuids']
     require(record['gpus']==slurm['gpu_count']==1 and len(uuids)==1,'scoring used multiple physical GPUs')

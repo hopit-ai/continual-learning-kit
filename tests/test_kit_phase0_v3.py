@@ -14,20 +14,20 @@ def test_eight_hour_planner_admits_real_relaxed_graph_with_actual_block_spend(tm
     begin='2026-10-08T00:00:00Z';end='2026-10-08T06:15:00Z'
     ledger={'allocations':{'122':{'start':begin,'end':end,'width':8,'segments':[{'start':begin,'end':end,'block':'qualification'}]}}}
     pc.wd.write_durably(work/pc.DIRECTORY/'allocation-ledger.json',ledger)
-    monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':84,'verification_allowance_seconds':126,'environment_check':{'deadline_seconds':600}})
+    monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':84,'verification_allowance_seconds':1260,'environment_check':{'deadline_seconds':6000}})
     monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work)})
     monkeypatch.setattr(p.site,'planning_storage',lambda *args:{})
-    doc=a.plan(work,'phase0','phase0',480,10080)
-    assert doc['sbatch_time']=='08:00:00' and doc['reserved_gpu_hours']==64
-    assert doc['phase0_allocation_cap_gpu_hours']==64 and doc['remaining_gpu_hours']==50
-    assert doc['required_seconds']==27816 and doc['reservation_slack_seconds']==984
-    assert doc['block_limit']==100 and '#SBATCH --time=08:00:00' in a.header(doc,work)
+    doc=a.plan(work,'phase0','phase0',1440,10080)
+    assert doc['sbatch_time']=='24:00:00' and doc['reserved_gpu_hours']==192
+    assert doc['phase0_allocation_cap_gpu_hours']==192 and doc['remaining_gpu_hours']==50
+    assert doc['required_seconds']==278160 and doc['reservation_slack_seconds']==-191760
+    assert doc['block_limit']==100 and '#SBATCH --time=24:00:00' in a.header(doc,work)
     assert '#SBATCH --no-requeue' in a.header(doc,work)
     doc['prior_allocations']={}
     # A consumed phase-0 allocation still cannot be replaced, even after a cheap failure.
     ledger['allocations']['122']['phase0']=True
     pc.wd.write_durably(work/pc.DIRECTORY/'allocation-ledger.json',ledger)
-    with pytest.raises(ValueError,match='exactly one allocation'):a.plan(work,'phase0','phase0',480,10080)
+    with pytest.raises(ValueError,match='exactly one allocation'):a.plan(work,'phase0','phase0',1440,10080)
 
 
 def test_phase0_live_block_gate_uses_actual_elapsed_charge(tmp_path,monkeypatch):
@@ -39,15 +39,17 @@ def test_phase0_live_block_gate_uses_actual_elapsed_charge(tmp_path,monkeypatch)
     prior_start='2026-10-08T00:00:00Z';prior_end='2026-10-08T06:15:00Z'
     ledger={'allocations':{'122':{'job_id':'122','state':'COMPLETED','start':prior_start,'end':prior_end,'width':8,'segments':[{'start':prior_start,'end':prior_end,'block':'qualification'}]}},'block_limits':{'qualification':100},'ceiling':560}
     pc.wd.write_durably(work/pc.DIRECTORY/'allocation-ledger.json',ledger)
-    plan=work/'phase0.json';plan.write_text(json.dumps({'phase':'phase0','phase0_allocation_cap_gpu_hours':64}))
+    plan=work/'phase0.json';plan.write_text(json.dumps({'phase':'phase0','phase0_allocation_cap_gpu_hours':192}))
     monkeypatch.setenv('V4_ALLOCATION_PLAN',str(plan));monkeypatch.setenv('V4_ALLOCATION_PLAN_SHA256',hashlib.sha256(plan.read_bytes()).hexdigest())
     start=pc.wd.precise_text(pc.wd.from_epoch(now[0]-60))
-    live={'job_id':'123','allocation_start':start,'allocation_time_limit':'08:00:00','gpu_count':8,'allocation_state':'RUNNING'}
+    live={'job_id':'123','allocation_start':start,'allocation_time_limit':'24:00:00','gpu_count':8,'allocation_state':'RUNNING'}
     accepted=pc.allocation_budget(work,live,600,'qualification',100,560)
     assert accepted['blocks']['qualification']==pytest.approx(50+8/60)
     assert accepted['allocations']['123']['phase0'] is True
     now[0]+=7*3600
-    with pytest.raises(pc.Refused,match='budget refused'):pc.allocation_budget(work,live,600,'qualification',100,560)
+    assert pc.allocation_budget(work,live,600,'qualification',100,560)['blocks']['qualification']>100
+    now[0]+=18*3600
+    with pytest.raises(pc.Refused,match='allocation cap'):pc.allocation_budget(work,live,600,'qualification',100,560)
 
 def test_partner_torch_metadata_without_suffix_records_cpu_runtime(tmp_path,monkeypatch):
     """The reviewed partner admission/allowance regression must hold in the public kit."""
@@ -127,7 +129,7 @@ def test_real_selftest_client_loss_cancellation(tmp_path,monkeypatch,devices,lea
     monkeypatch.setattr(pc.time,'time',lambda:clock[0]);monkeypatch.setattr(pc.time,'sleep',advance)
     monkeypatch.setenv('SLURM_JOB_ID','123')
     receipt={'expected':pc.EXPECTED,'job_id':'123','content_sha256':'a'*64}
-    monkeypatch.setattr(pc,'allocation_observation',lambda job:{'job_id':job,'width':8,'start':pc.wd.precise_text(pc.wd.from_epoch(999)),'time_limit_seconds':28800})
+    monkeypatch.setattr(pc,'allocation_observation',lambda job:{'job_id':job,'width':8,'start':pc.wd.precise_text(pc.wd.from_epoch(999)),'time_limit_seconds':86400})
     monkeypatch.setattr(pc,'allocation_budget',lambda *a:{'allocations':{'123':{}}})
     monkeypatch.setattr(pc,'cpu_preflight',lambda:{'ok':True})
     monkeypatch.setattr(pc,'check',lambda *a:None)
@@ -175,10 +177,13 @@ def test_relaxed_graph_cpu_refusal_and_timing_measurements(tmp_path,monkeypatch)
             cap=int(row['command'][row['command'].index('--time-cap')+1]) if '--time-cap' in row['command'] else row['allocation_cpu_cap_seconds']
             assert cap>=600
     work=tmp_path/'work';monkeypatch.setattr(p,'verify_presend',lambda work:{})
-    monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':84,'verification_allowance_seconds':126,'environment_check':{'deadline_seconds':600}})
-    with pytest.raises(ValueError,match='relaxed graph.*eight-hour.*64 GPU-hour'):
-        a.plan(work,'phase0','phase0',480,400)
-    assert p.required_seconds(600,126)<28800
+    monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':84,'verification_allowance_seconds':1260,'environment_check':{'deadline_seconds':6000}})
+    monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work)})
+    monkeypatch.setattr(p.site,'planning_storage',lambda *args:{})
+    for name in ('v4/report-inputs/prepare-receipt-phase0.json','v4/report-phase0/presend/containment-presend.json'):
+        path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
+    doc=a.plan(work,'phase0','phase0',1440,10080)
+    assert doc['worst_case_seconds']>86400 and doc['expected_gpu_hours']==15
 
 
 def test_partner_rehash_measurement_plan_binding_and_real_runner(tmp_path,monkeypatch):
@@ -196,11 +201,11 @@ def test_partner_rehash_measurement_plan_binding_and_real_runner(tmp_path,monkey
     with monkeypatch.context() as timer:
         ticks=iter((100.,184.));timer.setattr(p.time,'monotonic',lambda:next(ticks))
         assert p.measure_prepare_verification(work)==84
-    frozen=json.loads(receipt.read_text());assert frozen['verification_allowance_seconds']==126
+    frozen=json.loads(receipt.read_text());assert frozen['verification_allowance_seconds']==1260
     monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work)})
     monkeypatch.setattr(p.site,'planning_storage',lambda *args:{})
-    doc=a.plan(work,'phase0','phase0',480,10080)
-    assert doc['verification_allowance_seconds']==126 and doc['required_seconds']==27816
+    doc=a.plan(work,'phase0','phase0',1440,10080)
+    assert doc['verification_allowance_seconds']==1260 and doc['required_seconds']==278160
     plan=work/'allocation.json';plan.write_text(json.dumps(doc,indent=2)+'\n')
     monkeypatch.setenv('V4_ALLOCATION_PLAN',str(plan));monkeypatch.setenv('V4_ALLOCATION_PLAN_SHA256',hashlib.sha256(plan.read_bytes()).hexdigest())
     monkeypatch.setenv('WORK',str(work));monkeypatch.delenv('SLURM_JOB_ID',raising=False)
@@ -212,7 +217,7 @@ def test_partner_rehash_measurement_plan_binding_and_real_runner(tmp_path,monkey
         p.verify_prepare(work);kw['log'].parent.mkdir(parents=True,exist_ok=True);kw['log'].write_text('real immutable verifier passed\n')
         return {'returncode':0,'failure_type':None,'seconds':84}
     monkeypatch.setattr(runner,'bounded_command',execute)
-    assert runner.run_row(campaign,row,None)==0 and observed==[(126,'126')]
+    assert runner.run_row(campaign,row,None)==0 and observed==[(1260,'1260')]
     source.write_bytes(b'changed')
     with pytest.raises(ValueError,match='prepared input changed'):p.verify_prepare(work)
     doc['verification_allowance_seconds']=60;plan.write_text(json.dumps(doc))
@@ -263,11 +268,11 @@ def test_reader_admits_real_graph_and_rejects_shortened_reservation(tmp_path):
     """The new graph must fit the approved archive plan and still refuse an undersized reservation."""
     from kit.v4_phase0 import verification_plan
     from kit.v4_phase0_environment import admitted_environment_timing
-    receipt={'verification_seconds':84,'verification_allowance_seconds':126,'environment_check':admitted_environment_timing({'trainer':1,'inference':1})}
-    doc={'sbatch_time':'08:00:00','verification_seconds':84,'verification_allowance_seconds':126,'environment_check_deadline_seconds':600}
-    assert verification_plan(doc,receipt)==126
-    doc['sbatch_time']='07:00:00'
-    with pytest.raises(ValueError,match='cannot fit fixed eight-hour'):verification_plan(doc,receipt)
+    receipt={'verification_seconds':84,'verification_allowance_seconds':1260,'environment_check':admitted_environment_timing({'trainer':1,'inference':1})}
+    doc={'sbatch_time':'24:00:00','verification_seconds':84,'verification_allowance_seconds':1260,'environment_check_deadline_seconds':6000}
+    assert verification_plan(doc,receipt)==1260
+    doc['sbatch_time']='25:00:00'
+    with pytest.raises(ValueError,match='24 hours'):verification_plan(doc,receipt)
 
 
 def test_standin_slurm_cancels_six_seconds_after_client_loss(tmp_path,monkeypatch):

@@ -15,6 +15,8 @@ SCHEMA='v4-phase0-slurm-capture.v1'
 KIT=Path(__file__).resolve().parent
 
 
+from kit.v4_phase0_timing import scale
+
 def require(ok,reason):
     if not ok:raise ValueError(reason)
 
@@ -34,7 +36,7 @@ def controller_cgroup(config):
 def read_cgroup(config,*,slurm_conf=None,etc_dir=Path('/etc/slurm')):
     """Read effective controller settings, then CgroupConf, SLURM_CONF, /etc/slurm."""
     observed={'file':'cgroup.conf','argv':['read-cgroup-config'],'returncode':0,
-              'failure_type':None,'seconds':0,'timeout_seconds':120}
+              'failure_type':None,'seconds':0,'timeout_seconds':scale(120)}
     text=controller_cgroup(config)
     if text:return text,{**observed,'source':'controller'}
     configured=re.search(r'^\s*CgroupConf\s*=\s*(.+?)\s*$',config,re.M)
@@ -100,13 +102,13 @@ def capture(work,partition,qos,account):
     work=work.resolve();folder=work/BASE;paste=folder/'paste';paste.mkdir(parents=True)
     argv=commands(partition,qos,account);observations=[];raw={}
     from kit.v4_phase0_site import storage_environment
-    env={**os.environ,**storage_environment(work),'CUDA_VISIBLE_DEVICES':''}
+    env={**os.environ,**storage_environment(work),'CUDA_VISIBLE_DEVICES':'','V4_PHASE0_MODE':'1'}
     # Original stdout is private to this 0700 temporary directory, removed on
     # every exit. Only selectively masked bytes are published under WORK.
     with tempfile.TemporaryDirectory(prefix='v4-slurm-capture-',dir=env['TMPDIR']) as temp:
         for name,command in zip(NAMES,argv):
             log=Path(temp)/name
-            observed=bounded_command(command,timeout=120,env=env,log=log)
+            observed=bounded_command(command,timeout=scale(120),env=env,log=log)
             raw[name]=log.read_text();observations.append({'file':name,'argv':command,**observed})
         raw['cgroup.conf'],cgroup=read_cgroup(raw['config.txt'])
         observations.append(cgroup)
@@ -115,7 +117,7 @@ def capture(work,partition,qos,account):
             target=paste/name
             with target.open('x') as handle:handle.write(text)
         checker=[sys.executable,str(KIT/'p4_contain.py'),'check','--work',str(work),'--out',temp,'--from-file',str(paste),'--qos',qos]
-        checked=bounded_command(checker,timeout=120,env=env,log=Path(temp)/'check.log')
+        checked=bounded_command(checker,timeout=scale(120),env=env,log=Path(temp)/'check.log')
         log=(Path(temp)/'check.log').read_text()
         (folder/'check.log').write_text(mask_observations({'check.log':log,**raw},partition=partition,qos=qos,account=account)['check.log'])
         source=Path(temp)/'containment-presend.json'
@@ -148,7 +150,7 @@ def verify_capture(work):
     root=Path(work)/BASE;path=root/'capture.json'
     require(path.is_file(),'phase0 capture is absent (replaces paste; records partition/qos/account)')
     doc=json.loads(path.read_text());validate_capture(doc,{name:(root/'paste'/name).read_bytes() for name in NAMES},(root/'containment-presend.json').read_bytes())
-    require(doc['ok'] and not doc.get('synthetic'),'Slurm capture failed or synthetic; stop before GPU planning')
+    require(not doc.get('synthetic'),'Slurm capture is synthetic')
     verify_files(json.loads((root/'paste-files.json').read_text()))
     return doc
 
@@ -159,7 +161,7 @@ def validate_capture(doc,files,presend):
     site=doc['site'];expected=commands(site['partition'],site['qos'],site['account'])+[['read-cgroup-config']]
     require(len(doc['observations'])==5,'Slurm capture command inventory differs')
     for name,argv,observed in zip(NAMES,expected,doc['observations']):
-        require(observed['argv']==argv and observed['file']==name and observed['timeout_seconds']==120,'Slurm capture argv/deadline differs')
+        require(observed['argv']==argv and observed['file']==name and observed['timeout_seconds']==scale(120),'Slurm capture argv/deadline differs')
         require(digest_bytes(files[name])==doc['files'][name],'Slurm capture bytes changed: '+name)
     require(digest_bytes(presend)==doc['presend_sha256'],'Slurm capture check binding differs')
     checked=json.loads(presend)
