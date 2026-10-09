@@ -280,7 +280,7 @@ trap 'exit 130' INT
 trap 'exit 129' HUP
 stage started
 for f in train.parquet test.parquet; do
-  [[ -f "$SDPO_DIR/$DATASET/$f" ]] || { echo "missing $SDPO_DIR/$DATASET/$f: run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; exit 2; }
+  [[ -f "$DATA_DIR/$f" ]] || { echo "missing $DATA_DIR/$f: for datasets/<task>, run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; exit 2; }
 done
 [[ -f "$REWARD" ]] || { echo "missing reward function $REWARD" >&2; exit 2; }
 mkdir -p "$OUT/env" "$OUT/tool-sdpo/logs"

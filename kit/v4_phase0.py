@@ -850,8 +850,10 @@ def main(argv=None):
         write_durably(args.work/BASE/'hard-stop.json',{'cause':str(exc),'row':args.row})
         print('STOP: '+str(exc));return 2
     except (ValueError,RuntimeError,KeyError,subprocess.SubprocessError) as exc:
-        print('WARNING: phase-0 observation failed: '+str(exc))
-        write_durably(args.work/BASE/'observations'/(args.row+'.json'),{'informational':True,'cause':str(exc)})
+        # A failed operation is a failed row. Informational checks handle their own outcomes inside the
+        # operation (environment check, containment self-test); nothing reaching here may be recorded as a pass.
+        write_durably(args.work/BASE/'failures'/(str(args.row)+'.json'),{'row':args.row,'operation':args.operation,'cause':str(exc)})
+        print('FAILED: '+str(args.operation)+': '+str(exc));return 1
     base=args.work/BASE; (base/'timings').mkdir(exist_ok=True)
     write_durably(base/'timings'/(args.row+'.json'),receipt(started,time.monotonic()-clock,row=args.row,phase='phase0',operation=args.operation))
     write_durably(args.work/'v4/report-status'/(args.row+'.json'),{'ok':1})

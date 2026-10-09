@@ -86,7 +86,10 @@ def test_the_dataset_knob_moves_the_three_places_that_name_the_task(script):
     _, argv, _ = dry(script, DATASET="datasets/sciknoweval/chemistry")
     assert "data.train_files=[/ref/SDPO/datasets/sciknoweval/chemistry/train.parquet]" in argv and "vars.task=datasets/sciknoweval/chemistry" in argv
     text = script.read_text()
-    assert 'TASK="$DATASET"' in text and '"$SDPO_DIR/$DATASET/$f"' in text, "the exported TASK and the parquet check follow the knob too"
+    # The parquet check follows the knob: the GRPO launcher joins the checkout path; the SDPO launcher checks its resolved
+    # DATA_DIR, which also accepts an absolute scheduled folder (partner's phase 0 v4 run, 9 October).
+    parquet_check = '"$SDPO_DIR/$DATASET/$f"' if script == GRPO else '"$DATA_DIR/$f"'
+    assert 'TASK="$DATASET"' in text and parquet_check in text, "the exported TASK and the parquet check follow the knob too"
     assert '"dataset": "$DATASET"' in text and '"model_dir": "$MODEL_DIR"' in text
 
 
