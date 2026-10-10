@@ -847,7 +847,11 @@ def main(argv=None):
     if args.operation=='prepare':print(prepare(args.work,args.paste,args.qos,args.verified_environments));return 0
     from kit.v4_timing import receipt,utc_now
     started=utc_now();clock=time.monotonic()
-    try:operation(args.work,args.operation,slot=args.slot,checkpoint=args.checkpoint)
+    try:
+        result=operation(args.work,args.operation,slot=args.slot,checkpoint=args.checkpoint)
+        # The in-run reading keeps its errors in the report; an incomplete reading is a failed row.
+        if args.operation=='report' and result.get('status')!='technical pass':
+            raise ValueError('technical reading incomplete: '+'; '.join(result.get('reasons',[])))
     except (HardStop,FileNotFoundError) as exc:
         write_durably(args.work/BASE/'hard-stop.json',{'cause':str(exc),'row':args.row})
         print('STOP: '+str(exc));return 2

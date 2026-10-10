@@ -766,7 +766,10 @@ class VLLMGenerator:
         from kit.v4_timing import utc_now, receipt
         started=utc_now();clock=time.monotonic()
         os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
-        os.environ['VLLM_BATCH_INVARIANT']='1'
+        # vLLM reads VLLM_BATCH_INVARIANT once at import, so the labelled fallback is a fresh process
+        # (os.execve below) started with the flag off and the first startup failure recorded.
+        fallback_cause=os.environ.get('V4_BATCH_FALLBACK_CAUSE')
+        os.environ['VLLM_BATCH_INVARIANT']='0' if fallback_cause else '1'
         os.environ['VLLM_ATTENTION_BACKEND']='FLASH_ATTN'
         from vllm import LLM, SamplingParams
         self.params = SamplingParams
@@ -780,19 +783,48 @@ class VLLMGenerator:
             import vllm
             if vllm.__version__!='0.18.0':raise ValueError('phase0 teacher requires vLLM 0.18.0')
             kwargs.update(attention_config={'backend':'FLASH_ATTN'},gdn_prefill_backend='triton')
-        if probe_mode:kwargs['enforce_eager']=True
-        self.batch_policy={'attention_backend':'FLASH_ATTN','batch_invariant':True,'engine_starts':1,
+        # Eager always (phase 0 v6 on the partner's node: four TP-2 engines capturing CUDA graphs at once took
+        # 27 minutes and the first sample_tokens RPC then timed out). Offline generation gains little from graphs,
+        # and evaluation is already eager. The RPC deadline is raised tenfold as a backstop.
+        kwargs['enforce_eager']=True
+        os.environ.setdefault('VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS','3000')
+        # Process-group deadline tenfold too (PyTorch's NCCL default is 600 s), where this vLLM accepts it.
+        if tensor_parallel_size==2:
+            import dataclasses
+            try:from vllm.engine.arg_utils import EngineArgs
+            except ImportError:EngineArgs=None
+            if EngineArgs and 'distributed_timeout_seconds' in {f.name for f in dataclasses.fields(EngineArgs)}:kwargs['distributed_timeout_seconds']=6000
+            # vLLM's device and Gloo subgroups take PyTorch's backend defaults (NCCL 600 s, Gloo 1800 s): tenfold here;
+            # TP workers forked from this process (vLLM's default while CUDA is uninitialised) inherit the value.
+            import datetime
+            import torch.distributed.distributed_c10d as c10d
+            c10d.default_pg_timeout=datetime.timedelta(seconds=18000);c10d.default_pg_nccl_timeout=datetime.timedelta(seconds=6000)
+        self.batch_policy={'attention_backend':'FLASH_ATTN','batch_invariant':True,'engine_starts':1,'enforce_eager':True,
                            'serial_equivalence_guaranteed':True,'regeneration_guaranteed':True}
         if os.environ.get('V4_PHASE0_INFERENCE')=='1':
             self.batch_policy.update(vllm='0.18.0',gdn_prefill_backend='triton')
+        if fallback_cause:
+            self.batch_policy.update(batch_invariant=False,engine_starts=2,
+                batch_invariance='unavailable for this model',startup_failure=fallback_cause,
+                serial_equivalence_guaranteed=False,regeneration_guaranteed=False)
         try:self.engine=LLM(**kwargs)
         except Exception as error:
-            if not allow_batch_fallback:raise
-            self.batch_policy.update(batch_invariant=False,engine_starts=2,
-                batch_invariance='unavailable for this model',startup_failure=type(error).__name__+': '+str(error),
-                serial_equivalence_guaranteed=False,regeneration_guaranteed=False)
-            os.environ['VLLM_BATCH_INVARIANT']='0'
-            self.engine=LLM(**kwargs)
+            if not allow_batch_fallback or fallback_cause:raise
+            # Stop and reap the failed engine's TP workers first: exec keeps this PID and they could otherwise
+            # still hold GPU memory when the restarted engine checks for 90% free.
+            import psutil
+            workers=psutil.Process().children(recursive=True)
+            for worker in workers:
+                try:worker.terminate()
+                except psutil.NoSuchProcess:pass
+            _,alive=psutil.wait_procs(workers,timeout=60)
+            for worker in alive:
+                try:worker.kill()
+                except psutil.NoSuchProcess:pass
+            psutil.wait_procs(alive,timeout=60)
+            sys.stdout.flush();sys.stderr.flush()
+            os.execve(sys.executable,sys.orig_argv,{**os.environ,'VLLM_BATCH_INVARIANT':'0',
+                      'V4_BATCH_FALLBACK_CAUSE':type(error).__name__+': '+str(error)})
         self.tokenizer = self.engine.get_tokenizer()
         self.reload_timing=receipt(started,time.monotonic()-clock,batch_policy=self.batch_policy)
 

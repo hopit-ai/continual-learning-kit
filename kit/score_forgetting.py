@@ -88,7 +88,7 @@ def machine_fingerprint(deterministic: bool = True) -> dict:
     import platform, socket, subprocess                                      # noqa: E401,PLC0415
     try:
         smi = subprocess.run(["nvidia-smi", "--query-gpu=name,uuid,driver_version", "--format=csv,noheader"],
-                             capture_output=True, text=True, timeout=30).stdout.strip().splitlines()
+                             capture_output=True, text=True, timeout=300).stdout.strip().splitlines()
     except (OSError, subprocess.SubprocessError):
         smi = []
     versions = {}

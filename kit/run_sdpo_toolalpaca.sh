@@ -203,6 +203,8 @@ fi
 # The VARIATION arm. K0's argv does not mention temperature at all (verl's default is 1.0), so an
 # unset TEMP appends nothing and the command above stays byte for byte K0's.
 if [[ -n "$TEMP" ]]; then ARGV+=("actor_rollout_ref.rollout.temperature=$TEMP"); fi
+# v4 only: process-group deadline tenfold (verl default 600 s); owner's 9 October timing rule.
+if [[ -n "${KIT_V4_ARM:-}" ]]; then ARGV+=("actor_rollout_ref.nccl_timeout=6000"); fi
 
 # The training cap (package 4). Appended last, so with MAX_RESPONSE unset nothing is added. The trainer keeps the first
 # MAX_RESPONSE generated tokens of a rollout and marks it cut when no end token is among them (naive.py:84);

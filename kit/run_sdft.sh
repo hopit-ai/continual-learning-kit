@@ -173,6 +173,8 @@ ARGV+=("data.max_response_length=$MAX_RESPONSE")
 # The common v4 entry supplies the identical ordered schedule to all four arms.
 if [[ -n "${KIT_V4_ARM:-}" ]]; then
   ARGV+=("data.max_prompt_length=2048" "actor_rollout_ref.actor.self_distillation.max_reprompt_len=6144" "data.filter_overlong_prompts=False" "data.truncation=error")
+  # Process-group deadline tenfold (verl default 600 s); owner's 9 October timing rule.
+  ARGV+=("actor_rollout_ref.nccl_timeout=6000")
 fi
 
 [[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; exit 2; }
