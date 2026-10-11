@@ -52,6 +52,7 @@ def test_build_checks_shadowing_and_pip_check_before_inference(tmp_path,monkeypa
     from test_kit_phase0_host import VERSIONS
     monkeypatch.delenv('SLURM_JOB_ID',raising=False);monkeypatch.setenv('SDPO_DIR',str(tmp_path/'SDPO'))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     base=[distribution(k.replace('_','-'),v,tmp_path/'base') for k,v in VERSIONS.items()]+[distribution('peft','0.18.0',tmp_path/'base')]
     # Do not replace base_environment: exercise full constraint generation.
     monkeypatch.setattr(s,'distribution_inventory',lambda paths=None,**kw:base)
@@ -105,6 +106,7 @@ def gpu_world(tmp_path,monkeypatch):
     (inputs/'prepare-receipt-phase0.json').write_text(json.dumps({'environment_check':__import__('kit.v4_phase0_environment',fromlist=['admitted_environment_timing']).admitted_environment_timing({'trainer':1,'inference':1})}))
     (base/'environment.json').write_text(json.dumps({'trainer_dependency_versions':VERSIONS,'runtime_versions':{'torch':'stub'}}))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy());monkeypatch.setattr(t,'runtime_versions',lambda:{'torch':'stub'})
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     monkeypatch.setattr(e.shutil,'which',lambda name:'/owned/bin/'+name)
     monkeypatch.setenv('SLURM_JOB_ID','123');monkeypatch.setenv('SLURM_STEP_ID','batch')
     for name in ('verl','qwen_vl_utils'):monkeypatch.setitem(sys.modules,name,SimpleNamespace())
@@ -238,6 +240,7 @@ def test_blocked_wheels_leave_returnable_setup_blocker(tmp_path,monkeypatch):
     from test_kit_phase0_host import VERSIONS
     monkeypatch.delenv('SLURM_JOB_ID',raising=False)
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     def blocked(urls):raise ValueError('PyPI: 403 denied; retain the setup blocker and return it')
     monkeypatch.setattr(s,'check_network',blocked)
     with pytest.raises(ValueError,match='403 denied'):p.environment_build(tmp_path/'work')

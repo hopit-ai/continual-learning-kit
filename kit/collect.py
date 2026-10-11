@@ -82,6 +82,7 @@ def pruned(name: str) -> bool:
 def wanted(rel: Path, root_rel: Path) -> bool:
     """Whether a file (path relative to WORK) is something a partner sends back."""
     parts = rel.parts
+    if parts==('v4','report-inputs','phase0-return.tar.gz'):return True
     if parts==('reconcile','containment-reconcile.json'):return True
     if parts in (('route-probe.sbatch',),('v4','report-phase0','route-probe.err')):return True
     if parts in (('cpu-format-capture.txt',),('cpu-format-capture.err',),('cpu-format-reading.json',)):return True
@@ -93,8 +94,12 @@ def wanted(rel: Path, root_rel: Path) -> bool:
         return True
     if parts[:2]==('v4','report-inputs') and rel.name in {'v4-data-audit-'+name+'.ids' for name in ('TOKEN80','CLEAN','REACTION','NONREACTION')}:
         return True
+    if parts[:2] in (('v4','warnings'),('v4','report-flow')) and rel.suffix=='.json':return True
     if parts[:2]==('v4','retries') and rel.suffix=='.json':
         return True
+    # Main retention evidence; absent in the sent phase-0 package.
+    if len(parts)==5 and parts[0]=='runs' and parts[2:4]==('env','retention') and re.fullmatch(r'state-step\d+\.json',rel.name):return True
+    if len(parts)==4 and parts[0]=='runs' and parts[2]=='env' and re.fullmatch(r'export-reload-step\d+\.json',rel.name):return True
     if rel.name.startswith('saved-state-step') and rel.suffix=='.json' and 'env' in parts and 'runs' in parts:
         return True
     if rel.name in NAMED:

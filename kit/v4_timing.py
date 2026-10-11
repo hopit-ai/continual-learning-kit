@@ -19,6 +19,8 @@ import time
 if __package__ in (None,''):
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit import v4_teacher as t
+from kit.v4_phase0_timing import shared_limit
+
 from kit.v4_budget import number
 
 
@@ -43,7 +45,7 @@ def sample(ledger,record,units=1):
 
 def qualification_timings(archive,*,completed=None):
     """Derive admission inputs from raw attempts, trainer metrics and operation receipts."""
-    from kit.v4_campaign import TASKS, ARMS
+    from kit.v4_campaign import TASKS, ALL_ARMS as ARMS, PANELS
     ledger=archive.json('k8b4/containment/allocation-ledger.json')
     base='v4/report-qualification/'
     observations=defaultdict(list)
@@ -112,7 +114,7 @@ def qualification_timings(archive,*,completed=None):
             residual=number(row['wall_seconds'],'training row seconds')-sum(seconds for _,seconds in steps)-sum(number(e['wall_seconds'],'export seconds') for e in exports)-number(merged['wall_seconds'],'merge seconds')
             if residual<0:raise ValueError('negative startup residual: '+ident)
             add(f'startup:{arm}:{task}',{**row,'wall_seconds':str(residual)})
-    for task in (*TASKS,'chemistry_probe'):
+    for task in PANELS:
         for cap in (2048,8192):
             root=base+f'eval/baseline-{task}-{cap}/'
             responses=archive.jsonl(root+'responses.jsonl')
@@ -126,7 +128,7 @@ def qualification_timings(archive,*,completed=None):
     for task in TASKS:
         probe=archive.jsonl('v4/report-inputs/'+task+'-probe.jsonl')
         probe_sizes.append(len(probe))
-        root=base+'probes/q-S-chemistry-'+task+'-0/'
+        root=base+'probes/q-S-finqa-'+task+'-0/'
         timing=archive.json(root+'timing.json')
         rows=archive.jsonl(root+'raw_outputs.jsonl')
         if {(r['id'],r['attempt']) for r in rows}!={(i['id'],attempt) for i in probe for attempt in range(1,9)}:
@@ -144,7 +146,7 @@ def qualification_timings(archive,*,completed=None):
         if residual<number(archive.json(root+'timing.json')['reload']['wall_seconds'],'reload'):raise ValueError('negative conditioned bookkeeping residual')
         add('conditioned_reload:'+task,{**whole,'wall_seconds':str(residual)})
         for row in conditioned:add('conditioned_probe:'+task,row['generate_timing'])
-    if probe_sizes!=[20,20]:raise ValueError('changed frozen probe size')
+    if probe_sizes!=[20]:raise ValueError('changed frozen probe size')
     # Full-cap waves run on all registered replicas, including idle allocation
     # cost. Recompute geometry from frozen pools rather than trusting a report.
     geometry={}
@@ -165,7 +167,9 @@ def qualification_timings(archive,*,completed=None):
             geometry[model+':'+task]={'pool_size':len(full),'shards':shards,
                 'shard_sizes':[len(t.select_shard(full,index,shards)) for index in range(shards)]}
     for task in TASKS:
-        add('cpu:schedule:'+task,archive.json(base+'timings/schedule-q-S-'+task+'.json'))
+        # Later schedules include prior-slot retirement; the first S schedule
+        # alone cannot measure its IO. Keep all five whole observations.
+        for arm in ARMS:add('cpu:schedule:'+task,archive.json(base+'timings/schedule-q-'+arm+'-'+task+'.json'))
     for operation in ('coverage','training-set','report','archive-pack'):
         add('cpu:'+operation,archive.json(base+'timings/'+operation+'.json'))
     # The main owner gate only validates frozen identities; conservatively bound
@@ -226,7 +230,7 @@ def main(argv=None):
     if command[:1]==['--']:command=command[1:]
     if not command:parser.error('missing measured command')
     started=utc_now();clock=time.monotonic()
-    result=subprocess.run(command,timeout=int(os.environ.get("V4_COMMAND_TIMEOUT","1800")))
+    result=subprocess.run(command,timeout=int(os.environ.get("V4_COMMAND_TIMEOUT",str(shared_limit(1800)))))
     args.out.parent.mkdir(parents=True,exist_ok=True)
     t.atomic_json(args.out,receipt(started,time.monotonic()-clock,ok=result.returncode==0,command=command,returncode=result.returncode))
     return result.returncode
@@ -278,6 +282,17 @@ def install_telemetry(cls,*,updates=None,exports=None,memory_methods=()):
             tokens=training_tokens(args[0] if args else kwargs.get('batch',kwargs.get('data'))) if _method==updates else None
             optimizer=getattr(self,'optimizer',getattr(self,'actor_optimizer',None))
             used_lr=optimizer.param_groups[0]['lr'] if _method==updates and optimizer is not None else None
+            if _method==exports and os.environ.get('V4_MAIN_RETENTION')=='slot':
+                from kit.v4_retention import before_save
+                import torch.distributed as dist
+                error=[None]
+                if int(os.environ.get('RANK','0'))==0:
+                    try:
+                        step=kwargs.get('step',args[0] if args else getattr(self,'global_steps',None))
+                        before_save(Path(os.environ['VERL_FILE_LOGGER_PATH']).parent,os.environ['KIT_V4_ARM'],int(step))
+                    except Exception as exc:error[0]=str(exc)
+                if dist.is_initialized():dist.broadcast_object_list(error,src=0)
+                if error[0]:raise ValueError('retention before-save guard: '+error[0])
             result=_original(self,*args,**kwargs)
             if _method==updates and used_lr is not None and isinstance(result,dict):
                 result['train/lr' if os.environ.get('KIT_V4_ARM') in 'FR' else 'actor/lr']=used_lr
@@ -291,14 +306,29 @@ def install_telemetry(cls,*,updates=None,exports=None,memory_methods=()):
                     step=kwargs.get('step',args[0] if args else getattr(self,'global_steps',None))
                     target=Path(os.environ['VERL_FILE_LOGGER_PATH']).parent/'env/export-timings.jsonl'
                     append_receipt(target,receipt(started,time.monotonic()-clock,step=step))
-                    if os.environ.get('V4_CHECKPOINT_STATE')=='1':
+                    if os.environ.get('V4_CHECKPOINT_STATE')=='1' and os.environ.get('V4_MAIN_RETENTION')!='slot':
                         from kit.v4_retry import saved_state
                         arm=os.environ['KIT_V4_ARM']
                         checkpoint=Path(self.config.trainer.default_local_dir)/f'global_step_{step}'
                         digest=saved_state(checkpoint,arm)
                         t.atomic_json(target.parent/f'saved-state-step{step}.json',
                             {'step':step,'arm':arm,'path':str(checkpoint),'state_sha256':digest,
-                             'contents':['model','optimizer','extra','dataloader']+(['EMA'] if arm in 'SD' else [])})
+                             'contents':['model','optimizer','extra','dataloader']+(['EMA'] if arm in ('S','D','D-R') else [])})
+            if _method==exports and os.environ.get('V4_MAIN_RETENTION')=='slot':
+                # SFT's original method finishes with an all-rank barrier. Hold
+                # the other ranks until the rank-zero IO verdict is known. PPO
+                # runs this controller once, after all workers and loader save.
+                import torch.distributed as dist
+                collective=dist.is_initialized()
+                error=[None]
+                if int(os.environ.get('RANK','0'))==0:
+                    try:
+                        from kit.v4_retention import after_save
+                        step=kwargs.get('step',args[0] if args else getattr(self,'global_steps',None))
+                        after_save(Path(os.environ['VERL_FILE_LOGGER_PATH']).parent,os.environ['KIT_V4_ARM'],int(step),int(os.environ['STEPS']))
+                    except Exception as exc:error[0]=str(exc)
+                if collective:dist.broadcast_object_list(error,src=0)
+                if error[0]:raise ValueError('retention save guard: '+error[0])
             return result
         wrapped=functools.wraps(original)(wrapper);wrapped._v4_timed=True
         setattr(cls,method,wrapped)

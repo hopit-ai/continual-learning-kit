@@ -83,6 +83,14 @@ class SdftDataError(ValueError):
 
 
 # ------------------------------------------------------------------------------------------------- the teacher prompt
+
+def privileged_context(extra_info, source='demonstration'):
+    """The sole D-R switch. No fallback from a missing verified rewrite."""
+    if source not in ('demonstration','rewrite'):raise SdftDataError('unregistered context source')
+    value=extra_info.get(source) if isinstance(extra_info, Mapping) else None
+    if not isinstance(value,str) or not value.strip():raise SdftDataError('no extra_info.'+source)
+    return value
+
 def demonstration_of(extra_info: Any) -> str:
     """The row's verified demonstration (`extra_info["demonstration"]`), or SdftDataError. Never a default: a row without
     one would get no distillation target, which is the successful-sibling condition by another route."""

@@ -45,7 +45,11 @@ def test_teacher_and_rewriter_engines_are_eager(fake_vllm,tp):
         assert (c10d.default_pg_timeout.total_seconds(),c10d.default_pg_nccl_timeout.total_seconds())==(18000,6000)
 
 
-def test_batch_fallback_restarts_in_a_fresh_process_with_the_flag_off(fake_vllm,monkeypatch):
+@pytest.mark.parametrize('main',[False,True])
+def test_batch_fallback_restarts_in_a_fresh_process_with_the_flag_off(fake_vllm,monkeypatch,main):
+    monkeypatch.setenv('V4_FINQA_CAMPAIGN','1' if main else '0')
+    monkeypatch.setenv('V4_PHASE0_MODE','0' if main else '1')
+    waits=[]
     LLM,seen=fake_vllm;LLM.fail=True;calls=[]
     events=[]
     def execve(path,argv,env):events.append('exec');calls.append(env);raise SystemExit(0)
@@ -55,10 +59,11 @@ def test_batch_fallback_restarts_in_a_fresh_process_with_the_flag_off(fake_vllm,
         def terminate(self):events.append('terminate')
         def kill(self):events.append('kill')
     monkeypatch.setattr(psutil,'Process',lambda:types.SimpleNamespace(children=lambda recursive:[Worker()]))
-    monkeypatch.setattr(psutil,'wait_procs',lambda procs,timeout:(events.append('reap') or [],[]))
+    monkeypatch.setattr(psutil,'wait_procs',lambda procs,timeout:(waits.append(timeout) or events.append('reap') or [],[]))
     with pytest.raises(SystemExit):t.VLLMGenerator('m',2048,tensor_parallel_size=2,allow_batch_fallback=True)
     assert seen[-1]['invariant']=='1'
     assert events[:3]==['terminate','reap','reap'] and events[-1]=='exec'
+    assert waits==[600,600] if main else waits==[60,60]
     assert calls[0]['VLLM_BATCH_INVARIANT']=='0' and 'invariant kernels unavailable' in calls[0]['V4_BATCH_FALLBACK_CAUSE']
     # The restarted process: flag off before vLLM is imported, fallback labelled, a second failure is final.
     LLM.fail=False;monkeypatch.setenv('V4_BATCH_FALLBACK_CAUSE',calls[0]['V4_BATCH_FALLBACK_CAUSE'])
@@ -87,3 +92,10 @@ def test_distributed_deadlines_are_tenfold():
         assert 'ARGV+=("actor_rollout_ref.nccl_timeout=6000")' in (KIT/launcher).read_text()
     for scorer in ('eval_bed.py','score_forgetting.py'):
         assert 'timeout=30)' not in (KIT/scorer).read_text()
+
+
+def test_training_gpu_check_skips_rows_without_scheduler_uuids():
+    """Partner's v7 run (job 414790): training rows record raw SLURM_* indices, not UUIDs; only park() writes
+    gpu_uuids. The comparison runs only when the scheduler side was recorded (his local fix, folded in)."""
+    source=(KIT/'v4_phase0.py').read_text()
+    assert 'if physical:' in source and "'training memory physical GPU assignment differs'" in source

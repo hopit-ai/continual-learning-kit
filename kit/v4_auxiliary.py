@@ -7,7 +7,7 @@ import math
 
 from kit import v4_analysis as a, v4_teacher as t
 from kit.v4_evidence import require, weights
-from kit.v4_campaign import TASKS, build, slots
+from kit.v4_campaign import TASKS, PANELS, ALL_ARMS, build, slots
 from kit.v4_budget import allocation_spend, number, stamp, gpu_hours
 
 INFRASTRUCTURE={'preempted','node_or_gpu_fault','out_of_memory','disk_full','download_or_io','containment_kill'}
@@ -132,7 +132,7 @@ def mechanism(archive,coverage,mcq,valid_slots):
         pool=archive.expected_pools[task]
         frozen=sorted(pool,key=lambda i:t.sha('v4-fixed-probe|'+task+'|'+i['id']))[:20]
         require(archive.jsonl('v4/report-inputs/'+task+'-probe.jsonl')==frozen,'probe was not fixed before coverage filtering')
-        zero=probe_point(archive,'qualification',f'q-S-chemistry-{task}-0',task,frozen,mcq,initial)
+        zero=probe_point(archive,'qualification',f'q-S-finqa-{task}-0',task,frozen,mcq,initial)
         ids={i['id'] for i in frozen}
         success={ident for ident,rows in zero.items() if any(r['reward'] for r in rows)}
         strata={'ALL':ids,'initially_unaided_successful':success,'zero_in_eight':ids-success,
@@ -172,6 +172,18 @@ def frontier(archive,mcq):
             'finqa':{'correct':948,'label':'historical reference'}}
 
 
+def cohort_costs(components,by_seed):
+    """Primary margins use primary costs; replication has its own descriptive cost reading."""
+    shared={arm:sum(values.values())-sum(sum(cost.values()) for (a,seed),cost in by_seed.items() if a==arm) for arm,values in components.items()}
+    result={}
+    for name,seeds in (('primary',(101,102,103)),('replication',(104,105)),('all_five',(101,102,103,104,105))):
+        arms=('S','F','R','D') if name!='primary' else ('S','F','R','D','D-R')
+        totals={arm:shared[arm]+sum(sum(cost.values()) for (a,seed),cost in by_seed.items() if a==arm and seed in seeds) for arm in arms}
+        result[name]={'seeds':list(seeds),'totals_gpu_hours':{arm:float(value) for arm,value in totals.items()},
+            'lower_total_cost_than_D':{arm:totals[arm]<totals['D'] for arm in ('F','R')}}
+    return result
+
+
 def resource_costs(archive):
     """Components use raw elapsed allocation intervals; comparative shared charges do not alter the ledger.
 
@@ -180,21 +192,22 @@ def resource_costs(archive):
     All row admission/cleanup idle time is retained in generation/startup cost.
     """
     ledger=archive.json('k8b4/containment/allocation-ledger.json');actual,blocks=allocation_spend(ledger)
-    components={arm:{k:Fraction(0) for k in ('generation','verification','training','export_merge_reload','evaluation','probes')} for arm in 'SFRD'}
-    tokens={arm:{'generated_trajectories':0,'generated_tokens':0,'supervised_tokens':0} for arm in 'SFRD'}
+    components={arm:{k:Fraction(0) for k in ('generation','verification','training','export_merge_reload','evaluation','probes')} for arm in ALL_ARMS}
+    tokens={arm:{'generated_trajectories':0,'generated_tokens':0,'supervised_tokens':0} for arm in ALL_ARMS}
     rows=getattr(archive,'scheduler_rows',{})
     def row_cost(ident,phase='main'):
         record=rows[(phase,ident)]
         return gpu_hours(record['allocation_width'],stamp(record['charged_until'])-stamp(record['started_at']))
     # The fresh baselines and frozen initial probe are reused scientific evidence;
     # two-step training smokes and measurement-only conditioned samples are excluded.
-    for arm in 'SFRD':
-        for task in (*TASKS,'chemistry_probe'):
+    for arm in ALL_ARMS:
+        for task in PANELS:
             for cap in (2048,8192):components[arm]['evaluation']+=row_cost(f'baseline-{task}-{cap}','qualification')
         for task in TASKS:
             components[arm]['probes']+=row_cost('profile-probe-'+task,'qualification')+row_cost('conditioned-probe-'+task)
+    by_seed={}
     for job in slots():
-        arm=job['arm'];ident=job['id'];summary=archive.json('runs/'+ident+'/run-summary.json')
+        arm=job['arm'];before=dict(components[arm]);ident=job['id'];summary=archive.json('runs/'+ident+'/run-summary.json')
         train=row_cost('train-'+ident)
         merge=archive.json('runs/'+ident+'/env/merge-timing.json')
         width=ledger['allocations'][str(merge['allocation_id'])]['width']
@@ -206,7 +219,7 @@ def resource_costs(archive):
         validation=archive.json('v4/report-main/timings/merge-'+ident+'.json')
         validation_cost=gpu_hours(ledger['allocations'][str(validation['allocation_id'])]['width'],validation['wall_seconds'])
         components[arm]['export_merge_reload']+=export_cost+merge_cost+validation_cost
-        for task in (*TASKS,'chemistry_probe'):
+        for task in PANELS:
             for cap in (2048,8192):
                 components[arm]['evaluation']+=row_cost(f'score-{ident}-{task}-{cap}')
                 raw=archive.jsonl(f'v4/report-main/eval/{ident}-{task}-{cap}/responses.jsonl')
@@ -226,6 +239,7 @@ def resource_costs(archive):
             measurements=[m.get(field) for m in metrics]
             require(all(type(v) is int and v>=0 for v in measurements),'missing measured training '+field+': '+ident)
             tokens[arm][field]+=sum(measurements)
+        by_seed[(arm,job['seed'])]={key:value-before[key] for key,value in components[arm].items()}
     shared={}
     for role in ('teacher','rewrite'):
         intervals=defaultdict(list);generation=Fraction(0);verification=Fraction(0);seen=set()
@@ -251,17 +265,19 @@ def resource_costs(archive):
             total+=gpu_hours(ledger['allocations'][allocation]['width'],right-left)
         fraction=verification/(generation+verification) if generation+verification else Fraction(0)
         shared[role]={'generation':total*(1-fraction),'verification':total*fraction}
-        for arm in ('F','R','D') if role=='teacher' else ('R',):
+        for arm in ('F','R','D','D-R') if role=='teacher' else ('R','D-R'):
             for component,value in shared[role].items():components[arm][component]+=value
             for task in TASKS:
                 raw=archive.jsonl(f'v4/report-main/{role}/{task}/raw_outputs.jsonl')
                 require(all(type(r.get('teacher_tokens')) is int and r['teacher_tokens']>=0 for r in raw),'missing corpus generated tokens')
-                if f'v4/report-main/probes/{ident}-{task}-{step}/reuse.json' not in archive.files:
-                    tokens[arm]['generated_trajectories']+=len(raw)
-                    tokens[arm]['generated_tokens']+=sum(r['teacher_tokens'] for r in raw)
+                tokens[arm]['generated_trajectories']+=len(raw)
+                tokens[arm]['generated_tokens']+=sum(r['teacher_tokens'] for r in raw)
     totals={arm:sum(values.values()) for arm,values in components.items()}
+    cohort=cohort_costs(components,by_seed)
     return {'actual_allocation_gpu_hours':float(actual),'actual_blocks':{k:float(v) for k,v in blocks.items()},
             'components_gpu_hours':{arm:{k:float(v) for k,v in values.items()} for arm,values in components.items()},
             'totals_gpu_hours':{arm:float(v) for arm,v in totals.items()},'tokens':tokens,
-            'lower_total_cost_than_D':{arm:totals[arm]<totals['D'] for arm in ('F','R')},
-            'shared_attribution':'27B generation/verification in full to F/R/D; rewrite generation/verification to R; ledger counts allocation intervals once'}
+            'cohort_costs':cohort,
+            'lower_total_cost_than_D':cohort['primary']['lower_total_cost_than_D'],
+            'comparison_cost_cohort':'primary seeds 101-103; shared corpus/baseline cost retained in full',
+            'shared_attribution':'27B generation/verification in full to F/R/D/D-R; rewrite generation/verification to R/D-R; ledger counts allocation intervals once'}

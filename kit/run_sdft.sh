@@ -45,8 +45,9 @@
 set -euo pipefail
 
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$KIT/v4_launch_policy.sh"
 
-export KIT_V4_ARM=D
+export KIT_V4_ARM="${ARM:-D}"
 source "$KIT/v4_profile.sh"
 : "${SDPO_DIR:?set SDPO_DIR to the pinned lasgroup/SDPO checkout}"
 : "${MODEL_DIR:?set MODEL_DIR to the model directory this stage starts from}"
@@ -57,7 +58,7 @@ readonly D_ROLLOUT_N=1 D_TEACHER_RATE=0.01 D_LR=1e-5 D_WARMUP_STEPS=10 D_WEIGHT_
 for pair in "ROLLOUT_N:$D_ROLLOUT_N" "TEACHER_RATE:$D_TEACHER_RATE" "LR:$D_LR" "WARMUP_STEPS:$D_WARMUP_STEPS" "WEIGHT_DECAY:$D_WEIGHT_DECAY"; do
   var="${pair%%:*}"; registered="${pair#*:}"
   if [[ -n "${!var:-}" && "${!var}" != "$registered" ]]; then
-    echo "$var is registered for arm D at $registered and must be unset or exactly $registered, not ${!var}" >&2; exit 2
+    echo "$var is registered for arm D at $registered and must be unset or exactly $registered, not ${!var}" >&2; v4_validation_stop "$LINENO"
   fi
 done
 STEPS="${STEPS:-40}"
@@ -76,26 +77,27 @@ WORK="${WORK:-$PWD/sdft-work}"
 DRY_RUN="${DRY_RUN:-0}"
 
 # Every value is checked BEFORE the dry run, so a bad one is caught without a GPU.
-[[ -z "$TOPK" ]] || { echo "TOPK must be empty, not $TOPK: arm D is full-vocabulary forward KL, never top-k" >&2; exit 2; }
-[[ "$KL" == "forward" ]] || { echo "KL must be forward, not $KL: the reference's paper results used forward KL" >&2; exit 2; }
-[[ "$STEPS" =~ ^[1-9][0-9]*$ ]] || { echo "STEPS must be a positive integer, not $STEPS" >&2; exit 2; }
-[[ "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be a positive integer of tokens, not $MAX_RESPONSE" >&2; exit 2; }
-[[ -z "$SEED" || "$SEED" =~ ^[0-9]+$ ]] || { echo "SEED must be empty or a non-negative integer, not $SEED" >&2; exit 2; }
-[[ "$NGPU" =~ ^[1-9][0-9]*$ && "$TP" =~ ^[1-9][0-9]*$ ]] || { echo "NGPU and TP must be positive integers" >&2; exit 2; }
-[[ "$OFFLOAD" == "0" || "$OFFLOAD" == "1" ]] || { echo "OFFLOAD must be 0 or 1, not $OFFLOAD" >&2; exit 2; }
-[[ "$TEST_FREQ" =~ ^(-1|[1-9][0-9]*)$ ]] || { echo "TEST_FREQ must be -1 or a positive integer, not $TEST_FREQ" >&2; exit 2; }
-[[ "$VAL_BEFORE" == "0" || "$VAL_BEFORE" == "1" ]] || { echo "VAL_BEFORE must be 0 or 1, not $VAL_BEFORE" >&2; exit 2; }
-[[ "$KEEP_TRAINER_CKPT" == "0" || "$KEEP_TRAINER_CKPT" == "1" ]] || { echo "KEEP_TRAINER_CKPT must be 0 or 1, not $KEEP_TRAINER_CKPT" >&2; exit 2; }
+[[ -z "$TOPK" ]] || { echo "TOPK must be empty, not $TOPK: arm D is full-vocabulary forward KL, never top-k" >&2; v4_validation_stop "$LINENO"; }
+[[ "$KL" == "forward" ]] || { echo "KL must be forward, not $KL: the reference's paper results used forward KL" >&2; v4_validation_stop "$LINENO"; }
+[[ "$STEPS" =~ ^[1-9][0-9]*$ ]] || { echo "STEPS must be a positive integer, not $STEPS" >&2; v4_validation_stop "$LINENO"; }
+[[ "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be a positive integer of tokens, not $MAX_RESPONSE" >&2; v4_validation_stop "$LINENO"; }
+[[ -z "$SEED" || "$SEED" =~ ^[0-9]+$ ]] || { echo "SEED must be empty or a non-negative integer, not $SEED" >&2; v4_validation_stop "$LINENO"; }
+[[ "$NGPU" =~ ^[1-9][0-9]*$ && "$TP" =~ ^[1-9][0-9]*$ ]] || { echo "NGPU and TP must be positive integers" >&2; v4_validation_stop "$LINENO"; }
+[[ "$OFFLOAD" == "0" || "$OFFLOAD" == "1" ]] || { echo "OFFLOAD must be 0 or 1, not $OFFLOAD" >&2; v4_validation_stop "$LINENO"; }
+[[ "$TEST_FREQ" =~ ^(-1|[1-9][0-9]*)$ ]] || { echo "TEST_FREQ must be -1 or a positive integer, not $TEST_FREQ" >&2; v4_validation_stop "$LINENO"; }
+[[ "$VAL_BEFORE" == "0" || "$VAL_BEFORE" == "1" ]] || { echo "VAL_BEFORE must be 0 or 1, not $VAL_BEFORE" >&2; v4_validation_stop "$LINENO"; }
+[[ "$KEEP_TRAINER_CKPT" == "0" || "$KEEP_TRAINER_CKPT" == "1" ]] || { echo "KEEP_TRAINER_CKPT must be 0 or 1, not $KEEP_TRAINER_CKPT" >&2; v4_validation_stop "$LINENO"; }
 if [[ "$DATASET" =~ ^datasets/[A-Za-z0-9_/-]+$ && "$DATASET" != *//* ]]; then
   DATA_DIR="$SDPO_DIR/$DATASET"
 elif [[ "$DATASET" =~ ^/[A-Za-z0-9_./-]+$ && "$DATASET" != *..* ]]; then
   DATA_DIR="${DATASET%/}"
 else
-  echo "DATASET must be datasets/<task> inside the checkout or an absolute folder, not $DATASET" >&2; exit 2
+  echo "DATASET must be datasets/<task> inside the checkout or an absolute folder, not $DATASET" >&2; v4_validation_stop "$LINENO"
 fi
-[[ "$REWARD_FILE" == /* ]] || { echo "REWARD_FILE must be an absolute path, not $REWARD_FILE" >&2; exit 2; }
+[[ "$REWARD_FILE" == /* ]] || { echo "REWARD_FILE must be an absolute path, not $REWARD_FILE" >&2; v4_validation_stop "$LINENO"; }
 
 OUT="$WORK/runs/$NAME"
+v4_guard_write "$OUT"
 if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
 if [[ "$VAL_BEFORE" == "1" ]]; then VB=True; else VB=False; fi
 
@@ -170,21 +172,30 @@ if [[ -n "$SEED" ]]; then
 fi
 ARGV+=("data.max_response_length=$MAX_RESPONSE")
 
-# The common v4 entry supplies the identical ordered schedule to all four arms.
+# Keep kit-only context metadata at the root: the pinned worker dataclasses
+# cannot accept an extra self_distillation field.
 if [[ -n "${KIT_V4_ARM:-}" ]]; then
+  context_source=demonstration
+  [[ "${ARM:-D}" != D-R ]] || context_source=rewrite
+  ARGV+=("+v4_context_source=$context_source")
   ARGV+=("data.max_prompt_length=2048" "actor_rollout_ref.actor.self_distillation.max_reprompt_len=6144" "data.filter_overlong_prompts=False" "data.truncation=error")
   # Process-group deadline tenfold (verl default 600 s); owner's 9 October timing rule.
   ARGV+=("actor_rollout_ref.nccl_timeout=6000")
 fi
 
-[[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; exit 2; }
-[[ "$REWARD_FILE" == "$KIT/beds/v4_reward.py" ]] || { echo "v4 FINISH_GATE requires the registered gate-aware reward" >&2; exit 2; }
+[[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; v4_validation_stop "$LINENO"; }
+[[ "$REWARD_FILE" == "$KIT/beds/v4_reward.py" ]] || { echo "v4 FINISH_GATE requires the registered gate-aware reward" >&2; v4_validation_stop "$LINENO"; }
 v4_check_synthetic_data "$DATA_DIR/train.parquet" "${DATA_MANIFEST:-}"
 if [[ "${V4_CHECKPOINT_STATE:-0}" == 1 ]]; then
   ARGV+=("actor_rollout_ref.actor.checkpoint.save_contents=[model,optimizer,extra]" "actor_rollout_ref.actor.checkpoint.load_contents=[model,optimizer,extra]")
 fi
+# Main policy owns all deletion; disable native checkpoint rotation.
+if [[ "${V4_MAIN_RETENTION:-0}" != 0 ]]; then
+  ARGV+=("trainer.max_actor_ckpt_to_keep=null")
+  KEEP_TRAINER_CKPT=1
+fi
 if [[ -n "${V4_RESUME_PATH:-}" ]]; then
-  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; exit 2; }
+  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; v4_validation_stop "$LINENO"; }
   ARGV+=("trainer.resume_mode=resume_path" "trainer.resume_from_path=$V4_RESUME_PATH")
 fi
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
@@ -227,7 +238,7 @@ on_exit() {
   exit "$status"
 }
 
-if [[ -e "$OUT" && "${V4_RETRY_ADMITTED:-0}" != 1 ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
+if [[ -e "$OUT" && "${V4_RETRY_ADMITTED:-0}" != 1 ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; v4_validation_stop "$LINENO"; fi
 mkdir -p "$OUT/env"
 STAGE_FILE="$OUT/env/stage.json"
 trap 'on_exit $?' EXIT
@@ -236,9 +247,9 @@ trap 'exit 130' INT
 trap 'exit 129' HUP
 stage started
 for f in train.parquet test.parquet; do
-  [[ -f "$DATA_DIR/$f" ]] || { echo "missing $DATA_DIR/$f" >&2; exit 2; }
+  [[ -f "$DATA_DIR/$f" ]] || { echo "missing $DATA_DIR/$f" >&2; v4_validation_stop "$LINENO"; }
 done
-[[ -f "$REWARD_FILE" ]] || { echo "missing reward function $REWARD_FILE" >&2; exit 2; }
+[[ -f "$REWARD_FILE" ]] || { echo "missing reward function $REWARD_FILE" >&2; v4_validation_stop "$LINENO"; }
 mkdir -p "$OUT/sdft/logs"
 
 # What the run was: recorded before it starts, so a crash still leaves an identity behind.
@@ -257,13 +268,13 @@ date -u +%FT%TZ > "$OUT/env/started-at.txt"
 
 export PYTHONPATH="$KIT/..:$KIT:$SDPO_DIR:${PYTHONPATH:-}"
 if [[ "$V4_PROFILE" == scientific || -n "${DATA_MANIFEST:-}" ]]; then
-  export ARM=D
+  export ARM="${ARM:-D}"
   python "$KIT/v4_run.py" check
 fi
 # The data, before any GPU: every training row has a demonstration that is not in its own prompt, no held-out row has one.
 if ! python "$KIT/sdft_objective.py" check-data "$DATA_DIR/train.parquet" "$DATA_DIR/test.parquet" "$OUT/env/data-check.json"; then
   echo "the data is not arm D's: nothing is trained" >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 stage data-checked
 
@@ -278,7 +289,7 @@ cd "$SDPO_DIR"
 if ! "${ARGV[@]:0:4}" --cfg job --resolve "${ARGV[@]:4}" > "$OUT/env/resolved-config.yaml" 2> "$OUT/env/resolved-config.err" \
    || [[ ! -s "$OUT/env/resolved-config.yaml" ]]; then
   echo "the trainer could not resolve its configuration (see $OUT/env/resolved-config.err): nothing is trained" >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 stage config-resolved
 stage trainer-invoked
@@ -375,7 +386,7 @@ cat > "$OUT/run-summary.json" <<JSON
  "merged_dir": "$OUT/hf-step$STEPS"
 }
 JSON
-python "$KIT/v4_receipts.py" "$OUT" D "$STEPS" "$V4_PROFILE"
+python "$KIT/v4_receipts.py" "$OUT" "${ARM:-D}" "$STEPS" "$V4_PROFILE"
 echo "done: $OUT (arm D, returncode $STATUS, merged $MERGED)"
 if [[ "$STATUS" == "0" && "$MERGED" == "0" ]]; then exit 4; fi
 exit "$STATUS"

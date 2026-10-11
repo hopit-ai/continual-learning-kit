@@ -7,7 +7,7 @@ import math
 
 from kit.p4_intervals import beta_quantile
 
-PANELS={'chemistry':159,'finqa':1147,'chemistry_probe':51}
+PANELS={'chemistry':159,'finqa':1147,'chemistry_probe':51,'general-v1':300}
 GAIN={'chemistry':8,'finqa':58}
 LOSS={'chemistry':7,'finqa':57}
 SUBSETS={'TOKEN80':(79,'851651880b32c2b666e1e3c74713fdca9bb63130b7cc014416ea9c38382d23d0'),

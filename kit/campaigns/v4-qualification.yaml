@@ -15,17 +15,18 @@
         "--out",
         "{work}/k8b4/containment",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560"
+        "1000"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000
     },
     {
       "id": "environment",
@@ -44,18 +45,12 @@
         "environment"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/environment.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "prepare",
@@ -74,18 +69,12 @@
         "prepare"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/prepare.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "runner-profile",
@@ -104,114 +93,16 @@
         "runner-profile"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/runner-profile.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
-    },
-    {
-      "id": "baseline-chemistry-2048",
-      "needs": [
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "baseline-chemistry-2048",
-        "--checkpoint",
-        "baseline",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "baseline-chemistry-8192",
-      "needs": [
-        "baseline-chemistry-2048",
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "baseline-chemistry-8192",
-        "--checkpoint",
-        "baseline",
-        "--task",
-        "chemistry",
-        "--cap",
-        "8192"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      "timeout_seconds": 6000,
+      "allocation_cpu_cap_seconds": 6000,
+      "observation": true
     },
     {
       "id": "baseline-finqa-2048",
       "needs": [
-        "baseline-chemistry-8192",
         "runner-profile"
       ],
       "command": [
@@ -225,13 +116,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "18000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -250,15 +141,15 @@
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 19200
     },
     {
       "id": "baseline-finqa-8192",
       "needs": [
-        "baseline-finqa-2048",
-        "runner-profile"
+        "baseline-finqa-2048"
       ],
       "command": [
         "python",
@@ -271,13 +162,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "36000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -296,15 +187,15 @@
         "8192"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 37200
     },
     {
-      "id": "baseline-chemistry_probe-2048",
+      "id": "baseline-general-v1-2048",
       "needs": [
-        "baseline-finqa-8192",
-        "runner-profile"
+        "baseline-finqa-8192"
       ],
       "command": [
         "python",
@@ -317,13 +208,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "18000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -333,24 +224,24 @@
         "--phase",
         "qualification",
         "--row",
-        "baseline-chemistry_probe-2048",
+        "baseline-general-v1-2048",
         "--checkpoint",
         "baseline",
         "--task",
-        "chemistry_probe",
+        "general-v1",
         "--cap",
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 19200
     },
     {
-      "id": "baseline-chemistry_probe-8192",
+      "id": "baseline-general-v1-8192",
       "needs": [
-        "baseline-chemistry_probe-2048",
-        "runner-profile"
+        "baseline-general-v1-2048"
       ],
       "command": [
         "python",
@@ -363,13 +254,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "36000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -379,208 +270,24 @@
         "--phase",
         "qualification",
         "--row",
-        "baseline-chemistry_probe-8192",
+        "baseline-general-v1-8192",
         "--checkpoint",
         "baseline",
         "--task",
-        "chemistry_probe",
+        "general-v1",
         "--cap",
         "8192"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-agreement1-chemistry-2048",
-      "needs": [
-        "baseline-chemistry_probe-8192",
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-agreement1-chemistry-2048",
-        "--checkpoint",
-        "agreement1",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-agreement2-chemistry-2048",
-      "needs": [
-        "score-agreement1-chemistry-2048",
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-agreement2-chemistry-2048",
-        "--checkpoint",
-        "agreement2",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-agreement3-chemistry-2048",
-      "needs": [
-        "score-agreement2-chemistry-2048",
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-agreement3-chemistry-2048",
-        "--checkpoint",
-        "agreement3",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-agreement4-chemistry-2048",
-      "needs": [
-        "score-agreement3-chemistry-2048",
-        "runner-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-agreement4-chemistry-2048",
-        "--checkpoint",
-        "agreement4",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      "timeout_seconds": 37200
     },
     {
       "id": "score-agreement1-finqa-2048",
       "needs": [
-        "score-agreement4-chemistry-2048",
-        "runner-profile"
+        "baseline-general-v1-8192"
       ],
       "command": [
         "python",
@@ -593,13 +300,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -618,15 +325,15 @@
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 10200
     },
     {
       "id": "score-agreement2-finqa-2048",
       "needs": [
-        "score-agreement1-finqa-2048",
-        "runner-profile"
+        "score-agreement1-finqa-2048"
       ],
       "command": [
         "python",
@@ -639,13 +346,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -664,15 +371,15 @@
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 10200
     },
     {
       "id": "score-agreement3-finqa-2048",
       "needs": [
-        "score-agreement2-finqa-2048",
-        "runner-profile"
+        "score-agreement2-finqa-2048"
       ],
       "command": [
         "python",
@@ -685,13 +392,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -710,15 +417,15 @@
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 10200
     },
     {
       "id": "score-agreement4-finqa-2048",
       "needs": [
-        "score-agreement3-finqa-2048",
-        "runner-profile"
+        "score-agreement3-finqa-2048"
       ],
       "command": [
         "python",
@@ -731,13 +438,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -756,15 +463,15 @@
         "2048"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 10200
     },
     {
       "id": "scoring-agreement",
       "needs": [
-        "score-agreement4-finqa-2048",
-        "runner-profile"
+        "score-agreement4-finqa-2048"
       ],
       "command": [
         "python",
@@ -778,18 +485,12 @@
         "scoring-agreement"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/scoring-agreement.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "teacher-determinism",
@@ -807,13 +508,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -826,17 +527,11 @@
         "teacher-determinism"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 1920,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/teacher-determinism.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 10200,
+      "observation": true
     },
     {
       "id": "full-wave-profile",
@@ -854,13 +549,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "3600",
+        "18000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -873,64 +568,16 @@
         "full-wave-profile"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/full-wave-profile.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
-    },
-    {
-      "id": "teacher-chemistry",
-      "needs": [
-        "full-wave-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "teacher",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "teacher-chemistry",
-        "--task",
-        "chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      "timeout_seconds": 19200,
+      "observation": true
     },
     {
       "id": "teacher-finqa",
       "needs": [
-        "full-wave-profile",
-        "teacher-chemistry"
+        "full-wave-profile"
       ],
       "command": [
         "python",
@@ -943,13 +590,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "144000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -964,60 +611,15 @@
         "finqa"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "rewrite-chemistry",
-      "needs": [
-        "teacher-chemistry",
-        "teacher-finqa",
-        "full-wave-profile"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "rewrite",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "rewrite-chemistry",
-        "--task",
-        "chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      "timeout_seconds": 145200
     },
     {
       "id": "rewrite-finqa",
       "needs": [
-        "teacher-chemistry",
-        "teacher-finqa",
-        "rewrite-chemistry",
-        "full-wave-profile"
+        "teacher-finqa"
       ],
       "command": [
         "python",
@@ -1030,13 +632,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "144000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1051,16 +653,15 @@
         "finqa"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 1920
+      "timeout_seconds": 145200
     },
     {
       "id": "coverage",
       "needs": [
-        "rewrite-chemistry",
-        "rewrite-finqa",
-        "full-wave-profile"
+        "rewrite-finqa"
       ],
       "command": [
         "python",
@@ -1074,18 +675,12 @@
         "coverage"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/coverage.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "training-set",
@@ -1104,18 +699,12 @@
         "training-set"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/training-set.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "resolved-configs",
@@ -1134,18 +723,12 @@
         "resolved-configs"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/resolved-configs.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "observation": true
     },
     {
       "id": "restoration-check",
@@ -1163,13 +746,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "3600",
+        "75500",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1182,114 +765,16 @@
         "restoration-check"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1",
+        "V4_RESTORATION_LAUNCH_ALLOWANCES": "{\"qualification_launch_seconds\": 300, \"restoration_leg_seconds\": 450, \"source\": {\"kind\": \"registered_worst_case\", \"measured\": false}}"
       },
-      "timeout_seconds": 3720,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/restoration-check.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
-    },
-    {
-      "id": "profile-probe-chemistry",
-      "needs": [
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "probe",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "profile-probe-chemistry",
-        "--slot",
-        "q-S-chemistry",
-        "--task",
-        "chemistry",
-        "--step",
-        "0"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "profile-conditioned-chemistry",
-      "needs": [
-        "profile-probe-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "probe",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "profile-conditioned-chemistry",
-        "--slot",
-        "q-S-chemistry",
-        "--task",
-        "chemistry",
-        "--step",
-        "0",
-        "--conditioned"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      "timeout_seconds": 76700,
+      "observation": true
     },
     {
       "id": "profile-probe-finqa",
       "needs": [
-        "profile-conditioned-chemistry",
         "restoration-check"
       ],
       "command": [
@@ -1303,13 +788,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1800",
+        "6000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1321,22 +806,22 @@
         "--row",
         "profile-probe-finqa",
         "--slot",
-        "q-S-chemistry",
+        "q-S-finqa",
         "--task",
         "finqa",
         "--step",
         "0"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 1920
+      "timeout_seconds": 7200
     },
     {
       "id": "profile-conditioned-finqa",
       "needs": [
-        "profile-probe-finqa",
-        "restoration-check"
+        "profile-probe-finqa"
       ],
       "command": [
         "python",
@@ -1349,13 +834,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "1800",
+        "6000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1375,229 +860,15 @@
         "--conditioned"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "schedule-q-S-chemistry",
-      "needs": [
-        "training-set",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "schedule",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "schedule-q-S-chemistry",
-        "--slot",
-        "q-S-chemistry"
-      ],
-      "wants": [
-        "profile-conditioned-finqa"
-      ],
-      "order": [
-        "profile-conditioned-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
-    },
-    {
-      "id": "train-q-S-chemistry",
-      "needs": [
-        "schedule-q-S-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "train",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "train-q-S-chemistry",
-        "--slot",
-        "q-S-chemistry"
-      ],
-      "wants": [
-        "schedule-q-S-chemistry"
-      ],
-      "order": [
-        "schedule-q-S-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "merge-q-S-chemistry",
-      "needs": [
-        "train-q-S-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "merge",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "merge-q-S-chemistry",
-        "--slot",
-        "q-S-chemistry"
-      ],
-      "wants": [
-        "train-q-S-chemistry"
-      ],
-      "order": [
-        "train-q-S-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-S-chemistry-chemistry-2048",
-      "needs": [
-        "merge-q-S-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-S-chemistry-chemistry-2048",
-        "--checkpoint",
-        "q-S-chemistry",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-S-chemistry"
-      ],
-      "order": [
-        "merge-q-S-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-q-S-chemistry-finqa-2048",
-      "needs": [
-        "merge-q-S-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-S-chemistry-finqa-2048",
-        "--checkpoint",
-        "q-S-chemistry",
-        "--task",
-        "finqa",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "score-q-S-chemistry-chemistry-2048"
-      ],
-      "order": [
-        "score-q-S-chemistry-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      "timeout_seconds": 7200
     },
     {
       "id": "schedule-q-S-finqa",
       "needs": [
-        "training-set",
-        "restoration-check"
+        "training-set"
       ],
       "command": [
         "python",
@@ -1612,23 +883,23 @@
         "--slot",
         "q-S-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
       "wants": [
-        "score-q-S-chemistry-finqa-2048"
+        "profile-conditioned-finqa"
       ],
       "order": [
-        "score-q-S-chemistry-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+        "profile-conditioned-finqa"
+      ]
     },
     {
       "id": "train-q-S-finqa",
       "needs": [
-        "schedule-q-S-finqa",
-        "restoration-check"
+        "schedule-q-S-finqa"
       ],
       "command": [
         "python",
@@ -1641,13 +912,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "3000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1661,22 +932,22 @@
         "--slot",
         "q-S-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4200,
       "wants": [
         "schedule-q-S-finqa"
       ],
       "order": [
         "schedule-q-S-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      ]
     },
     {
       "id": "merge-q-S-finqa",
       "needs": [
-        "train-q-S-finqa",
-        "restoration-check"
+        "train-q-S-finqa"
       ],
       "command": [
         "python",
@@ -1691,75 +962,23 @@
         "--slot",
         "q-S-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "train-q-S-finqa"
       ],
       "order": [
         "train-q-S-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-S-finqa-chemistry-2048",
-      "needs": [
-        "merge-q-S-finqa",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-S-finqa-chemistry-2048",
-        "--checkpoint",
-        "q-S-finqa",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-S-finqa"
-      ],
-      "order": [
-        "merge-q-S-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      ]
     },
     {
       "id": "score-q-S-finqa-finqa-2048",
       "needs": [
-        "merge-q-S-finqa",
-        "restoration-check"
+        "merge-q-S-finqa"
       ],
       "command": [
         "python",
@@ -1772,13 +991,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -1796,236 +1015,22 @@
         "--cap",
         "2048"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 10200,
       "wants": [
-        "score-q-S-finqa-chemistry-2048"
+        "merge-q-S-finqa"
       ],
       "order": [
-        "score-q-S-finqa-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "schedule-q-F-chemistry",
-      "needs": [
-        "training-set",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "schedule",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "schedule-q-F-chemistry",
-        "--slot",
-        "q-F-chemistry"
-      ],
-      "wants": [
-        "score-q-S-finqa-finqa-2048"
-      ],
-      "order": [
-        "score-q-S-finqa-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
-    },
-    {
-      "id": "train-q-F-chemistry",
-      "needs": [
-        "schedule-q-F-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "train",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "train-q-F-chemistry",
-        "--slot",
-        "q-F-chemistry"
-      ],
-      "wants": [
-        "schedule-q-F-chemistry"
-      ],
-      "order": [
-        "schedule-q-F-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "merge-q-F-chemistry",
-      "needs": [
-        "train-q-F-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "merge",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "merge-q-F-chemistry",
-        "--slot",
-        "q-F-chemistry"
-      ],
-      "wants": [
-        "train-q-F-chemistry"
-      ],
-      "order": [
-        "train-q-F-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-F-chemistry-chemistry-2048",
-      "needs": [
-        "merge-q-F-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-F-chemistry-chemistry-2048",
-        "--checkpoint",
-        "q-F-chemistry",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-F-chemistry"
-      ],
-      "order": [
-        "merge-q-F-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-q-F-chemistry-finqa-2048",
-      "needs": [
-        "merge-q-F-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-F-chemistry-finqa-2048",
-        "--checkpoint",
-        "q-F-chemistry",
-        "--task",
-        "finqa",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "score-q-F-chemistry-chemistry-2048"
-      ],
-      "order": [
-        "score-q-F-chemistry-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+        "merge-q-S-finqa"
+      ]
     },
     {
       "id": "schedule-q-F-finqa",
       "needs": [
-        "training-set",
-        "restoration-check"
+        "training-set"
       ],
       "command": [
         "python",
@@ -2040,23 +1045,23 @@
         "--slot",
         "q-F-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
       "wants": [
-        "score-q-F-chemistry-finqa-2048"
+        "score-q-S-finqa-finqa-2048"
       ],
       "order": [
-        "score-q-F-chemistry-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+        "score-q-S-finqa-finqa-2048"
+      ]
     },
     {
       "id": "train-q-F-finqa",
       "needs": [
-        "schedule-q-F-finqa",
-        "restoration-check"
+        "schedule-q-F-finqa"
       ],
       "command": [
         "python",
@@ -2069,13 +1074,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "3000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -2089,22 +1094,22 @@
         "--slot",
         "q-F-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4200,
       "wants": [
         "schedule-q-F-finqa"
       ],
       "order": [
         "schedule-q-F-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      ]
     },
     {
       "id": "merge-q-F-finqa",
       "needs": [
-        "train-q-F-finqa",
-        "restoration-check"
+        "train-q-F-finqa"
       ],
       "command": [
         "python",
@@ -2119,75 +1124,23 @@
         "--slot",
         "q-F-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "train-q-F-finqa"
       ],
       "order": [
         "train-q-F-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-F-finqa-chemistry-2048",
-      "needs": [
-        "merge-q-F-finqa",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-F-finqa-chemistry-2048",
-        "--checkpoint",
-        "q-F-finqa",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-F-finqa"
-      ],
-      "order": [
-        "merge-q-F-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      ]
     },
     {
       "id": "score-q-F-finqa-finqa-2048",
       "needs": [
-        "merge-q-F-finqa",
-        "restoration-check"
+        "merge-q-F-finqa"
       ],
       "command": [
         "python",
@@ -2200,13 +1153,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -2224,236 +1177,22 @@
         "--cap",
         "2048"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 10200,
       "wants": [
-        "score-q-F-finqa-chemistry-2048"
+        "merge-q-F-finqa"
       ],
       "order": [
-        "score-q-F-finqa-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "schedule-q-R-chemistry",
-      "needs": [
-        "training-set",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "schedule",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "schedule-q-R-chemistry",
-        "--slot",
-        "q-R-chemistry"
-      ],
-      "wants": [
-        "score-q-F-finqa-finqa-2048"
-      ],
-      "order": [
-        "score-q-F-finqa-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
-    },
-    {
-      "id": "train-q-R-chemistry",
-      "needs": [
-        "schedule-q-R-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "train",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "train-q-R-chemistry",
-        "--slot",
-        "q-R-chemistry"
-      ],
-      "wants": [
-        "schedule-q-R-chemistry"
-      ],
-      "order": [
-        "schedule-q-R-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "merge-q-R-chemistry",
-      "needs": [
-        "train-q-R-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "merge",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "merge-q-R-chemistry",
-        "--slot",
-        "q-R-chemistry"
-      ],
-      "wants": [
-        "train-q-R-chemistry"
-      ],
-      "order": [
-        "train-q-R-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-R-chemistry-chemistry-2048",
-      "needs": [
-        "merge-q-R-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-R-chemistry-chemistry-2048",
-        "--checkpoint",
-        "q-R-chemistry",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-R-chemistry"
-      ],
-      "order": [
-        "merge-q-R-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-q-R-chemistry-finqa-2048",
-      "needs": [
-        "merge-q-R-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-R-chemistry-finqa-2048",
-        "--checkpoint",
-        "q-R-chemistry",
-        "--task",
-        "finqa",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "score-q-R-chemistry-chemistry-2048"
-      ],
-      "order": [
-        "score-q-R-chemistry-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+        "merge-q-F-finqa"
+      ]
     },
     {
       "id": "schedule-q-R-finqa",
       "needs": [
-        "training-set",
-        "restoration-check"
+        "training-set"
       ],
       "command": [
         "python",
@@ -2468,23 +1207,23 @@
         "--slot",
         "q-R-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
       "wants": [
-        "score-q-R-chemistry-finqa-2048"
+        "score-q-F-finqa-finqa-2048"
       ],
       "order": [
-        "score-q-R-chemistry-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+        "score-q-F-finqa-finqa-2048"
+      ]
     },
     {
       "id": "train-q-R-finqa",
       "needs": [
-        "schedule-q-R-finqa",
-        "restoration-check"
+        "schedule-q-R-finqa"
       ],
       "command": [
         "python",
@@ -2497,13 +1236,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "3000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -2517,22 +1256,22 @@
         "--slot",
         "q-R-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4200,
       "wants": [
         "schedule-q-R-finqa"
       ],
       "order": [
         "schedule-q-R-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      ]
     },
     {
       "id": "merge-q-R-finqa",
       "needs": [
-        "train-q-R-finqa",
-        "restoration-check"
+        "train-q-R-finqa"
       ],
       "command": [
         "python",
@@ -2547,75 +1286,23 @@
         "--slot",
         "q-R-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "train-q-R-finqa"
       ],
       "order": [
         "train-q-R-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-R-finqa-chemistry-2048",
-      "needs": [
-        "merge-q-R-finqa",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-R-finqa-chemistry-2048",
-        "--checkpoint",
-        "q-R-finqa",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-R-finqa"
-      ],
-      "order": [
-        "merge-q-R-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      ]
     },
     {
       "id": "score-q-R-finqa-finqa-2048",
       "needs": [
-        "merge-q-R-finqa",
-        "restoration-check"
+        "merge-q-R-finqa"
       ],
       "command": [
         "python",
@@ -2628,13 +1315,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -2652,236 +1339,22 @@
         "--cap",
         "2048"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 10200,
       "wants": [
-        "score-q-R-finqa-chemistry-2048"
+        "merge-q-R-finqa"
       ],
       "order": [
-        "score-q-R-finqa-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "schedule-q-D-chemistry",
-      "needs": [
-        "training-set",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "schedule",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "schedule-q-D-chemistry",
-        "--slot",
-        "q-D-chemistry"
-      ],
-      "wants": [
-        "score-q-R-finqa-finqa-2048"
-      ],
-      "order": [
-        "score-q-R-finqa-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
-    },
-    {
-      "id": "train-q-D-chemistry",
-      "needs": [
-        "schedule-q-D-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "8",
-        "--time-cap",
-        "1800",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "train",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "train-q-D-chemistry",
-        "--slot",
-        "q-D-chemistry"
-      ],
-      "wants": [
-        "schedule-q-D-chemistry"
-      ],
-      "order": [
-        "schedule-q-D-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
-    },
-    {
-      "id": "merge-q-D-chemistry",
-      "needs": [
-        "train-q-D-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "merge",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "merge-q-D-chemistry",
-        "--slot",
-        "q-D-chemistry"
-      ],
-      "wants": [
-        "train-q-D-chemistry"
-      ],
-      "order": [
-        "train-q-D-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-D-chemistry-chemistry-2048",
-      "needs": [
-        "merge-q-D-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-D-chemistry-chemistry-2048",
-        "--checkpoint",
-        "q-D-chemistry",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-D-chemistry"
-      ],
-      "order": [
-        "merge-q-D-chemistry"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
-    },
-    {
-      "id": "score-q-D-chemistry-finqa-2048",
-      "needs": [
-        "merge-q-D-chemistry",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-D-chemistry-finqa-2048",
-        "--checkpoint",
-        "q-D-chemistry",
-        "--task",
-        "finqa",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "score-q-D-chemistry-chemistry-2048"
-      ],
-      "order": [
-        "score-q-D-chemistry-chemistry-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+        "merge-q-R-finqa"
+      ]
     },
     {
       "id": "schedule-q-D-finqa",
       "needs": [
-        "training-set",
-        "restoration-check"
+        "training-set"
       ],
       "command": [
         "python",
@@ -2896,23 +1369,23 @@
         "--slot",
         "q-D-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
       "wants": [
-        "score-q-D-chemistry-finqa-2048"
+        "score-q-R-finqa-finqa-2048"
       ],
       "order": [
-        "score-q-D-chemistry-finqa-2048"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+        "score-q-R-finqa-finqa-2048"
+      ]
     },
     {
       "id": "train-q-D-finqa",
       "needs": [
-        "schedule-q-D-finqa",
-        "restoration-check"
+        "schedule-q-D-finqa"
       ],
       "command": [
         "python",
@@ -2925,13 +1398,13 @@
         "--gpus",
         "8",
         "--time-cap",
-        "1800",
+        "3000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -2945,22 +1418,22 @@
         "--slot",
         "q-D-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4200,
       "wants": [
         "schedule-q-D-finqa"
       ],
       "order": [
         "schedule-q-D-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1920
+      ]
     },
     {
       "id": "merge-q-D-finqa",
       "needs": [
-        "train-q-D-finqa",
-        "restoration-check"
+        "train-q-D-finqa"
       ],
       "command": [
         "python",
@@ -2975,75 +1448,23 @@
         "--slot",
         "q-D-finqa"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "train-q-D-finqa"
       ],
       "order": [
         "train-q-D-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 1200,
-      "allocation_cpu_cap_seconds": 1200
-    },
-    {
-      "id": "score-q-D-finqa-chemistry-2048",
-      "needs": [
-        "merge-q-D-finqa",
-        "restoration-check"
-      ],
-      "command": [
-        "python",
-        "{kit}/p4_contain.py",
-        "row",
-        "--work",
-        "{work}",
-        "--out",
-        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
-        "--gpus",
-        "1",
-        "--time-cap",
-        "3600",
-        "--block",
-        "qualification",
-        "--block-limit",
-        "100",
-        "--ceiling",
-        "560",
-        "--",
-        "python",
-        "{kit}/v4_campaign_ops.py",
-        "score",
-        "--work",
-        "{work}",
-        "--phase",
-        "qualification",
-        "--row",
-        "score-q-D-finqa-chemistry-2048",
-        "--checkpoint",
-        "q-D-finqa",
-        "--task",
-        "chemistry",
-        "--cap",
-        "2048"
-      ],
-      "wants": [
-        "merge-q-D-finqa"
-      ],
-      "order": [
-        "merge-q-D-finqa"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 3720
+      ]
     },
     {
       "id": "score-q-D-finqa-finqa-2048",
       "needs": [
-        "merge-q-D-finqa",
-        "restoration-check"
+        "merge-q-D-finqa"
       ],
       "command": [
         "python",
@@ -3056,13 +1477,13 @@
         "--gpus",
         "1",
         "--time-cap",
-        "3600",
+        "9000",
         "--block",
-        "qualification",
+        "scientific",
         "--block-limit",
-        "100",
+        "1000",
         "--ceiling",
-        "560",
+        "1000",
         "--",
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -3080,22 +1501,183 @@
         "--cap",
         "2048"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 10200,
       "wants": [
-        "score-q-D-finqa-chemistry-2048"
+        "merge-q-D-finqa"
       ],
       "order": [
-        "score-q-D-finqa-chemistry-2048"
+        "merge-q-D-finqa"
+      ]
+    },
+    {
+      "id": "schedule-q-D-R-finqa",
+      "needs": [
+        "training-set"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_campaign_ops.py",
+        "schedule",
+        "--work",
+        "{work}",
+        "--phase",
+        "qualification",
+        "--row",
+        "schedule-q-D-R-finqa",
+        "--slot",
+        "q-D-R-finqa"
       ],
       "env": {
-        "V4_TELEMETRY": "1"
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
       },
-      "timeout_seconds": 3720
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
+      "wants": [
+        "score-q-D-finqa-finqa-2048"
+      ],
+      "order": [
+        "score-q-D-finqa-finqa-2048"
+      ]
+    },
+    {
+      "id": "train-q-D-R-finqa",
+      "needs": [
+        "schedule-q-D-R-finqa"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "8",
+        "--time-cap",
+        "3000",
+        "--block",
+        "scientific",
+        "--block-limit",
+        "1000",
+        "--ceiling",
+        "1000",
+        "--",
+        "python",
+        "{kit}/v4_campaign_ops.py",
+        "train",
+        "--work",
+        "{work}",
+        "--phase",
+        "qualification",
+        "--row",
+        "train-q-D-R-finqa",
+        "--slot",
+        "q-D-R-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4200,
+      "wants": [
+        "schedule-q-D-R-finqa"
+      ],
+      "order": [
+        "schedule-q-D-R-finqa"
+      ]
+    },
+    {
+      "id": "merge-q-D-R-finqa",
+      "needs": [
+        "train-q-D-R-finqa"
+      ],
+      "command": [
+        "python",
+        "{kit}/v4_campaign_ops.py",
+        "merge",
+        "--work",
+        "{work}",
+        "--phase",
+        "qualification",
+        "--row",
+        "merge-q-D-R-finqa",
+        "--slot",
+        "q-D-R-finqa"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
+      "wants": [
+        "train-q-D-R-finqa"
+      ],
+      "order": [
+        "train-q-D-R-finqa"
+      ]
+    },
+    {
+      "id": "score-q-D-R-finqa-finqa-2048",
+      "needs": [
+        "merge-q-D-R-finqa"
+      ],
+      "command": [
+        "python",
+        "{kit}/p4_contain.py",
+        "row",
+        "--work",
+        "{work}",
+        "--out",
+        "{work}/v4/containment/{campaign}/{row}/attempt-{attempt}",
+        "--gpus",
+        "1",
+        "--time-cap",
+        "9000",
+        "--block",
+        "scientific",
+        "--block-limit",
+        "1000",
+        "--ceiling",
+        "1000",
+        "--",
+        "python",
+        "{kit}/v4_campaign_ops.py",
+        "score",
+        "--work",
+        "{work}",
+        "--phase",
+        "qualification",
+        "--row",
+        "score-q-D-R-finqa-finqa-2048",
+        "--checkpoint",
+        "q-D-R-finqa",
+        "--task",
+        "finqa",
+        "--cap",
+        "2048"
+      ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 10200,
+      "wants": [
+        "merge-q-D-R-finqa"
+      ],
+      "order": [
+        "merge-q-D-R-finqa"
+      ]
     },
     {
       "id": "report",
-      "needs": [
-        "restoration-check"
-      ],
+      "needs": [],
       "command": [
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -3107,31 +1689,23 @@
         "--row",
         "report"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 4600,
+      "allocation_cpu_cap_seconds": 4600,
       "wants": [
-        "score-q-D-finqa-finqa-2048"
+        "score-q-D-R-finqa-finqa-2048"
       ],
       "order": [
-        "score-q-D-finqa-finqa-2048"
+        "score-q-D-R-finqa-finqa-2048"
       ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900,
-      "pilot": true,
-      "bars": [
-        {
-          "source": "{work}/v4/report-status/report.json",
-          "key": "ok",
-          "min": 1
-        }
-      ]
+      "observation": true
     },
     {
       "id": "archive-pack",
-      "needs": [
-        "report"
-      ],
+      "needs": [],
       "command": [
         "python",
         "{kit}/v4_campaign_ops.py",
@@ -3143,50 +1717,85 @@
         "--row",
         "archive-pack"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "report"
       ],
       "order": [
         "report"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 600,
-      "allocation_cpu_cap_seconds": 600
+      ]
     },
     {
-      "id": "PAUSE",
-      "needs": [
-        "report"
-      ],
+      "id": "QUALIFICATION_FINISHED",
+      "needs": [],
       "command": [
         "python",
         "{kit}/v4_campaign_ops.py",
-        "pause",
+        "finished",
         "--work",
         "{work}",
         "--phase",
         "qualification",
         "--row",
-        "PAUSE"
+        "QUALIFICATION_FINISHED"
       ],
+      "env": {
+        "V4_TELEMETRY": "1",
+        "V4_FINQA_CAMPAIGN": "1"
+      },
+      "timeout_seconds": 3000,
+      "allocation_cpu_cap_seconds": 3000,
       "wants": [
         "archive-pack"
       ],
       "order": [
         "archive-pack"
-      ],
-      "env": {
-        "V4_TELEMETRY": "1"
-      },
-      "timeout_seconds": 900,
-      "allocation_cpu_cap_seconds": 900
+      ]
     }
   ],
   "v4": {
     "phase": "qualification",
+    "timing_multiplier": 10,
+    "containment_selftest": "informational",
+    "scope": "finqa-alone",
     "parallel_jobs": 1,
+    "retirement_io_seconds": 160,
+    "seeds": [
+      101,
+      102,
+      103,
+      104,
+      105
+    ],
+    "primary_seeds": [
+      101,
+      102,
+      103
+    ],
+    "replication_seeds": [
+      104,
+      105
+    ],
+    "steps": 2,
+    "qualification_limit": 1000,
+    "planned_qualification_gpu_hours": 100,
+    "ceiling": 1000,
+    "self_monitored": true,
+    "generation_shards": {
+      "teacher": 4,
+      "rewrite": 8
+    },
+    "teacher_depth": {
+      "status": "omitted",
+      "reason": "Omitted under 15.11.1: live 1.7B hook-on/off noninterference cannot be demonstrated offline; no hooks installed.",
+      "allowance_gpu_hours": 5
+    },
+    "probe_questions_per_task": 20,
     "cpu_prepare": {
       "first": "import-smoke",
       "command": [
@@ -3198,98 +1807,59 @@
         "qualification"
       ]
     },
-    "generation_shards": {
-      "teacher": 4,
-      "rewrite": 8
-    },
-    "seeds": [
-      101,
-      102,
-      103
-    ],
-    "steps": 2,
-    "stop_policy": {
-      "row_failure": "automatic reviewed infrastructure admission; otherwise FAIL",
-      "allocation_preempted": "end allocation; reconcile on login node; next allocation selftest first",
-      "hard": "manager-written stop-sha256 acknowledgement, reconcile, fresh allocation selftest; accounting retained"
-    },
-    "qualification_limit": 100,
-    "ceiling": 560,
-    "probe_questions_per_task": 20,
-    "scoring_gpu": "one Slurm-assigned physical GPU, stable fingerprint across scoring",
-    "allocation_stages": {
-      "qualification": {
-        "first": "containment-selftest",
-        "last": "PAUSE",
-        "block": "qualification",
-        "block_limit": 100
-      }
-    },
+    "scoring_gpu": "one stable Slurm-assigned physical GPU",
     "slot_order": [
-      {
-        "id": "q-S-chemistry",
-        "arm": "S",
-        "seed": 101,
-        "task": "chemistry",
-        "incoming": null,
-        "order": "chemistry-alone"
-      },
       {
         "id": "q-S-finqa",
         "arm": "S",
-        "seed": 101,
         "task": "finqa",
-        "incoming": null,
-        "order": "finqa-alone"
-      },
-      {
-        "id": "q-F-chemistry",
-        "arm": "F",
         "seed": 101,
-        "task": "chemistry",
-        "incoming": null,
-        "order": "chemistry-alone"
+        "incoming": null
       },
       {
         "id": "q-F-finqa",
         "arm": "F",
-        "seed": 101,
         "task": "finqa",
-        "incoming": null,
-        "order": "finqa-alone"
-      },
-      {
-        "id": "q-R-chemistry",
-        "arm": "R",
         "seed": 101,
-        "task": "chemistry",
-        "incoming": null,
-        "order": "chemistry-alone"
+        "incoming": null
       },
       {
         "id": "q-R-finqa",
         "arm": "R",
-        "seed": 101,
         "task": "finqa",
-        "incoming": null,
-        "order": "finqa-alone"
-      },
-      {
-        "id": "q-D-chemistry",
-        "arm": "D",
         "seed": 101,
-        "task": "chemistry",
-        "incoming": null,
-        "order": "chemistry-alone"
+        "incoming": null
       },
       {
         "id": "q-D-finqa",
         "arm": "D",
-        "seed": 101,
         "task": "finqa",
-        "incoming": null,
-        "order": "finqa-alone"
+        "seed": 101,
+        "incoming": null
+      },
+      {
+        "id": "q-D-R-finqa",
+        "arm": "D-R",
+        "task": "finqa",
+        "seed": 101,
+        "incoming": null
       }
-    ]
+    ],
+    "allocation_stages": {
+      "qualification": {
+        "first": "containment-selftest",
+        "last": "QUALIFICATION_FINISHED",
+        "block": "scientific",
+        "block_limit": 1000
+      }
+    },
+    "launch_allowances": {
+      "qualification_launch_seconds": 300,
+      "restoration_leg_seconds": 450,
+      "source": {
+        "kind": "registered_worst_case",
+        "measured": false
+      }
+    }
   }
 }

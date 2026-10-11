@@ -1,3 +1,4 @@
+from kit.v4_finqa_policy import require as policy_require
 """Immutable v4 prompt identities, eligibility and recipe admission (CPU only)."""
 from functools import lru_cache
 import hashlib
@@ -20,9 +21,9 @@ BATCH_PROMPTS = 32
 def input_path(name,value=None):
     """Require an explicit input without resolving any personal reference defaults."""
     value=value or os.environ.get(name)
-    if not value:raise ValueError(name+' is required; set it in the environment or pass its path argument')
+    if not value:policy_require(False,name+' is required; set it in the environment or pass its path argument','v4_contract')
     path=Path(value)
-    if not path.is_dir():raise ValueError(name+' must name a readable input directory: '+str(path))
+    if not path.is_dir():policy_require(False,name+' must name a readable input directory: '+str(path),'v4_contract')
     return path
 
 
@@ -36,7 +37,7 @@ def pinned_tokenizer():
     from transformers import AutoTokenizer
     for name, expected in TOKENIZER_FILES.items():
         if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
-            raise ValueError('v4 pinned tokenizer changed: ' + name)
+            policy_require(False,'v4 pinned tokenizer changed: ' + name,'v4_contract')
     return AutoTokenizer.from_pretrained(str(path), local_files_only=True)
 
 
@@ -65,7 +66,7 @@ def check_synthetic_rows(rows, steps=40, profile_name='scientific'):
     """Gold-derived technical targets may enter only an explicitly short smoke."""
     marked = technical_synthetic(rows)
     if marked and (profile_name != 'technical-smoke' or int(steps) >= REGISTERED_STEPS):
-        raise ValueError('technical_synthetic rows are refused by scientific/full-dose readers')
+        policy_require(False,'technical_synthetic rows are refused by scientific/full-dose readers','v4_contract')
     return marked
 
 
@@ -73,11 +74,11 @@ def check_schedule(rows, steps, tokenizer=None):
     """Reject insufficient effective dose and every overlong row before workers exist."""
     check_synthetic_rows(rows, steps, os.environ.get('V4_PROFILE', 'scientific'))
     if len(rows) < int(steps) * BATCH_PROMPTS:
-        raise ValueError('insufficient effective prompt schedule: need steps x 32 rows')
+        policy_require(False,'insufficient effective prompt schedule: need steps x 32 rows','v4_contract')
     for row in rows:
         messages = json.loads(row['prompt']) if isinstance(row['prompt'], str) else row['prompt']
         if prompt_length(messages, tokenizer) > PROMPT_CAP:
-            raise ValueError('overlong training prompt: silent prompt filtering is refused')
+            policy_require(False,'overlong training prompt: silent prompt filtering is refused','v4_contract')
     return {'requested_optimizer_updates': int(steps), 'effective_prompt_rows': len(rows),
             'prompt_cap': PROMPT_CAP, 'filter_overlong_prompts': False, 'tokenizer_revision': INITIAL_8B_REVISION}
 
@@ -85,9 +86,9 @@ def check_schedule(rows, steps, tokenizer=None):
 def profile(steps, name='scientific'):
     steps = int(steps)
     if name not in ('scientific', 'technical-smoke'):
-        raise ValueError('unknown v4 profile')
+        policy_require(False,'unknown v4 profile','v4_contract')
     if (name == 'scientific' and steps != REGISTERED_STEPS) or not 1 <= steps <= REGISTERED_STEPS:
-        raise ValueError('v4 profile scientific requires 40 steps; use explicit technical-smoke profile for fewer')
+        policy_require(False,'v4 profile scientific requires 40 steps; use explicit technical-smoke profile for fewer','v4_contract')
     return name
 
 
@@ -113,17 +114,19 @@ def check_resolved(config, arm, *, profile_name='scientific',reward_path=None,re
                        'actor_rollout_ref.actor.ppo_mini_batch_size':32, 'actor_rollout_ref.rollout.n':8 if arm == 'S' else 1,
                        'actor_rollout_ref.actor.self_distillation.teacher_update_rate':.05 if arm == 'S' else .01,
                        'actor_rollout_ref.actor.self_distillation.include_environment_feedback':False})
-        if os.environ.get('KIT_FINISH_GATE') != '1': raise ValueError('v4 KIT_FINISH_GATE must be 1')
+        if os.environ.get('KIT_FINISH_GATE') != '1': policy_require(False,'v4 KIT_FINISH_GATE must be 1','v4_contract')
     seed_keys = ('trainer.seed',) if arm in 'FR' else ('data.seed', 'actor_rollout_ref.actor.data_loader_seed', 'actor_rollout_ref.actor.fsdp_config.seed')
     seeds = [at(key) for key in seed_keys]
-    if len(set(seeds)) != 1 or seeds[0] not in (101, 102, 103): raise ValueError('resolved v4 seed must be shared and registered')
-    if arm == 'D':
+    if len(set(seeds)) != 1 or seeds[0] not in (101, 102, 103, 104, 105): policy_require(False,'resolved v4 seed must be shared and registered','v4_contract')
+    if arm in ('D','D-R'):
+        source=config.get('v4_context_source','demonstration')
+        if source!=('rewrite' if arm=='D-R' else 'demonstration'):policy_require(False,'D context source differs','v4_contract')
         values.update({'actor_rollout_ref.model.use_remove_padding':False, 'actor_rollout_ref.model.use_fused_kernels':False,
                        'actor_rollout_ref.actor.ulysses_sequence_parallel_size':1})
     if arm == 'S':
         values['custom_reward_function.path'] = reward_path or str(ROOT / 'kit/beds/v4_reward.py')
     for key, expected in values.items():
-        if at(key) != expected: raise ValueError(f'v4 resolved setting {key} must be {expected!r}')
+        if at(key) != expected: policy_require(False,f'v4 resolved setting {key} must be {expected!r}','v4_contract')
 
 
 @lru_cache(maxsize=1)
@@ -139,10 +142,10 @@ def check_heldout_rows(rows):
     frozen = frozen_heldout()
     for row in rows:
         info = row.get('extra_info') or {}
-        if info.get('demonstration') or info.get('rewrite'): raise ValueError('held-out targets leaked')
+        if info.get('demonstration') or info.get('rewrite'): policy_require(False,'held-out targets leaked','v4_contract')
         key = row['data_source'] + '|' + str(info.get('index'))
         if frozen.get(key) != prompt_hash(row['prompt']):
-            raise ValueError('held-out prompt differs from frozen question-only identity: ' + key)
+            policy_require(False,'held-out prompt differs from frozen question-only identity: ' + key,'v4_contract')
 
 
 def check_eval_items(items, bed, split):
@@ -153,4 +156,4 @@ def check_eval_items(items, bed, split):
         key = str(item['id']).removeprefix(source + '-test-')
         messages = item['prompt'] if isinstance(item['prompt'], list) else [{'role':'user','content':item['prompt']}]
         if frozen.get(source + '|' + key) != prompt_hash(messages):
-            raise ValueError('evaluation prompt differs from frozen question-only identity: ' + key)
+            policy_require(False,'evaluation prompt differs from frozen question-only identity: ' + key,'v4_contract')

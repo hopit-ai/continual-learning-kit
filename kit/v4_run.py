@@ -8,6 +8,7 @@ import sys
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.v4_teacher import atomic_json, sha
+from kit.v4_arms import TARGETS
 from kit.v4_contract import check_schedule, check_heldout_rows, profile, check_synthetic_rows, technical_synthetic
 
 REGISTERED = {"learning_rate": 1e-5, "lr_warmup_steps": 10, "lr_scheduler": "constant",
@@ -16,8 +17,8 @@ REGISTERED = {"learning_rate": 1e-5, "lr_warmup_steps": 10, "lr_scheduler": "con
 
 
 def require(condition, message="v4 gate failed"):
-    if not condition:
-        raise ValueError(message)
+    from kit.v4_finqa_policy import require as check
+    return check(condition,message,'training receipt')
 
 
 def check_data(env):
@@ -38,7 +39,7 @@ def check_data(env):
     require(all(r["extra_info"].get("split") == "train" and r["extra_info"].get("demonstration") and r["extra_info"].get("rewrite") for r in rows), "v4 gate failed")
     require(name == "technical-smoke" or (doc["scientific_phase_allowed"] and not doc["stand_in_teacher"]), "unqualified or stand-in data is smoke only")
     check_schedule(rows, steps)
-    if env["ARM"] in ("S", "D"):
+    if env["ARM"] in ("S", "D", "D-R"):
         data = Path(env["DATASET"])
         if not data.is_absolute():
             data = Path(env["SDPO_DIR"]) / data
@@ -55,15 +56,17 @@ def summarize(env):
     data = json.loads(Path(env["DATA_MANIFEST"]).read_text())
     arm = env["ARM"]
     registered = {**REGISTERED, "rollout_n": 8 if arm == "S" else 1,
-                  "teacher_update_rate": .05 if arm == "S" else .01 if arm == "D" else None}
+                  "teacher_update_rate": .05 if arm == "S" else .01 if arm in ("D", "D-R") else None}
     doc.update({k:v for k,v in registered.items() if k != "steps"}, registered=registered, arm=arm, seed=int(env["SEED"]),
                technical_smoke=env.get("V4_PROFILE", "scientific") == "technical-smoke", profile=env.get("V4_PROFILE", "scientific"),
                scientific_phase_allowed=env.get("V4_PROFILE", "scientific") == "scientific" and data.get("scientific_phase_allowed") is True, stand_in_teacher=data["stand_in_teacher"],
-               teacher_models=data["teacher_models"], target_field={"F": "extra_info.demonstration", "R": "extra_info.rewrite", "D": "extra_info.demonstration", "S": None}[arm],
+               teacher_models=data["teacher_models"], target_field=TARGETS[arm],
                data_manifest_sha256=sha(Path(env["DATA_MANIFEST"]).read_bytes()),
                common_training_manifest_sha256=data["common_training_manifest_sha256"],
                schedule_sha256=data["schedule_sha256"], train_sha256=data["train_sha256"],
                train_file=env["TRAIN_FILE"])
+    if arm in ('D','D-R'):
+        doc['context_source']='rewrite' if arm=='D-R' else 'demonstration'
     from kit.v4_receipts import completed_updates
     requested = int(env.get("STEPS", 40))
     completed = completed_updates(out)
@@ -74,7 +77,9 @@ def summarize(env):
     doc['departures_sha256']=departures_hash()
     if doc.get('dose_complete') and not os.environ.get('V4_RESTORE_PROBE_OUT'):
         from kit.v4_teacher import read_jsonl
-        doc.update(check_metrics(read_jsonl(out/'metrics.jsonl'), arm, int(requested)))
+        from kit.v4_finqa_policy import observe
+        metrics=observe(lambda:check_metrics(read_jsonl(out/'metrics.jsonl'),arm,int(requested)),site='training metrics')
+        if metrics:doc.update(metrics)
     atomic_json(out / "run-summary.json", doc)
     atomic_json(out / "env/v4-settings.json", {**registered, "technical_synthetic":doc["technical_synthetic"]})
     return doc

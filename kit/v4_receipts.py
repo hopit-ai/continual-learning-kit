@@ -30,7 +30,7 @@ def write_receipt(out, arm, requested, profile_name):
     completed = completed_updates(out)
     doc = json.loads((out / 'run-summary.json').read_text())
     registered = {**REGISTERED, 'rollout_n':8 if arm == 'S' else 1,
-                  'teacher_update_rate':.05 if arm == 'S' else .01 if arm == 'D' else None}
+                  'teacher_update_rate':.05 if arm == 'S' else .01 if arm in ('D','D-R') else None}
     doc.update(profile=profile_name, technical_smoke=profile_name == 'technical-smoke',
                requested_optimizer_updates=int(requested), completed_optimizer_updates=completed,
                dose_complete=completed == int(requested), registered=registered)
@@ -46,7 +46,9 @@ def write_receipt(out, arm, requested, profile_name):
     doc['departures_sha256']=departures_hash()
     if doc.get('dose_complete') and not os.environ.get('V4_RESTORE_PROBE_OUT'):
         from kit.v4_teacher import read_jsonl
-        doc.update(check_metrics(read_jsonl(out/'metrics.jsonl'), arm, int(requested)))
+        from kit.v4_finqa_policy import observe
+        metrics=observe(lambda:check_metrics(read_jsonl(out/'metrics.jsonl'), arm, int(requested)),site='training metrics')
+        if metrics:doc.update(metrics)
     atomic_json(out / 'run-summary.json', doc)
     return doc
 
@@ -57,4 +59,5 @@ if __name__ == '__main__':
         raise SystemExit(0)
     result = write_receipt(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4])
     if result.get('returncode') == 0 and not result['dose_complete']:
-        raise SystemExit('v4 optimizer dose incomplete; requested and completed counts are in run-summary.json')
+        from kit.v4_finqa_policy import require
+        require(False,'v4 optimizer dose incomplete; requested and completed counts are in run-summary.json','training telemetry')

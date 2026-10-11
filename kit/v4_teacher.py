@@ -98,6 +98,8 @@ def sha(value):
 
 
 def atomic_json(path, value):
+    from kit.v4_finqa_policy import protect_write
+    protect_write(path)
     """Durable atomic replace; a killed write cannot become a completed attempt."""
     path = Path(path)
     tmp = path.with_name(path.name + ".tmp")
@@ -115,6 +117,8 @@ def atomic_json(path, value):
 
 
 def write_jsonl(path, rows):
+    from kit.v4_finqa_policy import protect_write
+    protect_write(path)
     path = Path(path)
     tmp = path.with_name(path.name + ".tmp")
     with tmp.open("w") as handle:
@@ -781,7 +785,9 @@ class VLLMGenerator:
                     max_model_len=8192,max_num_seqs=max_num_seqs,gpu_memory_utilization=.90,seed=27101)
         if os.environ.get('V4_PHASE0_INFERENCE')=='1':
             import vllm
-            if vllm.__version__!='0.18.0':raise ValueError('phase0 teacher requires vLLM 0.18.0')
+            if vllm.__version__!='0.18.0':
+                from kit.v4_finqa_policy import require
+                require(False,'phase0 teacher requires vLLM 0.18.0','inference version')
             kwargs.update(attention_config={'backend':'FLASH_ATTN'},gdn_prefill_backend='triton')
         # Eager always (phase 0 v6 on the partner's node: four TP-2 engines capturing CUDA graphs at once took
         # 27 minutes and the first sample_tokens RPC then timed out). Offline generation gains little from graphs,
@@ -817,11 +823,13 @@ class VLLMGenerator:
             for worker in workers:
                 try:worker.terminate()
                 except psutil.NoSuchProcess:pass
-            _,alive=psutil.wait_procs(workers,timeout=60)
+            from kit.v4_phase0_timing import shared_limit,is_finqa
+            cleanup_seconds=shared_limit(60) if is_finqa() else 60
+            _,alive=psutil.wait_procs(workers,timeout=cleanup_seconds)
             for worker in alive:
                 try:worker.kill()
                 except psutil.NoSuchProcess:pass
-            psutil.wait_procs(alive,timeout=60)
+            psutil.wait_procs(alive,timeout=cleanup_seconds)
             sys.stdout.flush();sys.stderr.flush()
             os.execve(sys.executable,sys.orig_argv,{**os.environ,'VLLM_BATCH_INVARIANT':'0',
                       'V4_BATCH_FALLBACK_CAUSE':type(error).__name__+': '+str(error)})
@@ -976,8 +984,28 @@ def corpus_directories(root):
     return [root] if (root / "pool.jsonl").is_file() else sorted(p.parent for p in root.rglob("pool.jsonl"))
 
 
+def register_finqa_models(models=None):
+    """Use model bytes already admitted by phase0, frozen before CPU prepare."""
+    global REGISTERED_TEACHER_REVISION,REGISTERED_TEACHER_WEIGHT_HASHES,INITIAL_8B_WEIGHT_HASHES
+    if models is None:
+        path=Path(os.environ.get('WORK','.'))/'v4/report-inputs/frozen-model-registration.json'
+        if not path.exists():return
+        models=json.loads(path.read_text())
+    from kit.v4_contract import INITIAL_8B_REVISION
+    if models['initial']['model_revision']!=INITIAL_8B_REVISION:raise ValueError('initial 8B revision differs')
+    from kit.v4_phase0_download import MODELS
+    if models['teacher']['model_revision']!=MODELS['teacher'][1]:raise ValueError('teacher model revision differs')
+    shard=lambda doc:{k:v for k,v in doc['model_file_hashes'].items() if k.endswith(('.safetensors','.bin'))}
+    teacher=shard(models['teacher']);initial=shard(models['initial'])
+    if not teacher or not initial:raise ValueError('registered model weight hashes missing')
+    REGISTERED_TEACHER_REVISION=models['teacher']['model_revision']
+    REGISTERED_TEACHER_WEIGHT_HASHES=teacher;INITIAL_8B_WEIGHT_HASHES=initial
+
+
 def scientific_identity_allowed(teachers, rewriters):
     """Flags and model names cannot qualify unpinned weights or changed decoding."""
+    from kit.v4_finqa_policy import enabled
+    if enabled():register_finqa_models()
     if not REGISTERED_TEACHER_REVISION or not REGISTERED_TEACHER_WEIGHT_HASHES or not INITIAL_8B_WEIGHT_HASHES or not teachers or not rewriters:
         return False
     from kit.v4_contract import technical_synthetic
@@ -1005,6 +1033,7 @@ def scientific_identity_allowed(teachers, rewriters):
 
 def training_set(demonstrations, rewrites, out, tokenizer, sdpo=None, finqa_root=None):
     """Build shippable common task parquets with immutable source and prompt receipts."""
+    from kit.v4_arms import TARGETS
     import pyarrow as pa
     import pyarrow.parquet as pq
     items, demos, own, teacher_manifests, rewrite_manifests, sources = [], [], [], [], [], {}
@@ -1049,7 +1078,7 @@ def training_set(demonstrations, rewrites, out, tokenizer, sdpo=None, finqa_root
     synthetic = technical_synthetic(demos + own + teacher_manifests + rewrite_manifests)
     report["technical_synthetic"] = synthetic
     report["model_identity_qualified"] = scientific_identity_allowed(teacher_manifests, rewrite_manifests)
-    report["scientific_phase_allowed"] = not synthetic and report["coverage_phase_allowed"] and report["complete"] and set(tables) == {"chemistry", "finqa"} and report["model_identity_qualified"]
+    report["scientific_phase_allowed"] = not synthetic and report["coverage_phase_allowed"] and report["complete"] and set(tables) in ({"chemistry", "finqa"}, {"finqa"}) and report["model_identity_qualified"]
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     files = {}
@@ -1076,7 +1105,7 @@ def training_set(demonstrations, rewrites, out, tokenizer, sdpo=None, finqa_root
                 "authors_source_hashes": {str(p.resolve()): sha(p.read_bytes()) for p in author_files}, "stand_in_teacher": stand_in,
                 "teacher_models": sorted({m["teacher_model"] for m in teacher_manifests}), "sources": sources,
                 "files": files, "prompt_identity": proof, "coverage": report, "technical_synthetic": synthetic,
-                "targets": {"F": "extra_info.demonstration", "D": "extra_info.demonstration", "R": "extra_info.rewrite", "S": None}})
+                "targets": TARGETS})
     return tables
 
 

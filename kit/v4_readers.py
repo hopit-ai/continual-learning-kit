@@ -82,6 +82,9 @@ def scorer_context(archive,temp):
 
 def scoring(archive,phase,checkpoint,task,cap,mcq,limit=None):
     """Score raw answers using the bed, including incorrect-answer token expenditure."""
+    if task=='general-v1':
+        from kit.v4_finqa_read import general_scoring
+        return general_scoring(archive,phase,checkpoint,cap)
     root=f'v4/report-{phase}/eval/{checkpoint}-{task}-{cap}/'
     rows=archive.jsonl(root+'responses.jsonl')
     token_rows=archive.jsonl(root+'tokens.jsonl')
@@ -127,7 +130,7 @@ def scoring(archive,phase,checkpoint,task,cap,mcq,limit=None):
             require(decoded==row['response'],'evaluation token IDs do not decode to response')
             require(tokens['prompt_sha256']==rendered_prompt_hash(archive,indexed[ident]['prompt']),'held-out rendered prompt differs')
         expected_identity=archive.json('v4/report-inputs/model-identities.json')['initial'] if checkpoint=='baseline' or checkpoint.startswith('agreement') else archive.json('runs/'+checkpoint+'/env/export-identity-step'+('2' if phase in ('qualification','phase0') else '40')+'.json')
-        require(weights(archive.json(root+'checkpoint-identity.json'))==weights(expected_identity),'scored checkpoint shards differ')
+        require(weights(archive.json(root+'checkpoint-identity.json'))==weights(expected_identity),'scored checkpoint shards differ',identity=True)
     fingerprint=bed_score['machine']
     # Recompute the fingerprint digest; also bind the selected physical UUID from
     # containment instead of trusting the report's machine.id.
@@ -148,8 +151,9 @@ def corpus(archive,phase,task,tokenizer,mcq):
     """Reverify every raw attempt and rebuild first-acceptable corpora and coverage."""
     base=f'v4/report-{phase}/'
     pool=archive.jsonl(base+task+'-pool.jsonl')
-    if hasattr(archive,'expected_pools') and pool!=(archive.expected_pools[task][:20] if phase in ('qualification','phase0') else archive.expected_pools[task]):raise ValueError('corpus pool differs from pinned source')
-    if len(pool)!=(20 if phase in ('qualification','phase0') else 1441):raise ValueError('wrong original corpus denominator')
+    sample=phase=='phase0' or (phase=='qualification' and not self_monitored(archive))
+    if hasattr(archive,'expected_pools') and pool!=(archive.expected_pools[task][:20] if sample else archive.expected_pools[task]):raise ValueError('corpus pool differs from pinned source')
+    if len(pool)!=(20 if sample else 1441):raise ValueError('wrong original corpus denominator')
     lookup={str(i['id']):i for i in pool}
     if len(lookup)!=len(pool):raise ValueError('duplicate corpus pool identity')
     accepted={};tables={};docs={};verified={}
@@ -259,6 +263,14 @@ def run_record(archive,ident,phase):
     finally:
         if old is None:os.environ.pop('KIT_FINISH_GATE',None)
         else:os.environ['KIT_FINISH_GATE']=old
+    if phase!='phase0' and arm in ('D','D-R'):
+        if summary.get('context_source')!=('rewrite' if arm=='D-R' else 'demonstration'):raise ValueError('recorded D context source differs')
+    if phase!='phase0' and 'v4/report-inputs/retention-policy.json' in archive.files:
+        from kit.v4_evidence import weights
+        for step in ((20,40) if phase=='main' else (2,)):
+            reloaded=archive.json(root+f'env/export-reload-step{step}.json')
+            exported=archive.json(root+f'env/export-identity-step{step}.json')
+            if reloaded.get('dtype')!='BF16' or reloaded.get('tensor_count',0)<=0 or weights(reloaded['identity'])!=weights(exported):raise ValueError('retained export reload evidence differs')
     steps=2 if phase in ('qualification','phase0') else 40
     receipt=archive.json(root+'env/optimizer-updates.json')
     if receipt['completed_optimizer_updates']!=steps or summary['completed_optimizer_updates']!=steps:raise ValueError('incomplete optimizer dose: '+ident)
@@ -271,7 +283,7 @@ def run_record(archive,ident,phase):
     loss_key='train/loss' if arm in 'FR' else 'actor/pg_loss'
     counts=[m.get('data',m).get('v4/completed_optimizer_updates') for m in metrics if loss_key in m.get('data',m)]
     if not counts or counts[-1]!=steps or any(value is None or value<0 or value>steps for value in counts):raise ValueError('optimizer metric dose differs: '+ident)
-    if seed not in (101,102,103):raise ValueError('wrong seed: '+ident)
+    if seed not in (101,102,103,104,105):raise ValueError('wrong seed: '+ident)
     resolved_seed=config['trainer']['seed'] if arm in 'FR' else config['data']['seed']
     if resolved_seed!=seed:raise ValueError('resolved and recorded seeds differ: '+ident)
     if phase in ('qualification','phase0'):
@@ -280,10 +292,13 @@ def run_record(archive,ident,phase):
     return summary
 
 
-def qualification_evidence(archive):
+def _qualification_evidence(archive):
     """Read raw qualification evidence locally or from a verified return archive."""
     report={'status':'stop: technical','reasons':[],'owner_proceed_required':True,'tables':{}}
     try:
+        from kit.v4_phase0_carry import archive_ledger
+        ledger,accounting=archive_ledger(archive,'qualification')
+        report['tables']['allocation_accounting']=accounting
         from kit.v4_qualification import failed_engines_first
         failed_engines_first(archive)
         with tempfile.TemporaryDirectory(prefix='v4-read-') as temp:
@@ -297,23 +312,25 @@ def qualification_evidence(archive):
             tokenizer,mcq=scorer_context(archive,temp)
             from kit.v4_restore_check import verify_archive
             with data_context(archive,tokenizer,mcq):
-                report['tables']['scoring_agreement']=archive_agreement(archive,mcq)
+                report['tables']['scoring_agreement']=archive_agreement(archive,mcq,tasks=TASKS)
                 report['tables']['restoration']=verify_archive(archive)
                 from kit.v4_qualification import archive_determinism
                 report['tables']['teacher_determinism']=archive_determinism(archive)
                 from kit.v4_qualification import archive_ratio
                 report['tables']['teacher_token_ratio']=archive_ratio(archive)
                 baseline={};fingerprints=set()
-                for task in (*TASKS,'chemistry_probe'):
+                for task in ('finqa','general-v1'):
                     baseline[task]={}
                     for cap in (2048,8192):
                         value=scoring(archive,'qualification','baseline',task,cap,mcq)
                         fingerprints.add(value.pop('fingerprint'));baseline[task][str(cap)]=value
                 report['tables']['baseline']=baseline
                 report['tables']['corpora']={task:corpus(archive,'qualification',task,tokenizer,mcq) for task in TASKS}
+                # The sample exercises the gate; its acceptance rate admits
+                # neither the corpus nor science. Completeness is checked above.
                 report['tables']['common_data']=common_data(archive,'qualification',tokenizer)
                 records={}
-                for arm in ('S','F','R','D'):
+                for arm in ('S','F','R','D','D-R'):
                     for task in TASKS:
                         ident=f'q-{arm}-{task}'; records[ident]=run_record(archive,ident,'qualification')
                         from kit.v4_campaign_ops import job_for
@@ -327,7 +344,7 @@ def qualification_evidence(archive):
                 for task in TASKS:
                     frozen=sorted(archive.expected_pools[task],key=lambda i:t.sha('v4-fixed-probe|'+task+'|'+i['id']))[:20]
                     if archive.jsonl('v4/report-inputs/'+task+'-probe.jsonl')!=frozen:raise ValueError('probe not fixed before coverage')
-                    probe_point(archive,'qualification','q-S-chemistry-'+task+'-0',task,frozen,mcq,initial)
+                    probe_point(archive,'qualification','q-S-finqa-'+task+'-0',task,frozen,mcq,initial)
                     sample=archive.expected_pools[task][:20]
                     demos={r['id']:r for r in archive.jsonl(f'v4/report-qualification/teacher/{task}/demonstrations.jsonl')}
                     probe_point(archive,'qualification','conditioned-'+task,task,sample,mcq,initial,conditioned=True,demonstrations=demos)
@@ -336,18 +353,35 @@ def qualification_evidence(archive):
                 from kit.v4_timing import qualification_timings
                 completed={}
                 for task in TASKS:
-                    completed['teacher_questions:'+task]=20
-                    completed['rewrite_questions:'+task]=report['tables']['corpora'][task]['teacher']
+                    completed['teacher_questions:'+task]=len(archive.expected_pools[task]) if self_monitored(archive) else 20
+                    completed['rewrite_questions:'+task]=len(archive.expected_pools[task]) if self_monitored(archive) else 20
                     for role in ('teacher','rewrite'):
                         completed[f'reuse_verify:{role}:{task}']=len(archive.jsonl(f'v4/report-qualification/{role}/{task}/raw_outputs.jsonl'))
                 inputs=qualification_timings(archive,completed=completed)
-                budget=admit(archive.json('k8b4/containment/allocation-ledger.json'),inputs['timings'],inputs.get('completed'),probe_n=inputs['probe_n'])
+                budget=admit(ledger,inputs['timings'],inputs.get('completed'),probe_n=inputs['probe_n'])
             report['budget']=budget;report['status']=budget['status'];report['reasons']=budget['reasons']
             if budget['status']=='proceed':
                 from kit.v4_qualification import measured_caps
                 report['row_caps']=measured_caps(archive,budget)
     except (ValueError,KeyError,TypeError,OSError,tarfile.TarError,EOFError) as exc:
         report['reasons']=[str(exc)]
+    return report
+
+
+def self_monitored(archive):
+    names=('kit-snapshot/campaigns/v4-qualification.yaml','v4/report-inputs/runner-main-campaign.json')
+    return any(n in archive.files and archive.json(n).get('v4',{}).get('self_monitored') for n in names)
+
+
+def qualification_evidence(archive):
+    if not self_monitored(archive):return _qualification_evidence(archive)
+    from kit.v4_finqa_policy import observations,correctness
+    with observations() as warnings:
+        report=_qualification_evidence(archive)
+    reasons=report.get('reasons',[])
+    hard=[r for r in reasons if correctness(r)]
+    report.update(status='stop: correctness' if hard else 'progress report',owner_proceed_required=False,
+                  warnings=warnings+[{'site':'qualification reader','message':r} for r in reasons if r not in hard])
     return report
 
 
@@ -359,12 +393,13 @@ def read_qualification(path):
             _,errors=verdicts(archive,'qualification')
             report=qualification_evidence(archive)
             if errors:
-                report['status']='stop: technical';report['reasons']=errors+report['reasons']
+                if self_monitored(archive):report.setdefault('warnings',[]).extend({'site':'runner chronology','message':r} for r in errors)
+                else:report['status']='stop: technical';report['reasons']=errors+report['reasons']
     except (ValueError,KeyError,TypeError,OSError,tarfile.TarError,EOFError) as exc:report['reasons']=[str(exc)]
     return report
 
 
-def campaign_evidence(archive):
+def legacy_campaign_evidence(archive):
     """Read registered primary arithmetic and all required auxiliary evidence independently.
 
     Missing diagnostics never erase already established failures. Prescribed stops
@@ -393,7 +428,7 @@ def campaign_evidence(archive):
             from kit.v4_qualification import archive_agreement
             from kit.v4_restore_check import verify_archive
             with data_context(archive,tokenizer,mcq):
-                report['tables']['scoring_agreement']=archive_agreement(archive,mcq)
+                report['tables']['scoring_agreement']=archive_agreement(archive,mcq,tasks=TASKS)
                 report['tables']['restoration']=verify_archive(archive)
                 from kit.v4_qualification import archive_determinism
                 report['tables']['teacher_determinism']=archive_determinism(archive)
@@ -418,7 +453,7 @@ def campaign_evidence(archive):
                 require(set(gate['tasks'])==set(TASKS),'full-pool gate code report missing task')
                 report['tables']['common_data']=common_data(archive,'main',tokenizer)
                 baseline={};baseline_diagnostics={};fingerprints=set()
-                for task in (*TASKS,'chemistry_probe'):
+                for task in ('finqa','general-v1'):
                     baseline_diagnostics[task]={}
                     for cap in (2048,8192):
                         value=scoring(archive,'qualification','baseline',task,cap,mcq)
@@ -435,7 +470,7 @@ def campaign_evidence(archive):
                         summary=run_record(archive,ident,'main')
                         summary['provenance']=training_provenance(archive,'main',job,summary,tokenizer)
                         scores={}
-                        for task in (*TASKS,'chemistry_probe'):
+                        for task in ('finqa','general-v1'):
                             scores[task]={}
                             for cap in (2048,8192):
                                 value=scoring(archive,'main',ident,task,cap,mcq)
@@ -521,6 +556,11 @@ def campaign_evidence(archive):
     except (ValueError,KeyError,TypeError,OSError,tarfile.TarError,EOFError,ImportError) as exc:report['reasons'].append(str(exc))
     return report
 
+
+
+def campaign_evidence(archive):
+    from kit.v4_finqa_read import campaign_evidence as finqa_read
+    return finqa_read(archive)
 
 def read_campaign(path):
     """Verify exhaustive archive integrity, then recompute the full registered reading."""

@@ -24,6 +24,7 @@ def test_prepare_records_imports_without_refusing_dataset_work(tmp_path,monkeypa
     monkeypatch.setattr(p.site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     monkeypatch.setattr(p.site,'validate_base_versions',lambda *a:None)
     monkeypatch.setattr(p.site,'installed_versions',lambda:{})
+    monkeypatch.setattr(p.site,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     monkeypatch.setattr(v4_prepare,'import_smoke',lambda work,phase:smoke)
     monkeypatch.setattr(p,'inference_check',lambda work:{'import_seconds':imports['inference']})
     original=builtins.__import__

@@ -14,7 +14,7 @@
 #
 # K4a arms (docs/phase2/k4a/feasibility.md). Each is ONE declared override and nothing else; with
 # none of them set the argv below is byte for byte what K0 ran. AT MOST ONE PER RUN -- two is a
-# refusal (exit 2), because a run that changed two things answers neither question:
+# refusal (v4_validation_stop "$LINENO"), because a run that changed two things answers neither question:
 #            FEEDBACK=1  the authors' own switch: the teacher is shown the checker's mismatch
 #                        message, which names the expected actions and arguments. The student's own
 #                        prompt and the validation prompt never see it.
@@ -42,6 +42,7 @@
 set -euo pipefail
 
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$KIT/v4_launch_policy.sh"
 
 : "${SDPO_DIR:?set SDPO_DIR to the pinned lasgroup/SDPO checkout}"
 : "${MODEL_DIR:?set MODEL_DIR to the Qwen3-8B snapshot directory}"
@@ -49,8 +50,8 @@ KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -n "${KIT_V4_ARM:-}" || "${DATASET:-}" == datasets/v4_* ]]; then
   export KIT_V4_ARM=S
   source "$KIT/v4_profile.sh"
-  [[ "${ROLLOUT_N:-8}" == 8 ]] || { echo "S ROLLOUT_N is registered at 8" >&2; exit 2; }
-  [[ "${TEACHER_RATE:-0.05}" == 0.05 ]] || { echo 'TEACHER_RATE is registered at 0.05' >&2; exit 2; }
+  [[ "${ROLLOUT_N:-8}" == 8 ]] || { echo "S ROLLOUT_N is registered at 8" >&2; v4_validation_stop "$LINENO"; }
+  [[ "${TEACHER_RATE:-0.05}" == 0.05 ]] || { echo 'TEACHER_RATE is registered at 0.05' >&2; v4_validation_stop "$LINENO"; }
 fi
 STEPS="${STEPS:-17}"
 TEST_FREQ="${TEST_FREQ:-$STEPS}"
@@ -85,33 +86,34 @@ FINISH_GATE="${FINISH_GATE:-0}"
 REWARD_FILE="${REWARD_FILE:-}"
 
 OUT="$WORK/runs/$NAME"
+v4_guard_write "$OUT"
 if [[ "$OFFLOAD" == "1" ]]; then OFF=True; else OFF=False; fi
 
 # One run is one arm. Counted BEFORE the dry run, so a bad combination is caught without a GPU.
-[[ "$FEEDBACK" == "0" || "$FEEDBACK" == "1" ]] || { echo "FEEDBACK must be 0 or 1, not $FEEDBACK" >&2; exit 2; }
-[[ "$SOFT" == "0" || "$SOFT" == "1" ]] || { echo "SOFT must be 0 or 1, not $SOFT" >&2; exit 2; }
+[[ "$FEEDBACK" == "0" || "$FEEDBACK" == "1" ]] || { echo "FEEDBACK must be 0 or 1, not $FEEDBACK" >&2; v4_validation_stop "$LINENO"; }
+[[ "$SOFT" == "0" || "$SOFT" == "1" ]] || { echo "SOFT must be 0 or 1, not $SOFT" >&2; v4_validation_stop "$LINENO"; }
 if [[ -n "$TEMP" ]]; then
-  [[ "$TEMP" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "TEMP must be a positive number, not $TEMP" >&2; exit 2; }
+  [[ "$TEMP" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "TEMP must be a positive number, not $TEMP" >&2; v4_validation_stop "$LINENO"; }
 fi
 if [[ "$DATASET" =~ ^datasets/[A-Za-z0-9_/-]+$ && "$DATASET" != *//* ]]; then
   DATA_DIR="$SDPO_DIR/$DATASET"
 elif [[ "${KIT_V4_ARM:-}" == S && "$DATASET" =~ ^/[A-Za-z0-9_./-]+$ && "$DATASET" != *..* ]]; then
   DATA_DIR="${DATASET%/}"
 else
-  echo "DATASET must be datasets/<task>, or an absolute scheduled folder for v4 S, not $DATASET" >&2; exit 2
+  echo "DATASET must be datasets/<task>, or an absolute scheduled folder for v4 S, not $DATASET" >&2; v4_validation_stop "$LINENO"
 fi
-[[ "$LR" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "LR must be a number like 1e-5, not $LR" >&2; exit 2; }
-[[ "$TEACHER_RATE" =~ ^(0|1|0?\.[0-9]+|1\.0+|0\.0+)$ ]] || { echo "TEACHER_RATE must be a number from 0 to 1 like 0.05, not $TEACHER_RATE" >&2; exit 2; }
-[[ "$KEEP_TRAINER_CKPT" == "0" || "$KEEP_TRAINER_CKPT" == "1" ]] || { echo "KEEP_TRAINER_CKPT must be 0 or 1, not $KEEP_TRAINER_CKPT" >&2; exit 2; }
-[[ -z "$MAX_RESPONSE" || "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be empty or a positive integer of tokens, not $MAX_RESPONSE" >&2; exit 2; }
-[[ "$FINISH_GATE" == "0" || "$FINISH_GATE" == "1" ]] || { echo "FINISH_GATE must be 0 or 1, not $FINISH_GATE" >&2; exit 2; }
+[[ "$LR" =~ ^[0-9]+(\.[0-9]+)?(e-?[0-9]+)?$ ]] || { echo "LR must be a number like 1e-5, not $LR" >&2; v4_validation_stop "$LINENO"; }
+[[ "$TEACHER_RATE" =~ ^(0|1|0?\.[0-9]+|1\.0+|0\.0+)$ ]] || { echo "TEACHER_RATE must be a number from 0 to 1 like 0.05, not $TEACHER_RATE" >&2; v4_validation_stop "$LINENO"; }
+[[ "$KEEP_TRAINER_CKPT" == "0" || "$KEEP_TRAINER_CKPT" == "1" ]] || { echo "KEEP_TRAINER_CKPT must be 0 or 1, not $KEEP_TRAINER_CKPT" >&2; v4_validation_stop "$LINENO"; }
+[[ -z "$MAX_RESPONSE" || "$MAX_RESPONSE" =~ ^[1-9][0-9]*$ ]] || { echo "MAX_RESPONSE must be empty or a positive integer of tokens, not $MAX_RESPONSE" >&2; v4_validation_stop "$LINENO"; }
+[[ "$FINISH_GATE" == "0" || "$FINISH_GATE" == "1" ]] || { echo "FINISH_GATE must be 0 or 1, not $FINISH_GATE" >&2; v4_validation_stop "$LINENO"; }
 if [[ "$FINISH_GATE" == "1" && "$SOFT" == "1" ]]; then
   echo "refusing FINISH_GATE=1 with SOFT=1: each is its own reward function and verl loads one. Run them separately." >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 if [[ "$FINISH_GATE" == "1" && "$FEEDBACK" == "1" ]]; then
   echo "refusing FINISH_GATE=1 with FEEDBACK=1: the teacher would be shown the gate's own note as feedback, a combination nobody registered." >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 if [[ "$FINISH_GATE" == "1" ]]; then export KIT_FINISH_GATE=1; else unset KIT_FINISH_GATE; fi   # an inherited 1 must not leak into a control
 ARMS=()
@@ -121,7 +123,7 @@ if [[ -n "$TEMP" ]]; then ARMS+=("TEMP=$TEMP"); fi
 if (( ${#ARMS[@]} > 1 )); then
   echo "refusing to run ${#ARMS[@]} arms at once (${ARMS[*]}): one run is one arm, so that a difference" >&2
   echo "in the result can be attributed to one change. Run them separately." >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 ARM="${ARMS[0]:-none}"
 
@@ -132,11 +134,11 @@ elif [[ "$FINISH_GATE" == "1" ]]; then REWARD="$KIT/beds/authors_gate.py"
 else REWARD="$SDPO_DIR/verl/utils/reward_score/feedback/__init__.py"; fi
 
 if [[ -n "$REWARD_FILE" ]]; then
-  [[ "$REWARD_FILE" == /* ]] || { echo "REWARD_FILE must be an absolute path" >&2; exit 2; }
-  [[ "$SOFT" == "0" ]] || { echo "refusing REWARD_FILE with SOFT=1: each supplies a reward function" >&2; exit 2; }
-  [[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; exit 2; }
-  [[ "$FINISH_GATE" != 1 || "$REWARD_FILE" == "$KIT/beds/v4_reward.py" || "$REWARD_FILE" == "$KIT/beds/authors_gate.py" ]] || { echo 'custom reward is not verified finish-gate aware' >&2; exit 2; }
-  [[ "${FEEDBACK:-0}" == 0 ]] || { echo 'refusing REWARD_FILE with FEEDBACK=1' >&2; exit 2; }
+  [[ "$REWARD_FILE" == /* ]] || { echo "REWARD_FILE must be an absolute path" >&2; v4_validation_stop "$LINENO"; }
+  [[ "$SOFT" == "0" ]] || { echo "refusing REWARD_FILE with SOFT=1: each supplies a reward function" >&2; v4_validation_stop "$LINENO"; }
+  [[ -f "$REWARD_FILE" ]] || { echo "missing reward file: $REWARD_FILE" >&2; v4_validation_stop "$LINENO"; }
+  [[ "$FINISH_GATE" != 1 || "$REWARD_FILE" == "$KIT/beds/v4_reward.py" || "$REWARD_FILE" == "$KIT/beds/authors_gate.py" ]] || { echo 'custom reward is not verified finish-gate aware' >&2; v4_validation_stop "$LINENO"; }
+  [[ "${FEEDBACK:-0}" == 0 ]] || { echo 'refusing REWARD_FILE with FEEDBACK=1' >&2; v4_validation_stop "$LINENO"; }
   REWARD="$REWARD_FILE"
 fi
 
@@ -224,8 +226,13 @@ if [[ -n "${KIT_V4_ARM:-}" ]]; then v4_check_synthetic_data "$DATA_DIR/train.par
 if [[ "${V4_CHECKPOINT_STATE:-0}" == 1 ]]; then
   ARGV+=("actor_rollout_ref.actor.checkpoint.save_contents=[model,optimizer,extra]" "actor_rollout_ref.actor.checkpoint.load_contents=[model,optimizer,extra]")
 fi
+# Main policy owns all deletion; disable native checkpoint rotation.
+if [[ "${V4_MAIN_RETENTION:-0}" != 0 ]]; then
+  ARGV+=("trainer.max_actor_ckpt_to_keep=null")
+  KEEP_TRAINER_CKPT=1
+fi
 if [[ -n "${V4_RESUME_PATH:-}" ]]; then
-  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; exit 2; }
+  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; v4_validation_stop "$LINENO"; }
   ARGV+=("trainer.resume_mode=resume_path" "trainer.resume_from_path=$V4_RESUME_PATH")
 fi
 if [[ "$DRY_RUN" == "1" ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
@@ -273,7 +280,7 @@ on_exit() {
   exit "$status"
 }
 
-if [[ -e "$OUT" && "${V4_RETRY_ADMITTED:-0}" != 1 ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; exit 2; fi
+if [[ -e "$OUT" && "${V4_RETRY_ADMITTED:-0}" != 1 ]]; then echo "refusing to overwrite $OUT: pick a fresh NAME" >&2; v4_validation_stop "$LINENO"; fi
 mkdir -p "$OUT/env"
 STAGE_FILE="$OUT/env/stage.json"
 trap 'on_exit $?' EXIT
@@ -282,9 +289,9 @@ trap 'exit 130' INT
 trap 'exit 129' HUP
 stage started
 for f in train.parquet test.parquet; do
-  [[ -f "$DATA_DIR/$f" ]] || { echo "missing $DATA_DIR/$f: for datasets/<task>, run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; exit 2; }
+  [[ -f "$DATA_DIR/$f" ]] || { echo "missing $DATA_DIR/$f: for datasets/<task>, run \`python data/preprocess.py --data_source $DATASET\` in $SDPO_DIR first" >&2; v4_validation_stop "$LINENO"; }
 done
-[[ -f "$REWARD" ]] || { echo "missing reward function $REWARD" >&2; exit 2; }
+[[ -f "$REWARD" ]] || { echo "missing reward function $REWARD" >&2; v4_validation_stop "$LINENO"; }
 mkdir -p "$OUT/env" "$OUT/tool-sdpo/logs"
 
 # What the run was: recorded before it starts, so a crash still leaves an identity behind.
@@ -312,11 +319,11 @@ STARTED=$(date -u +%s)
 cd "$SDPO_DIR"
 # The trainer's own resolved configuration of exactly this command (package 4, amendment 3 B6), before any training:
 # Hydra's `--cfg job --resolve` prints the job configuration with every interpolation resolved, and exits. A command
-# whose configuration cannot be resolved does not train (exit 2, before any GPU work, and no run-summary.json).
+# whose configuration cannot be resolved does not train (v4_validation_stop "$LINENO", before any GPU work, and no run-summary.json).
 if ! "${ARGV[@]:0:5}" --cfg job --resolve "${ARGV[@]:5}" > "$OUT/env/resolved-config.yaml" 2> "$OUT/env/resolved-config.err" \
    || [[ ! -s "$OUT/env/resolved-config.yaml" ]]; then
   echo "the trainer could not resolve its configuration (see $OUT/env/resolved-config.err): nothing is trained" >&2
-  exit 2
+  v4_validation_stop "$LINENO"
 fi
 stage config-resolved
 stage trainer-invoked

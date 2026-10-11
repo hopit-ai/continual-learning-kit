@@ -154,7 +154,7 @@ u._run_finalizers()
     assert observed['path'].startswith(launch['TMPDIR']+'/pymp-') and '/listener-' in observed['path']
     assert observed['bytes']<=107
     from kit.v4_phase0_site import CACHE_KEYS
-    assert all(Path(launch[key]).is_relative_to(work/'phase0-cache') for key in CACHE_KEYS if key!='TMPDIR')
+    assert all(Path(launch[key]).is_relative_to(work.parent/'cache') for key in CACHE_KEYS if key!='TMPDIR')
     assert Path(launch['HF_HOME']).is_relative_to(work.parent) and not Path(launch['HF_HOME']).is_relative_to(work)
 
 
@@ -178,7 +178,7 @@ def test_real_generated_payload_keeps_short_tmpdir_and_shared_caches(frozen_site
     doc=json.loads(observed.read_text())
     assert doc['tempdir']==launch['TMPDIR']==os.environ['TEST_JOB_TMP']
     assert Path(launch['RAY_TMPDIR']).is_dir()
-    assert all(Path(doc['env'][key]).is_relative_to(work/'phase0-cache') for key in CACHE_KEYS if key!='TMPDIR')
+    assert all(Path(doc['env'][key]).is_relative_to(work.parent/'cache') for key in CACHE_KEYS if key!='TMPDIR')
     assert (work/'v4/report-phase0/socket-path-check.json').is_file()
 
 
@@ -284,7 +284,7 @@ def test_containment_entry_keeps_short_job_tmpdir_for_contained_steps(tmp_path,m
         assert p4_contain.main(['run','--work',str(work)])==0
         assert seen['env']['TMPDIR']==str(job_tmp)
         assert len(os.fsencode(seen['listener']))<=107
-        assert seen['env']['TRITON_CACHE_DIR'].startswith(str(work))  # bulk caches stay on shared storage
+        assert seen['env']['TRITON_CACHE_DIR'].startswith(str(task/'cache'))  # bulk caches stay on shared storage
         # The real allocation constant leaves ample room for the listener path.
         assert len(os.fsencode(os.path.join('/tmp/phase0-tmp','pymp-'+'k'*8,'listener-'+'k'*8)))<=107
         monkeypatch.delenv('SLURM_JOB_ID')

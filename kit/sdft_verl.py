@@ -78,7 +78,7 @@ def build_sdft_teacher_batch(self, batch, reward_tensor, reward_extra_infos_dict
     sd = actor.self_distillation
     raw_prompts = batch.non_tensor_batch["raw_prompt"]
     extra_infos = batch.non_tensor_batch["extra_info"]
-    demonstrations = [objective.demonstration_of(extra) for extra in extra_infos]
+    demonstrations = [objective.privileged_context(extra,self.config['v4_context_source']) for extra in extra_infos]
     chat_kwargs = self.config.data.get("apply_chat_template_kwargs", None)
     chat_kwargs = OmegaConf.to_container(chat_kwargs, resolve=True) if chat_kwargs is not None else {}
     device = batch.batch["input_ids"].device
@@ -102,7 +102,7 @@ def build_sdft_teacher_batch(self, batch, reward_tensor, reward_extra_infos_dict
 def install_trainer_patch() -> None:
     check_pinned()
     ray_trainer.RayPPOTrainer._maybe_build_self_distillation_batch = build_sdft_teacher_batch
-    print("arm D (kit/sdft_verl.py): teacher context = question + extra_info.demonstration, every sample a target "
+    print("arm D (kit/sdft_verl.py): teacher context = question + resolved context_source (demonstration or rewrite), every sample a target "
           "[pid %d]" % os.getpid(), flush=True)
 
 
@@ -139,8 +139,8 @@ class SdftTaskRunner(main_ppo.TaskRunner):
         objective.check_trainer_config(OmegaConf.to_container(config, resolve=True))
         from kit.v4_contract import check_resolved
         from kit.v4_run import check_data
-        check_resolved(OmegaConf.to_container(config, resolve=True), 'D', profile_name=os.environ.get('V4_PROFILE','scientific'))
-        check_data({**os.environ, 'ARM':'D'})
+        check_resolved(OmegaConf.to_container(config, resolve=True), os.environ.get('ARM','D'), profile_name=os.environ.get('V4_PROFILE','scientific'))
+        check_data({**os.environ, 'ARM':os.environ.get('ARM','D')})
         install_trainer_patch()
         from kit.v4_timing import install_telemetry
         from kit.v4_restore_check import install_trainer_probe

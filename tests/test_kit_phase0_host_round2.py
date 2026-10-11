@@ -20,6 +20,7 @@ def builder(tmp_path,monkeypatch):
     work=tmp_path/'work';outputs={'base':BASE_ERROR+'\n','trainer':BASE_ERROR+'\n'};calls=[]
     monkeypatch.delenv('SLURM_JOB_ID',raising=False);monkeypatch.setenv('SDPO_DIR',str(tmp_path/'source'))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     monkeypatch.setattr(s,'distribution_inventory',lambda paths=None,**kw:[])
     monkeypatch.setattr(s,'check_network',lambda urls:None)
     def base(argv,**kw):
@@ -106,6 +107,7 @@ def test_invalid_base_metadata_is_skipped_and_recorded(tmp_path,monkeypatch,kind
     distributions=list(s.metadata.distributions(path=[str(tmp_path/'site')]))
     monkeypatch.setattr(s.metadata,'distributions',lambda **kw:iter(distributions))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     def command(argv,**kw):kw['log'].write_text('No broken requirements found.\n');return result()
     monkeypatch.setattr(runner,'bounded_command',command)
     doc=s.base_environment(tmp_path/'work')
@@ -124,6 +126,7 @@ def test_differing_duplicate_base_versions_leave_readable_blocker(tmp_path,monke
     if reverse:distributions.reverse()
     monkeypatch.setattr(s.metadata,'distributions',lambda **kw:iter(distributions))
     monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     with pytest.raises(ValueError,match='duplicate.*some-pkg.*differing versions'):s.base_environment(tmp_path/'work')
     assert 'some-pkg' in (tmp_path/'work/v4/report-phase0/setup-blocker.txt').read_text()
 

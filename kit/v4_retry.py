@@ -96,7 +96,9 @@ def automatic(work,campaign,row,attempt,previous):
         'log_sha256':hashlib.sha256(log.read_bytes()).hexdigest(),'excerpt':excerpt,
         'state_policy':'no_valid_saved_state','review_policy':'registered outcome-blind infrastructure admission'}
     if row.startswith('train-'):
-        ident=row.removeprefix('train-');arm=ident.split('-')[1] if ident.startswith('q-') else ident[0]
+        ident=row.removeprefix('train-')
+        from kit.v4_campaign_ops import job_for
+        arm=job_for(ident,'qualification' if ident.startswith('q-') else 'main')['arm']
         dose=2 if ident.startswith('q-') else 40
         candidates=sorted((work/'runs'/ident).glob('*/global_step_*'),key=lambda p:int(p.name.removeprefix('global_step_')),reverse=True)
         for candidate in candidates:
@@ -127,12 +129,12 @@ def tree_hash(path):
 
 def saved_state(path,arm,width=8):
     """Only complete model/optimizer/RNG/scheduler/loader/EMA shards are resumable."""
-    path=Path(path);actor=path/'actor' if arm in 'SD' else path
+    path=Path(path);actor=path/'actor' if arm in ('S','D','D-R') else path
     expected=['data.pt']
     for rank in range(width):
         expected += [str((actor/pathname).relative_to(path)) for pathname in
             (f'model_world_size_{width}_rank_{rank}.pt',f'optim_world_size_{width}_rank_{rank}.pt',f'extra_state_world_size_{width}_rank_{rank}.pt')]
-        if arm in 'SD':expected.append(f'actor/v4-ema/model_world_size_{width}_rank_{rank}.pt')
+        if arm in ('S','D','D-R'):expected.append(f'actor/v4-ema/model_world_size_{width}_rank_{rank}.pt')
     if any(not (path/name).is_file() or (path/name).stat().st_size==0 for name in expected):raise ValueError('saved checkpoint lacks optimizer/RNG/dataloader/EMA state')
     return tree_hash(path)
 
@@ -180,3 +182,28 @@ def restoration_gate(work,arm):
     if arm not in result or result[arm].get('passed') is not True:
         raise ValueError('restoration qualification missing for '+arm)
     return result[arm]
+
+
+def local_retry(work,campaign,row,attempt,previous):
+    """Partner may fix and rerun. Retain failed logs, resume complete state only."""
+    work=Path(work).resolve()
+    receipt={'previous_attempt':previous['attempt'],'eligible':True,'review_policy':'owner self-monitoring; no manual review',
+             'state_policy':'no_valid_saved_state','reason_code':'local_fix','completed_updates':0}
+    if row.startswith('train-'):
+        from kit.v4_campaign_ops import job_for
+        ident=row.removeprefix('train-');arm=job_for(ident,'qualification' if ident.startswith('q-') else 'main')['arm']
+        dose=2 if ident.startswith('q-') else 40
+        candidates=sorted((work/'runs'/ident).glob('*/global_step_*'),key=lambda p:int(p.name.removeprefix('global_step_')),reverse=True)
+        for path in candidates:
+            if not path.resolve().is_relative_to(work):raise ValueError('saved state outside WORK')
+            try:digest=saved_state(path,arm)
+            except ValueError:continue
+            step=int(path.name.removeprefix('global_step_'))
+            if step==dose:receipt.update(state_policy='recover_completed_operation',completed_updates=step);break
+            if 0<step<dose:
+                receipt.update(state_policy='resume_valid_state',completed_updates=step,arm=arm,
+                    saved_state_path=str(path.resolve()),saved_state_sha256=digest);break
+    target=work/'v4/retries'/campaign/row/f'attempt-{attempt}.json';target.parent.mkdir(parents=True,exist_ok=True)
+    if target.exists():return json.loads(target.read_text())
+    with target.open('x') as handle:json.dump(receipt,handle,sort_keys=True,indent=2);handle.write('\n')
+    return receipt

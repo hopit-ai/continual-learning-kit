@@ -26,7 +26,7 @@ import time
 
 HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:sys.path.insert(0,str(HERE.parent))
-from kit.v4_phase0_timing import shared_limit, is_phase0
+from kit.v4_phase0_timing import shared_limit, is_phase0, is_finqa, informational_containment
 
 DIRECTORY = Path('k8b4/containment')
 RECEIPT = DIRECTORY / 'containment-receipt.json'
@@ -116,7 +116,7 @@ def config_values(text):
 
 
 def frozen_write(path, doc):
-    if is_phase0() and Path(path).name=='containment-selftest.json':
+    if informational_containment() and Path(path).name=='containment-selftest.json':
         doc={**doc,'informational':True,'warning':None if doc.get('ok') else 'WARNING: containment self-test FAILED; informational only; owner monitors the run.'}
     sealed = frozen.seal(doc)
     old = wd.read_json(path)
@@ -319,6 +319,14 @@ def allocation_path(work, rel, job=None):
 
 
 def reviewed_receipt(work):
+    bound_path=Path(work)/'v4/report-inputs/phase0-binding.json'
+    if bound_path.exists():
+        from kit.v4_phase0_carry import verify_work, ARCHIVE_PATH
+        from kit.v4_archive import Archive
+        try:
+            verify_work(work)
+            with Archive(Path(work)/ARCHIVE_PATH) as source:return source.json(str(RECEIPT))
+        except (ValueError,OSError) as error:raise Refused('changed safety settings: '+str(error)) from error
     first=wd.read_json(Path(work)/RECEIPT)
     if first: return first
     ledger=wd.read_json(Path(work)/DIRECTORY/'allocation-ledger.json') or {}
@@ -364,6 +372,9 @@ def tracked_allocation(fn):
 
 def hard_reason(reason):
     """Safety refusals, distinct from a failed but bounded computation."""
+    if is_finqa():
+        from kit.v4_finqa_policy import correctness
+        return correctness(reason)
     return any(word in reason.lower() for word in (
         'unknown', 'unverified', 'not verified', 'outside time cap', 'time cap',
         'time limit exceeded', 'overlaps', 'settings changed', 'settings changed or unsafe',
@@ -384,6 +395,14 @@ def hard_stop(work, reason, row_record=None):
 
 
 def stop_gate(work):
+    if is_finqa():
+        from kit.v4_finqa_policy import correctness,warn
+        path=Path(work)/DIRECTORY/'v4-stop.json'
+        if path.exists():
+            reason=(wd.read_json(path) or {}).get('failure_type','historical stop')
+            if correctness(reason):raise Refused(reason)
+            warn('historical containment stop',reason,work)
+        return
     from kit.v4_ack import gate
     try: gate(work)
     except (OSError,ValueError,ImportError) as error:
@@ -395,6 +414,9 @@ def stop_gate(work):
 
 
 def stop_class(failure, verified, within_cap=True):
+    if is_finqa():
+        if failure and hard_reason(failure):return 'hard'
+        return 'allocation_preempted' if failure=='preempted' else 'row_failure' if failure or not verified or not within_cap else None
     if not verified or not within_cap or (failure and hard_reason(failure)):
         return 'hard'
     return 'allocation_preempted' if failure=='preempted' else 'row_failure' if failure else None
@@ -435,7 +457,7 @@ def verify_receipts(work, *, selftest=True, job=None):
         if not frozen._self(doc, str(rel), problems):
             continue
         docs[key] = doc
-        if doc.get('ok') is not True:
+        if doc.get('ok') is not True and not (informational_containment() and key in ('receipt','selftest')):
             problems.append('%s is not a passing receipt' % rel)
     if selftest and len(docs) == 2 and docs['selftest'].get('receipt_sha256') != docs['receipt']['content_sha256']:
         problems.append('selftest is not bound to the frozen cluster receipt')
@@ -1203,13 +1225,14 @@ def record_allocation(work, observation, block=None, block_limit=None, ceiling=N
             if entry.get('accounting_unknown')=='allocation start/width unknown': entry.pop('accounting_unknown')
     if not entry['segments'] and entry.get('start'):
         entry['segments']=[{'block':block,'start':entry['start'],'end':None}]
+    if is_finqa() and not entry.get('observed_until'):entry['observed_until']=entry.get('start')
     entry.update(end=observation.get('end') or entry.get('end'), state=observation.get('state'),
                  observation=observation, cpus=observation.get('cpus'), memory_mb=observation.get('memory_mb'))
     duration=observation.get('time_limit_seconds')
     if duration and entry.get('start'):
         entry['planned_end']=wd.precise_text(wd.from_epoch(epoch(entry['start'])+duration))
         entry['time_limit_seconds']=duration
-    elif not observation.get('end'):
+    elif not observation.get('end') and not is_finqa():
         entry.pop('planned_end',None); entry.pop('time_limit_seconds',None)
     if not entry.get('start') or not entry.get('width'): entry['accounting_unknown']='allocation start/width unknown'
     wd.write_durably(path,ledger)
@@ -1233,6 +1256,8 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
     """Charge phase 0 by elapsed time; other campaigns reserve through planned end."""
     if any(not math.isfinite(x) or x<=0 for x in (cap,block_limit,ceiling)):
         raise Refused('budget inputs must be positive finite values')
+    if is_finqa():
+        return finqa_allocation_budget(work,live,cap,block,block_limit,ceiling)
     path=Path(work)/DIRECTORY/'allocation-ledger.json'
     old=wd.read_json(path) or {}
     limits=old.get('block_limits',{})
@@ -1279,6 +1304,12 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
                     'requested_sbatch_time':sbatch_time(duration or 0),
                     'computed_at':wd.precise_text(),'allowed_sbatch_time':None})
                 raise Refused(reason) from error
+    if ledger.get('phase0_import') or os.environ.get('V4_FINQA_CAMPAIGN')=='1' or (plan_path and plan_doc.get('phase') in ('qualification','main')):
+        from kit.v4_phase0_carry import verify_work, public_binding
+        try:
+            bound=verify_work(work)
+            if plan_path and plan_doc.get('phase0_import_binding')!=public_binding(bound['phase0_import']):raise ValueError('phase0 allocation plan binding differs')
+        except (ValueError,OSError) as error:raise Refused('changed safety settings: '+str(error)) from error
     if ledger.get('accounting_unknown'): raise Refused('allocation start/width unknown; unknown exposure is never zero')
     if not duration: raise Refused('allocation TimeLimit is unknown or unlimited; cannot reserve its planned end')
     now=time.time(); start=epoch(entry['start']); planned=start+duration
@@ -1310,11 +1341,40 @@ def _allocation_budget(work, live, cap, block, block_limit, ceiling):
         ledger.update(admission_refusal=doc,block=block,block_limit=block_limit)
         wd.write_durably(path,ledger)
         raise Refused(reason)
-    if not phase0 and now+cap>planned: raise Refused('row/self-test cap does not fit remaining allocation TimeLimit; request a longer safe sbatch --time')
+    if not phase0 and not is_finqa() and now+cap>planned: raise Refused('row/self-test cap does not fit remaining allocation TimeLimit; request a longer safe sbatch --time')
     entry['reservation_until']=entry['planned_end']
     ledger.update(block=block,block_limit=block_limit,admitted_at=wd.precise_text(wd.from_epoch(now)),
                   reserved_gpu_hours=reserved+other_reserved,block_spent_gpu_hours=blocks.get(block,0),admission_refusal=None)
     wd.write_durably(path,ledger)
+    return ledger
+
+
+def finqa_allocation_budget(work,live,cap,block,block_limit,ceiling):
+    """Actual spend is the backstop. Planned block/reservation only warns."""
+    from kit.v4_finqa_policy import warn,known_spend
+    duration=duration_seconds(live.get('allocation_time_limit',''))
+    now=time.time();start=live.get('allocation_start')
+    width=live.get('gpu_count')
+    if not start or not width:
+        warn('allocation accounting','scheduler start/width missing; use batch start and allocated GPU count',work)
+        start=start or wd.precise_text(wd.from_epoch(now))
+        width=width or int(os.environ.get('SLURM_GPUS_ON_NODE','8'))
+    observation=dict(job_id=str(live['job_id']),start=start,end=live.get('allocation_end'),width=width,
+                     state=live.get('allocation_state','RUNNING'),time_limit_seconds=duration)
+    ledger=record_allocation(work,observation,block,1000,1000)
+    ledger=refresh_allocation_ledger(work)
+    cumulative,parts=known_spend(ledger,work)
+    ledger.update(spent_gpu_hours=float(cumulative),blocks={k:float(v) for k,v in parts.items()})
+    if cumulative>=1000:raise Refused('actual 1000 GPU-hour ceiling reached')
+    for name,charge in ledger.get('blocks',{}).items():
+        if name=='qualification' and charge>100:warn('qualification projection','planned 100 GPU-hours exceeded; continuing within 1000',work)
+    if ledger.get('accounting_unknown'):warn('allocation accounting','incomplete scheduler accounting; retained as warning',work)
+    entry=ledger['allocations'][str(live['job_id'])]
+    if not entry.get('planned_end'):
+        entry['planned_end']=wd.precise_text(wd.from_epoch(epoch(start)+duration))
+    ledger.update(ceiling=1000,block=block,block_limit=1000,admitted_at=wd.precise_text(wd.from_epoch(now)),
+                  admission_refusal=None)
+    wd.write_durably(Path(work)/DIRECTORY/'allocation-ledger.json',ledger)
     return ledger
 
 
@@ -1330,7 +1390,7 @@ def refresh_allocation_ledger(work,row=None):
                 entry['rows'][str(row_path)]={k:doc.get(k) for k in ('started_at','deadline','charged_until','state','gpus','assigned_devices','ledger_charge_gpu_hours')}
         if entry.get('accounting_unknown') or not entry.get('start') or not entry.get('width'):
             entry.update(charged_gpu_hours=None,reserved_gpu_hours=None); unknown=True; continue
-        end=epoch(entry['end']) if entry.get('end') else now
+        end=epoch(entry['end']) if entry.get('end') else (epoch(entry.get('observed_until') or entry['start']) if is_finqa() and job!=os.environ.get('SLURM_JOB_ID') else now)
         if end<epoch(entry['start']): entry['accounting_unknown']='invalid allocation end'; unknown=True; continue
         entry['charged_gpu_hours']=(end-epoch(entry['start']))*entry['width']/3600
         entry['reservation_until']=entry.get('end') or entry.get('planned_end')
@@ -1341,7 +1401,17 @@ def refresh_allocation_ledger(work,row=None):
         for seg in entry['segments']:
             finish=min(end,epoch(seg['end'])) if seg.get('end') else end
             blocks[seg['block']]=blocks.get(seg['block'],0)+max(0,finish-epoch(seg['start']))*entry['width']/3600
-        entry['observed_until']=wd.precise_text(wd.from_epoch(now))
+        if not is_finqa() or job==os.environ.get('SLURM_JOB_ID') or entry.get('end'):entry['observed_until']=wd.precise_text(wd.from_epoch(now))
+    if ledger.get('phase0_import'):
+        from kit.v4_budget import allocation_spend
+        try:
+            cumulative,cumulative_blocks=allocation_spend(ledger)
+            spent=float(cumulative);blocks={k:float(v) for k,v in cumulative_blocks.items()}
+        except (ValueError,KeyError,TypeError) as error:
+            if not is_finqa():raise Refused('phase0 accounting refused: '+str(error)) from error
+            from kit.v4_finqa_policy import known_spend
+            cumulative,cumulative_blocks=known_spend(ledger,work)
+            spent=float(cumulative);blocks={k:float(v) for k,v in cumulative_blocks.items()}
     ledger.update(spent_gpu_hours=None if unknown else spent,reserved_gpu_hours=None if unknown or reservation_unknown else reserved,
                   blocks=blocks,accounting_unknown=unknown,reservation_unknown=reservation_unknown,block_spent_gpu_hours=blocks.get(ledger.get('block'),0))
     wd.write_durably(path,ledger)
@@ -1360,6 +1430,9 @@ def reconcile(work, out, seconds=600, *, force=False):
         ledger=wd.read_json(ledger_path)
         from kit.v4_phase0_submission import receipt_path, reconcile_submission
         if receipt_path(work).is_file():ledger=reconcile_submission(work)
+        if (work/'k8b4/containment/submissions').exists():
+            from kit.v4_finqa_submission import reconcile_submissions
+            reconcile_submissions(work);ledger=wd.read_json(ledger_path)
         if not ledger or not ledger.get('allocations'):
             raise Refused('missing allocation ledger; verify WORK before reconciliation')
         for path in (work/DIRECTORY/'rows').glob('*.json'):
@@ -1421,7 +1494,7 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
     Campaign supplies block and ceiling. Allocation width times wall exposure
     includes idle time; overlapping reservations share the allocation charge.
     """
-    if is_phase0():return phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling)
+    if is_phase0() or is_finqa():return phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling)
     if not argv or not isinstance(gpus, int) or not 1 <= gpus <= 8 or not math.isfinite(time_cap) or time_cap < MIN_ROW_CAP:
         raise Refused('row needs argv, 1..8 GPUs and total time-cap >=300 seconds (startup + one minute + J=60 + KillWait=40 + cleanup)')
     if concurrent and gpus != 1: raise Refused('concurrency is only for 1-GPU rows; multi-GPU rows run alone')
@@ -1430,7 +1503,7 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
         raise Refused('row output already exists; need a new attempt output to preserve evidence')
     stop_gate(work)
     errors, docs = verify_receipts(work)
-    if docs.get('selftest', {}).get('v4_qualified') is not True:
+    if not is_finqa() and docs.get('selftest', {}).get('v4_qualified') is not True:
         errors.append('need a v4 selftest verdict including CPU detached-grandchild and delayed one-GPU probes')
     if errors:
         raise Refused('; '.join(errors))
@@ -1450,14 +1523,17 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
         assigned = []  # Slurm chooses the actual bitmap after RPC arrival.
         budget = allocation_budget(work, live, time_cap, block, block_limit, ceiling)
         stamp = '%d-%d' % (time.time_ns(), os.getpid())
-        now = epoch(budget['admitted_at']); until = now+time_cap
+        now = epoch(budget['admitted_at'])
+        requested_cap=time_cap
+        if is_finqa():time_cap=min(time_cap,epoch(budget['allocations'][live['job_id']]['planned_end'])-now)
+        until = now+time_cap
         data = {'schema': 'kit-v4-contained-row.v1', 'row': 'row-'+stamp, 'attempt': 1, 'command': list(argv),
                 'containment': 'slurm-step', 'kind': 'row', 'state': 'launching', 'gpus': gpus,
                 'output_path':str(out.resolve()),
                 'allocation_id':live['job_id'], 'allocation_width':live['gpu_count'], 'assigned_devices':assigned, 'concurrent':concurrent,
                 'client_pid':os.getpid(), 'budget_block':block, 'budget':budget,
                 'ledger_charge_gpu_hours':live['gpu_count']*time_cap/3600,
-                'time_cap_seconds': time_cap, 'cluster_recheck': live, 'started_at': wd.precise_text(wd.from_epoch(now)),
+                'time_cap_seconds': time_cap, 'requested_time_cap_seconds':requested_cap, 'cluster_recheck': live, 'started_at': wd.precise_text(wd.from_epoch(now)),
                 **{k: wd.precise_text(wd.from_epoch(until)) for k in ('limit_until', 'kill_by', 'deadline')}}
         record = RowRecord(work, work / DIRECTORY / 'rows' / (stamp+'.json'), data)
     proc = None
@@ -1493,8 +1569,9 @@ def run_row(work, out, argv, gpus, time_cap, *, block="qualification", block_lim
         if cls=='allocation_preempted':record.update(allocation_ended=True)
     except (Refused, OSError, subprocess.SubprocessError) as error:
         record.update(ok=0, status=2, state='unverified', failure_type='containment refused', reason=str(error))
-        record.update(stop_class='hard')
-        hard_stop(work,str(error),record.path)
+        cls='hard' if hard_reason(str(error)) or not is_finqa() else 'row_failure'
+        record.update(stop_class=cls)
+        if cls=='hard':hard_stop(work,str(error),record.path)
     finally:
         if proc and proc.poll() is None:
             proc.kill(); proc.wait(timeout=shared_limit(5))
@@ -1514,11 +1591,17 @@ def phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling):
     live={'job_id':obs['job_id'],'gpu_count':obs.get('width'),'allocation_start':obs.get('start'),
           'allocation_end':obs.get('end'),'allocation_time_limit':sbatch_time(obs.get('time_limit_seconds') or 0)}
     ledger=allocation_budget(work,live,time_cap,block,block_limit,ceiling)
-    start=time.time()
+    start=time.time();requested_time_cap=time_cap
+    if is_finqa():
+        entry=ledger['allocations'][obs['job_id']]
+        time_cap=min(time_cap,max(0,epoch(entry['planned_end'])-start),max(0,(1000-ledger['spent_gpu_hours'])*3600/(obs.get('width') or 8)))
+        if time_cap<=0:raise Refused('actual 1000 GPU-hour ceiling reached or allocation ended')
     minutes_requested=max(1,math.ceil(time_cap/60))
     step=out/'slurm-step.json'
     entry="import json,os,sys; from pathlib import Path; Path(sys.argv[1]).write_text(json.dumps({k:v for k,v in os.environ.items() if k.startswith('SLURM_') or k=='CUDA_VISIBLE_DEVICES'})); os.execvpe(sys.argv[2],sys.argv[2:],os.environ)"
-    command=['srun','--ntasks=1','--exclusive','--gres=gpu:'+str(gpus),'--time='+str(minutes_requested),
+    slurm_seconds=max(1,int(time_cap))
+    slurm_time=(f'{slurm_seconds//3600:02d}:{slurm_seconds%3600//60:02d}:{slurm_seconds%60:02d}' if is_finqa() else str(minutes_requested))
+    command=['srun','--ntasks=1','--exclusive','--gres=gpu:'+str(gpus),'--time='+slurm_time,
              '--kill-on-bad-exit=1']
     if obs.get('cpus') and obs.get('memory_mb') and obs.get('width'):
         command+=['--cpus-per-task='+str(obs['cpus']*gpus//obs['width']),'--mem='+str(obs['memory_mb']*gpus//obs['width'])+'M']
@@ -1528,7 +1611,7 @@ def phase0_row(work,out,argv,gpus,time_cap,block,block_limit,ceiling):
     doc={'schema':'kit-v4-contained-row.v1','informational':True,'allocation_id':obs['job_id'],
          'allocation_width':obs['width'],'gpus':gpus,'command':list(argv),'actual_command':command,
          'started_at':wd.precise_text(wd.from_epoch(start)),'ended_at':wd.precise_text(),
-         'time_cap':time_cap,'state':'ended','status':result['returncode'],'ok':int(result['returncode']==0),
+         'time_cap':time_cap,'time_cap_seconds':time_cap,'requested_time_cap_seconds':requested_time_cap,'state':'ended','status':result['returncode'],'ok':int(result['returncode']==0),
          'slurm':wd.read_json(step) or {},'execution':result,'containment':'Slurm step; owner monitored'}
     refresh_allocation_ledger(work)
     wd.write_durably(out/'containment-row.json',doc)
@@ -1582,9 +1665,9 @@ def _recorded_selftest(work, out, gpu_seconds, attempt_record, block, block_limi
         if not old or old.get('ok'):stop_gate(work)
         try:result = _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceiling, overall_started)
         except (Refused,OSError,subprocess.SubprocessError) as exc:
-            if not is_phase0():raise
+            if not informational_containment():raise
             result=frozen_write(allocation_path(work,SELFTEST),{'schema':'kit-p4-containment-selftest.v1','ok':False,'v4_qualified':False,'problems':[str(exc)]})
-        if not result.get('ok') and not is_phase0():
+        if not result.get('ok') and not informational_containment():
             hard_stop(work,'containment selftest failed: '+ '; '.join(result.get('problems',[])))
         return result
     finally:
@@ -1615,7 +1698,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             errors,docs=verify_receipts(work,selftest=False)
             if old.get('receipt_sha256')!=docs.get('receipt',{}).get('content_sha256'):
                 raise Refused('existing selftest changed; first receipt is never replaced')
-        if old.get('ok') is True and not is_phase0():
+        if old.get('ok') is True and not informational_containment():
             obs=allocation_observation(os.environ.get('SLURM_JOB_ID'))
             # An archive-only replay cannot launch; a live cached pass still
             # must obey the current allocation reservation, without replacing it.
@@ -1822,7 +1905,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
                                   charged_until=wd._ceil_text(at), ended_at=wd._ceil_text(at), ended_precise=wd.precise_text(at),
                                   verified_idle_at=wd._ceil_text(at) if doc['ok'] else None, elapsed_seconds=time.time()-epoch(attempt_record.data['launched_at']),
                                   selftest_expected_timeout=True)
-            if not doc['ok'] and not is_phase0():
+            if not doc['ok'] and not informational_containment():
                 wd.write_stop(attempt_record.path, attempt_record.data, '; '.join(problems), 'containment selftest failed', unavailable=True)
         return sealed
     except (Refused, OSError, subprocess.SubprocessError) as error:
@@ -1838,7 +1921,7 @@ def _selftest(work, out, gpu_seconds, attempt_record, block, block_limit, ceilin
             attempt_record.data = wd.read_json(attempt_record.path) or attempt_record.data
             attempt_record.update(state='unverified', accounting='budget compliance unavailable',
                                   **{'class': 'containment selftest failed'}, ok=0, status=2, reason=str(error))
-            if not is_phase0():wd.write_stop(attempt_record.path, attempt_record.data, str(error), 'containment selftest failed', unavailable=True)
+            if not informational_containment():wd.write_stop(attempt_record.path, attempt_record.data, str(error), 'containment selftest failed', unavailable=True)
         return failed
     finally:
         if wrapper is not None and wrapper.poll() is None:
@@ -1962,16 +2045,16 @@ def _main(argv=None):
         if args.mode=='reconcile':
             prior=wd.read_json(Path(args.work)/DIRECTORY/'allocation-ledger.json')
             from kit.v4_phase0_submission import receipt_path
-            missing_reconcile_ledger=(not prior or not prior.get('allocations')) and not receipt_path(args.work).is_file()
+            missing_reconcile_ledger=(not prior or not prior.get('allocations')) and not receipt_path(args.work).is_file() and not (Path(args.work)/'k8b4/containment/submissions').exists()
         if args.mode not in ('park',) and getattr(args,'work',None) and not getattr(args,'from_file',None):
             track_allocation(args.work,getattr(args,'block',None),getattr(args,'block_limit',None),getattr(args,'ceiling',None))
-        if missing_reconcile_ledger:raise Refused('missing allocation ledger at reconcile invocation; verify WORK')
+        if missing_reconcile_ledger and not is_finqa():raise Refused('missing allocation ledger at reconcile invocation; verify WORK')
         if args.mode == 'park':
             return park(args.ready, args.release, args.count, args.command[1:] if args.command[:1] == ['--'] else args.command,
                         args.expected_uuids,args.allocation_gpu_map)
         if args.mode == 'reconcile':
             doc = reconcile(args.work, args.out, args.seconds, force=args.force)
-            print(json.dumps(doc)); return 0 if doc['ok'] else 2
+            print(json.dumps(doc)); return 0 if doc['ok'] or is_finqa() else 2
         if args.mode == 'row':
             doc = run_row(args.work, args.out, args.command[1:] if args.command[:1] == ['--'] else args.command, args.gpus, args.time_cap, block=args.block, block_limit=args.block_limit, ceiling=args.ceiling, concurrent=args.concurrent)
             print(json.dumps(doc)); return doc['status']
@@ -2014,7 +2097,7 @@ def _main(argv=None):
                           deadline=wd.precise_text(wd.from_epoch(now+limit+shared_limit(60))))
         doc = check(args.work, args.out, args.from_file, args.qos) if args.mode == 'check' else selftest(args.work, args.out, args.gpu_seconds, record, block=args.block, block_limit=args.block_limit, ceiling=args.ceiling)
         print(json.dumps({'ok': doc['ok'], 'problems': doc['problems'], 'content_sha256': doc['content_sha256']}))
-        return 0 if (doc['ok'] or (args.mode=='selftest' and is_phase0())) else 2
+        return 0 if (doc['ok'] or (args.mode=='selftest' and informational_containment())) else 2
     except (Refused, OSError) as e:
         print('containment refused: %s' % e, file=sys.stderr); return 2
 
@@ -2024,6 +2107,11 @@ def main(argv=None):
     argv=list(sys.argv[1:] if argv is None else argv)
     if '--work' in argv:
         at=argv.index('--work')
+        if at+1<len(argv) and (Path(argv[at+1])/'v4/report-inputs/phase0-binding.json').exists():
+            from kit.v4_finqa_site import storage,JOB_TMP
+            in_job=bool(os.environ.get('SLURM_JOB_ID'))
+            if in_job:Path(JOB_TMP).mkdir(parents=True,exist_ok=True)
+            with storage(argv[at+1],allocation=in_job):return _main(argv)
         if at+1<len(argv) and (Path(argv[at+1])/'v4/report-phase0').exists():
             from kit.v4_phase0_site import storage, JOB_TMP
             # Inside the allocation keep the payload's short job-private TMPDIR, so contained

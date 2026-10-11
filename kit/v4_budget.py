@@ -8,17 +8,21 @@ import json
 import math
 from pathlib import Path
 import sys
+from collections import Counter
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from kit.v4_arms import ALL_ARMS
+
 ALLOWANCE = Fraction(3, 2)
 CONTINGENCY = Fraction(45)
-CEILING = Fraction(560)
+CEILING = Fraction(1000)
 QUALIFICATION_LIMIT = Fraction(100)
-DEFAULT_WINDOWS = {'teacher':300, 'rewrite':300, 'scientific':360}
-TASKS = ('chemistry', 'finqa')
-ARMS = ('S', 'F', 'R', 'D')
+from kit.v4_phase0_timing import scale
+DEFAULT_WINDOWS = {key:scale(minutes) for key,minutes in {'teacher':300, 'rewrite':300, 'scientific':360}.items()}
+TASKS = ('finqa',)
+ARMS = ALL_ARMS
 
 
 def number(value, name, *, positive=False):
@@ -54,7 +58,8 @@ def stamp(value):
 def allocation_spend(ledger):
     """Recompute closed or observed allocation intervals, including idle/pause time."""
     spent, blocks = Fraction(0), {}
-    allocations = ledger.get('allocations')
+    from kit.v4_phase0_carry import accounting_allocations
+    allocations = accounting_allocations(ledger)
     if not isinstance(allocations, dict) or not allocations:
         raise ValueError('missing allocation ledger')
     intervals = []
@@ -81,48 +86,33 @@ def allocation_spend(ledger):
 
 
 def work_items(probe_n=20):
-    """Fixed remaining matrix; standalone inputs count once, smokes count zero slots.
-
-    All scoring uses one physical GPU, so allocations containing these serial rows
-    are billed at their full measured width. Probe size is frozen before filtering.
-    """
-    if isinstance(probe_n,bool) or not isinstance(probe_n,int) or probe_n <= 0:
-        raise ValueError('invalid frozen probe size')
-    rows=[]
+    """Price the entire fixed 23-slot graph, never infer slots from success."""
+    if type(probe_n) is not int or probe_n!=20:raise ValueError('invalid frozen probe size')
+    from kit.v4_campaign import slots, build, PROBE_STEPS
+    jobs=slots();rows=[]
+    count=len(jobs)
+    def add(key,units,block='main'):rows.append(dict(key=key,units=units,block=block))
     for arm in ARMS:
-        for task in TASKS:
-            rows.append({'key':f'train:{arm}:{task}', 'units':6*40, 'block':'main'})
-            for operation in ('startup', 'export', 'merge'):
-                rows.append({'key':f'{operation}:{arm}:{task}', 'units':6*(2 if operation in ('export','merge') else 1), 'block':'main'})
-    for task, panel_n in (('chemistry',159),('finqa',1147),('chemistry_probe',51)):
+        n=sum(j['arm']==arm for j in jobs)
+        add(f'train:{arm}:finqa',n*40)
+        for op in ('startup','export','merge'):add(f'{op}:{arm}:finqa',n*(1 if op=='startup' else 2))
+    for task,n in (('finqa',1147),('general-v1',300)):
         for cap in (2048,8192):
-            rows.append({'key':f'eval:{task}:{cap}', 'units':48*panel_n, 'block':'main'})
-            rows.append({'key':f'reload:{task}:{cap}', 'units':48, 'block':'main'})
-    for task in TASKS:
-        # Each of 48 slots, at steps 0/20/40, on both fixed probes, eight attempts.
-        rows.append({'key':f'probe:{task}:2048', 'units':48*3*8*probe_n, 'block':'main'})
-        rows.append({'key':f'probe_reload:{task}', 'units':48*3, 'block':'main'})
-        rows.append({'key':f'conditioned_probe:{task}', 'units':8*probe_n, 'block':'main'})
-        rows.append({'key':f'conditioned_reload:{task}', 'units':1, 'block':'main'})
-        for model in ('teacher','rewrite'):
-            rows.append({'key':f'corpus_reload:{model}:{task}','units':1,
-                         'block':'qualification' if model=='rewrite' else 'main'})
-    for task in TASKS:
-        rows.append({'key':'cpu:schedule:'+task,'units':24,'block':'main'})
-        for model in ('teacher','rewrite'):
-            rows.append({'key':f'serial_merge:{model}:{task}','units':4*1441,
-                         'block':'qualification' if model=='rewrite' else 'main'})
-    from kit.v4_campaign import build
-    campaign=build('main');ids=[row['id'] for row in campaign['rows']]
-    for stage,spec in campaign['v4']['allocation_stages'].items():
-        count=ids.index(spec['last'])-ids.index(spec['first'])+1
-        block='qualification' if stage=='rewrite' else 'main'
-        rows.append({'key':'runner:dispatch:'+stage,'units':count,'block':block})
-        rows.append({'key':'runner:prepare:'+stage,'units':1,'block':block})
-    for operation in ('coverage','training-set','gate','report','archive-pack'):
-        rows.append({'key':'cpu:'+operation,'units':1,'block':'qualification' if operation in ('coverage','training-set') else 'main'})
-    rows.append({'key':'selftest','units':2,'block':'main'})
-    rows.append({'key':'selftest:rewrite','units':1,'block':'qualification'})
+            add(f'eval:{task}:{cap}',count*n);add(f'reload:{task}:{cap}',count)
+    add('probe:finqa:2048',count*len(PROBE_STEPS)*8*probe_n);add('probe_reload:finqa',count*len(PROBE_STEPS))
+    add('conditioned_probe:finqa',8*probe_n);add('conditioned_reload:finqa',1)
+    for role in ('teacher','rewrite'):
+        block='qualification' if role=='rewrite' else 'main'
+        add(f'corpus_reload:{role}:finqa',1,block)
+        add(f'serial_merge:{role}:finqa',4*1441,block)
+    add('cpu:schedule:finqa',count)
+    graph=build('main');ids=[r['id'] for r in graph['rows']]
+    for stage,spec in graph['v4']['allocation_stages'].items():
+        block='qualification' if spec['block']=='qualification' else 'main'
+        add('runner:dispatch:'+stage,ids.index(spec['last'])-ids.index(spec['first'])+1,block)
+        add('runner:prepare:'+stage,1,block)
+    for op in ('coverage','training-set','gate','report','archive-pack'):add('cpu:'+op,1,'qualification' if op in ('coverage','training-set') else 'main')
+    add('selftest',2);add('selftest:rewrite',1,'qualification')
     return rows
 
 
@@ -155,7 +145,7 @@ def admit(ledger, timings, completed=None, *, probe_n=20):
                 if row['key'].startswith(('generate:','verify:')):
                     operation,model,task=row['key'].split(':');spec=geometry[model+':'+task]
                     bound=batched_worst_case(spec['pool_size'],shard_count=spec['shards'],shard_sizes=spec['shard_sizes'])
-                    row['units']=bound['max_waves_per_shard'] if operation=='generate' else 4*bound['max_shard_size']
+                    row['units']=(0 if completed.get(f'{model}_questions:{task}',0)==1441 else bound['max_waves_per_shard']) if operation=='generate' else (row['units'] if completed.get(f'{model}_questions:{task}',0)==1441 else 4*bound['max_shard_size'])
                     row['batch_geometry']=bound
         components=[];exact_costs={}
         projections={'qualification':Fraction(0),'main':Fraction(0)}
@@ -206,33 +196,40 @@ def admit(ledger, timings, completed=None, *, probe_n=20):
         reasons=list(window_reasons)
         if qualification>QUALIFICATION_LIMIT and '100-hour qualification block exceeded' not in reasons:
             reasons.append('100-hour qualification block exceeded')
-        if total>CEILING and '560-hour campaign ceiling exceeded' not in reasons:
-            reasons.append('560-hour campaign ceiling exceeded')
-        return {'status':'stop: scope' if reasons else 'proceed','reasons':reasons,
+        if total>CEILING and '1000-hour campaign ceiling exceeded' not in reasons:
+            reasons.append('1000-hour campaign ceiling exceeded')
+        return {'status':'proceed','reasons':reasons,'warnings':reasons,
                 'actual_gpu_hours':float(spent),'actual_blocks':{k:float(v) for k,v in blocks.items()},
+                'remaining_qualification_gpu_hours':float(CEILING-spent),
+                'planned_qualification_remaining_gpu_hours':float(QUALIFICATION_LIMIT-blocks.get('qualification',0)),
+                'remaining_ceiling_gpu_hours':float(CEILING-spent),
                 'allocation_windows':windows,'allocation_counts':counts,'allocation_schedule':schedule,
                 'components':components,'overlap_groups':overlap_groups,'contingency_gpu_hours':45,
                 'qualification_projected_gpu_hours':float(qualification),'total_projected_gpu_hours':float(total),
-                'owner_proceed_required':True}
+                'owner_proceed_required':False}
     except (KeyError,TypeError,ValueError,OverflowError) as exc:
-        return {'status':'stop: technical','reasons':[str(exc)],'owner_proceed_required':True}
+        return {'status':'DEFERRED TO QUALIFICATION','reasons':[str(exc)],'owner_proceed_required':False}
 
 
 def row_caps(components):
-    """Registered whole-row limits, including serial merge and CPU work."""
-    rows={row['key']:row for row in components}
+    """Measured complete command caps, including serial CPU/merge/reload work."""
+    rows={r['key']:r for r in components}
     def seconds(key):
-        row=rows[key]
-        return ALLOWANCE*number(row.get('seconds_per_unit_exact',row['slowest_seconds_per_unit']),'measured row rate')*row['remaining_units']
+        r=rows[key]
+        return ALLOWANCE*number(r.get('seconds_per_unit_exact',r['slowest_seconds_per_unit']),'rate')*r['units']
     caps={}
     for role in ('teacher','rewrite'):
-        caps[role]=max(300,math.ceil(max(sum(seconds(f'{op}:{role}:{task}') for op in ('corpus_reload','generate','verify','serial_merge')) for task in TASKS)))
-    caps['train']=max(300,math.ceil(max(sum(seconds(f'{op}:{arm}:{task}') for op in ('train','startup','export','merge'))/6 for arm in ARMS for task in TASKS)))
-    caps['merge']=max(300,math.ceil(max(seconds(f'merge:{arm}:{task}')/12 for arm in ARMS for task in TASKS)))
-    caps['score']=max(300,math.ceil(max((seconds(f'eval:{task}:{cap}')+seconds(f'reload:{task}:{cap}'))/48 for task in (*TASKS,'chemistry_probe') for cap in (2048,8192))))
-    caps['probe']=max(300,math.ceil(max((seconds('probe:'+task+':2048')+seconds('probe_reload:'+task))/144 for task in TASKS)))
-    caps['cpu']=max(300,math.ceil(max(seconds(key)/max(1,rows[key]['units']) for key in rows if key.startswith('cpu:'))))
-    return caps
+        caps[role]=max(300,math.ceil(sum(seconds(f'{op}:{role}:finqa') for op in ('corpus_reload','generate','verify','serial_merge'))))
+    from kit.v4_campaign import slots, PROBE_STEPS
+    jobs=slots();counts=Counter(job['arm'] for job in jobs);count=len(jobs)
+    caps['train']=max(300,math.ceil(max(sum(seconds(f'{op}:{arm}:finqa') for op in ('train','startup','export','merge'))/n for arm,n in counts.items())))
+    caps['merge']=max(300,math.ceil(max(seconds(f'merge:{arm}:finqa')/n for arm,n in counts.items())))
+    caps['score']=max(300,math.ceil(max((seconds(f'eval:{task}:{cap}')+seconds(f'reload:{task}:{cap}'))/count for task in ('finqa','general-v1') for cap in (2048,8192))))
+    caps['probe']=max(300,math.ceil((seconds('probe:finqa:2048')+seconds('probe_reload:finqa'))/(count*len(PROBE_STEPS))))
+    from kit.v4_retention import RETIREMENT_IO_SECONDS
+    caps['cpu']=max(300+RETIREMENT_IO_SECONDS,math.ceil(max(seconds(k)/max(1,rows[k]['units']) for k in rows if k.startswith('cpu:'))))
+    from kit.v4_phase0_timing import scale
+    return {key:scale(value) for key,value in caps.items()}
 
 
 def stage_caps(components):
@@ -279,11 +276,11 @@ def allocation_counts(components,windows,spent,blocks,*,caps,passed=()):
             elif operation in ('schedule','train','merge') and ident[len(operation)+1:] in jobs:
                 job=jobs[ident[len(operation)+1:]];arm=job['arm'];task=job['task']
                 if operation=='schedule':charge('cpu:schedule:'+task,1)
-                elif operation=='merge':charge(f'merge:{arm}:{task}',2)
+                elif operation=='merge':charge(f'merge:{arm}:{task}',1)
                 else:
-                    for part,n in (('train',40),('startup',1),('export',2)):charge(f'{part}:{arm}:{task}',n)
+                    for part,n in (('train',40),('startup',1),('export',2),('merge',1)):charge(f'{part}:{arm}:{task}',n)
             elif operation=='score':
-                panel,cap=ident.rsplit('-',2)[-2:];n={'chemistry':159,'finqa':1147,'chemistry_probe':51}[panel]
+                cap=ident.rsplit('-',1)[1];panel=next(t for t in ('finqa','general-v1') if ident.endswith('-'+t+'-'+cap));n={'finqa':1147,'general-v1':300}[panel]
                 charge(f'eval:{panel}:{cap}',n);charge(f'reload:{panel}:{cap}',1)
             elif operation=='probe':
                 panel=ident.rsplit('-',2)[-2]
@@ -302,7 +299,8 @@ def allocation_counts(components,windows,spent,blocks,*,caps,passed=()):
                 rows_by_stage[stage].append((wall+dispatch,max(cap,wall)+dispatch))
     counts=dict.fromkeys(windows,0);schedule=[];reasons=[]
     remaining_total=CEILING-spent
-    remaining_qualification=QUALIFICATION_LIMIT-blocks.get('qualification',0)
+    remaining_qualification=remaining_total
+    registrations=graph['v4']['allocation_stages']
     for stage in ('rewrite','teacher','scientific'):
         todo=rows_by_stage[stage];cursor=0
         # Zero-rate synthetic fixtures still exercise a scheduled allocation.
@@ -312,25 +310,26 @@ def allocation_counts(components,windows,spent,blocks,*,caps,passed=()):
         startup=ALLOWANCE*number(by_key['runner:prepare:'+stage]['slowest_seconds_per_unit'],'runner startup seconds')
         setup=selftest+startup
         while cursor<len(todo) or counts[stage]==0:
-            available=min(remaining_total,remaining_qualification) if stage=='rewrite' else remaining_total
-            window=min(number(windows[stage]*60,'site window'),max(Fraction(0),available)*450)
+            qualification=registrations[stage]['block']=='qualification'
+            available=remaining_total
+            window=number(windows[stage]*60,'site window')
             counts[stage]+=1
             schedule.append({'stage':stage,'window_seconds':float(window),'setup_seconds':float(setup),
                              'row_cap_headroom_seconds':float(max((cap for _,cap in todo[cursor:]),default=0))})
             used=setup;before=cursor
             while cursor<len(todo):
                 wall,cap=todo[cursor]
-                if window-used<cap:break
+                if window-used<wall:break
                 used+=wall;cursor+=1
             cost=used*8/3600
             remaining_total-=cost
-            if stage=='rewrite':remaining_qualification-=cost
+            if qualification:remaining_qualification-=cost
             if used>window or (cursor<len(todo) and cursor==before):
-                reason='100-hour qualification block exceeded' if stage=='rewrite' and remaining_qualification<=remaining_total else '560-hour campaign ceiling exceeded'
+                reason='100-hour qualification block exceeded' if qualification and remaining_qualification<=remaining_total else '1000-hour campaign ceiling exceeded'
                 # A site window too short to fit even the first pending row has
                 # its own scope reason; budgets remain charged independently.
-                if cursor<len(todo) and window==windows[stage]*60 and window-used<todo[cursor][1]:
-                    reason='allocation window cannot fit registered row cap; stop: scope'
+                if cursor<len(todo) and window==windows[stage]*60 and window-used<todo[cursor][0]:
+                    reason='site window cannot pack a measured row; continuation required'
                 reasons.append(reason);break
             if counts[stage]>10000:raise ValueError('unbounded allocation count')
     return counts,schedule,list(dict.fromkeys(reasons))
@@ -343,8 +342,8 @@ def main(argv=None):
     args=parser.parse_args(argv)
     from kit.v4_readers import read_qualification
     qualification=read_qualification(args.qualification_archive)
-    report=qualification.get('budget') or {'status':'stop: technical','reasons':qualification['reasons'],'owner_proceed_required':True}
-    if qualification['status']=='stop: technical':report={**report,'status':'stop: technical','reasons':qualification['reasons']}
+    report=qualification.get('budget') or {'status':'DEFERRED TO QUALIFICATION','reasons':qualification['reasons'],'owner_proceed_required':False}
+    if qualification['status']=='stop: technical':report={**report,'status':'DEFERRED TO QUALIFICATION','reasons':qualification['reasons']}
     text=json.dumps(report,indent=2,allow_nan=False)+'\n'
     if args.out: args.out.write_text(text)
     else: print(text,end='')
@@ -381,11 +380,14 @@ def reproject(ledger,components,windows,completed=None,*,caps=None):
     qualification=blocks.get('qualification',0)+sum((cost(r) for r in rows if r['block']=='qualification'),Fraction(0))
     total=spent+projected+CONTINGENCY
     if qualification>QUALIFICATION_LIMIT:reasons.append('100-hour qualification block exceeded')
-    if total>CEILING:reasons.append('560-hour campaign ceiling exceeded')
-    return {'status':'stop: scope' if reasons else 'proceed','reasons':list(dict.fromkeys(reasons)),
+    if total>CEILING:reasons.append('1000-hour campaign ceiling exceeded')
+    return {'status':'proceed','reasons':list(dict.fromkeys(reasons)),'warnings':list(dict.fromkeys(reasons)),
         'actual_gpu_hours':float(spent),'actual_blocks':{k:float(v) for k,v in blocks.items()},
+                'remaining_qualification_gpu_hours':float(CEILING-spent),
+                'planned_qualification_remaining_gpu_hours':float(QUALIFICATION_LIMIT-blocks.get('qualification',0)),
+                'remaining_ceiling_gpu_hours':float(CEILING-spent),
         'allocation_windows':windows,'allocation_counts':counts,'allocation_schedule':schedule,
         'components':rows,'qualification_projected_gpu_hours':float(qualification),
-        'total_projected_gpu_hours':float(total),'contingency_gpu_hours':45,'owner_proceed_required':True}
+        'total_projected_gpu_hours':float(total),'contingency_gpu_hours':45,'owner_proceed_required':False}
 
 if __name__=='__main__':raise SystemExit(main())

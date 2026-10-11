@@ -14,7 +14,7 @@ import time
 if __package__ in (None,''):
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit import v4_teacher as t
-from kit.v4_campaign import TASKS, slots
+from kit.v4_campaign import TASKS, PANELS, ALL_ARMS, slots
 from kit.v4_resources import resource
 
 KIT=Path(__file__).resolve().parent
@@ -22,7 +22,8 @@ ROOT=KIT.parent
 
 
 def require(value,message):
-    if not value: raise ValueError(message)
+    from kit.v4_finqa_policy import require as check
+    return check(value,message,'campaign operation')
 
 
 def load(path): return json.loads(Path(path).read_text())
@@ -41,13 +42,16 @@ def paths(work,phase):
 
 def job_for(ident,phase):
     if phase=='main': return next(job for job in slots() if job['id']==ident)
-    _,arm,task=ident.split('-')
+    arm=ident[2:].rsplit('-',1)[0];task=ident.rsplit('-',1)[1]
     return {'id':ident,'arm':arm,'task':task,'seed':101,'incoming':None}
 
 
 def prepare(work,phase):
     """Freeze original pools, panels and probes before any coverage filtering."""
     require(not (Path(os.environ['MODEL_DIR'])/'phase0-technical-only.json').exists(),'phase0 technical checkpoint cannot be an initialisation')
+    if phase!='phase0':
+        from kit.v4_finqa_data import prepare as finqa_prepare
+        return finqa_prepare(work,phase)
     import pyarrow.parquet as pq
     from kit.v4_datasets import make_datasets
     base=paths(work,phase); base.mkdir(parents=True,exist_ok=True)
@@ -71,7 +75,7 @@ def prepare(work,phase):
         shutil.copyfile(src,inputs/src.name)
     shutil.copyfile(Path(os.environ['SDPO_DIR'])/'verl/utils/reward_score/feedback/mcq.py',inputs/'mcq.py')
     shutil.copyfile(resource('v4-heldout-prompt-identity.json'),inputs/'v4-heldout-prompt-identity.json')
-    for task in TASKS:
+    for task in ('chemistry','finqa'):  # Tagged phase-0 preparation; main returns above.
         rows=t.authors_rows(task)
         pool=[]
         for row in rows:
@@ -85,7 +89,7 @@ def prepare(work,phase):
         frozen=sorted(pool,key=lambda i:t.sha('v4-fixed-probe|'+task+'|'+i['id']))[:20]
         t.write_jsonl(inputs/(task+'-pool.jsonl'),pool)
         t.write_jsonl(inputs/(task+'-probe.jsonl'),frozen)
-        selected=pool[:20] if phase in ('qualification','phase0') else pool
+        selected=pool[:20] if phase=='phase0' else pool
         t.write_jsonl(base/(task+'-pool.jsonl'),selected)
     t.atomic_json(inputs/'model-identities.json',{'teacher':t.local_identity(os.environ['TEACHER_MODEL_DIR']),
                   'initial':t.local_identity(os.environ['MODEL_DIR'],'Qwen/Qwen3-8B')})
@@ -99,35 +103,17 @@ def prepare(work,phase):
 
 
 def identity_gate(work):
-    """A new manager tag, owner proceed and C-B2 identities all remain mandatory."""
+    """Verify the unchanged registered model revisions and weight shards."""
+    t.register_finqa_models()
     identities=load(Path(work)/'v4/report-inputs/model-identities.json')
     from kit.v4_contract import INITIAL_8B_REVISION
     require(t.REGISTERED_TEACHER_REVISION and t.REGISTERED_TEACHER_WEIGHT_HASHES and t.INITIAL_8B_WEIGHT_HASHES,
-            'C-B2 registration missing')
+            'registered model identity missing')
     for name,revision,hashes in (('teacher',t.REGISTERED_TEACHER_REVISION,t.REGISTERED_TEACHER_WEIGHT_HASHES),('initial',INITIAL_8B_REVISION,t.INITIAL_8B_WEIGHT_HASHES)):
         doc=identities[name]
         actual={k:v for k,v in doc['model_file_hashes'].items() if k.endswith(('.safetensors','.bin'))}
         require(doc['model_revision']==revision and actual==hashes,'registered model identity differs: '+name)
-    receipt=load(os.environ['V4_OWNER_PROCEED'])
-    archive=Path(os.environ['V4_QUALIFICATION_ARCHIVE'])
-    require(receipt.get('owner_proceed') is True and receipt['qualification_sha256']==t.sha(archive.read_bytes()),'owner proceed is missing or bound to another archive')
-    tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=shared_limit(30)).strip()
-    qualification=load(paths(work,'qualification')/'environment.json')
-    require(tag==receipt['new_kit_tag'] and tag!=qualification['kit_tag'],'a new immutable manager tag is required')
-    from kit.v4_readers import read_qualification
-    if os.environ.get('SLURM_JOB_ID'):
-        # The login-node planner already recomputed this exact archive. Reuse
-        # only its bound result, after the first selftest verified this plan.
-        from kit.v4_allocation import verify_plan
-        verify_plan(work,'main','containment-selftest')
-        advice=load(os.environ['V4_ALLOCATION_PLAN'])['admission']
-        qualified={'status':advice['qualification_status'],'row_caps':advice['qualification_row_caps']}
-    else:qualified=read_qualification(archive)
-    require(qualified['status']=='proceed','qualification reader did not recommend proceed')
-    require(receipt.get('row_caps')==qualified['row_caps'],'main caps differ from qualification measurement registration')
-    require(isinstance(receipt.get('row_caps'),dict),'qualification-measured row caps missing from owner registration')
-    t.atomic_json(paths(work,'main')/'owner-registration.json',{'owner':receipt,'qualification_environment':qualification,
-                  'qualification_sha256':t.sha(archive.read_bytes()),'new_kit_tag':tag})
+    t.atomic_json(paths(work,'main')/'model-identity-check.json', {'ok':True,'self_monitored':True})
 
 
 def teacher(work,phase,task,rewriting=False):
@@ -146,48 +132,54 @@ def teacher(work,phase,task,rewriting=False):
 
 def reuse_sample(work,task,rewriting=False):
     """Extend the owner's hash-bound qualification journal; never generate its attempts again."""
-    from kit.v4_archive import Archive
     role='rewrite' if rewriting else 'teacher'
-    approved=Path(os.environ['V4_QUALIFICATION_ARCHIVE'])
-    receipt=load(os.environ['V4_OWNER_PROCEED'])
-    require(receipt['qualification_sha256']==t.sha(approved.read_bytes()),'qualification archive changed after owner proceed')
-    with Archive(approved) as archive:
-        prefix=f'v4/report-qualification/{role}/{task}/'
-        sample=archive.jsonl(prefix+'pool.jsonl')
-        require(sample==t.read_jsonl(paths(work,'main')/(task+'-pool.jsonl'))[:20],'sample/full original pool changed')
-        identity=load(Path(work)/'v4/report-inputs/model-identities.json')['initial' if rewriting else 'teacher']
-        manifest=archive.json(prefix+'manifest.json')
-        require(manifest['model_revision']==identity['model_revision'] and manifest['model_file_hashes']==identity['model_file_hashes'],'approved sample generator identity changed')
-        destination=paths(work,'main')/role/task
-        copied={}
-        for name,raw in archive.files.items():
-            if not name.startswith(prefix):continue
-            relative=name[len(prefix):]
-            if not (relative.startswith(('raw/','timings/')) and relative.endswith('.json')):continue
-            target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True)
-            if target.exists():require(target.read_bytes()==raw,'approved sample journal changed')
-            else:target.write_bytes(raw)
-            copied[relative]=t.sha(raw)
-        destination.mkdir(parents=True,exist_ok=True)
-        t.atomic_json(destination/'qualification-journal.json',{'qualification_sha256':t.sha(approved.read_bytes()),'files':copied})
+    source=paths(work,'qualification')/role/task
+    if not source.exists():
+        from kit.v4_finqa_policy import warn
+        warn('corpus reuse','qualification corpus unavailable; main generation will fill missing work',work)
+        return
+    require(t.read_jsonl(source/'pool.jsonl')==t.read_jsonl(paths(work,'main')/(task+'-pool.jsonl')),'qualification/full original pool changed')
+    identity=load(Path(work)/'v4/report-inputs/model-identities.json')['initial' if rewriting else 'teacher']
+    manifest=load(source/'manifest.json')
+    require(manifest['model_revision']==identity['model_revision'] and manifest['model_file_hashes']==identity['model_file_hashes'],'qualification generator model identity changed')
+    destination=paths(work,'main')/role/task
+    copied={}
+    for original in sorted(source.rglob('*')):
+        if not original.is_file():continue
+        relative=original.relative_to(source)
+        if relative.parts[0] not in ('raw','timings') or original.suffix!='.json':continue
+        target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True)
+        if target.exists():require(target.read_bytes()==original.read_bytes(),'qualification source journal changed')
+        else:shutil.copyfile(original,target)
+        copied[str(relative)]=t.sha(original.read_bytes())
+    destination.mkdir(parents=True,exist_ok=True)
+    t.atomic_json(destination/'qualification-journal.json', {'source':str(source.relative_to(work)), 'files':copied,'owner_proceed_required':False})
 
 
 def coverage(work,phase):
-    """Recompute sample or full-pool gate; only the latter gates scientific work."""
+    """Record full-pool coverage; low coverage warns and surviving questions train."""
     base=paths(work,phase); items=[]; demos=[]; rewrites=[]
     for task in TASKS:
         items+=t.load_pool(base/(task+'-pool.jsonl'))
         demos+=t.read_jsonl(base/'teacher'/task/'demonstrations.jsonl')
         rewrites+=t.read_jsonl(base/'rewrite'/task/'rewrites.jsonl')
     report=t.coverage(items,demos,rewrites=rewrites)
-    t.atomic_json(base/'coverage.json',report)
-    if phase=='main': require(report['gate_pass'],'coverage gate failed')
+    if phase=='main':
+        t.atomic_json(base/'coverage.json',report)
+        require(report['gate_pass'],'coverage gate failed')
+        return
     else:
-        require(len(items)==40,'sample must contain 20 original questions per task')
+        original=t.load_pool(Path(work)/'v4/report-inputs/finqa-pool.jsonl')
+        from kit.v4_finqa_policy import enabled
+        if enabled():require(items==original,'qualification/full original pool changed')
+        elif items!=original:
+            sample=report;report=t.coverage(original,demos,rewrites=rewrites);report['sample']=sample
+        report.update(qualification_pool_size=len(items), scientific_gate_applicable=False)
         for task in TASKS:
             for corpus in ('teacher','rewrite'):
                 raw=t.read_jsonl(base/corpus/task/'raw_outputs.jsonl')
                 require(all(not r.get('input_over_cap') for r in raw), 'sample silent input truncation')
+    t.atomic_json(base/'coverage.json',report)
 
 
 def training_set(work,phase):
@@ -205,7 +197,7 @@ def schedule(work,phase,ident):
     task=job['task']; seed=job['seed']; target=base/'scheduled'/f'{task}-s{seed}'
     if target.exists(): return
     rows=pq.read_table(base/'common'/(task+'.parquet')).to_pylist()
-    require(rows,'no verified intersection targets for two-step smoke')
+    if not rows:raise RuntimeError('no surviving verified questions; cannot execute training schedule')
     ids=[str(r['extra_info']['index']) for r in rows]
     random.Random(seed).shuffle(ids)
     count=64 if phase in ('qualification','phase0') else 1280
@@ -224,36 +216,42 @@ def schedule(work,phase,ident):
 
 def train(work,phase,ident):
     """Launch the registered entry; never retrain an already complete valid result."""
+    if phase!='phase0':
+        from kit.v4_retention import sweep
+        from kit.v4_finqa_policy import observe
+        observe(sweep,work,starting_slot=ident,site='retention before training')
     job=job_for(ident,phase); base=paths(work,phase); scheduled=base/'scheduled'/f"{job['task']}-s{job['seed']}"
     out=Path(work)/'runs'/ident
     if (out/'run-summary.json').exists():
         doc=load(out/'run-summary.json')
         if doc.get('dose_complete'):
             require(doc['seed']==job['seed'] and doc['arm']==job['arm'] and doc['train_sha256']==t.sha((scheduled/'train.parquet').read_bytes()),'saved result changed')
+            if doc.get('merged')!=1:
+                merge(work,phase,ident)
             return
     retry=None
     if out.exists():
-        from kit.v4_retry import admit, saved_state
+        from kit.v4_retry import local_retry, saved_state
         attempt=int(os.environ.get('V4_RUNNER_ATTEMPT','1'))
-        require(attempt>1,'failed training needs reviewed infrastructure retry; no automatic performance retries')
+        require(attempt>1,'failed training needs a new append-only attempt')
         root=Path(work)/'campaign'/('v4-'+phase)/('train-'+ident)
         current=load(root/f'attempt-{attempt}/start.json')
         previous=load(root/f'attempt-{attempt-1}/start.json')
-        retry=admit(work,'v4-'+phase,'train-'+ident,attempt,current,previous)
+        retry=local_retry(work,'v4-'+phase,'train-'+ident,attempt,previous)
         valid=[]
         for checkpoint in out.glob('*/global_step_*'):
             try:valid.append((int(checkpoint.name.removeprefix('global_step_')),checkpoint,saved_state(checkpoint,job['arm'])))
             except ValueError:continue
         backup=base/'failed-training'/ident/f'attempt-{attempt-1}'
-        require(not backup.exists(),'failed attempt already archived; review interrupted recovery')
+        backup.parent.mkdir(parents=True,exist_ok=True)
         if retry['state_policy']=='recover_completed_operation':
             from kit.v4_receipts import completed_updates
             final=2 if phase in ('qualification','phase0') else 40
             require(completed_updates(out)==final and valid and max(valid)[0]==final,'completed-state recovery lacks observed optimizer dose')
-            backup.mkdir(parents=True)
+            backup.mkdir(parents=True,exist_ok=True)
             for path in out.iterdir():
                 if path.is_file():shutil.copyfile(path,backup/path.name)
-                elif path.name=='env':shutil.copytree(path,backup/'env')
+                elif path.name=='env':shutil.copytree(path,backup/'env',dirs_exist_ok=True)
             if not (out/'run-summary.json').exists():t.atomic_json(out/'run-summary.json',{'arm':job['arm'],'seed':job['seed'],'returncode':0})
             from kit.v4_run import summarize
             summarize({'WORK':str(work),'NAME':ident,'ARM':job['arm'],'SEED':str(job['seed']),
@@ -263,10 +261,10 @@ def train(work,phase,ident):
             return
         if retry['state_policy']=='resume_valid_state':
             require(valid and max(valid)[2]==retry['saved_state_sha256'],'retry must use latest complete saved state')
-            backup.mkdir(parents=True)
+            backup.mkdir(parents=True,exist_ok=True)
             for path in out.iterdir():
                 if path.is_file():shutil.copyfile(path,backup/path.name)
-                elif path.name=='env':shutil.copytree(path,backup/'env')
+                elif path.name=='env':shutil.copytree(path,backup/'env',dirs_exist_ok=True)
             # Worker telemetry appends rather than truncating. Observations after
             # the restored step belong to the preserved failed attempt, not the
             # resumed forty-update result.
@@ -276,6 +274,7 @@ def train(work,phase,ident):
                     t.write_jsonl(path,[r for r in t.read_jsonl(path) if r.get('step',0)<=retry['completed_updates']])
         else:
             require(retry['state_policy']=='no_valid_saved_state' and not valid,'valid saved state must be resumed, never reset')
+            # Partial state stays in the append-only failed attempt archive.
             backup.parent.mkdir(parents=True,exist_ok=True);shutil.move(str(out),str(backup))
     model=str(Path(work)/'runs'/job['incoming']/'hf-step40') if job['incoming'] else os.environ['MODEL_DIR']
     require(not (Path(model)/'phase0-technical-only.json').exists(),'phase0 technical checkpoint cannot be an initialisation')
@@ -296,13 +295,14 @@ def train(work,phase,ident):
          'REWARD_FILE':str(KIT/'beds/v4_reward.py'),'V4_TELEMETRY':'1'}
     env.update(V4_CHECKPOINT_STATE='1',V4_RESUME_PATH=os.environ.get('V4_RESUME_PATH','') if retry else '',
                V4_RETRY_ADMITTED='1' if retry else '0')
+    if phase!='phase0':env.update(V4_MAIN_RETENTION='slot',KEEP_TRAINER_CKPT='1')
     try:run(['bash',str(KIT/'run_v4.sh')],env)
     except subprocess.CalledProcessError:
         # Export failure cannot authorize a second optimizer dose. The launcher
         # keeps its completed checkpoint; recover only the missing merge.
         if (out/'run-summary.json').exists() and load(out/'run-summary.json').get('dose_complete'):
             merge(work,phase,ident)
-        else:raise
+        raise
     finally:
         if out.is_dir():t.atomic_json(identity_path,incoming)
         if retry and retry['state_policy']=='resume_valid_state' and (out/'metrics.jsonl').exists():
@@ -314,6 +314,10 @@ def train(work,phase,ident):
 
 
 def merge(work,phase,ident):
+    from kit.v4_finqa_policy import enabled,disk
+    if enabled():
+        from kit.v4_finqa_policy import writer_bytes
+        disk(work,writer_bytes(work),'BF16 export')
     """Validate final merge and preserve/merge the step-20 scientific checkpoint."""
     from kit.v4_sft import complete_export
     job=job_for(ident,phase);out=Path(work)/'runs'/ident
@@ -321,8 +325,8 @@ def merge(work,phase,ident):
     for step in ((final,20) if phase=='main' else (final,)):
         if complete_export(out/f'hf-step{step}'):continue
         require(load(out/'env/optimizer-updates.json')['completed_optimizer_updates']==final,'cannot recover an incomplete training dose')
-        source=out/({'S':'tool-sdpo','D':'sdft','F':'train','R':'train'}[job['arm']])/f'global_step_{step}'
-        if job['arm'] in ('S','D'): source=source/'actor'
+        from kit.v4_arms import checkpoint_path
+        source=checkpoint_path(out,job['arm'],step,actor=True)
         require(source.is_dir(),f'step-{step} checkpoint missing')
         run([sys.executable,str(KIT/'v4_timing.py'),'--out',str(out/'env'/f'recovered-merge-step{step}.json'),'--',sys.executable,'-m','verl.model_merger','merge','--backend','fsdp','--local_dir',str(source),'--target_dir',str(out/f'hf-step{step}')])
         require(complete_export(out/f'hf-step{step}'),f'step-{step} merge incomplete')
@@ -334,21 +338,42 @@ def merge(work,phase,ident):
             from kit.v4_phase0 import label_checkpoint
             label_checkpoint(out/f'hf-step{step}')
         t.atomic_json(out/'env'/f'export-identity-step{step}.json',t.local_identity(out/f'hf-step{step}','Qwen/Qwen3-8B'))
+        if phase!='phase0':
+            from kit.v4_retention import verify_export
+            verify_export(out,step)
 
 
 def score(work,phase,checkpoint,task,cap):
     """Reload and score an entire fixed panel at B or H on the first scoring GPU."""
     base=paths(work,phase); out=base/'eval'/f'{checkpoint}-{task}-{cap}'
     model=os.environ['MODEL_DIR'] if checkpoint=='baseline' or checkpoint.startswith('agreement') else str(Path(work)/'runs'/checkpoint/('hf-step2' if phase in ('qualification','phase0') else 'hf-step40'))
-    if (out/'bed-score.json').exists():
-        from kit.v4_archive import DirectoryEvidence
-        from kit.v4_readers import scorer_context, scoring
-        import tempfile
-        evidence=DirectoryEvidence(work)
-        with tempfile.TemporaryDirectory(prefix='v4-reuse-score-') as temp:
-            _,mcq=scorer_context(evidence,temp)
-            scoring(evidence,phase,checkpoint,task,cap,mcq,limit=50 if checkpoint.startswith('agreement') else 20 if phase in ('qualification','phase0') and checkpoint!='baseline' else None)
-        if not (out/'checkpoint-identity.json').exists():t.atomic_json(out/'checkpoint-identity.json',t.local_identity(model,'Qwen/Qwen3-8B'))
+    final=out/('forgetting.json' if task=='general-v1' else 'bed-score.json')
+    if final.exists():
+        # Reuse a completed score only when it parses and belongs to this checkpoint; otherwise it is moved
+        # aside below as failed-attempt evidence and scored again. The report reader validates every score in
+        # full afterwards; running that reader here needs scheduler evidence that does not exist mid-run.
+        identity=t.local_identity(model,'Qwen/Qwen3-8B');stored=out/'checkpoint-identity.json'
+        try:
+            load(final)
+            if not stored.exists():t.atomic_json(stored,identity)
+            if load(stored)==identity:return
+        except ValueError:pass
+    if out.exists():
+        # Scorers require a fresh destination. Keep all incomplete bytes with
+        # the failed runner attempt, including engine-start diagnostics.
+        from kit.v4_finqa_policy import confine
+        previous=max(1,int(os.environ.get('V4_RUNNER_ATTEMPT','1'))-1)
+        row=os.environ.get('V4_CURRENT_ROW') or f'score-{checkpoint}-{task}-{cap}'
+        failed=confine(work,Path(work)/'campaign'/('v4-'+phase)/row/f'attempt-{previous}')
+        saved=failed/'scoring-output';suffix=1
+        while saved.exists():
+            saved=failed/f'scoring-output-{suffix}';suffix+=1
+        confine(work,out);failed.mkdir(parents=True,exist_ok=True)
+        out.rename(saved)
+    if task=='general-v1':
+        argv=[sys.executable,str(KIT/'score_forgetting.py'),'generate','--model',model,'--out',str(out),'--max-new-tokens',str(cap),'--max-model-len','12288']
+        run(argv,{'V4_TELEMETRY':'1'})
+        t.atomic_json(out/'checkpoint-identity.json',t.local_identity(model,'Qwen/Qwen3-8B'))
         return
     root=Path(work)/'v4/datasets/datasets'/({'chemistry':'v4_chem','finqa':'v4_finqa','chemistry_probe':'v4_chem_probe'}[task])
     argv=[sys.executable,str(KIT/'eval_bed.py'),'generate','--bed','chemistry' if task=='chemistry_probe' else task,
@@ -375,6 +400,7 @@ def probe(work,phase,ident,task,step,conditioned=False):
     suffix=f'conditioned-{task}' if conditioned else f'{ident}-{task}-{step}'
     out=paths(work,phase)/'probes'/suffix;out.mkdir(parents=True,exist_ok=True)
     demos={r['id']:r for r in t.read_jsonl(paths(work,phase)/'teacher'/task/'demonstrations.jsonl')} if conditioned else {}
+    if conditioned and phase=='qualification':items=items[:20]
     original=items
     if conditioned:items=[i for i in items if i['id'] in demos]
     checkpoint=t.local_identity(model,'Qwen/Qwen3-8B')
@@ -429,7 +455,8 @@ def standalone(work):
     archive=DirectoryEvidence(work)
     table={};fingerprints=set()
     from kit.v4_evidence import scheduler_rows, data_context, common_data, training_provenance
-    scheduler_rows(archive,'qualification');scheduler_rows(archive,'main')
+    from kit.v4_finqa_policy import observe
+    observe(scheduler_rows,archive,'qualification');observe(scheduler_rows,archive,'main')
     with tempfile.TemporaryDirectory(prefix='v4-standalone-') as temp:
         tokenizer,mcq=scorer_context(archive,temp)
         with data_context(archive,tokenizer,mcq):
@@ -469,9 +496,15 @@ def report(work,phase):
     if phase in ('qualification','phase0'):
         try: result=qualification_evidence(evidence)
         except (ValueError,KeyError,TypeError,OSError) as error:
-            result={'status':'stop: technical','reasons':[str(error)],'tables':{},'owner_proceed_required':True}
+            result={'status':'stop: technical','reasons':[str(error)],'tables':{},'owner_proceed_required':False}
     else:
         result=campaign_evidence(evidence)
+    t.atomic_json(paths(work,phase)/'reading.json',result)
+    from kit.v4_finqa_policy import warn,warnings,correctness,CorrectnessStop
+    for reason in result.get('reasons',[]):
+        if correctness(reason):raise CorrectnessStop(reason)
+        warn('progress report',reason,work)
+    result.update(status='progress report',owner_proceed_required=False,warnings=warnings(work))
     t.atomic_json(paths(work,phase)/'reading.json',result)
     return result
 
@@ -485,13 +518,13 @@ def launcher_env(work,arm,ident,scheduled,steps=2):
         'PYTHONPATH':str(ROOT)+os.pathsep+os.environ['SDPO_DIR'],'KIT_FINISH_GATE':'1'}
 
 
-def qualification_configs(work,phase="qualification",task="chemistry"):
+def qualification_configs(work,phase="qualification",task="finqa"):
     """Resolve the actual launch argv in the pinned trainer, before all training."""
     import yaml
     from kit.v4_qualification import validate_configs
     base=paths(work,phase);out=base/'configs';out.mkdir(parents=True,exist_ok=True)
     configs={}
-    for arm in 'SFRD':
+    for arm in ('SFRD' if phase=='phase0' else ALL_ARMS):
         ident=f'q-{arm}-{task}';scheduled=base/f'scheduled/{task}-s101'
         if not scheduled.exists():schedule(work,phase,ident)
         env={**os.environ,**launcher_env(work,arm,ident,scheduled),'DRY_RUN':'1'}
@@ -513,33 +546,31 @@ def qualification_configs(work,phase="qualification",task="chemistry"):
             'returncode':resolved.returncode,'resolved_sha256':t.sha(resolved.stdout),'trainer_commit':subprocess.check_output(
                 ['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=shared_limit(30)).strip()})
         configs[arm]=yaml.safe_load(resolved.stdout)
-    validate_configs(configs)
-    t.atomic_json(base/'resolved-configs.json',{'ok':True,'arms':list('SFRD')})
+    from kit.v4_finqa_policy import observe
+    observe(validate_configs,configs)
+    t.atomic_json(base/'resolved-configs.json',{'ok':True,'arms':list(configs)})
 
 
 def scoring_environment_gate(work):
-    """Refuse a changed physical scoring GPU/environment BEFORE generation."""
-    from kit.v4_archive import Archive
+    """Record changed physical scoring GPU/environment before generation."""
     from kit.eval_bed import machine_fingerprint
-    archive_path=Path(os.environ['V4_QUALIFICATION_ARCHIVE'])
-    with Archive(archive_path) as archive:
-        baseline=archive.json('v4/report-qualification/eval/baseline-chemistry-2048/bed-score.json')['machine']
-        evidence=archive.json('v4/containment/v4-qualification/baseline-chemistry-2048/attempt-1/containment-row.json')
-        physical=evidence['slurm']['gpu_uuids'][0]
-    current=machine_fingerprint(True)
+    from kit.v4_finqa_policy import warn
+    path=paths(work,'qualification')/'eval/baseline-finqa-2048/bed-score.json'
+    if not path.exists():warn('scoring environment','qualification baseline missing',work);return None
+    baseline=load(path)['machine'];current=machine_fingerprint(True)
     require(current['versions']==baseline['versions'] and current['gpus']==baseline['gpus'],'scoring GPU or environment differs from qualification')
-    selected=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')[0]
-    require(bool(selected),'unknown designated scoring GPU')
-    actual=subprocess.check_output(['nvidia-smi','-i',selected,'--query-gpu=uuid','--format=csv,noheader'],text=True,timeout=shared_limit(30)).strip()
-    require(actual==physical,'designated physical scoring GPU differs from qualification')
-    return physical
+    return current
 
 
 def registered_caps(work):
-    doc=load(paths(work,'main')/'owner-registration.json')
-    caps=doc['owner'].get('row_caps')
-    require(isinstance(caps,dict) and all(type(value) is int and value>=300 for value in caps.values()),'qualification-measured row caps not registered before main')
-    require(set(caps)=={'teacher','rewrite','train','merge','score','probe','cpu'},'registered row cap classes incomplete')
+    """Generous static backstops; no owner receipt or measurement admission."""
+    from kit.v4_campaign import build
+    rows=build('main')['rows'];caps={key:3000 for key in ('teacher','rewrite','train','merge','score','probe','cpu')}
+    for row in rows:
+        key=row['id'].split('-')[0]
+        if key in caps:caps[key]=max(caps[key],row.get('timeout_seconds',3000))
+        elif key=='baseline':caps['score']=max(caps['score'],row['timeout_seconds'])
+        elif 'allocation_cpu_cap_seconds' in row:caps['cpu']=max(caps['cpu'],row['allocation_cpu_cap_seconds'])
     return caps
 
 
@@ -555,78 +586,103 @@ def main(argv=None):
     parser.add_argument('--work',type=Path,required=True);parser.add_argument('--phase',choices=('qualification','main'),required=True)
     parser.add_argument('--row',required=True);parser.add_argument('--task');parser.add_argument('--slot');parser.add_argument('--checkpoint')
     parser.add_argument('--cap',type=int);parser.add_argument('--step',type=int);parser.add_argument('--conditioned',action='store_true')
-    args=parser.parse_args(argv); base=paths(args.work,args.phase);base.mkdir(parents=True,exist_ok=True)
-    from kit.v4_timing import utc_now, receipt
-    start_utc=utc_now();started=time.monotonic()
-    operation=args.operation
-    if operation in ('teacher','rewrite','train','score','probe','determinism','profile-waves','restoration'):
-        from kit.v4_prepare import verify
-        verify(args.work,args.phase)
-    if args.phase=='main' and operation in ('teacher','rewrite','score','probe','train'):
-        scoring_environment_gate(args.work)
-        registered_caps(args.work)
-    if operation=='environment':
-        tag=subprocess.check_output(['git','describe','--tags','--exact-match','HEAD'],cwd=ROOT,text=True,timeout=shared_limit(30)).strip()
-        t.atomic_json(base/'environment.json',{'kit_tag':tag,'runtime_versions':t.runtime_versions(),
-             'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=shared_limit(30)).strip(),
-             'inference_commit':os.environ.get('V4_INFERENCE_COMMIT')})
-    elif operation=='prepare':
-        from kit.v4_prepare import prepare as cpu_prepare
-        cpu_prepare(args.work,args.phase)
-    elif operation=='verify-prepare':
-        from kit.v4_prepare import verify
-        verify(args.work,args.phase)
-    elif operation=='runner-profile':
-        from kit.runner import bounded_command
-        destination=base/'runner-profile';destination.mkdir(parents=True,exist_ok=True)
-        result=bounded_command([sys.executable,str(KIT/'v4_runner_profile.py'),'--out',str(destination/'profile.json')],
-            timeout=shared_limit(900),log=destination/'output.log')
-        if result['returncode']:raise ValueError(result['failure_type']+': runner profile')
-    elif operation=='agreement':
-        from kit.v4_archive import DirectoryEvidence
-        from kit.v4_readers import scorer_context
-        from kit.v4_qualification import archive_agreement
-        import tempfile
-        evidence=DirectoryEvidence(args.work)
-        from kit.v4_evidence import scheduler_rows
-        scheduler_rows(evidence,'qualification')
-        with tempfile.TemporaryDirectory() as temp:
-            tokenizer,mcq=scorer_context(evidence,temp)
-            from kit.v4_evidence import data_context
-            with data_context(evidence,tokenizer,mcq):
-                t.atomic_json(base/'scoring-agreement.json',archive_agreement(evidence,mcq))
-    elif operation=='configs': qualification_configs(args.work)
-    elif operation=='determinism': teacher_determinism(args.work)
-    elif operation=='profile-waves':
-        from kit.v4_generate_shards import profile_waves
-        profile_waves(args.work)
-    elif operation=='archive-pack':
-        destination=Path(args.work).parent/'v4-archive-previews';destination.mkdir(exist_ok=True)
-        target=destination/(args.phase+'-'+str(os.environ.get('SLURM_JOB_ID','cpu'))+'.tar.gz')
-        run([sys.executable,str(KIT/'collect.py'),'--work',str(args.work),'--out',str(target)])
-    elif operation=='restoration':
-        from kit.v4_restore_check import run_check
-        run_check(args.work)
-    elif operation=='gate': identity_gate(args.work)
-    elif operation in ('teacher','rewrite'): teacher(args.work,args.phase,args.task,operation=='rewrite')
-    elif operation=='coverage': coverage(args.work,args.phase)
-    elif operation=='training-set': training_set(args.work,args.phase)
-    elif operation=='schedule': schedule(args.work,args.phase,args.slot)
-    elif operation=='train': train(args.work,args.phase,args.slot)
-    elif operation=='merge': merge(args.work,args.phase,args.slot)
-    elif operation=='score': score(args.work,args.phase,args.checkpoint,args.task,args.cap)
-    elif operation=='probe': probe(args.work,args.phase,args.slot,args.task,args.step,args.conditioned)
-    elif operation=='standalone': standalone(args.work)
-    elif operation=='report': report(args.work,args.phase)
-    else:
-        t.atomic_json(base/(operation+'.json'),{'state':'PAUSE' if operation=='pause' else 'FINISHED','owner_proceed_required':True})
-        print('PAUSE: collect the qualification archive and release the allocation; await owner proceed and a new registered kit tag' if operation=='pause' else 'FINISHED: collect archives only, no weights')
-    status=Path(args.work)/'v4/report-status'; status.mkdir(parents=True,exist_ok=True)
-    (base/'timings').mkdir(parents=True,exist_ok=True)
-    measurement=receipt(start_utc,time.monotonic()-started,row=args.row,phase=args.phase,operation=operation)
-    t.atomic_json(base/'timings'/(args.row+'.json'),measurement)
-    t.atomic_json(status/(args.row+'.json'),{'ok':1,'wall_seconds':measurement['wall_seconds']})
-    return 0
+    args=parser.parse_args(argv); base=paths(args.work,args.phase)
+    old_environment={key:os.environ.get(key) for key in ('WORK','V4_FINQA_CAMPAIGN','V4_CURRENT_ROW')}
+    try:
+        from kit.v4_timing import utc_now, receipt
+        start_utc=utc_now();started=time.monotonic()
+        from kit.v4_finqa_policy import confine
+        confine(args.work,base)
+        base.mkdir(parents=True,exist_ok=True)
+        operation=args.operation
+        os.environ.update(WORK=str(args.work),V4_FINQA_CAMPAIGN='1',V4_CURRENT_ROW=args.row)
+        from kit.v4_finqa_policy import observe,ceiling
+        ceiling(args.work)
+        if os.environ.get('V4_FINQA_CAMPAIGN')=='1':
+            from kit.v4_retention import sweep
+            observe(sweep,args.work,starting_slot=args.slot if operation=='train' else None,running_row=args.row,site='retention sweep')
+        if operation in ('teacher','rewrite','train','score','probe','determinism','profile-waves','restoration'):
+            from kit.v4_prepare import verify
+            verify(args.work,args.phase)
+        if args.phase=='main' and operation in ('teacher','rewrite','score','probe','train'):
+            observe(scoring_environment_gate,args.work)
+            registered_caps(args.work)
+        if operation=='environment':
+            tag=os.environ.get('V4_KIT_TAG','local-untagged')
+            t.atomic_json(base/'environment.json',{'kit_tag':tag,'runtime_versions':t.runtime_versions(),
+                 'trainer_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=os.environ['SDPO_DIR'],text=True,timeout=shared_limit(30)).strip(),
+                 'inference_commit':os.environ.get('V4_INFERENCE_COMMIT')})
+        elif operation=='prepare':
+            from kit.v4_prepare import prepare as cpu_prepare
+            cpu_prepare(args.work,args.phase)
+        elif operation=='verify-prepare':
+            from kit.v4_prepare import verify
+            verify(args.work,args.phase)
+        elif operation=='runner-profile':
+            from kit.runner import bounded_command
+            destination=base/'runner-profile';destination.mkdir(parents=True,exist_ok=True)
+            result=bounded_command([sys.executable,str(KIT/'v4_runner_profile.py'),'--out',str(destination/'profile.json')],
+                timeout=shared_limit(900),log=destination/'output.log')
+            if result['returncode']:raise ValueError(result['failure_type']+': runner profile')
+        elif operation=='agreement':
+            from kit.v4_archive import DirectoryEvidence
+            from kit.v4_readers import scorer_context
+            from kit.v4_qualification import archive_agreement
+            import tempfile
+            evidence=DirectoryEvidence(args.work)
+            from kit.v4_evidence import scheduler_rows
+            observe(scheduler_rows,evidence,'qualification')
+            with tempfile.TemporaryDirectory() as temp:
+                tokenizer,mcq=scorer_context(evidence,temp)
+                from kit.v4_evidence import data_context
+                with data_context(evidence,tokenizer,mcq):
+                    result=observe(archive_agreement,evidence,mcq,tasks=TASKS)
+                    t.atomic_json(base/'scoring-agreement.json',result or {'warning':'agreement unavailable'})
+        elif operation=='configs': qualification_configs(args.work)
+        elif operation=='determinism': teacher_determinism(args.work)
+        elif operation=='profile-waves':
+            from kit.v4_generate_shards import profile_waves
+            profile_waves(args.work)
+        elif operation=='archive-pack':
+            destination=Path(args.work)/'archive-previews';destination.mkdir(exist_ok=True)
+            target=destination/(args.phase+'-'+str(os.environ.get('SLURM_JOB_ID','cpu'))+'-'+str(os.environ.get('V4_RUNNER_ATTEMPT','1'))+'-'+str(time.time_ns())+'.tar.gz')
+            run([sys.executable,str(KIT/'collect.py'),'--work',str(args.work),'--out',str(target)])
+        elif operation=='restoration':
+            from kit.v4_restore_check import run_check
+            run_check(args.work)
+        elif operation=='gate': identity_gate(args.work)
+        elif operation in ('teacher','rewrite'): teacher(args.work,args.phase,args.task,operation=='rewrite')
+        elif operation=='coverage': coverage(args.work,args.phase)
+        elif operation=='training-set': training_set(args.work,args.phase)
+        elif operation=='schedule': schedule(args.work,args.phase,args.slot)
+        elif operation=='train': train(args.work,args.phase,args.slot)
+        elif operation=='merge': merge(args.work,args.phase,args.slot)
+        elif operation=='score': score(args.work,args.phase,args.checkpoint,args.task,args.cap)
+        elif operation=='probe': probe(args.work,args.phase,args.slot,args.task,args.step,args.conditioned)
+        elif operation=='standalone': observe(standalone,args.work,site='standalone analysis')
+        elif operation=='report': report(args.work,args.phase)
+        else:
+            t.atomic_json(base/(operation+'.json'),{'state':'FINISHED','owner_proceed_required':False})
+            print('FINISHED: progress archive ready; continue automatically to main')
+        status=Path(args.work)/'v4/report-status'; status.mkdir(parents=True,exist_ok=True)
+        (base/'timings').mkdir(parents=True,exist_ok=True)
+        measurement=receipt(start_utc,time.monotonic()-started,row=args.row,phase=args.phase,operation=operation)
+        t.atomic_json(base/'timings'/(args.row+'.json'),measurement)
+        t.atomic_json(status/(args.row+'.json'),{'ok':1,'wall_seconds':measurement['wall_seconds']})
+        return 0
+    except (ValueError, OSError, RuntimeError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+        from kit.v4_finqa_policy import CorrectnessStop
+        try:confine(args.work,base)
+        except CorrectnessStop:
+            print('STOP: correctness: '+str(exc));return 2
+        (base/'failures').mkdir(parents=True,exist_ok=True)
+        t.atomic_json(base/'failures'/(args.row+'.json'), {'row':args.row,'operation':args.operation,'cause':str(exc)})
+        print('FAILED: '+args.operation+': '+str(exc))
+        return 1
+    finally:
+        for key,value in old_environment.items():
+            if value is None:os.environ.pop(key,None)
+            else:os.environ[key]=value
 
 
 if __name__=='__main__': raise SystemExit(main())

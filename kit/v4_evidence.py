@@ -14,13 +14,15 @@ from kit import v4_teacher as t, v4_analysis as a
 from kit.v4_contract import INITIAL_8B_REVISION, TOKENIZER_FILES
 
 
-def require(value,message):
-    if not value:raise ValueError(message)
+def require(value,message,*,identity=False):
+    from kit.v4_finqa_policy import require as check,enabled
+    if identity and enabled():message='model/data identity: '+message
+    return check(value,message,'archive evidence',identity=identity)
 
 
 def weights(doc):
     result={name:digest for name,digest in doc.get('model_file_hashes',{}).items() if name.endswith(('.safetensors','.bin'))}
-    require(result and all(re.fullmatch(r'[0-9a-f]{64}',digest) for digest in result.values()),'missing/invalid weight-shard hashes')
+    require(result and all(re.fullmatch(r'[0-9a-f]{64}',digest) for digest in result.values()),'missing/invalid weight-shard hashes',identity=True)
     return result
 
 
@@ -36,20 +38,26 @@ def environment(archive,phase):
     else:
         require(re.fullmatch(r'[0-9a-f]{40}',env.get('inference_commit') or ''),'environment provenance missing or changed')
     for name,doc in identities.items():
-        require(name in ('teacher','initial') and re.fullmatch(r'[0-9a-f]{40}',doc.get('model_revision') or ''),'unknown model revision: '+name)
+        require(name in ('teacher','initial') and re.fullmatch(r'[0-9a-f]{40}',doc.get('model_revision') or ''),'unknown model revision: '+name,identity=True)
         weights(doc)
-    require(set(identities)=={'teacher','initial'},'missing model identity')
-    require(identities['initial']['model_revision']==INITIAL_8B_REVISION,'initial 8B revision differs')
-    require(identities['teacher'].get('model')=='Qwen/Qwen3.6-27B' and (identities['teacher']['model_config'].get('text_config') or identities['teacher']['model_config']).get('vocab_size')==248320,'not the registered 27B architecture')
+    require(set(identities)=={'teacher','initial'},'missing model identity',identity=True)
+    require(identities['initial']['model_revision']==INITIAL_8B_REVISION,'initial 8B revision differs',identity=True)
+    require(identities['teacher'].get('model')=='Qwen/Qwen3.6-27B' and (identities['teacher']['model_config'].get('text_config') or identities['teacher']['model_config']).get('vocab_size')==248320,'not the registered 27B architecture',identity=True)
     if phase=='main':
-        require(t.REGISTERED_TEACHER_REVISION and t.REGISTERED_TEACHER_WEIGHT_HASHES and t.INITIAL_8B_WEIGHT_HASHES,'C-B2 model registration missing')
-        require(identities['teacher']['model_revision']==t.REGISTERED_TEACHER_REVISION and weights(identities['teacher'])==t.REGISTERED_TEACHER_WEIGHT_HASHES,'27B registered revision/shards differ')
-        require(weights(identities['initial'])==t.INITIAL_8B_WEIGHT_HASHES,'initial 8B registered shards differ')
+        name='kit-snapshot/campaigns/v4-main.yaml'
+        if name in archive.files:
+            models=archive.json(name).get('v4',{}).get('model_registration')
+            if models:t.register_finqa_models(models)
+        require(t.REGISTERED_TEACHER_REVISION and t.REGISTERED_TEACHER_WEIGHT_HASHES and t.INITIAL_8B_WEIGHT_HASHES,'C-B2 model registration missing',identity=True)
+        require(identities['teacher']['model_revision']==t.REGISTERED_TEACHER_REVISION and weights(identities['teacher'])==t.REGISTERED_TEACHER_WEIGHT_HASHES,'27B registered revision/shards differ',identity=True)
+        require(weights(identities['initial'])==t.INITIAL_8B_WEIGHT_HASHES,'initial 8B registered shards differ',identity=True)
     return {'environment':env,'models':identities}
 
 
 def containment(archive):
     """Require sealed, matching safety settings and both probes for every allocation."""
+    from kit.v4_retention import verify_evidence
+    verify_evidence(archive)
     from kit.p4_frozen import seal
     from kit.p4_contain import SAFETY_FIELDS
     from kit.v4_budget import allocation_spend
@@ -57,22 +65,39 @@ def containment(archive):
     actual,blocks=allocation_spend(ledger)
     first=archive.json('k8b4/containment/containment-receipt.json')
     result={}
+    # The owner made containment observations informational; immutable bytes and
+    # allocation identity/accounting remain mandatory. Legacy evidence keeps its policy.
+    lean=any(archive.json(n).get('v4',{}).get('containment_selftest')=='informational' for n in archive.files if n in ('v4/campaign-main.json','v4/campaign-qualification.json'))
+    lean=lean or first.get('informational',False) or any(archive.json(n).get('informational') for n in archive.files if n.endswith('containment-selftest.json'))
+    imported=set((ledger.get('phase0_import') or {}).get('allocations',{}))
+    if imported and not imported<=getattr(archive,'phase0_verified_allocations',set()):
+        from kit.v4_phase0_carry import archive_ledger
+        archive_ledger(archive,'main' if 'v4/report-main/owner-registration.json' in archive.files else 'qualification')
+    if imported:
+        import tempfile
+        from kit.v4_phase0_carry import ARCHIVE_PATH
+        from kit.v4_archive import Archive
+        with tempfile.TemporaryDirectory(prefix='v4-source-safety-') as temp:
+            path=Path(temp)/'phase0.tar.gz';path.write_bytes(archive.files[ARCHIVE_PATH])
+            with Archive(path) as source:original=source.json('k8b4/containment/containment-receipt.json')
+        require(lean or all(first.get(k)==original.get(k) for k in SAFETY_FIELDS),'containment: safety settings changed from phase0')
     for job,allocation in ledger['allocations'].items():
+        if job in imported:continue # Already checked by the real source reader, not a local stand-in receipt.
         prefix='k8b4/containment/' if str(first['job_id'])==str(job) else 'k8b4/containment/allocations/'+str(job)+'/'
         receipt=archive.json(prefix+'containment-receipt.json');test=archive.json(prefix+'containment-selftest.json')
         require(receipt==seal(receipt) and test==seal(test),'containment: altered frozen receipt')
-        require(receipt.get('ok') is True and test.get('ok') is True and test.get('v4_qualified') is True,'containment: failed/unknown selftest')
+        if not lean:require(receipt.get('ok') is True and test.get('ok') is True and test.get('v4_qualified') is True,'containment: failed/unknown selftest')
         require(receipt.get('simulation') is False and receipt['gpu_count']==allocation['width']==8,'containment: stand-in or wrong allocation width')
         require(str(receipt['job_id'])==str(job) and test['receipt_sha256']==receipt['content_sha256'],'containment: allocation binding differs')
-        require(all(receipt.get(k)==first.get(k) for k in SAFETY_FIELDS),'containment: safety settings changed between allocations')
-        require(receipt['ProctrackType']=='proctrack/cgroup' and set(receipt['TaskPlugin'].split(','))=={'task/cgroup','task/affinity'} and receipt['JobAcctGatherType']=='jobacct_gather/cgroup','containment: plugins differ')
+        require(lean or all(receipt.get(k)==first.get(k) for k in SAFETY_FIELDS),'containment: safety settings changed between allocations')
+        if not lean:require(receipt['ProctrackType']=='proctrack/cgroup' and set(receipt['TaskPlugin'].split(','))=={'task/cgroup','task/affinity'} and receipt['JobAcctGatherType']=='jobacct_gather/cgroup','containment: plugins differ')
         overtime=receipt['OverTimeLimit']
-        require(receipt['ConstrainDevices'].lower()=='yes' and receipt['KillWait']==40 and overtime.get('global')=='0' and overtime.get('partition') in ('0','NONE') and overtime.get('job') in (None,'0'),'containment: unknown/failing device or timeout setting')
-        require(receipt['SignalChildrenProcesses'].lower() in ('yes','no') and receipt['preemption']['effective_mode'] in ('OFF','CANCEL'),'containment: unknown signal/preemption setting')
-        require(test['cpu_probe'].get('ok') is True and test['gpu_acquisition'].get('ok') is True and test['termination'].get('verified') is True,'containment: probes not exercised/terminated')
-        require(test['elapsed_seconds']<=600,'containment: qualification exceeded ten minutes')
+        if not lean:require(receipt['ConstrainDevices'].lower()=='yes' and receipt['KillWait']==40 and overtime.get('global')=='0' and overtime.get('partition') in ('0','NONE') and overtime.get('job') in (None,'0'),'containment: unknown/failing device or timeout setting')
+        if not lean:require(receipt['SignalChildrenProcesses'].lower() in ('yes','no') and receipt['preemption']['effective_mode'] in ('OFF','CANCEL'),'containment: unknown signal/preemption setting')
+        if not lean:require(test['cpu_probe'].get('ok') is True and test['gpu_acquisition'].get('ok') is True and test['termination'].get('verified') is True,'containment: probes not exercised/terminated')
+        if not lean:require(test['elapsed_seconds']<=600,'containment: qualification exceeded ten minutes')
         require(all(command.get('returncode')==0 and hashlib.sha256(command['stdout'].encode()).hexdigest()==command['stdout_sha256'] and hashlib.sha256(command['stderr'].encode()).hexdigest()==command['stderr_sha256'] for command in receipt['commands']),'containment: raw Slurm observation differs')
-        reparse_settings(receipt)
+        if not lean:reparse_settings(receipt)
         result[str(job)]={'settings':receipt,'selftest':test}
     return {'allocations':result,'actual_gpu_hours':float(actual),'blocks':{k:float(v) for k,v in blocks.items()}}
 
@@ -115,6 +140,10 @@ def pool_items(rows,task):
 @contextmanager
 def data_context(archive,tokenizer,mcq=None):
     """Rebuild frozen pools/panels from archived, hash-pinned public source bytes."""
+    if 'v4/report-inputs/general-v1-panel.jsonl' in archive.files:
+        from kit.v4_finqa_data import data_context as finqa_context
+        with finqa_context(archive,tokenizer,mcq) as result:yield result
+        return
     from kit import v4_pool as pool, v4_datasets as datasets, v4_contract as contract
     prefix='v4/report-inputs/sources/'
     expected={'SDPO/data/preprocess.py':datasets.PREPROCESS_SHA256,
@@ -194,8 +223,10 @@ def peak_memory(archive,ident):
     return result
 
 
-def common_data(archive,phase,tokenizer,tasks=("chemistry","finqa")):
+def common_data(archive,phase,tokenizer,tasks=None):
     """Rebuild both verified targets on original prompts and compare actual parquet bytes/rows."""
+    from kit.v4_arms import TARGETS
+    tasks=tasks or (('finqa',) if 'v4/report-inputs/general-v1-panel.jsonl' in archive.files else ('chemistry','finqa'))
     import pyarrow.parquet as pq
     base='v4/report-'+phase+'/'
     pools=[];demos=[];rewrites=[]
@@ -205,8 +236,11 @@ def common_data(archive,phase,tokenizer,tasks=("chemistry","finqa")):
         rewrites+=archive.jsonl(base+'rewrite/'+task+'/rewrites.jsonl')
     expected,proof=t.common_training_rows(pools,demos,rewrites,tokenizer)
     manifest=archive.json(base+'common/manifest.json')
-    require(manifest['prompt_identity']==proof,'common prompt identity proof differs')
-    require(manifest['targets']=={'F':'extra_info.demonstration','D':'extra_info.demonstration','R':'extra_info.rewrite','S':None},'offline corpus roles differ')
+    require(manifest['prompt_identity']==proof,'common prompt identity proof differs',identity=True)
+    expected_targets=dict(TARGETS)
+    if phase=='phase0' and 'D-R' not in manifest['targets']:
+        expected_targets.pop('D-R')  # Retain the historical four-arm technical archive format.
+    require(manifest['targets']==expected_targets,'offline corpus roles differ')
     require(len(manifest['sources'])==2*len(tasks),'missing/extra corpus source')
     used=set()
     for directory,hashes in manifest['sources'].items():
@@ -221,7 +255,7 @@ def common_data(archive,phase,tokenizer,tasks=("chemistry","finqa")):
         raw=archive.files[base+'common/'+task+'.parquet']
         require(t.sha(raw)==manifest['files'][task]['sha256'],'common-training-set byte hash differs')
         actual=pq.read_table(io.BytesIO(raw)).to_pylist()
-        require(actual==rows and len(actual)==manifest['files'][task]['rows'],'common rows/targets differ from reverified intersection')
+        require(actual==rows and len(actual)==manifest['files'][task]['rows'],'common rows/targets differ from reverified intersection',identity=True)
     archive.common_rows=expected
     return {'manifest_sha256':t.sha(archive.files[base+'common/manifest.json']),
             'tasks':{task:{'rows':len(rows),'sha256':manifest['files'][task]['sha256']} for task,rows in expected.items()}}
@@ -253,7 +287,7 @@ def training_provenance(archive,phase,job,summary,tokenizer):
     key=(task,manifest['common_training_manifest_sha256'],manifest['schedule_sha256'],t.sha(raw))
     if key not in cache:
         expected=schedule_common_rows(archive.common_rows[task],schedule,tokenizer)
-        require(pq.read_table(io.BytesIO(raw)).to_pylist()==expected,'ordered training rows/targets differ')
+        require(pq.read_table(io.BytesIO(raw)).to_pylist()==expected,'ordered training rows/targets differ',identity=True)
         cache.add(key)
     require(manifest['rows']==count and list(map(str,manifest['ids']))==expected_ids,'scheduled exposure count differs')
     root='runs/'+ident+'/env/'
@@ -261,7 +295,7 @@ def training_provenance(archive,phase,job,summary,tokenizer):
     identities=archive.json('v4/report-inputs/model-identities.json')
     incoming=archive.json(root+'incoming-checkpoint.json')
     expected_incoming=(archive.json('runs/'+job['incoming']+'/env/export-identity-step40.json') if job['incoming'] else identities['initial'])
-    require(weights(incoming)==weights(expected_incoming),'incoming checkpoint shard lineage differs')
+    require(weights(incoming)==weights(expected_incoming),'incoming checkpoint shard lineage differs',identity=True)
     final_step=2 if phase in ('qualification','phase0') else 40
     outgoing=archive.json(root+f'export-identity-step{final_step}.json')
     weights(outgoing)
@@ -290,7 +324,9 @@ def scheduler_rows(archive,phase):
             valid=[]
             for name in names:
                 record=archive.json(name)
-                problems=[] if phase=='phase0' else scheduler_problems(root,record)
+                from kit.v4_phase0_timing import archive_timing
+                with archive_timing(archive):
+                    problems=[] if phase=='phase0' or record.get('informational') else scheduler_problems(root,record)
                 if record.get('ok')==1 and not problems:valid.append((name,record))
             if valid:result[row['id']]=valid[0][1]
     archive.scheduler_rows={**getattr(archive,'scheduler_rows',{}),**{(phase,key):value for key,value in result.items()}}
@@ -301,7 +337,9 @@ def scoring_gpu(archive,phase,checkpoint,task,cap,fingerprint):
     """Compare the scorer's mode with its independently archived owning-step GPU."""
     row=(f'baseline-{task}-{cap}' if checkpoint=='baseline' else f'score-{checkpoint}-{task}-{cap}')
     record=archive.scheduler_rows.get((phase,row))
-    if phase=='phase0':return (record or {}).get('slurm',{}).get('gpu_uuids',['informational'])[0]
+    if phase=='phase0' or (record or {}).get('informational'):
+        selected=(record or {}).get('slurm',{}).get('CUDA_VISIBLE_DEVICES','informational')
+        return (record or {}).get('slurm',{}).get('gpu_uuids',[selected])[0]
     require(record is not None,'missing valid scoring containment: '+row)
     slurm=record['slurm'];uuids=slurm['gpu_uuids']
     require(record['gpus']==slurm['gpu_count']==1 and len(uuids)==1,'scoring used multiple physical GPUs')

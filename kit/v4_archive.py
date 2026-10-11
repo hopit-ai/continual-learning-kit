@@ -82,3 +82,22 @@ class DirectoryEvidence:
 
     json=Archive.json
     jsonl=Archive.jsonl
+
+
+class QualificationSnapshot:
+    """Read immutable qualification accounting after main allocations are appended.
+
+    All scientific inputs are still the verified collector members. Only the
+    ledger is substituted, from the independently owner-approved ledger hash.
+    """
+    def __init__(self,archive,owner):
+        self.source=archive;self.files=archive.files
+        self.ledger=archive.json('v4/report-main/qualification-ledger.json')
+        digest=hashlib.sha256(json.dumps(self.ledger,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if owner['owner'].get('qualification_ledger_sha256')!=digest:
+            raise ValueError('owner qualification ledger binding differs')
+    def __getattr__(self,key):return getattr(self.source,key)
+    def json(self,name):
+        if name=='k8b4/containment/allocation-ledger.json':return self.ledger
+        return self.source.json(name)
+    def jsonl(self,name):return self.source.jsonl(name)

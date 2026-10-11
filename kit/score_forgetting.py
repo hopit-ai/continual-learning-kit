@@ -37,6 +37,7 @@ import hashlib
 import importlib.util
 import json
 import statistics
+import time
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -181,8 +182,26 @@ def cmd_generate(args) -> int:
     engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
     if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
         engine["max_model_len"] = int(args.max_model_len)
-    llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
+    reload_started=datetime.now(timezone.utc).isoformat();reload_clock=time.monotonic()
+    try:
+        llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
+    except Exception as error:
+        if os.environ.get('V4_TELEMETRY')=='1':
+            from kit.v4_teacher import atomic_json
+            atomic_json(out/'engine-status.json',{'engine_ok':False,'configuration_ok':deterministic and engine['max_model_len']==12288,
+                'failure_type':'scoring_engine_start','error':str(error)})
+        raise
+    if os.environ.get('V4_TELEMETRY')=='1':
+        from kit.v4_teacher import atomic_json
+        atomic_json(out/'engine-status.json',{'engine_ok':True,'configuration_ok':deterministic and engine['max_model_len']==12288})
+    reload_seconds=time.monotonic()-reload_clock
+    generate_started=datetime.now(timezone.utc).isoformat();generate_clock=time.monotonic()
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))
+    if os.environ.get('V4_TELEMETRY')=='1':
+        from kit.v4_timing import receipt
+        from kit.v4_teacher import atomic_json
+        atomic_json(out/'timing.json',{'reload':receipt(reload_started,reload_seconds),
+            'generate':receipt(generate_started,time.monotonic()-generate_clock)})
     responses, rows, token_rows = {}, [], []
     for member, prompt, output in zip(members, prompts, outputs):
         completion = output.outputs[0]

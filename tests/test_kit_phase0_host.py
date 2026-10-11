@@ -29,7 +29,7 @@ def test_storage_sets_all_caches_and_never_uses_login_tmp(tmp_path,monkeypatch):
     with storage(work):
         import tempfile
         env=storage_environment(work)
-        assert all(Path(env[k]).is_relative_to(work/'phase0-cache') for k in CACHE_KEYS)
+        assert all(Path(env[k]).is_relative_to(work/'phase0-cache' if k=='TMPDIR' else task/'cache') for k in CACHE_KEYS)
         assert Path(env['HF_HOME']).is_relative_to(task) and not Path(env['HF_HOME']).is_relative_to(work)
         with tempfile.TemporaryDirectory() as temp:assert Path(temp).is_relative_to(work/'phase0-cache/tmp')
         assert all(os.environ[k]==env[k] for k in CACHE_KEYS)
@@ -199,6 +199,7 @@ def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path
     from kit import v4_phase0 as p,v4_phase0_site as s
     monkeypatch.delenv('SLURM_JOB_ID',raising=False);monkeypatch.setenv('SDPO_DIR',str(tmp_path/'source'))
     monkeypatch.setenv('TASK_ROOT',str(tmp_path/'task'));monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())
+    monkeypatch.setattr(s,'torch_runtime_identity',lambda:{'version':'2.9.0+cu128','cuda':'12.8'})
     monkeypatch.setattr(s,'distribution_inventory',lambda paths=None,**kw:[{'name':s.distribution_name(k),'version':v,'location':str(tmp_path/'base-site')} for k,v in VERSIONS.items()])
     endpoints=[];monkeypatch.setattr(s,'check_network',lambda urls:endpoints.extend(urls))
     commands=[]
@@ -212,7 +213,7 @@ def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path
     assert commands[2][0][1:4]==['-m','venv','--system-site-packages']
     for argv,env in commands:
         assert env['HF_HUB_OFFLINE']==env['TRANSFORMERS_OFFLINE']=='1'
-        assert all(Path(env[k]).is_relative_to(work/'phase0-cache') for k in s.CACHE_KEYS)
+        assert all(Path(env[k]).is_relative_to(work/'phase0-cache' if k=='TMPDIR' else tmp_path/'task/cache') for k in s.CACHE_KEYS)
         if 'pip' in argv:assert Path(argv[0]).is_relative_to(work/'phase0-envs') and '--upgrade' not in argv
     assert '-c' in commands[3][0] and '-c' not in commands[7][0]
     base=json.loads((work/'v4/report-phase0/environment-build/base-environment.json').read_text())
@@ -264,6 +265,176 @@ def test_real_nested_trainer_inherits_native_base_without_modifying_it(tmp_path)
     assert hashlib.sha256(Path(bridge['path']).read_bytes()).hexdigest()==bridge['sha256']
     assert json.loads((work/'v4/report-phase0/environment-build/base-inheritance.json').read_text())==bridge
 
+
+def test_partner_torch_metadata_without_suffix_records_cpu_runtime(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from kit import v4_phase0_site as site,runner
+    # Exactly the micromamba metadata/module identities reported by the partner.
+    versions={**VERSIONS,'torch':'2.9.0'}
+    monkeypatch.setattr(site,'installed_versions',lambda:versions.copy())
+    monkeypatch.setattr(site,'distribution_inventory',lambda **kw:[])
+    class NoCUDA:
+        def __getattr__(self,key):pytest.fail('CPU identity probe must not call CUDA: '+key)
+    monkeypatch.setitem(sys.modules,'torch',SimpleNamespace(__version__='2.9.0+cu128',version=SimpleNamespace(cuda='12.8'),cuda=NoCUDA()))
+    def command(argv,**kw):
+        kw['log'].write_text('No broken requirements found.\n')
+        return {'returncode':0,'failure_type':None,'seconds':.1}
+    monkeypatch.setattr(runner,'bounded_command',command)
+    doc=site.base_environment(tmp_path/'work')
+    assert doc['versions']['torch']=='2.9.0'
+    assert doc['torch_runtime']=={'version':'2.9.0+cu128','cuda':'12.8'}
+    assert json.loads((tmp_path/'work/v4/report-phase0/environment-build/base-environment.json').read_text())==doc
+
+
+def test_partner_84_second_rehash_measure_plan_and_real_runner(tmp_path,monkeypatch):
+    from kit import v4_phase0 as p,v4_allocation as a,runner,v4_prepare as prep
+    work=tmp_path/'work';inputs=work/'v4/report-inputs';inputs.mkdir(parents=True)
+    source=work/'model-bytes';source.write_bytes(b'actual prepared bytes')
+    receipt=inputs/'prepare-receipt-phase0.json'
+    receipt.write_text(json.dumps({'phase':'phase0','before_allocation':True,'environment_check':{
+        **__import__('kit.v4_phase0_environment',fromlist=['environment_timing']).environment_timing({'trainer':1,'inference':1})},**prep.file_receipt([source])}))
+    presend=work/'v4/report-phase0/presend/containment-presend.json';presend.parent.mkdir(parents=True);presend.write_text('{}')
+    monkeypatch.setattr(p,'verify_presend',lambda work:{})
+    with monkeypatch.context() as timer:
+        ticks=iter((100.,184.));timer.setattr(p.time,'monotonic',lambda:next(ticks))
+        assert p.measure_prepare_verification(work)==84
+    monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{'WORK':str(work)})
+    monkeypatch.setattr(p.site,'planning_storage',lambda *args:{})
+    doc=a.plan(work,'phase0','phase0',110,10080)
+    assert doc['verification_seconds']==84 and doc['verification_allowance_seconds']==1260
+    assert doc['required_seconds']>86400 and doc['reservation_slack_seconds']<0
+    assert doc['sbatch_time']=='24:00:00' and doc['reserved_gpu_hours']==192
+    plan=work/'allocation.json';plan.write_text(json.dumps(doc,indent=2)+'\n')
+    monkeypatch.setenv('V4_ALLOCATION_PLAN',str(plan));monkeypatch.setenv('V4_ALLOCATION_PLAN_SHA256',__import__('hashlib').sha256(plan.read_bytes()).hexdigest())
+    monkeypatch.setenv('WORK',str(work));monkeypatch.delenv('SLURM_JOB_ID',raising=False)
+    graph=p.campaign();path=work/'campaign.json';path.write_text(json.dumps(graph));campaign=runner.load_campaign(path)
+    row=next(row for row in campaign['rows'] if row['id']=='verify-prepare').copy();row.update(needs=[],pilot=False,bars=[])
+    observed=[]
+    def execute(argv,**kw):
+        observed.append((kw['timeout'],kw['env']['V4_COMMAND_TIMEOUT']))
+        p.verify_prepare(work);kw['log'].parent.mkdir(parents=True,exist_ok=True);kw['log'].write_text('real immutable verifier passed\n')
+        return {'returncode':0,'failure_type':None,'seconds':84}
+    monkeypatch.setattr(runner,'bounded_command',execute)
+    assert runner.run_row(campaign,row,None)==0 and observed==[(1260,'1260')]
+    source.write_bytes(b'changed')
+    with pytest.raises(ValueError,match='prepared input changed'):p.verify_prepare(work)
+
+
+@pytest.mark.parametrize('metadata,runtime,cuda,accepted',[
+    ('2.9.0','2.9.0+cu128','12.8',True),('2.9.0','2.9.0','12.8',True),
+    ('2.9.0+cu128','2.9.0+cu128','12.8',True),('2.9.1','2.9.0+cu128','12.8',False),
+    ('2.8.0','2.8.0+cu128','12.8',False),('2.9.0','2.9.0','12.7',False),
+    ('2.9.0','2.10.0+cu128','12.8',False),('2.9.0rc1','2.9.0+cu128','12.8',False)])
+def test_partner_torch_public_and_cpu_runtime_admission(metadata,runtime,cuda,accepted):
+    from kit import v4_phase0_site as s
+    call=lambda:s.validate_base_versions({**VERSIONS,'torch':metadata},{'version':runtime,'cuda':cuda})
+    if accepted:assert call()['torch']==metadata
+    else:
+        with pytest.raises(ValueError,match='torch'):call()
+
+
+@pytest.mark.parametrize('package',['vllm','ray','numpy','transformers'])
+def test_partner_other_public_pins_stay_exact(package):
+    from kit import v4_phase0_site as s
+    assert s.validate_base_versions(VERSIONS)==VERSIONS
+    with pytest.raises(ValueError,match=package):s.validate_base_versions({**VERSIONS,package:VERSIONS[package]+'+unreviewed'})
+    assert s.validate_base_versions({**VERSIONS,'flash_attn':'2.8.3+cu12torch2.9'})
+
+
+@pytest.mark.parametrize('metadata,runtime,cuda',[
+    ('2.9.0+cpu','2.9.0+cu128','12.8'),
+    ('2.9.0+cu126','2.9.0+cu128','12.8'),
+    ('2.9.0','2.9.0+cu128','12.6'),
+    ('2.9.0+cu128','2.9.0+cu128','12.6')])
+def test_torch_local_suffix_and_cuda_identity_must_be_consistent(metadata,runtime,cuda):
+    from kit.v4_phase0_site import validate_base_versions
+    with pytest.raises(ValueError,match='torch'):
+        validate_base_versions({**VERSIONS,'torch':metadata},{'version':runtime,'cuda':cuda})
+
+
+@pytest.mark.parametrize('phase',['qualification','main'])
+def test_plan_missing_verification_allowance_refuses_after_hash_rebinding(tmp_path,monkeypatch,phase):
+    import hashlib
+    from kit import v4_allocation as allocation,v4_phase0_carry as carry,v4_finqa_campaign as campaign
+    records={'p0':dict(start=1,end=2,width=8,segments=[dict(block='qualification',start=1,end=2)])}
+    binding=dict(schema='v4-phase0-binding.v1',archive_sha256='a'*64,ledger_sha256='b'*64,
+                 records_sha256=carry.digest(carry.canonical(records)),allocations=records)
+    block='qualification' if phase=='qualification' else 'scientific'
+    ledger=dict(phase0_import=binding,allocations={'123':dict(start=100,end=None,width=8,planned_end=3700,
+                segments=[dict(block=block,start=100,end=None)])})
+    path=tmp_path/carry.LEDGER_PATH;path.parent.mkdir(parents=True);path.write_text(json.dumps(ledger))
+    # External archive authentication is orthogonal; real plan, prepare hash,
+    # immutable prior accounting, actual window and admission consumer execute.
+    monkeypatch.setattr(carry,'verify_work',lambda work:ledger)
+    receipt=tmp_path/'v4/report-inputs'/('prepare-receipt-main.json' if phase=='main' else 'prepare-receipt.json')
+    receipt.parent.mkdir(parents=True);receipt.write_text(json.dumps(dict(verification_seconds=84,verification_allowance_seconds=1260)))
+    stage='qualification' if phase=='qualification' else 'scientific'
+    cap=next(r for r in campaign.build(phase)['rows'] if r['id']=='prepare')['allocation_cpu_cap_seconds']
+    doc=dict(phase=phase,stage=stage,sbatch_time='01:00:00',prior_allocations=records,
+             phase0_import_binding=carry.public_binding(binding),verification_seconds=84,
+             verification_allowance_seconds=1260,verification_row_cap_seconds=cap,verification_row_slack_seconds=cap-1260,
+             prepare_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest(),admission={'status':'proceed'})
+    for env,key in (('V4_QUALIFICATION_ARCHIVE','qualification_sha256'),('V4_OWNER_PROCEED','owner_sha256')):
+        evidence=tmp_path/(key+'.json');evidence.write_text('{}')
+        monkeypatch.setenv(env,str(evidence));doc['admission'][key]=hashlib.sha256(evidence.read_bytes()).hexdigest()
+    plan=tmp_path/'plan.json'
+    def freeze():
+        plan.write_text(json.dumps(doc));monkeypatch.setenv('V4_ALLOCATION_PLAN',str(plan))
+        monkeypatch.setenv('V4_ALLOCATION_PLAN_SHA256',hashlib.sha256(plan.read_bytes()).hexdigest())
+    freeze();monkeypatch.setenv('SLURM_JOB_ID','123')
+    first=campaign.build(phase)['v4']['allocation_stages'][stage]['first']
+    allocation.verify_plan(tmp_path,phase,first)
+    del doc['verification_allowance_seconds'];freeze()
+    allocation.verify_plan(tmp_path,phase,first)
+    assert list((tmp_path/'v4/warnings').glob('*.json'))
+
+
+@pytest.mark.parametrize('environment,measured,accepted',[(180,84,True),(234,84,True),(235,84,False),(300,84,False),(180,120,True),(180,120.001,False)])
+def test_partner_phase0_allowance_fits_fixed_reservation_only(tmp_path,monkeypatch,environment,measured,accepted):
+    from kit import v4_phase0 as p,v4_allocation as a
+    work=tmp_path/'work'
+    for name in ('v4/report-inputs/prepare-receipt-phase0.json','v4/report-phase0/presend/containment-presend.json'):
+        path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
+    monkeypatch.setattr(p,'verify_presend',lambda work:{})
+    monkeypatch.setattr(p,'verify_prepare',lambda work,**kw:{'verification_seconds':measured,'environment_check':{'deadline_seconds':environment}})
+    monkeypatch.setattr(p,'frozen_launch_environment',lambda work:{})
+    monkeypatch.setattr(p.site,'planning_storage',lambda *a:{})
+    doc=a.plan(work,'phase0','phase0',110,10080)
+    assert doc['sbatch_time']=='24:00:00' and doc['verification_allowance_seconds']==p.verification_allowance(measured)
+
+
+
+@pytest.mark.parametrize('measured',[True,-1,None,float('nan'),float('inf')])
+def test_partner_verification_allowance_refuses_invalid_measurements(measured):
+    from kit.v4_prepare import verification_allowance
+    with pytest.raises(ValueError,match='measurement'):verification_allowance(measured)
+
+
+@pytest.mark.parametrize('phase,measurement,accepted',[('qualification',84,True),('main',84,True),('qualification',201,True),('main',601,True),('qualification',1201,True),('main',1201,True)])
+def test_partner_main_real_cpu_measurement_fits_existing_caps(tmp_path,monkeypatch,phase,measurement,accepted):
+    from kit import v4_prepare as prep,v4_phase0_carry as carry,v4_finqa_site as site,v4_allocation as a
+    work=tmp_path/'work';folder=work/'v4/report-inputs';folder.mkdir(parents=True)
+    source=work/'prepared-model';source.write_bytes(b'CPU model bytes')
+    receipt=folder/('prepare-receipt-main.json' if phase=='main' else 'prepare-receipt.json')
+    receipt.write_text(json.dumps({'before_allocation':True,**prep.file_receipt([source])}))
+    ledger={'allocations':{'prior':dict(start=1,end=2,width=8,segments=[dict(block='qualification',start=1,end=2)])}}
+    ledger_path=work/carry.LEDGER_PATH;ledger_path.parent.mkdir(parents=True);ledger_path.write_text(json.dumps(ledger))
+    monkeypatch.setattr(carry,'verify_work',lambda work:ledger)
+    monkeypatch.setattr(site,'frozen_environment',lambda work:{})
+    monkeypatch.setattr(site,'planning_storage',lambda *a:{})
+    monkeypatch.setattr(a,'admission',lambda *a:{'status':'proceed'})
+    ticks=iter((100.,100.+measurement));monkeypatch.setattr(prep.time,'monotonic',lambda:next(ticks))
+    stage='teacher' if phase=='main' else 'qualification'
+    if accepted:
+        doc=a.plan(work,phase,stage,300,300)
+        assert doc['verification_seconds']==measurement and doc['verification_allowance_seconds']==prep.main_verification_allowance(measurement)
+        cap=max(9000 if phase=='main' else 3000,prep.main_verification_allowance(measurement))
+        assert doc['verification_row_cap_seconds']==cap and doc['verification_row_slack_seconds']==cap-prep.main_verification_allowance(measurement)
+        assert doc['requested_minutes']==300 and doc['sbatch_time']=='05:00:00'
+        frozen=json.loads(receipt.read_text());assert frozen['verification_seconds']==measurement and frozen['verification_allowance_seconds']==prep.main_verification_allowance(measurement)
+    else:
+        with pytest.raises(ValueError,match='cannot fit.*fixed prepare row/reservation'):a.plan(work,phase,stage,300,300)
+        assert not (work/f'v4/report-{phase}/allocation').exists()
 
 @pytest.fixture(autouse=True)
 def native_cpu_runtime(monkeypatch):

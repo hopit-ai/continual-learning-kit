@@ -96,10 +96,14 @@ class CampaignError(ValueError):
 
 
 # ------------------------------------------------------------------------------------ loading
-from kit.v4_phase0_timing import scale,shared_limit
+from kit.v4_phase0_timing import scale,shared_limit,is_finqa
 
 def phase0_mode(campaign):
     return campaign.get('v4',{}).get('phase') in ('phase0','CPU-phase0-rehearsal')
+
+
+def finqa_mode(campaign):
+    return campaign.get('v4',{}).get('scope')=='finqa-alone'
 
 
 def load_campaign(path: Path) -> dict:
@@ -381,6 +385,10 @@ def refuse_implicit(campaign: dict) -> bool:
             print("IMPLICIT ORDER: %s comes after pilot %s but does not need it" % (rid, writer))
         else:
             print("IMPLICIT ORDER: %s requires %s, written by %s's %s, but does not need %s" % (rid, path, writer, how, writer))
+    if edges and finqa_mode(campaign):
+        from kit.v4_finqa_policy import warn
+        warn('campaign ordering','implicit row ordering findings; explicit row sequence retained',work_root(campaign))
+        return False
     return bool(edges)
 
 
@@ -427,6 +435,8 @@ def write_durably(path: Path, payload: dict) -> None:
     POSIX link is the portable atomic rename-if-absent equivalent: the target
     acquires the fully written inode only if absent. Never replace evidence.
     """
+    from kit.v4_finqa_policy import protect_write
+    protect_write(path)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -554,14 +564,57 @@ def stale_inputs(campaign: dict, row: dict, verdict: dict) -> list:
     return sorted(other for other, state in inputs_of(campaign, row).items() if state is not None and then.get(other) != state)
 
 
+def correctness_failure(log):
+    """Propagate typed child correctness errors without treating an operation crash as admission."""
+    import re
+    from kit.v4_finqa_policy import correctness
+    for message in re.findall(r'^(?:ValueError|CorrectnessStop|OSError|FileNotFoundError|RuntimeError): (.+)$',str(log),flags=re.MULTILINE):
+        if correctness(message):return message
+    if 'STOP: correctness:' in str(log):return str(log).split('STOP: correctness:',1)[1].splitlines()[0]
+    return None
+
+
+def finqa_context(function):
+    from functools import wraps
+    @wraps(function)
+    def wrapped(campaign,*args,**kwargs):
+        if not finqa_mode(campaign):return function(campaign,*args,**kwargs)
+        names=('WORK','V4_FINQA_CAMPAIGN','V4_PHASE0_MODE')
+        old={k:os.environ.get(k) for k in names}
+        os.environ.update(WORK=str(work_root(campaign)),V4_FINQA_CAMPAIGN='1',V4_PHASE0_MODE='0')
+        try:return function(campaign,*args,**kwargs)
+        finally:
+            for k,v in old.items():
+                if v is None:os.environ.pop(k,None)
+                else:os.environ[k]=v
+    return wrapped
+
+@finqa_context
 def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     dispatch_clock=time.monotonic()
+    if finqa_mode(campaign):
+        # The context decorator binds main mode for this call only.
+        from kit.v4_finqa_policy import ceiling,warn,CorrectnessStop
+        try:ceiling(work_root(campaign))
+        except CorrectnessStop as exc:print('STOP: '+str(exc));return EXIT_REFUSED
+        latest=latest_verdict(campaign,row['id']) or {}
+        if latest.get('verdict')=='PASS':
+            print('SKIP '+row['id']+': already PASS');return EXIT_OK
+
     if campaign.get('v4',{}).get('phase')=='phase0' and row['id']=='verify-prepare':
         from kit.v4_phase0 import verification_row_cap
         cap=verification_row_cap(work_root(campaign))
         row={**row,'timeout_seconds':cap,'allocation_cpu_cap_seconds':cap}
+    if campaign.get('v4',{}).get('scope')=='finqa-alone' and row['id']=='prepare':
+        from kit.v4_prepare import main_verification_row_cap
+        cap=main_verification_row_cap(work_root(campaign),campaign['v4']['phase'],row['allocation_cpu_cap_seconds'])
+        row={**row,'timeout_seconds':cap,'allocation_cpu_cap_seconds':cap}
     reasons = ([reason for reason in not_ready(campaign,row) if reason.startswith('required paths are missing')] if phase0_mode(campaign) else gate(campaign,row)+not_ready(campaign,row))
     if phase0_mode(campaign) and (work_root(campaign)/'v4/report-phase0/hard-stop.json').exists():reasons.append('phase0 data/environment/allocation hard stop; return evidence')
+    if reasons and finqa_mode(campaign):
+        from kit.v4_finqa_policy import warn
+        for reason in reasons:warn('runner prerequisites',row['id']+': '+reason,work_root(campaign))
+        reasons=[]
     if reasons:
         print("REFUSED %s: %s" % (row["id"], "; ".join(reasons)))
         return EXIT_REFUSED
@@ -583,14 +636,16 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
             if campaign['v4'].get('phase')=='main':
                 from kit.v4_campaign_ops import registered_caps
                 cap=registered_caps(work_root(campaign))[row['id'].split('-')[0]]
-        elif campaign['v4'].get('phase')=='main' and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','owner-registration-gate'):
+        elif campaign['v4'].get('phase')=='main' and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','model-identity-check'):
             from kit.v4_campaign_ops import registered_caps
             cap=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
-        if not phase0_mode(campaign) and float(stamp(entry['planned_end'])) < time.time()+cap:
+        if not phase0_mode(campaign) and entry.get('planned_end') and float(stamp(entry['planned_end'])) < time.time()+(300 if campaign.get('v4',{}).get('scope')=='finqa-alone' else cap):
             print('allocation exhausted; resume in a new allocation: '+row['id'])
             return 75  # No start/attempt exists; not an infrastructure retry.
     done = attempts(campaign, row["id"])
     number = attempt if attempt is not None else (done[-1] + 1 if done else 1)
+    if number in done and finqa_mode(campaign):
+        warn('attempt selection','requested attempt already retained; allocating a fresh attempt',work_root(campaign));number=done[-1]+1
     if number in done:
         print("REFUSED %s: attempt %d already exists; pass --attempt %d" % (row["id"], number, done[-1] + 1))
         return EXIT_REFUSED
@@ -603,11 +658,12 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         spec['command'][spec['command'].index('--time-cap')+1]=str(caps[operation])
     if campaign.get('v4'):
         cpu_timeout=row.get('timeout_seconds',3600)
-        if campaign['v4'].get('phase')=='main' and '--time-cap' not in spec['command'] and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','owner-registration-gate'):
+        if campaign['v4'].get('phase')=='main' and '--time-cap' not in spec['command'] and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','model-identity-check'):
             from kit.v4_campaign_ops import registered_caps
             cpu_timeout=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
             row={**row,'timeout_seconds':cpu_timeout}
         spec['env']['V4_COMMAND_TIMEOUT']=str(cpu_timeout)
+        spec['env']['V4_RUNNER_ATTEMPT']=str(number)
         if '--time-cap' in spec['command']:spec['env']['V4_COMMAND_TIMEOUT']=spec['command'][spec['command'].index('--time-cap')+1]
     out = row_dir(campaign, row["id"]) / ("attempt-%d" % number)
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -623,17 +679,23 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
             verdict_path=previous_dir/'verdict.json'
             if verdict_path.exists() and json.loads(verdict_path.read_text()).get('verdict')=='PASS':
                 print('REFUSED %s: first valid result cannot be replaced'%row['id']);return EXIT_REFUSED
-            try:
-                from kit.v4_retry import admit, automatic
-                review_path=work_root(campaign)/'v4/retries'/campaign['name']/row['id']/('attempt-%d.json'%number)
-                if not review_path.exists():automatic(work_root(campaign),campaign['name'],row['id'],number,previous)
-                review=json.loads(review_path.read_text())
-                spec['env']['OFFLOAD']='1' if review['reason_code']=='out_of_memory' else previous['env'].get('OFFLOAD','0')
+            if finqa_mode(campaign):
+                from kit.v4_retry import local_retry
+                review=local_retry(work_root(campaign),campaign['name'],row['id'],number,previous)
+                spec['env']['OFFLOAD']=previous.get('env',{}).get('OFFLOAD','0')
                 if review.get('state_policy')=='resume_valid_state':spec['env']['V4_RESUME_PATH']=review['saved_state_path']
-                admit(work_root(campaign),campaign['name'],row['id'],number,
-                      {'attempt':number,'command':spec['command'],'env':spec['env'],'inputs':inputs},previous)
-            except (OSError,ValueError,KeyError,TypeError) as exc:
-                print('REFUSED %s: infrastructure review: %s'%(row['id'],exc));return EXIT_REFUSED
+            else:
+                try:
+                    from kit.v4_retry import admit, automatic
+                    review_path=work_root(campaign)/'v4/retries'/campaign['name']/row['id']/('attempt-%d.json'%number)
+                    if not review_path.exists():automatic(work_root(campaign),campaign['name'],row['id'],number,previous)
+                    review=json.loads(review_path.read_text())
+                    spec['env']['OFFLOAD']='1' if review['reason_code']=='out_of_memory' else previous['env'].get('OFFLOAD','0')
+                    if review.get('state_policy')=='resume_valid_state':spec['env']['V4_RESUME_PATH']=review['saved_state_path']
+                    admit(work_root(campaign),campaign['name'],row['id'],number,
+                          {'attempt':number,'command':spec['command'],'env':spec['env'],'inputs':inputs},previous)
+                except (OSError,ValueError,KeyError,TypeError) as exc:
+                    print('REFUSED %s: infrastructure review: %s'%(row['id'],exc));return EXIT_REFUSED
     if unmet:
         print("note %s: runs without %d wanted row(s) that have not passed: %s" % (row["id"], len(unmet), ", ".join(unmet)))
     write_durably(out / "start.json", {"schema": SCHEMA, "campaign": campaign["name"], "campaign_sha256": campaign["_sha256"],
@@ -646,7 +708,10 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     # bounds wrappers. CPU rows explicitly register their maximum wall seconds.
     deadline = row.get('timeout_seconds', 3600)
     if '--time-cap' in spec['command']:
-        deadline = int(spec['command'][spec['command'].index('--time-cap')+1]) + (0 if campaign.get('v4',{}).get('phase')=='phase0' else 120)
+        deadline = int(spec['command'][spec['command'].index('--time-cap')+1]) + (0 if campaign.get('v4',{}).get('phase')=='phase0' else shared_limit(120))
+    if finqa_mode(campaign):
+        from kit.v4_finqa_policy import runtime_seconds
+        deadline=runtime_seconds(work_root(campaign),deadline)
     command_result = bounded_command(spec['command'], timeout=deadline, log=out/'output.log',
         env={**os.environ, **spec['env']}, cwd=spec['cwd'])
     command_seconds=time.monotonic()-clock
@@ -657,10 +722,13 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
     failed = [b for b in bars if not b["ok"]]
     if returncode != 0:
         verdict, reason = "FAIL", "command exited %d" % returncode
-    elif failed:
+    elif failed and not finqa_mode(campaign):
         verdict, reason = "FAIL", "; ".join("%s: %s" % (b["name"], b["reason"]) for b in failed)
     else:
         verdict, reason = "PASS", None
+    if failed and finqa_mode(campaign):
+        from kit.v4_finqa_policy import warn
+        for finding in failed:warn('runner bar',finding['name']+': '+finding['reason'],work_root(campaign))
     write_durably(out / "verdict.json", {"schema": SCHEMA, "row": row["id"], "attempt": number, "verdict": verdict, "reason": reason,
                                          "returncode": returncode, "failure_type": command_result["failure_type"], "timeout_seconds": deadline, "bars": bars, "started_at": started,
                                          "seeds": campaign.get("_seeds"), "wants_not_passed": unmet, "inputs": inputs,
@@ -670,7 +738,16 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
             'row':row['id'],'wall_seconds':max(0,time.monotonic()-dispatch_clock-command_seconds),
             'command_seconds':command_seconds,'campaign_sha256':campaign['_sha256']})
     print("%s %s%s" % (verdict, row["id"], ": " + reason if reason else ""))
-    if verdict=='FAIL' and not phase0_mode(campaign) and campaign.get('v4') and 'row' in spec['command'] and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']):
+    if verdict=='FAIL' and finqa_mode(campaign):
+        from kit.v4_finqa_policy import correctness,warn
+        failure=work_root(campaign)/('v4/report-'+campaign['v4']['phase'])/'failures'/(row['id']+'.json')
+        if failure.exists() and correctness(json.loads(failure.read_text()).get('cause','')):return EXIT_REFUSED
+        child_correctness=correctness_failure((out/'output.log').read_text())
+        if child_correctness:
+            warn('correctness stop',child_correctness,work_root(campaign));return EXIT_REFUSED
+        warn('failed row',row['id']+': '+str(reason),work_root(campaign))
+
+    if verdict=='FAIL' and not phase0_mode(campaign) and not finqa_mode(campaign) and campaign.get('v4') and 'row' in spec['command'] and any(str(arg).endswith('/p4_contain.py') for arg in spec['command']):
         try:
             if (work_root(campaign)/'k8b4/containment/v4-stop.json').exists():return 75
             from kit.v4_retry import failure_record
@@ -682,7 +759,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
                     json.loads((out/'start.json').read_text()))
                 return run_row(campaign,row,None)
         except (OSError,ValueError,KeyError,TypeError):pass
-    return EXIT_OK if (verdict == "PASS" or (phase0_mode(campaign) and row["id"]=="containment-selftest")) else EXIT_FAILED
+    return EXIT_OK if (verdict == "PASS" or ((phase0_mode(campaign) or finqa_mode(campaign)) and row["id"].endswith("containment-selftest"))) else EXIT_FAILED
 
 
 def cmd_plan(campaign: dict) -> int:
@@ -757,6 +834,7 @@ def needed_later(campaign: dict, rows: list, failed: str) -> list:
             and (latest_verdict(campaign, row["id"]) or {}).get("verdict") != "PASS"]
 
 
+@finqa_context
 def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, parallel=True) -> int:
     """Rows in file order, so a row's wants (always earlier rows) run first when scheduled. With --all, a PILOT that
     fails or is refused stops the run when a later scheduled row needs it (every later row does). Any other row that
@@ -775,7 +853,7 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, par
             continue                                                  # printed once when the filter was applied
         passed = latest_verdict(campaign, row["id"]) or {}
         if every and passed.get("verdict") == "PASS":
-            stale = stale_inputs(campaign, row, passed)
+            stale = [] if finqa_mode(campaign) else stale_inputs(campaign, row, passed)
             if not stale:
                 print("SKIP %s: already PASS" % row["id"])
                 continue
@@ -793,7 +871,7 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, par
             code = run_row(campaign, row, attempt)
         if code == EXIT_OK:
             continue
-        if code==75:return code
+        if code==75 or (code==EXIT_REFUSED and finqa_mode(campaign)):return code
         if not every:
             return code
         first = first or code
@@ -801,7 +879,7 @@ def cmd_run(campaign: dict, rows: list, every: bool, attempt: int | None, *, par
         if phase0_mode(campaign):
             if code==EXIT_REFUSED or (work_root(campaign)/'v4/report-phase0/hard-stop.json').exists():return code
             continue # Failed measurements do not veto subsequent phase-0 rows.
-        if needing and row.get("pilot"):
+        if needing and row.get("pilot") and not finqa_mode(campaign):
             print("STOP: %s did not pass and %s needs it; nothing after it runs" % (row["id"], needing[0]))
             return first
         if needing:
@@ -855,8 +933,9 @@ def allocation_rows(campaign: dict, stage: str | None = None) -> tuple[list, dic
     """Select a registered single-block allocation without changing the full DAG."""
     stages = (campaign.get('v4') or {}).get('allocation_stages')
     if not stages:
-        if stage: raise CampaignError('--stage requires registered allocation_stages')
+        if stage and not finqa_mode(campaign): raise CampaignError('--stage requires registered allocation_stages')
         return campaign['rows'], None
+    if (stage=='all' or stage is None) and finqa_mode(campaign):return campaign['rows'],next(iter(stages.values()))
     if stage is None:
         if len(stages) != 1: raise CampaignError('select --stage teacher, rewrite or scientific; budget block cannot change inside an allocation')
         stage = next(iter(stages))
@@ -864,20 +943,22 @@ def allocation_rows(campaign: dict, stage: str | None = None) -> tuple[list, dic
     registration = stages[stage]
     ids = [r['id'] for r in campaign['rows']]
     rows = campaign['rows'][ids.index(registration['first']):ids.index(registration['last'])+1]
-    expected = {'qualification':100, 'scientific':560}
+    ceiling=campaign['v4'].get('ceiling',560)
+    expected = {'qualification':ceiling if finqa_mode(campaign) else 100, 'scientific':ceiling}
     block = registration['block']
     if expected.get(block) != registration['block_limit']: raise CampaignError('allocation block/limit differs from containment contract')
     for row in rows:
         command = row['command']
         if '{kit}/p4_contain.py' not in command: continue
         if command[2] not in ('selftest','row'): raise CampaignError('allocation may contain only selftest and row containment commands')
-        for option,value in (('--block',block),('--block-limit',str(expected[block])),('--ceiling','560')):
+        for option,value in (('--block',block),('--block-limit',str(expected[block])),('--ceiling',str(ceiling))):
             if option not in command or command[command.index(option)+1] != value:
                 raise CampaignError('mixed or implicit containment block in allocation stage')
     if rows[0]['command'][1:3] != ['{kit}/p4_contain.py','selftest']: raise CampaignError('first allocation containment command must be selftest')
     return rows, registration
 
 
+@finqa_context
 def allocation_selftest(campaign: dict, rows: list, registration: dict | None) -> None:
     """FIRST live containment command on every runner entry, including resume.
 
@@ -886,13 +967,21 @@ def allocation_selftest(campaign: dict, rows: list, registration: dict | None) -
     """
     if registration is None or not os.environ.get('SLURM_JOB_ID'): return
     command = resolve(rows[0],campaign,1)['command']
-    if bounded_command(command,timeout=scale(600) if (campaign.get('v4') or {}).get('phase')=='phase0' else 900,env=os.environ.copy())['returncode']:
-        if not phase0_mode(campaign):raise CampaignError('current allocation selftest refused; end the job and return its frozen receipt')
+    timeout=scale(600) if (campaign.get('v4') or {}).get('phase')=='phase0' else shared_limit(900)
+    if finqa_mode(campaign):
+        from kit.v4_finqa_policy import runtime_seconds
+        timeout=runtime_seconds(work_root(campaign),timeout)
+    if bounded_command(command,timeout=timeout,env=os.environ.copy())['returncode']:
+        if not phase0_mode(campaign) and not finqa_mode(campaign):raise CampaignError('current allocation selftest refused; end the job and return its frozen receipt')
         print('WARNING: phase-0 containment self-test FAILED; informational; continuing under owner monitoring.')
     if (campaign.get('v4') or {}).get('phase') in ('main','phase0'):
         from kit.v4_allocation import verify_plan
         try:verify_plan(work_root(campaign),campaign['v4']['phase'],rows[0]['id'])
-        except (OSError,ValueError,KeyError,TypeError) as exc:raise CampaignError(str(exc)) from exc
+        except (OSError,ValueError,KeyError,TypeError) as exc:
+            if finqa_mode(campaign):
+                from kit.v4_finqa_policy import warn
+                warn('allocation plan',str(exc),work_root(campaign))
+            else:raise CampaignError(str(exc)) from exc
 
 
 def cmd_batch(paths: list, plan_only: bool, seeds: list | None = None, stage: str | None = None) -> int:
@@ -972,7 +1061,7 @@ def main(argv=None) -> int:
             return cmd_status(campaign)
         if bool(args.row) == bool(args.all):
             raise CampaignError("%s needs exactly one of --row ID or --all" % args.action)
-        available, registration = allocation_rows(campaign,args.stage)
+        available, registration = allocation_rows(campaign,'all' if finqa_mode(campaign) and args.row else args.stage)
         rows = available if args.all else [r for r in available if r["id"] == args.row]
         if not rows:
             raise CampaignError("no row named %r" % args.row)

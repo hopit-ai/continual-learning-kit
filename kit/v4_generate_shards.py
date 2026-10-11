@@ -12,11 +12,15 @@ if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().paren
 from kit import v4_teacher as t
 
 
+from kit.v4_phase0_timing import shared_limit
+
 def shard_commands(work,phase,task,rewriting=False):
     from kit.v4_campaign_ops import paths
     base=paths(work,phase);role='rewrite' if rewriting else 'teacher';count=8 if rewriting else 4;tp=1 if rewriting else 2
     devices=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')
-    if len(devices)!=8 or len(set(devices))!=8 or any(not d for d in devices):raise ValueError('eight distinct contained GPUs required for shard row')
+    if len(devices)!=8 or len(set(devices))!=8 or any(not d for d in devices):
+        from kit.v4_finqa_policy import require
+        require(False,'eight distinct contained GPUs required for shard row','GPU routing observation')
     python=sys.executable if rewriting else os.environ['V4_TEACHER_PYTHON']
     commands=[]
     for index in range(count):
@@ -25,7 +29,7 @@ def shard_commands(work,phase,task,rewriting=False):
             '--model',os.environ['MODEL_DIR' if rewriting else 'TEACHER_MODEL_DIR'],
             '--tokenizer-8b',os.environ['QWEN3_8B_TOKENIZER'],'--tp',str(tp),'--shard-index',str(index),'--shard-count',str(count)]
         if rewriting:argv+=['--demonstrations',str(base/'teacher'/task)]
-        commands.append((argv,{'CUDA_VISIBLE_DEVICES':','.join(devices[index*tp:(index+1)*tp]),'V4_TELEMETRY':'1'}))
+        commands.append((argv,{'CUDA_VISIBLE_DEVICES':','.join(devices[index*tp:(index+1)*tp]),'V4_TELEMETRY':'1','V4_PHASE0_INFERENCE':'0' if rewriting else '1'}))
     return commands
 
 
@@ -57,11 +61,18 @@ def generate(work,phase,task,rewriting=False):
     logs=base/'shard-logs'/role/task;logs.mkdir(parents=True,exist_ok=True)
     def launch(pair):
         index,(command,env)=pair
-        return bounded_command(command,timeout=int(os.environ.get('V4_COMMAND_TIMEOUT','14400')),
+        return bounded_command(command,timeout=int(os.environ.get('V4_COMMAND_TIMEOUT',str(shared_limit(14400)))),
             env={**os.environ,**env},log=logs/f'{index}.log')
     with ThreadPoolExecutor(max_workers=count) as pool:results=list(pool.map(launch,enumerate(commands)))
     t.atomic_json(logs/'launches.json',{'role':role,'shards':count,'tp':1 if rewriting else 2,'results':results})
-    if any(result['returncode'] for result in results):raise ValueError('generation_shard_failure')
+    if any(result['returncode'] for result in results):
+        from kit.runner import correctness_failure
+        from kit.v4_finqa_policy import CorrectnessStop
+        for index,result in enumerate(results):
+            if not result['returncode']:continue
+            text=(logs/f'{index}.log').read_text(errors='replace');failure=correctness_failure(text)
+            if failure:raise CorrectnessStop(failure)
+        raise ValueError('generation_shard_failure')
     dirs=[base/(role+'-shards')/task/t.shard_directory(i,count) for i in range(count)]
     merged=base/(role+'-merged')/task;merged.parent.mkdir(parents=True,exist_ok=True)
     if not merged.exists():
@@ -81,7 +92,10 @@ def generate(work,phase,task,rewriting=False):
     import shutil
     if root.exists():
         history=base/(role+'-approved-sample')/task;history.parent.mkdir(parents=True,exist_ok=True)
-        if history.exists():raise ValueError('sample history already exists')
+        if history.exists():
+            number=2
+            while history.with_name(task+'-attempt-'+str(number)).exists():number+=1
+            history=history.with_name(task+'-attempt-'+str(number))
         os.rename(root,history)
     root.parent.mkdir(parents=True,exist_ok=True);os.rename(merged,root)
     t.atomic_json(root/'shard-execution.json',{'shards':count,'tp':1 if rewriting else 2,
@@ -92,13 +106,13 @@ def generate(work,phase,task,rewriting=False):
 def determinism(work):
     """Run in the separately pinned inference environment, on a TP2 pair."""
     script=Path(__file__).resolve()
-    env={**os.environ,'CUDA_VISIBLE_DEVICES':','.join(os.environ['CUDA_VISIBLE_DEVICES'].split(',')[:2])}
-    subprocess.run([os.environ['V4_TEACHER_PYTHON'],str(script),'--determinism',str(work)],env=env,check=True,timeout=1500)
+    env={**os.environ,'CUDA_VISIBLE_DEVICES':','.join(os.environ['CUDA_VISIBLE_DEVICES'].split(',')[:2]),'V4_PHASE0_INFERENCE':'1'}
+    subprocess.run([os.environ['V4_TEACHER_PYTHON'],str(script),'--determinism',str(work)],env=env,check=True,timeout=shared_limit(1500))
 
 
 def _determinism(work):
     from kit.v4_campaign_ops import paths
-    pool=t.read_jsonl(paths(work,'qualification')/'chemistry-pool.jsonl')[:3]
+    pool=t.read_jsonl(paths(work,'qualification')/'finqa-pool.jsonl')[:3]
     engine=t.VLLMGenerator(os.environ['TEACHER_MODEL_DIR'],t.TEACHER_NEW_TOKENS,tensor_parallel_size=2,allow_batch_fallback=True)
     requests=[{'messages':t.teacher_messages(item),'seed':t.SCHEDULE[0][0],'temperature':0.,'top_p':1} for item in pool]
     left=engine.generate_many(requests[:2]);right=engine.generate_many([requests[2],requests[1],requests[0]])
@@ -107,14 +121,18 @@ def _determinism(work):
     t.atomic_json(paths(work,'qualification')/'teacher-determinism.json',raw)
     # Fallback availability is a reported qualification finding; frozen corpus
     # inputs remain fixed. It never pretends serial equivalence is proven.
-    if engine.batch_policy['batch_invariant'] and not raw['passed']:raise ValueError('batch-invariant determinism failed')
+    if engine.batch_policy['batch_invariant'] and not raw['passed']:
+        from kit.v4_finqa_policy import require
+        require(False,'batch-invariant determinism failed','teacher determinism')
 
 def profile_waves(work):
     """Full-cap, full-width waves; actual latency bounds the batched projection."""
     from kit.v4_campaign_ops import paths
     from kit.runner import bounded_command
     devices=os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-    if len(set(devices))!=8:raise ValueError('wave profiling requires eight contained GPUs')
+    if len(set(devices))!=8:
+        from kit.v4_finqa_policy import require
+        require(False,'wave profiling requires eight contained GPUs','GPU routing observation')
     root=paths(work,'qualification')/'wave-profile';root.mkdir(parents=True,exist_ok=True)
     jobs=[]
     for role in ('teacher','rewrite'):
@@ -122,8 +140,8 @@ def profile_waves(work):
         def launch(index):
             command=[os.environ['V4_TEACHER_PYTHON'] if role=='teacher' else sys.executable,str(Path(__file__).resolve()),
                      '--profile-wave',str(root/f'{role}-{index}.json'),role]
-            env={**os.environ,'CUDA_VISIBLE_DEVICES':','.join(devices[index*tp:(index+1)*tp])}
-            return bounded_command(command,timeout=1500,env=env,log=root/f'{role}-{index}.log')
+            env={**os.environ,'CUDA_VISIBLE_DEVICES':','.join(devices[index*tp:(index+1)*tp]),'V4_PHASE0_INFERENCE':'1' if role=='teacher' else '0'}
+            return bounded_command(command,timeout=shared_limit(1500),env=env,log=root/f'{role}-{index}.log')
         with ThreadPoolExecutor(max_workers=count) as pool:results=list(pool.map(launch,range(count)))
         if any(result['returncode'] for result in results):raise ValueError('full-wave qualification failed: '+role)
         jobs.append({'role':role,'results':results})
@@ -144,7 +162,9 @@ def _profile_wave(out,role):
     started=utc_now();clock=time.monotonic();outputs=engine.engine.generate(prompts,params,use_tqdm=False)
     elapsed=time.monotonic()-clock
     counts=[len(row.outputs[0].token_ids) for row in outputs]
-    if counts!=[cap]*t.H100_MAX_NUM_SEQS:raise ValueError('full-wave profile output dose incomplete')
+    if counts!=[cap]*t.H100_MAX_NUM_SEQS:
+        from kit.v4_finqa_policy import require
+        require(False,'full-wave profile output dose incomplete','generation profiling')
     t.atomic_json(Path(out),{**receipt(started,elapsed),'role':role,'tp':tp,'input_cap':input_cap,
         'max_new_tokens':cap,'max_num_seqs':t.H100_MAX_NUM_SEQS,'output_tokens':counts,
         'batch_policy':engine.batch_policy,'reload_timing':engine.reload_timing,'technical_budget_profile':True})

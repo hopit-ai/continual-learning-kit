@@ -50,8 +50,8 @@ def require(ok,reason):
 
 def campaign():
     """Select existing qualification operations; no second dispatch or training implementation."""
-    from kit.v4_campaign import build
-    original=build('qualification')
+    from kit.v4_campaign import legacy_build
+    original=legacy_build('qualification')
     wanted=['containment-selftest','prepare',*[f'score-agreement{i}-finqa-2048' for i in range(1,5)],
             'scoring-agreement','teacher-finqa','rewrite-finqa','training-set','schedule-q-S-finqa','resolved-configs']
     for arm in 'SFRD':wanted += [f'train-q-{arm}-finqa',f'merge-q-{arm}-finqa',f'score-q-{arm}-finqa-finqa-2048']
@@ -578,8 +578,8 @@ def archived_prepare(evidence):
     raw=evidence.files['v4/report-inputs/import-smoke-phase0/receipt.json']
     require(t.sha(raw)==receipt['import_smoke_sha256'],'CPU smoke hash differs')
     smoke=json.loads(raw)
-    from kit.v4_prepare import smoke_inventory
-    inv=smoke_inventory()
+    from kit.v4_prepare import archived_smoke_inventory
+    inv=archived_smoke_inventory(evidence)
     require(smoke['ok'] is True and smoke['inventory']['modules']==inv['modules'] and smoke['inventory']['dependencies']==inv['dependencies'],'CPU smoke inventory incomplete')
     required={'import-'+n for n in inv['modules']+inv['dependencies']}|{'launcher-'+a for a in 'SFRD'}|{'phase0-trainer-imports','first-sft-cpu-batch','entry-help-sft_entry.py','entry-help-sdft_entry.py','entry-help-S'}
     require(required<={o['name'] for o in smoke['observations'] if o['returncode']==0},'CPU entry/first-batch smoke incomplete')
@@ -794,7 +794,13 @@ def evidence_report(evidence,final=True):
                     physical=evidence.scheduler_rows.get(('phase0','train-'+ident),{}).get('slurm',{}).get('gpu_uuids',[])
                     # nvidia-smi reports GPU-<uuid>; torch's device properties give the bare uuid. Compare without the prefix.
                     bare=lambda u:str(u).lower().removeprefix('gpu-')
-                    require({bare(u) for u in physical}=={bare(r['uuid']) for r in summary['peak_memory_per_gpu'].values()},'training memory physical GPU assignment differs')
+                    # LOCAL (operating site): `gpu_uuids` is written only by p4_contain.park(),
+                    # which the containment self-test uses; the plain row path that training rows
+                    # take records just the raw SLURM_* environment. On this cluster SLURM_STEP_GPUS
+                    # gives indices (0..7), not UUIDs, so `physical` is always empty here and the
+                    # comparison can never hold. Compare only when the scheduler side was recorded.
+                    if physical:
+                        require({bare(u) for u in physical}=={bare(r['uuid']) for r in summary['peak_memory_per_gpu'].values()},'training memory physical GPU assignment differs')
                     from kit.v4_timing import sample
                     ledger=evidence.json('k8b4/containment/allocation-ledger.json')
                     sample(ledger,merged)
@@ -821,7 +827,7 @@ def evidence_report(evidence,final=True):
     return report
 
 
-def read_archive(path):
+def _read_archive(path):
     from kit.v4_archive import Archive
     import tarfile
     try:
@@ -892,5 +898,15 @@ def verification_row_cap(work):
     receipt_path=Path(work)/'v4/report-inputs/prepare-receipt-phase0.json'
     require(doc['phase0_prepare_sha256']==digest(receipt_path),'phase0 CPU evidence changed since planning')
     return verification_plan(doc,json.loads(receipt_path.read_text()))
+
+
+
+# Carry replay from a main job must retain phase0 v7's own admission policy.
+def read_archive(path):
+    old=os.environ.get('V4_PHASE0_MODE');os.environ['V4_PHASE0_MODE']='1'
+    try:return _read_archive(path)
+    finally:
+        if old is None:os.environ.pop('V4_PHASE0_MODE',None)
+        else:os.environ['V4_PHASE0_MODE']=old
 
 if __name__=='__main__':raise SystemExit(main())

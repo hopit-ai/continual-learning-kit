@@ -6,9 +6,10 @@
 # LR is frozen at 1e-5 (SDFT d775732 has no SFT baseline LR); see v4_sft.py.
 set -euo pipefail
 SFT_ARM="${SFT_ARM:-F}"
-[[ "$SFT_ARM" == F || "$SFT_ARM" == R ]] || { echo "SFT_ARM must be F or R" >&2; exit 2; }
+[[ "$SFT_ARM" == F || "$SFT_ARM" == R ]] || { echo "SFT_ARM must be F or R" >&2; v4_validation_stop "$LINENO"; }
 if [[ "$SFT_ARM" == F ]]; then TARGET_FIELD=extra_info.demonstration; else TARGET_FIELD=extra_info.rewrite; fi
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$KIT/v4_launch_policy.sh"
 : "${SDPO_DIR:?set SDPO_DIR to pinned SDPO checkout}"
 : "${MODEL_DIR:?set MODEL_DIR to incoming HF model}"
 : "${NAME:?set NAME to a fresh run name}"
@@ -22,11 +23,11 @@ NGPU="${NGPU:-8}"
 WORK="${WORK:-$PWD/v4-work}"
 DRY_RUN="${DRY_RUN:-0}"
 FILE_LOG="${FILE_LOG:-1}"
-[[ "$STEPS" =~ ^[1-9][0-9]*$ ]] && (( STEPS <= 40 )) || { echo 'STEPS must be 1..40; <40 is smoke only' >&2; exit 2; }
-[[ "$NGPU" =~ ^[1-9][0-9]*$ ]] && (( 32 % NGPU == 0 )) || { echo 'NGPU must divide 32' >&2; exit 2; }
-[[ "$SEED" =~ ^[0-9]+$ ]] || { echo 'SEED must be an integer' >&2; exit 2; }
-[[ "${LR:-1e-5}" == '1e-5' ]] || { echo 'arm F LR is frozen at 1e-5' >&2; exit 2; }
-[[ "$FILE_LOG" == 0 || "$FILE_LOG" == 1 ]] || { echo 'FILE_LOG must be 0 or 1' >&2; exit 2; }
+[[ "$STEPS" =~ ^[1-9][0-9]*$ ]] && (( STEPS <= 40 )) || { echo 'STEPS must be 1..40; <40 is smoke only' >&2; v4_validation_stop "$LINENO"; }
+[[ "$NGPU" =~ ^[1-9][0-9]*$ ]] && (( 32 % NGPU == 0 )) || { echo 'NGPU must divide 32' >&2; v4_validation_stop "$LINENO"; }
+[[ "$SEED" =~ ^[0-9]+$ ]] || { echo 'SEED must be an integer' >&2; v4_validation_stop "$LINENO"; }
+[[ "${LR:-1e-5}" == '1e-5' ]] || { echo 'arm F LR is frozen at 1e-5' >&2; v4_validation_stop "$LINENO"; }
+[[ "$FILE_LOG" == 0 || "$FILE_LOG" == 1 ]] || { echo 'FILE_LOG must be 0 or 1' >&2; v4_validation_stop "$LINENO"; }
 [[ "$NAME" =~ ^[A-Za-z0-9_.-]+$ && "$NAME" != '.' && "$NAME" != '..' ]] || { echo 'NAME must be a simple run name' >&2; exit 2; }
 # The trainer changes cwd to SDPO_DIR; every path in argv must survive it.
 eval_paths=$(python - "$SDPO_DIR" "$MODEL_DIR" "$TRAIN_FILE" "$VAL_FILE" "$DATA_MANIFEST" "$WORK" <<'PY'
@@ -37,6 +38,7 @@ PY
 )
 eval "$eval_paths"
 OUT="$WORK/runs/$NAME"
+v4_guard_write "$OUT"
 if [[ "$FILE_LOG" == 1 ]]; then LOGGER='[console,file]'; else LOGGER='[console]'; fi
 ARGV=(python -m torch.distributed.run --standalone --nnodes=1 "--nproc_per_node=$NGPU"
   "$KIT/sft_entry.py" --config-name sft_trainer
@@ -64,12 +66,12 @@ if [[ "${V4_CHECKPOINT_STATE:-0}" == 1 ]]; then
   ARGV+=("trainer.checkpoint.save_contents=[model,optimizer,extra]" "trainer.checkpoint.load_contents=[model,optimizer,extra]")
 fi
 if [[ -n "${V4_RESUME_PATH:-}" ]]; then
-  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; exit 2; }
+  [[ "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo 'resume requires reviewed infrastructure admission' >&2; v4_validation_stop "$LINENO"; }
   ARGV+=("trainer.resume_mode=resume_path" "trainer.resume_from_path=$V4_RESUME_PATH")
 fi
 if [[ "$DRY_RUN" == 1 ]]; then printf '%s\n' "${ARGV[@]}"; exit 0; fi
 
-[[ ! -e "$OUT" || "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo "refusing to overwrite $OUT" >&2; exit 2; }
+[[ ! -e "$OUT" || "${V4_RETRY_ADMITTED:-0}" == 1 ]] || { echo "refusing to overwrite $OUT" >&2; v4_validation_stop "$LINENO"; }
 mkdir -p "$OUT/env"
 STAGE_FILE="$OUT/env/stage.json"
 LAST_STAGE=''
@@ -124,11 +126,14 @@ if not (len(t) == doc['rows'] and [r['id'] for r in t] == doc['ids']): sys.exit(
 if not (v == t[:32]): sys.exit('validation must be training-only diagnostics')
 if not ((model / 'config.json').is_file()): sys.exit('incoming HF model missing')
 if not (arm != 'R' or doc['arm'] == 'COMMON'): sys.exit('R requires the common file with both targets')
-if not (profile_name == 'technical-smoke' or (doc['arm'] == 'COMMON' and doc.get('scientific_phase_allowed') is True and not doc.get('stand_in_teacher') and doc['rows'] == 1280)): sys.exit('unqualified or stand-in data is smoke only')
+if profile_name != 'technical-smoke':
+    if not (doc['arm'] == 'COMMON' and not doc.get('stand_in_teacher') and not technical_synthetic(t) and doc['rows'] == 1280): sys.exit('unqualified or stand-in data is smoke only')
+    from kit.v4_finqa_policy import require
+    require(doc.get('scientific_phase_allowed') is True, 'low coverage in common training set; using surviving verified questions', 'SFT coverage')
 json.dump({'technical_synthetic': doc.get('technical_synthetic', False), 'profile': profile_name, 'technical_smoke': profile_name == 'technical-smoke', 'stand_in_teacher': doc.get('stand_in_teacher', False), 'teacher_models': doc.get('teacher_models', []), 'target_field': 'extra_info.' + ('rewrite' if arm == 'R' else 'demonstration')}, open(labels, 'w'))
 PY
 git -C "$SDPO_DIR" rev-parse HEAD > "$OUT/env/sdpo-commit.txt"
-[[ "$(cat "$OUT/env/sdpo-commit.txt")" == '7c457fc1b1f636ae794eb0362ba37d4743b06fbc' ]] || { echo 'SDPO revision mismatch' >&2; exit 2; }
+[[ "$(cat "$OUT/env/sdpo-commit.txt")" == '7c457fc1b1f636ae794eb0362ba37d4743b06fbc' ]] || { echo 'SDPO revision mismatch' >&2; v4_validation_stop "$LINENO"; }
 git -C "$SDPO_DIR" status --short > "$OUT/env/sdpo-dirty.txt"
 cp "$DATA_MANIFEST" "$OUT/env/data-manifest.json"
 pip freeze > "$OUT/env/pip-freeze.txt" 2>/dev/null || true
@@ -151,7 +156,7 @@ cd "$SDPO_DIR"
 # Resolve on ONE process, before torchrun can launch any GPU workers.
 if ! python "$KIT/sft_entry.py" --config-name sft_trainer --cfg job --resolve "${ARGV[@]:9}" \
   > "$OUT/env/resolved-config.yaml" 2> "$OUT/env/resolved-config.err" || [[ ! -s "$OUT/env/resolved-config.yaml" ]]; then
-  echo 'SFT config could not resolve; no trainer invoked' >&2; exit 2
+  echo 'SFT config could not resolve; no trainer invoked' >&2; v4_validation_stop "$LINENO"
 fi
 stage config-resolved
 stage trainer-invoked
@@ -198,4 +203,8 @@ for filename in ('train-summary.json', 'run-summary.json'):
 PY
 python "$KIT/v4_receipts.py" "$OUT" ${SFT_ARM} "$STEPS" "$V4_PROFILE"
 if [[ "$STATUS" != 0 ]]; then exit "$STATUS"; fi
-[[ "$MERGED" == 1 ]] || { echo 'arm F has no complete merged model' >&2; exit 2; }
+if [[ "$MERGED" != 1 ]]; then
+  echo "arm $SFT_ARM has no complete merged model; completed training dose retained for export recovery" >&2
+  if (( MERGE_STATUS > 0 )); then exit "$MERGE_STATUS"; fi
+  exit 4
+fi

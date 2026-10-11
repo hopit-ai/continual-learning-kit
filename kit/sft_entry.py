@@ -34,6 +34,8 @@ if os.environ.get("KIT_SFT_ARM_F") == "1":
     # trainer unconditionally asks DistributedSampler to shuffle; override only
     # its local symbol, leaving authors' source and legacy K2b behavior intact.
     import torch
+    from kit.v4_phase0_timing import distributed_defaults
+    distributed_defaults()
     from torch.utils.data.distributed import DistributedSampler as _Sampler
 
     def _ordered_sampler(*args, **kwargs):

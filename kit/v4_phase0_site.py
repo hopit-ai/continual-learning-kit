@@ -202,7 +202,7 @@ def storage_environment(work,*,task_root=None,min_gib=0,allocation=False):
     work=Path(work).resolve();task=Path(task_root or os.environ.get('TASK_ROOT') or work.parent).resolve()
     if task==work or task.is_relative_to(work):raise ValueError('TASK_ROOT/HF cache must be outside WORK')
     free_space(work,min_gib)
-    env={key:str(work/'phase0-cache'/folder) for key,folder in CACHE_KEYS.items()}
+    env={key:str((work/'phase0-cache' if key=='TMPDIR' else task/'cache')/folder) for key,folder in CACHE_KEYS.items()}
     env.update(RAY_TMPDIR=RAY_JOB_TMP,VLLM_RPC_BASE_PATH=VLLM_JOB_TMP,HF_HOME=str(task/'hf-cache'),HF_HUB_CACHE=str(task/'hf-cache/hub'),HF_ASSETS_CACHE=str(task/'hf-cache/assets'),
         HUGGINGFACE_HUB_CACHE=str(task/'hf-cache/hub'),TRANSFORMERS_CACHE=str(task/'hf-cache/hub'),
         PIP_DISABLE_PIP_VERSION_CHECK='1',PIP_DEFAULT_TIMEOUT=str(scale(30)),PIP_RETRIES='1',GIT_TERMINAL_PROMPT='0')

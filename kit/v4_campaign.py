@@ -13,28 +13,45 @@ import sys
 if __package__ in (None,''):
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 
-TASKS=('chemistry','finqa')
+TASKS=('finqa',)
+PANELS=('finqa','general-v1')
+PRIMARY_SEEDS=(101,102,103)
+REPLICATION_SEEDS=(104,105)
+from kit.v4_arms import ALL_ARMS
 ARMS=('S','F','R','D')
-SEEDS=(101,102,103)
+SEEDS=(101,102,103,104,105)
 CAPS=(2048,8192)
+PROBE_STEPS=(0,20,40)
 
 
-def slots():
+def legacy_slots():
     """Fixed 48-slot order, with D seed-101 standalone checkpoints first."""
     result=[]
-    for task in TASKS:
+    for task in ('chemistry','finqa'):
         result.append({'id':f'D-{task}-alone-s101','arm':'D','seed':101,'task':task,'incoming':None,'order':task+'-alone'})
-    for seed in SEEDS:
+    for seed in PRIMARY_SEEDS:
         for arm in ARMS:
-            for task in TASKS:
+            for task in ('chemistry','finqa'):
                 ident=f'{arm}-{task}-alone-s{seed}'
                 if ident not in {r['id'] for r in result}:
                     result.append({'id':ident,'arm':arm,'seed':seed,'task':task,'incoming':None,'order':task+'-alone'})
-            for first,second in (TASKS,TASKS[::-1]):
+            for first,second in (('chemistry','finqa'),('finqa','chemistry')):
                 result.append({'id':f'{arm}-{first}-{second}-s{seed}','arm':arm,'seed':seed,'task':second,
                                'incoming':f'{arm}-{first}-alone-s{seed}','order':first+'-'+second})
     return result
 
+
+
+def slots():
+    """23 fixed standalone slots; D-101 gate precedes the independent matrix."""
+    result=[dict(id='D-finqa-alone-s101',arm='D',seed=101,task='finqa',incoming=None,order='finqa-alone',cohort='primary')]
+    for seed in SEEDS:
+        for arm in ARMS:
+            ident=f'{arm}-finqa-alone-s{seed}'
+            if ident==result[0]['id']:continue
+            result.append(dict(id=ident,arm=arm,seed=seed,task='finqa',incoming=None,order='finqa-alone',cohort='primary' if seed in PRIMARY_SEEDS else 'replication'))
+    result += [dict(id=f'D-R-finqa-alone-s{seed}',arm='D-R',seed=seed,task='finqa',incoming=None,order='finqa-alone',cohort='descriptive') for seed in PRIMARY_SEEDS]
+    return result
 
 def containment(argv,*,phase,gpus=1,cap=900,concurrent=False):
     """Wrap GPU work with the final reservation and Slurm-assignment interface."""
@@ -49,7 +66,8 @@ def containment(argv,*,phase,gpus=1,cap=900,concurrent=False):
     return command+['--']+argv
 
 
-def build(phase):
+def legacy_build(phase):
+    TASKS=('chemistry','finqa')
     """Build a strict dependency graph, preserving pilot gates and one scoring GPU."""
     if phase=='phase0':
         from kit.v4_phase0 import campaign
@@ -115,7 +133,7 @@ def build(phase):
             action('profile-probe-'+task,'probe','--slot','q-S-chemistry','--task',task,'--step','0',gpu=1,cap=1800)
             action('profile-conditioned-'+task,'probe','--slot','q-S-'+task,'--task',task,'--step','0','--conditioned',gpu=1,cap=1800)
         jobs=[{'id':f'q-{arm}-{task}','arm':arm,'seed':101,'task':task,'incoming':None,'order':task+'-alone'} for arm in ARMS for task in TASKS]
-    else: jobs=slots()
+    else: jobs=legacy_slots()
     if phase=='main':
         for task in TASKS:
             action('conditioned-probe-'+task,'probe','--slot','D-'+task+'-alone-s101',
@@ -151,13 +169,14 @@ def build(phase):
                   'slot_order':jobs}}
 
 
-def write_campaigns(out):
+def write_campaigns(out,*,phase0_launch_archive=None):
     """Write reviewable YAML (JSON is a YAML subset), refusing overwrites."""
     out=Path(out); out.mkdir(parents=True,exist_ok=True)
     paths=[]
-    for phase in ('qualification','main'):
+    graphs={phase:build(phase,phase0_launch_archive=phase0_launch_archive) for phase in ('qualification','main')}
+    for phase,graph in graphs.items():
         path=out/('v4-'+phase+'.yaml')
-        with path.open('x') as handle: json.dump(build(phase),handle,indent=2); handle.write('\n')
+        with path.open('x') as handle: json.dump(graph,handle,indent=2); handle.write('\n')
         paths.append(path)
     return paths
 
@@ -165,9 +184,20 @@ def write_campaigns(out):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,default=Path(__file__).resolve().parent/'campaigns')
+    parser.add_argument('--phase0-launch-archive',type=Path,help='C1: replace launch allowances from verified phase-0 whole-launch measurements, recording the source')
     args=parser.parse_args(argv)
-    for path in write_campaigns(args.out): print(path)
+    for path in write_campaigns(args.out,phase0_launch_archive=args.phase0_launch_archive): print(path)
     return 0
 
+
+
+
+
+def build(phase,*,phase0_launch_archive=None):
+    if phase=='phase0':
+        from kit.v4_phase0 import campaign
+        return campaign()
+    from kit.v4_finqa_campaign import build as finqa_build
+    return finqa_build(phase,phase0_launch_archive=phase0_launch_archive)
 
 if __name__=='__main__': raise SystemExit(main())

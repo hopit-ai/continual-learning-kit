@@ -56,7 +56,7 @@ def test_frozen_socket_paths_fit_while_large_caches_stay_shared(shared_work):
     with s.storage(work):
         import tempfile
         assert tempfile.gettempdir()==str(work/'phase0-cache/tmp')
-        assert all(Path(os.environ[k]).is_relative_to(work/'phase0-cache') for k in s.CACHE_KEYS)
+        assert all(Path(os.environ[k]).is_relative_to(work/'phase0-cache' if k=='TMPDIR' else task/'cache') for k in s.CACHE_KEYS)
         assert Path(os.environ['HF_HOME']).is_relative_to(task) and not Path(os.environ['HF_HOME']).is_relative_to(work)
 
 
