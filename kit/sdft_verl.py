@@ -78,11 +78,17 @@ def build_sdft_teacher_batch(self, batch, reward_tensor, reward_extra_infos_dict
     sd = actor.self_distillation
     raw_prompts = batch.non_tensor_batch["raw_prompt"]
     extra_infos = batch.non_tensor_batch["extra_info"]
-    demonstrations = [objective.privileged_context(extra,self.config['v4_context_source']) for extra in extra_infos]
+    demonstrations = [None if os.environ.get('P3B_REPLAY')=='1' and extra.get('p3b_replay') else
+                      objective.privileged_context(extra,self.config['v4_context_source']) for extra in extra_infos]
     chat_kwargs = self.config.data.get("apply_chat_template_kwargs", None)
     chat_kwargs = OmegaConf.to_container(chat_kwargs, resolve=True) if chat_kwargs is not None else {}
     device = batch.batch["input_ids"].device
-    built = objective.build_teacher_inputs(self.tokenizer, raw_prompts, demonstrations, batch.batch["responses"],
+    builder = objective.build_teacher_inputs
+    if os.environ.get('P3B_REPLAY') == '1':
+        from functools import partial
+        from kit.p3b_loss import mixed_teacher_inputs
+        builder = partial(mixed_teacher_inputs, replay=[bool(e.get('p3b_replay')) for e in extra_infos])
+    built = builder(self.tokenizer, raw_prompts, demonstrations, batch.batch["responses"],
                                            batch.batch["response_mask"], chat_template_kwargs=chat_kwargs,
                                            max_reprompt_len=int(sd.max_reprompt_len))
     scores = reward_tensor.sum(dim=-1).detach().cpu().tolist()
@@ -140,7 +146,11 @@ class SdftTaskRunner(main_ppo.TaskRunner):
         from kit.v4_contract import check_resolved
         from kit.v4_run import check_data
         check_resolved(OmegaConf.to_container(config, resolve=True), os.environ.get('ARM','D'), profile_name=os.environ.get('V4_PROFILE','scientific'))
-        check_data({**os.environ, 'ARM':os.environ.get('ARM','D')})
+        if os.environ.get('P3B_DATA'):
+            from kit.p3b_train import check_data as check_p3b_data
+            check_p3b_data(Path(os.environ['P3B_DATA']))
+        else:
+            check_data({**os.environ, 'ARM':os.environ.get('ARM','D')})
         install_trainer_patch()
         from kit.v4_timing import install_telemetry
         from kit.v4_restore_check import install_trainer_probe

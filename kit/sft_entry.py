@@ -29,6 +29,10 @@ _stateful.StatefulDataLoader.__init__ = _unpinned_init
 
 from verl.trainer import fsdp_sft_trainer  # noqa: E402  (imported after the patch, on purpose)
 
+if os.environ.get("P3B_SFT") == "1":
+    from kit.p3b_loss import install_sft
+    install_sft(fsdp_sft_trainer)
+
 if os.environ.get("KIT_SFT_ARM_F") == "1":
     # Arms F/R's parquet is already the common 1,280-exposure schedule. The pinned
     # trainer unconditionally asks DistributedSampler to shuffle; override only

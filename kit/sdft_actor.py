@@ -154,6 +154,9 @@ def update_policy(self, data):
     mini_batches = data.split(self.config.ppo_mini_batch_size)
     if len(mini_batches) != 1: raise ValueError('D requires one optimizer update per prompt batch')
     metrics = {'actor/pg_loss':0., 'actor/kl_loss':0., 'actor/lr':self.actor_optimizer.param_groups[0]['lr']}
+    import os
+    if os.environ.get('P3B_REPLAY') == '1':
+        metrics.update({'p3b/replay_sft_loss':0., 'p3b/replay_tokens':0, 'p3b/task_response_tokens':0, 'p3b/replay_sampled_tokens':0})
     self.actor_optimizer.zero_grad()
     device = next(self.actor_module.parameters()).device
     for mini_batch in mini_batches:
@@ -161,11 +164,29 @@ def update_policy(self, data):
         for micro_batch in micro_batches:
             micro_batch = micro_batch.to(device)
             inputs = micro_batch.batch
-            if bool((inputs['self_distillation_mask'] != 1).any()): raise ValueError('D needs every target')
+            import os
             teacher_inputs = {'responses':inputs['responses'], 'input_ids':inputs['teacher_input_ids'],
                               'attention_mask':inputs['teacher_attention_mask'], 'position_ids':inputs['teacher_position_ids']}
+            # FSDP teacher collectives must precede the actor on every rank,
+            # including replay ranks; their padded projection is discarded.
             with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == 'cuda'):
                 teacher = teacher_projection(self.teacher_module, teacher_inputs)
+            if os.environ.get('P3B_REPLAY') == '1' and micro_batch.non_tensor_batch['extra_info'][0].get('p3b_replay'):
+                del teacher
+                from kit.p3b_loss import replay_loss
+                extra = micro_batch.non_tensor_batch['extra_info'][0]
+                metrics['p3b/replay_sampled_tokens'] += int(inputs['response_mask'].sum())
+                loss = replay_loss(self.actor_module, inputs, extra['p3b_target_ids'])
+                scaled = loss / len(micro_batches)
+                if self.scaler is not None: self.scaler.scale(scaled).backward()
+                else: scaled.backward()
+                metrics['p3b/replay_sft_loss'] = metrics.get('p3b/replay_sft_loss', 0.) + loss.detach().item() / len(micro_batches)
+                metrics['p3b/replay_tokens'] = metrics.get('p3b/replay_tokens', 0) + len(extra['p3b_target_ids'])
+                del loss, scaled
+                continue
+            if os.environ.get('P3B_REPLAY') == '1': metrics['p3b/task_response_tokens'] += int(inputs['response_mask'].sum())
+            if bool((inputs['self_distillation_mask'] != 1).any()): raise ValueError('D needs every target')
+            with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == 'cuda'):
                 width = inputs['responses'].shape[1]
                 def loss_head(hidden, weight, _teacher=teacher):
                     kl, logps, entropy = projected_distillation(hidden[:, -width-1:-1], weight, _teacher['hidden'], _teacher['weight'],
@@ -192,5 +213,11 @@ def update_policy(self, data):
             metrics.update(movement)
             self._v4_completed_updates = getattr(self, '_v4_completed_updates', 0) + 1
         metrics['v4/completed_optimizer_updates'] = getattr(self, '_v4_completed_updates', 0)
+    if os.environ.get('P3B_REPLAY') == '1':
+        keys=('p3b/replay_tokens','p3b/task_response_tokens','p3b/replay_sampled_tokens')
+        counts=torch.tensor([metrics[k] for k in keys],device=device)
+        if torch.distributed.is_initialized(): torch.distributed.all_reduce(counts)
+        metrics.update(dict(zip(keys,counts.cpu().tolist())))
+        metrics['p3b/combined_loss']=metrics['actor/pg_loss']+metrics['p3b/replay_sft_loss']
     self.actor_optimizer.zero_grad()
     return metrics
