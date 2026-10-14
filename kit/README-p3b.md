@@ -1,19 +1,28 @@
 # Package B: plain sequence and recovery jobs
 
 Science: `resources/p3b/registration.md`. One command is one job; supply your own
-sbatch. No campaign, runner, submission or automatic continuation. Keep an
-absolute OUT on durable storage; put training scratch/checkpoints on local NVMe
-if desired, then copy the entire run back before releasing the node.
+sbatch. No campaign, runner, submission or automatic continuation. Keep one
+absolute OUT on node-local NVMe and copy the complete OUT to fsx_efa throughout
+and before releasing the node. Training data and checkpoints are written beneath
+OUT; there is no separate scratch argument.
 
 ```bash
-export KIT=/absolute/checkout/kit OUT=/absolute/p3b
+export KIT=/absolute/checkout/kit
+export OUT=/absolute/node-local/package-B-OUT
 export TRAINER_PY=/absolute/trainer-venv/bin/python
 export INFERENCE_PY=/absolute/inference-venv/bin/python
 export SDPO=/absolute/pinned-SDPO
 export BASE=/absolute/Qwen3-8B-snapshot TEACHER=/absolute/Qwen3.6-27B-snapshot
-export A=/absolute/package-A-OUT FINQA=/absolute/v4_finqa
-export V4_FINQA_PANEL=/absolute/v4/report-inputs/finqa-panel.jsonl
+export A=/absolute/package-A-OUT                     # the complete package-A OUT, not its archive
+# The retained FinQA evidence tree on fsx_efa: the directory holding v4/ and runs/.
+export V4_WORK=/absolute/fsx_efa/path/to/preserved-finqa-WORK
+export V4_FINQA_PANEL="$V4_WORK/v4/report-inputs/finqa-panel.jsonl"   # replay exclusions only
+export FINQA="$V4_WORK/v4/datasets/datasets/v4_finqa"                  # scoring: holds test.parquet
 ```
+
+Models live under `v4-finqa-keep/exports/`; each one's receipt comes from its
+original run, `$V4_WORK/runs/<ARM>-finqa-alone-s<SEED>/env/export-identity-step40.json`
+(step 20: `...-step20.json`). Do not edit receipts after relocating a model.
 
 Use SDPO `7c457fc1b1f636ae794eb0362ba37d4743b06fbc`, base revision
 `b968826d9c46dd6066d109eabc6255188de91218`, teacher revision
@@ -35,8 +44,11 @@ No reference answers are sent to generation. This records the pinned source
 parquet hash on first use, exclusions, candidate IDs and a durable raw journal.
 
 ```bash
-"$TRAINER_PY" "$KIT/p3b_replay_data.py" --out "$OUT" --package-a "$A" --finqa-panel "$V4_FINQA_PANEL" --model "$BASE" --gpu 0
+export REPLAY_GPU=5   # any free allocation-visible GPU, 5-7, while A runs
+"$TRAINER_PY" "$KIT/p3b_replay_data.py" --out "$OUT" --package-a "$A" --finqa-panel "$V4_FINQA_PANEL" --model "$BASE" --gpu "$REPLAY_GPU"
 ```
+
+Wait for replay generation and all A GPU jobs to finish before any eight-GPU job.
 
 `--parquet /cached/train.parquet` permits offline reuse of that pinned download.
 First 64 accepted examples form `replay/refresher-64.jsonl`; first 16 are nested.
@@ -51,6 +63,9 @@ its recorded origin must identify `D-finqa-alone-s101/hf-step40` (or matching F/
 seed). Relocation is allowed; every model-file hash must match that receipt.
 
 ```bash
+ARM=D SEED=101
+MODEL="/absolute/fsx_efa/v4-finqa-keep/exports/REPLACE-WITH-D-finqa-alone-s101/hf-step40"   # replace
+RECEIPT="$V4_WORK/runs/${ARM}-finqa-alone-s${SEED}/env/export-identity-step40.json"
 "$TRAINER_PY" "$KIT/p3b_recover.py" --out "$OUT" --arm D --size 64 --seed 101 --model "$MODEL" --incoming-receipt "$RECEIPT" --tokenizer "$BASE" --trainer-python "$TRAINER_PY" --sdpo "$SDPO" --gpu 0,1,2,3,4,5,6,7
 ```
 
@@ -63,6 +78,9 @@ SCHEDULE is v4's existing seed-matched scheduled `train.parquet`, with its
 original MANIFEST. It contains the same verified teacher targets as v4.
 
 ```bash
+SEED=101   # one common schedule per seed, shared by D and F (main campaign, 1,280 rows)
+SCHEDULE="$V4_WORK/v4/report-main/scheduled/finqa-s${SEED}/train.parquet"
+MANIFEST="$V4_WORK/v4/report-main/scheduled/finqa-s${SEED}/manifest.json"
 "$TRAINER_PY" "$KIT/p3b_replay_train.py" --out "$OUT" --recipe D+replay --route finqa --seed 101 --model "$BASE" --tokenizer "$BASE" --task-schedule "$SCHEDULE" --schedule-manifest "$MANIFEST" --trainer-python "$TRAINER_PY" --sdpo "$SDPO" --gpu 0,1,2,3,4,5,6,7
 ```
 
@@ -78,7 +96,21 @@ D checkpoints: `sdft/global_step_K/actor`; F: `train/global_step_K`.
 boundary (FinQA and three general panels). Non-base scores bind an export
 receipt (`--checkpoint-receipt`; new run receipts are also auto-discovered).
 
+Rebind MODEL and RECEIPT for every checkpoint you score; the label must match the model:
+
+| Checkpoint | `--arm` | `--step` | `--checkpoint-receipt` |
+|---|---|---:|---|
+| BASE | `base` (with `--seed 0`) | 0 | omit |
+| Original v4 D/F final | `D` / `F` | 40 | its original v4 step-40 receipt |
+| Recovery output | `recover-D-n64` etc. | 4 | `$OUT/runs/recover-D-n64-s101/export-4.json` etc. |
+| Prevention output | `finqa-D+replay` / `finqa-F+replay` | 40 | that run's `export-40.json` |
+
+Score both panel sets for: base; original D seeds 101-105 and F seeds 101-103; all
+12 recovery outputs; all 8 prevention outputs. Example (prevention, D+replay s101):
+
 ```bash
+MODEL="$OUT/runs/finqa-D+replay-s101/hf-step40"
+RECEIPT="$OUT/runs/finqa-D+replay-s101/export-40.json"
 "$TRAINER_PY" "$KIT/p3b_score.py" --out "$OUT" --model "$MODEL" --checkpoint-receipt "$RECEIPT" --arm finqa-D+replay --seed 101 --step 40 --panel-set finqa --panel-root "$FINQA" --gpu 0
 "$TRAINER_PY" "$KIT/p3b_score.py" --out "$OUT" --model "$MODEL" --checkpoint-receipt "$RECEIPT" --arm finqa-D+replay --seed 101 --step 40 --panel-set general-v1 --gpu 0
 ```
@@ -142,3 +174,24 @@ Send the archive plus `OUT/return/scores.csv.gz`, `metrics.csv.gz`, source diff,
 job IDs and a short note on fixes, provenance, missing work and costs. No weights,
 caches, private tests or rollouts return. Large evidence omissions are hash-listed;
 archive is capped at 28 MiB. Keep all full raw evidence/checkpoints durably.
+
+## Step-20 scoring of the v4 exports (separate OUT)
+
+Score the 23 step-20 exports one after another on one fixed GPU (trainer venv),
+FinQA and general-v1 at 2,048 only, with each export's own step-20 receipt.
+Do this when that GPU is not needed by A or an eight-GPU job.
+
+```bash
+export OUT20=/absolute/node-local/step20-results
+ARM=D SEED=101
+MODEL20="/absolute/fsx_efa/v4-finqa-keep/exports/REPLACE-WITH-D-finqa-alone-s101/hf-step20"   # replace
+RECEIPT20="$V4_WORK/runs/${ARM}-finqa-alone-s${SEED}/env/export-identity-step20.json"
+for PANEL in finqa general-v1; do
+  "$TRAINER_PY" "$KIT/p3b_score.py" --out "$OUT20" --model "$MODEL20" --checkpoint-receipt "$RECEIPT20" \
+    --arm "$ARM" --seed "$SEED" --step 20 --panel-set "$PANEL" --panel-root "$FINQA" --gpu 0 || exit $?
+done
+```
+
+Repeat for D/F/R/S seeds 101-105 and D-R seeds 101-103. Then
+`"$TRAINER_PY" "$KIT/p3b_collect.py" --out "$OUT20" --archive /absolute/step20-return.tar.gz`
+writes `OUT20/return/scores.csv.gz` (the metrics export is empty: no training here).
