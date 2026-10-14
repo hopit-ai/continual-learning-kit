@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "correct": 14,
+  "n": 51,
+  "complete": true,
+  "candidate": "code",
+  "step": 1,
+  "freeze_sha256": "c75c3d5a2fcd140f434316fb768f6d590a056e51a3e410d56abb433ef9c64d37",
+  "pricing": {
+    "step": 1,
+    "gpus_allocated": 1,
+    "function_seconds": 1000,
+    "effective_deadline_seconds": 940,
+    "startup_seconds": 600,
+    "idle_seconds": 2,
+    "rate_usd_s": 0.00134388,
+    "reserved_usd": 2.7911,
+    "expected_usd_range": [
+      1.31,
+      1.72
+    ],
+    "both_candidates_reserved_usd": 126.9841,
+    "ceiling_usd": 20,
+    "exceeds_original_ceiling": true,
+    "additional_reservation_usd": 106.9841,
+    "step2_projection_seconds": {
+      "two_cold_downloads": 436,
+      "two_model_loads": 1418,
+      "teacher_four_rounds": 3013,
+      "rewrite_four_rounds": 3013,
+      "sequential_verification": 1600.0,
+      "hashing_and_journals": 120
+    },
+    "projection_basis": "cold starts; measured 27B proxy for both models; verification/IO assumptions; no guaranteed runtime",
+    "price_source": "https://modal.com/pricing",
+    "approval_pending": true
+  },
+  "paid": true,
+  "technical_synthetic": false
+}

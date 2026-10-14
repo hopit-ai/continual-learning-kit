@@ -82,6 +82,10 @@ def pruned(name: str) -> bool:
 def wanted(rel: Path, root_rel: Path) -> bool:
     """Whether a file (path relative to WORK) is something a partner sends back."""
     parts = rel.parts
+    if parts[:3] == ('3c', 'report-inputs', 'prepared') and rel.name == 'tests.jsonl':
+        return False  # Full private tests remain on node; frozen hashes and verifier results return.
+    if parts[:2] == ('3a', 'report-inputs') and rel.suffix == '.py':
+        return True
     if parts==('v4','report-inputs','phase0-return.tar.gz'):return True
     if parts==('reconcile','containment-reconcile.json'):return True
     if parts in (('route-probe.sbatch',),('v4','report-phase0','route-probe.err')):return True
@@ -230,6 +234,8 @@ def kit_snapshot(work: Path) -> tuple:
         if not folder.is_dir():
             continue
         if not path.is_file():
+            path = HERE / "campaigns" / ("%s.json" % folder.name)
+        if not path.is_file():
             campaigns.append({"name": folder.name, "file": None, "why": "no kit/campaigns/%s.yaml beside this collector" % folder.name})
             continue
         digest = hashlib.sha256(path.read_text().encode()).hexdigest()
@@ -239,15 +245,20 @@ def kit_snapshot(work: Path) -> tuple:
                 recorded.add(json.loads(start.read_text()).get("campaign_sha256"))
             except (OSError, ValueError):
                 recorded.add(None)
-        files.append((path, "kit-snapshot/campaigns/%s.yaml" % folder.name))
-        campaigns.append({"name": folder.name, "file": "kit-snapshot/campaigns/%s.yaml" % folder.name, "sha256": digest,
+        files.append((path, "kit-snapshot/campaigns/%s" % path.name))
+        campaigns.append({"name": folder.name, "file": "kit-snapshot/campaigns/%s" % path.name, "sha256": digest,
                           "runs_recorded_with": sorted(str(r) for r in recorded), "matches_every_run": recorded == {digest}})
     # The v4 readers use qualified kit imports. Preserve their package layout as
     # well as the historical flat snapshot, and include only source (no weights).
-    if any(folder.name.startswith('v4-') for folder in base.iterdir()) if base.is_dir() else False:
+    if any(folder.name.startswith(('v4-', '3a-')) for folder in base.iterdir()) if base.is_dir() else False:
         for src in sorted(HERE.rglob('*')):
             if src.is_file() and not src.is_symlink() and (src.suffix in ('.py', '.sh') or src.name=='v4_departures.json'):
                 files.append((src, 'kit-snapshot/kit/'+str(src.relative_to(HERE))))
+    if any(folder.name.startswith(('3a-',)) for folder in base.iterdir()) if base.is_dir() else False:
+        for src in sorted((HERE / 'resources/3a-shortcut').rglob('*')):
+            if src.is_file() and not src.is_symlink() and src.suffix != '.py':
+                files.append((src, 'kit-snapshot/kit/'+str(src.relative_to(HERE))))
+        files.append((HERE / 'README-3a.md', 'kit-snapshot/kit/README-3a.md'))
     return files, {"files": [arc for _src, arc in files], "missing": missing, "campaigns": campaigns}
 
 

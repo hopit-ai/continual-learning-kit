@@ -126,7 +126,7 @@ def bind(work,archive,*,campaigns=None):
     return binding
 
 
-def verify_work(work,*,campaigns=None):
+def verify_work(work,*,campaigns=None,warning_work=None):
     work=Path(work)
     try:
         binding=json.loads((work/BINDING_PATH).read_text())
@@ -135,12 +135,12 @@ def verify_work(work,*,campaigns=None):
         from kit.v4_finqa_policy import enabled, warn
         if ledger.get('phase0_import')!=binding:
             if not enabled():raise ValueError('phase0 import missing or differs from its bound return')
-            warn('allocation accounting','live import differs; immutable verified phase0 records remain authoritative',work)
+            warn('allocation accounting','live import differs; immutable verified phase0 records remain authoritative',warning_work or work)
             ledger={**ledger,'phase0_import':binding}
         try:accounting_allocations(ledger)
         except ValueError as exc:
             if not enabled():raise
-            warn('allocation accounting',str(exc),work)
+            warn('allocation accounting',str(exc),warning_work or work)
         return ledger
     except (OSError,KeyError) as exc:raise ValueError('phase0 bound return is missing/unreadable: '+str(exc)) from exc
 

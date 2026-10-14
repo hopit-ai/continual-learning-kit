@@ -103,7 +103,7 @@ def phase0_mode(campaign):
 
 
 def finqa_mode(campaign):
-    return campaign.get('v4',{}).get('scope')=='finqa-alone'
+    return campaign.get('v4',{}).get('scope') == 'finqa-alone'
 
 
 def load_campaign(path: Path) -> dict:
@@ -453,7 +453,7 @@ def write_durably(path: Path, payload: dict) -> None:
         if temporary is not None: os.unlink(temporary)
 
 
-def bounded_command(command, *, timeout, log=None, env=None, cwd=None):
+def bounded_command(command, *, timeout, log=None, env=None, cwd=None, own_session=True):
     """A CPU command cannot hold an allocation indefinitely, including children."""
     if isinstance(timeout, bool) or not 0 < float(timeout) < float('inf'):
         raise CampaignError('command needs a finite positive deadline')
@@ -461,11 +461,13 @@ def bounded_command(command, *, timeout, log=None, env=None, cwd=None):
     handle = Path(log).open('w') if log else None
     failure = None
     try:
-        process = subprocess.Popen(command, env=env, cwd=cwd, start_new_session=True,
+        process = subprocess.Popen(command, env=env, cwd=cwd, start_new_session=own_session,
                                    stdout=handle, stderr=subprocess.STDOUT if handle else None)
         try: code = process.wait(timeout=float(timeout))
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
+            # Nested partner workers share their row's group: the row deadline
+            # must also reach TP workers, rather than orphaning a detached engine.
+            os.killpg(process.pid if own_session else os.getpgrp(), signal.SIGKILL)
             process.wait(timeout=shared_limit(5))
             code, failure = 124, 'cpu_deadline'
         if code and failure is None: failure = 'cpu_exit'
@@ -639,7 +641,7 @@ def run_row(campaign: dict, row: dict, attempt: int | None) -> int:
         elif campaign['v4'].get('phase')=='main' and row['id'] not in ('containment-selftest','rewrite-allocation-selftest','scientific-allocation-selftest','environment','prepare','model-identity-check'):
             from kit.v4_campaign_ops import registered_caps
             cap=registered_caps(work_root(campaign))['merge' if row['id'].startswith('merge-') else 'cpu']
-        if not phase0_mode(campaign) and entry.get('planned_end') and float(stamp(entry['planned_end'])) < time.time()+(300 if campaign.get('v4',{}).get('scope')=='finqa-alone' else cap):
+        if not phase0_mode(campaign) and entry.get('planned_end') and float(stamp(entry['planned_end'])) < time.time()+(300 if finqa_mode(campaign) else cap):
             print('allocation exhausted; resume in a new allocation: '+row['id'])
             return 75  # No start/attempt exists; not an infrastructure retry.
     done = attempts(campaign, row["id"])
@@ -922,7 +924,9 @@ def cmd_run_parallel(campaign: dict, rows: list, attempt: int | None, jobs: int)
                 row=running.pop(future);code=future.result();done.add(row['id'])
                 if code!=EXIT_OK:
                     first=first or code
-                    if row.get('pilot') or code==75:
+                    if code==EXIT_REFUSED and finqa_mode(campaign):first=code
+                    elif code==75 and first!=EXIT_REFUSED:first=code
+                    if row.get('pilot') or code==75 or (code==EXIT_REFUSED and finqa_mode(campaign)):
                         stopped=True
                         print('STOP: %s did not pass; no further parallel rows are dispatched' % row['id'])
             if stopped and not running:return first

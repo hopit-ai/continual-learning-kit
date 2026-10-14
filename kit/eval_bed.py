@@ -49,16 +49,16 @@ ENGINE = {"dtype": "bfloat16", "tensor_parallel_size": 1, "gpu_memory_utilizatio
 # One bed's answer budget. All three are 2,048 new tokens, the same cap the forgetting panel uses, so
 # a truncated answer here means the same thing it means there. Kept per bed because a bed whose
 # answers are longer would need its own number, and that change must be visible.
-MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048, "chemistry": 2048, "toolalpaca": 2048}
+MAX_NEW_TOKENS = {"spider": 2048, "gsm8k": 2048, "finqa": 2048, "code": 2048, "chemistry": 2048, "toolalpaca": 2048, "math_screen": 2048}
 PROMPT_BUDGET = 4096        # with `--max-new-tokens` the context grows to this plus the cap. Not the trainer's 2,048 prompt limit: 18 FinQA test prompts are longer (up to 2,558 tokens, docs/phase2/k1c/feasibility.md), and a prompt over the budget would be given less than the cap and still be counted as cut at it
 # `chemistry` and `toolalpaca` (plan v3) are the SDPO authors' own two tasks: their data, their chat messages, their
 # scorer, read from the pinned checkout (kit/beds/_authors.py). They are scored here and trained through the two
 # ToolAlpaca launchers; they are NOT in kit/beds/rewards.py, which would need the checkout at import time.
-BED_FILES = {"spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
+BED_FILES = {"math_screen": HERE / "beds" / "math_screen.py", "spider": HERE / "beds" / "spider.py", "gsm8k": HERE / "beds" / "gsm8k.py",
              "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py",
              "chemistry": HERE / "beds" / "chemistry.py", "toolalpaca": HERE / "beds" / "toolalpaca.py"}
-DEFAULT_SPLIT = {"spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout", "chemistry": "test", "toolalpaca": "test"}
-SPLITS = {"spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout"),
+DEFAULT_SPLIT = {"math_screen": "heldout", "spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout", "chemistry": "test", "toolalpaca": "test"}
+SPLITS = {"math_screen": ("train", "heldout"), "spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout"),
           "chemistry": ("train", "test"), "toolalpaca": ("train", "test")}
 
 
@@ -283,9 +283,9 @@ def panel_labels(module, args) -> dict:
 
 
 # ------------------------------------------------------------------------------------ subcommands
-def cmd_generate(args) -> int:
+def cmd_generate(args, *, frozen_items=None) -> int:
     module = load_bed(args.bed)
-    items = items_of(module, args)
+    items = items_of(module, args) if frozen_items is None else frozen_items
     model = Path(args.model).resolve()
     if not (model / "config.json").is_file():
         raise EvalBedError("not a HuggingFace model directory: %s" % model)

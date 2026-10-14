@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Main-only native-host storage and retained phase-0 launch inputs; no downloads."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext, redirect_stdout
 import argparse
 import hashlib
 import json
@@ -18,8 +18,8 @@ RAY_JOB_TMP='/tmp/finqa-ray'
 LAUNCH='v4/report-inputs/launch-inputs-finqa.json'
 
 
-def storage_environment(work,*,allocation=False):
-    env=site.storage_environment(work,allocation=False)
+def storage_environment(work,*,allocation=False,storage_work=None):
+    env=site.storage_environment(storage_work or work,allocation=False)
     # Reuse reviewed cache routing; only short IPC scratch moves into job /tmp.
     env.update(RAY_TMPDIR=RAY_JOB_TMP,VLLM_RPC_BASE_PATH='/tmp')
     if allocation:env['TMPDIR']=JOB_TMP
@@ -109,10 +109,10 @@ def disk_requirement(launch):
                 environment_and_compile_cache_bytes=caches,required_bytes=required,required_gib=(required+GIB-1)//GIB)
 
 
-def frozen_environment(work):
+def frozen_environment(work,*,warning_work=None):
     doc=json.loads((Path(work)/LAUNCH).read_text())
     from kit.v4_phase0_carry import verify_work
-    ledger=verify_work(work)
+    ledger=verify_work(work,warning_work=warning_work) if warning_work is not None else verify_work(work)
     if doc['phase0_archive_sha256']!=ledger['phase0_import']['archive_sha256']:raise ValueError('host launch phase0 archive binding differs')
     from kit.v4_archive import Archive
     from kit.v4_phase0_carry import ARCHIVE_PATH
@@ -121,15 +121,15 @@ def frozen_environment(work):
         for key in ('MODEL_DIR','TEACHER_MODEL_DIR','QWEN3_8B_TOKENIZER','SDPO_DIR','FINQA_ROOT','V4_TEACHER_PYTHON'):
             if doc['environment'][key]!=original['environment'][key]:
                 from kit.v4_finqa_policy import warn
-                warn('retained input paths','path changed: '+key+'; byte identities remain verified',work)
+                warn('retained input paths','path changed: '+key+'; byte identities remain verified',warning_work or work)
         if doc['trainer_activate']!=str(Path(original['trainer_prefix'])/'bin/activate'):
             from kit.v4_finqa_policy import warn
-            warn('trainer activation','retained trainer path differs',work)
+            warn('trainer activation','retained trainer path differs',warning_work or work)
     env=doc['environment']
     if env['WORK']!=str(Path(work).resolve()):raise ValueError('frozen destination outside WORK')
     if env['TMPDIR']!=JOB_TMP:
         from kit.v4_finqa_policy import warn
-        warn('job temporary paths','frozen job TMPDIR differs',work)
+        warn('job temporary paths','frozen job TMPDIR differs',warning_work or work)
     return {**env,**({'V4_KIT_TAG':os.environ['V4_KIT_TAG']} if 'V4_KIT_TAG' in os.environ else {})}
 
 
@@ -193,15 +193,17 @@ def inherit(work):
     return doc,disk
 
 
-def exports(work):
+def exports(work,*,warning_work=None):
     """Recover retained login inputs in a fresh shell, preserving its owner tag."""
-    env=dict(frozen_environment(work))
+    from kit.v4_finqa_policy import observations
+    with observations(warning_work) if warning_work is not None else nullcontext():
+        env=dict(frozen_environment(work,warning_work=warning_work) if warning_work is not None else frozen_environment(work))
     if Path(env['KIT']).resolve()!=Path(__file__).resolve().parent:
         from kit.v4_finqa_policy import warn
-        warn('host kit path','kit moved from frozen path; current source and original evidence retained',work)
+        warn('host kit path','kit moved from frozen path; current source and original evidence retained',warning_work or work)
         env['KIT']=str(Path(__file__).resolve().parent)
         env['PYTHONPATH']=str(Path(__file__).resolve().parents[1])+os.pathsep+env['SDPO_DIR']
-    env.update(storage_environment(work,allocation=False))
+    env.update(storage_environment(work,allocation=False,storage_work=warning_work))
     env['V4_PHASE0_MODE']='0'
     env.pop('V4_KIT_TAG',None) # supplied by the owner for this phase, never replay an old tag
     doc=json.loads((Path(work)/LAUNCH).read_text())
@@ -227,7 +229,7 @@ def check(work):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('operation',choices=('inherit','exports','storage','check','disk'))
-    p.add_argument('--work',type=Path,required=True);p.add_argument('--allocation',action='store_true');a=p.parse_args(argv)
+    p.add_argument('--work',type=Path,required=True);p.add_argument('--warning-work',type=Path);p.add_argument('--allocation',action='store_true');a=p.parse_args(argv)
     try:
         if a.operation=='inherit':
             doc,disk=inherit(a.work)
@@ -237,7 +239,9 @@ def main(argv=None):
             for key in ('HF_HOME','HF_HUB_CACHE','HF_ASSETS_CACHE','HUGGINGFACE_HUB_CACHE','TRANSFORMERS_CACHE'):env[key]=doc['environment'][key]
             env['V4_TRAINER_ACTIVATE']=doc['trainer_activate']
             print('\n'.join('export '+k+'='+shlex.quote(v) for k,v in sorted(env.items())))
-        elif a.operation=='exports':print('\n'.join('export '+k+'='+shlex.quote(v) for k,v in sorted(exports(a.work).items())))
+        elif a.operation=='exports':
+            with redirect_stdout(sys.stderr):env=exports(a.work,warning_work=a.warning_work)
+            print('\n'.join('export '+k+'='+shlex.quote(v) for k,v in sorted(env.items())))
         elif a.operation=='storage':print('\n'.join('export '+k+'='+shlex.quote(v) for k,v in sorted(storage_environment(a.work,allocation=a.allocation).items())))
         else:print(json.dumps(check(a.work) if a.operation=='check' else planning_storage(a.work),indent=2))
     except (ValueError,KeyError,OSError) as exc:print('STOP: '+str(exc),file=sys.stderr);return 2

@@ -1,0 +1,532 @@
+{
+  "diagnostic_convention": "Exact inclusive training-gold band; frequency-weighted training-gold median; literal training-gold strings. Uniform ties; uniform four-option fallback when no match.",
+  "errors": [],
+  "ok": true,
+  "panels": {
+    "balanced": {
+      "gold_cue_diagnostics": {
+        "affected": {
+          "distractor_training_string_matches": 100,
+          "distractors_n": 612,
+          "gold_inside_training_band": 200,
+          "gold_training_string_matches": 152,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.8455882352941176,
+            "training_gold_band": 0.7651143790849674,
+            "training_gold_string": 0.6254084967320261
+          },
+          "n": 204
+        },
+        "aqueous solubility": {
+          "distractor_training_string_matches": 53,
+          "distractors_n": 228,
+          "gold_inside_training_band": 72,
+          "gold_training_string_matches": 32,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.8552631578947368,
+            "training_gold_band": 0.6567982456140351,
+            "training_gold_string": 0.3442982456140351
+          },
+          "n": 76
+        },
+        "distribution coefficient logD": {
+          "distractor_training_string_matches": 47,
+          "distractors_n": 384,
+          "gold_inside_training_band": 128,
+          "gold_training_string_matches": 120,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.83984375,
+            "training_gold_band": 0.8294270833333334,
+            "training_gold_string": 0.7923177083333334
+          },
+          "n": 128
+        }
+      },
+      "n": 204,
+      "questions": 51,
+      "strata": {
+        "affected": {
+          "gold_rank_counts": {
+            "1": 51,
+            "2": 51,
+            "3": 51,
+            "4": 51
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.16176470588235295,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.3235294117647059,
+            "rank_1": 0.25,
+            "rank_2": 0.25,
+            "rank_3": 0.25,
+            "rank_4": 0.25
+          },
+          "n": 204,
+          "rank_letter_counts": {
+            "1:A": 17,
+            "1:B": 10,
+            "1:C": 14,
+            "1:D": 10,
+            "2:A": 9,
+            "2:B": 11,
+            "2:C": 13,
+            "2:D": 18,
+            "3:A": 12,
+            "3:B": 16,
+            "3:C": 15,
+            "3:D": 8,
+            "4:A": 13,
+            "4:B": 14,
+            "4:C": 9,
+            "4:D": 15
+          }
+        },
+        "aqueous solubility": {
+          "gold_rank_counts": {
+            "1": 19,
+            "2": 19,
+            "3": 19,
+            "4": 19
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.10526315789473684,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.34210526315789475,
+            "rank_1": 0.25,
+            "rank_2": 0.25,
+            "rank_3": 0.25,
+            "rank_4": 0.25
+          },
+          "n": 76,
+          "rank_letter_counts": {
+            "1:A": 3,
+            "1:B": 2,
+            "1:C": 10,
+            "1:D": 4,
+            "2:A": 1,
+            "2:B": 6,
+            "2:C": 4,
+            "2:D": 8,
+            "3:A": 8,
+            "3:B": 7,
+            "3:C": 2,
+            "3:D": 2,
+            "4:A": 7,
+            "4:B": 4,
+            "4:C": 3,
+            "4:D": 5
+          }
+        },
+        "distribution coefficient logD": {
+          "gold_rank_counts": {
+            "1": 32,
+            "2": 32,
+            "3": 32,
+            "4": 32
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.1953125,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.3125,
+            "rank_1": 0.25,
+            "rank_2": 0.25,
+            "rank_3": 0.25,
+            "rank_4": 0.25
+          },
+          "n": 128,
+          "rank_letter_counts": {
+            "1:A": 14,
+            "1:B": 8,
+            "1:C": 4,
+            "1:D": 6,
+            "2:A": 8,
+            "2:B": 5,
+            "2:C": 9,
+            "2:D": 10,
+            "3:A": 4,
+            "3:B": 9,
+            "3:C": 13,
+            "3:D": 6,
+            "4:A": 6,
+            "4:B": 10,
+            "4:C": 6,
+            "4:D": 10
+          }
+        }
+      }
+    },
+    "letters": {
+      "gold_cue_diagnostics": {
+        "affected": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 459,
+          "gold_inside_training_band": 150,
+          "gold_training_string_matches": 114,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 0.9852941176470589,
+            "training_gold_string": 0.8088235294117647
+          },
+          "n": 153
+        },
+        "aqueous solubility": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 171,
+          "gold_inside_training_band": 54,
+          "gold_training_string_matches": 24,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 0.9605263157894737,
+            "training_gold_string": 0.5657894736842105
+          },
+          "n": 57
+        },
+        "distribution coefficient logD": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 288,
+          "gold_inside_training_band": 96,
+          "gold_training_string_matches": 90,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 1.0,
+            "training_gold_string": 0.953125
+          },
+          "n": 96
+        }
+      },
+      "n": 630,
+      "questions": 210,
+      "strata": {
+        "affected": {
+          "gold_rank_counts": {
+            "3": 153
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.21568627450980393,
+            "letter_B": 0.26143790849673204,
+            "letter_C": 0.24183006535947713,
+            "letter_D": 0.28104575163398693,
+            "nearest_mean": 0.29411764705882354,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 153,
+          "rank_letter_counts": {
+            "3:A": 33,
+            "3:B": 40,
+            "3:C": 37,
+            "3:D": 43
+          }
+        },
+        "aqueous solubility": {
+          "gold_rank_counts": {
+            "3": 57
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.21052631578947367,
+            "letter_B": 0.24561403508771928,
+            "letter_C": 0.22807017543859648,
+            "letter_D": 0.3157894736842105,
+            "nearest_mean": 0.3684210526315789,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 57,
+          "rank_letter_counts": {
+            "3:A": 12,
+            "3:B": 14,
+            "3:C": 13,
+            "3:D": 18
+          }
+        },
+        "distribution coefficient logD": {
+          "gold_rank_counts": {
+            "3": 96
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.21875,
+            "letter_B": 0.2708333333333333,
+            "letter_C": 0.25,
+            "letter_D": 0.2604166666666667,
+            "nearest_mean": 0.25,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 96,
+          "rank_letter_counts": {
+            "3:A": 21,
+            "3:B": 26,
+            "3:C": 24,
+            "3:D": 25
+          }
+        }
+      }
+    },
+    "original": {
+      "gold_cue_diagnostics": {
+        "affected": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 153,
+          "gold_inside_training_band": 50,
+          "gold_training_string_matches": 38,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 0.9852941176470589,
+            "training_gold_string": 0.8088235294117647
+          },
+          "n": 51
+        },
+        "aqueous solubility": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 57,
+          "gold_inside_training_band": 18,
+          "gold_training_string_matches": 8,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 0.9605263157894737,
+            "training_gold_string": 0.5657894736842105
+          },
+          "n": 19
+        },
+        "distribution coefficient logD": {
+          "distractor_training_string_matches": 0,
+          "distractors_n": 96,
+          "gold_inside_training_band": 32,
+          "gold_training_string_matches": 30,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 1.0,
+            "training_gold_band": 1.0,
+            "training_gold_string": 0.953125
+          },
+          "n": 32
+        }
+      },
+      "n": 210,
+      "questions": 210,
+      "strata": {
+        "affected": {
+          "gold_rank_counts": {
+            "3": 51
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.35294117647058826,
+            "letter_B": 0.21568627450980393,
+            "letter_C": 0.27450980392156865,
+            "letter_D": 0.1568627450980392,
+            "nearest_mean": 0.29411764705882354,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 51,
+          "rank_letter_counts": {
+            "3:A": 18,
+            "3:B": 11,
+            "3:C": 14,
+            "3:D": 8
+          }
+        },
+        "aqueous solubility": {
+          "gold_rank_counts": {
+            "3": 19
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.3684210526315789,
+            "letter_B": 0.2631578947368421,
+            "letter_C": 0.3157894736842105,
+            "letter_D": 0.05263157894736842,
+            "nearest_mean": 0.3684210526315789,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 19,
+          "rank_letter_counts": {
+            "3:A": 7,
+            "3:B": 5,
+            "3:C": 6,
+            "3:D": 1
+          }
+        },
+        "distribution coefficient logD": {
+          "gold_rank_counts": {
+            "3": 32
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.34375,
+            "letter_B": 0.1875,
+            "letter_C": 0.25,
+            "letter_D": 0.21875,
+            "nearest_mean": 0.25,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 32,
+          "rank_letter_counts": {
+            "3:A": 11,
+            "3:B": 6,
+            "3:C": 8,
+            "3:D": 7
+          }
+        }
+      }
+    },
+    "rank_preserved": {
+      "gold_cue_diagnostics": {
+        "affected": {
+          "distractor_training_string_matches": 95,
+          "distractors_n": 612,
+          "gold_inside_training_band": 200,
+          "gold_training_string_matches": 152,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.8553921568627451,
+            "training_gold_band": 0.7757352941176471,
+            "training_gold_string": 0.633578431372549
+          },
+          "n": 204
+        },
+        "aqueous solubility": {
+          "distractor_training_string_matches": 40,
+          "distractors_n": 228,
+          "gold_inside_training_band": 72,
+          "gold_training_string_matches": 32,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.868421052631579,
+            "training_gold_band": 0.7291666666666666,
+            "training_gold_string": 0.4067982456140351
+          },
+          "n": 76
+        },
+        "distribution coefficient logD": {
+          "distractor_training_string_matches": 55,
+          "distractors_n": 384,
+          "gold_inside_training_band": 128,
+          "gold_training_string_matches": 120,
+          "heuristic_accuracy": {
+            "nearest_training_gold_median": 0.84765625,
+            "training_gold_band": 0.8033854166666666,
+            "training_gold_string": 0.7682291666666666
+          },
+          "n": 128
+        }
+      },
+      "n": 204,
+      "questions": 51,
+      "strata": {
+        "affected": {
+          "gold_rank_counts": {
+            "3": 204
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.35784313725490197,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 204,
+          "rank_letter_counts": {
+            "3:A": 51,
+            "3:B": 51,
+            "3:C": 51,
+            "3:D": 51
+          }
+        },
+        "aqueous solubility": {
+          "gold_rank_counts": {
+            "3": 76
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.3815789473684211,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 76,
+          "rank_letter_counts": {
+            "3:A": 19,
+            "3:B": 19,
+            "3:C": 19,
+            "3:D": 19
+          }
+        },
+        "distribution coefficient logD": {
+          "gold_rank_counts": {
+            "3": 128
+          },
+          "heuristic_accuracy": {
+            "farthest_mean": 0.0,
+            "letter_A": 0.25,
+            "letter_B": 0.25,
+            "letter_C": 0.25,
+            "letter_D": 0.25,
+            "nearest_mean": 0.34375,
+            "rank_1": 0.0,
+            "rank_2": 0.0,
+            "rank_3": 1.0,
+            "rank_4": 0.0
+          },
+          "n": 128,
+          "rank_letter_counts": {
+            "3:A": 32,
+            "3:B": 32,
+            "3:C": 32,
+            "3:D": 32
+          }
+        }
+      }
+    }
+  },
+  "plausibility": "All new distractors drawn from same-property training option values; minimum pairwise distance 0.10 log units. Not chemical adjudication.",
+  "schema": "chemistry-shortcut-validation.v1",
+  "training_gold_profiles": {
+    "aqueous solubility": {
+      "band_max": "-1.62",
+      "band_min": "-2.843",
+      "median": "-2.281",
+      "training_n": 141
+    },
+    "distribution coefficient logD": {
+      "band_max": "3.08",
+      "band_min": "2.36",
+      "median": "2.725",
+      "training_n": 308
+    }
+  }
+}

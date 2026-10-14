@@ -15,6 +15,10 @@ _context_work = ContextVar('finqa_observation_work', default=None)
 class CorrectnessStop(ValueError):
     pass
 
+def spend_limit():
+    """FinQA cumulative allocation cap."""
+    return CEILING
+
 def enabled():
     from kit.v4_phase0_timing import is_finqa, is_phase0
     return not is_phase0() and (is_finqa() or _context.get() is not None)
@@ -27,7 +31,7 @@ def correctness(message):
     # write. Writers use confine(); retirement retains bytes when its proofs
     # cannot be verified, rather than turning that finding into a run ban.
     return ('outside work' in text
-            or 'disk quota exceeded' in text or '[errno 122]' in text or 'disk exhaustion' in text or 'no space left on device' in text or '[errno 28]' in text or 'actual 1000' in text
+            or 'disk quota exceeded' in text or '[errno 122]' in text or 'disk exhaustion' in text or 'no space left on device' in text or '[errno 28]' in text or 'actual 1000' in text or 'actual 150' in text
             or ('phase0 return' in text and any(w in text for w in ('sha','changed','differs')))
             or any(word in text for word in ('model', 'weight', 'tokenizer', 'pool', 'source', 'dataset', 'data hash', '8b revision', 'teacher revision',
                                              'input changed', 'prepared input', 'schedule seed/hash', 'checkpoint changed',
@@ -84,7 +88,7 @@ def ceiling(work):
         warn('allocation reconciliation',str(exc),work)
     try:spent,_=known_spend(json.loads(path.read_text()),work)
     except (ValueError,KeyError,TypeError) as exc:warn('allocation accounting',str(exc),work);return 0
-    if spent >= CEILING:raise CorrectnessStop('actual 1000 GPU-hour ceiling reached')
+    if spent >= spend_limit():raise CorrectnessStop(f'actual {spend_limit()} GPU-hour ceiling reached')
     return float(spent)
 
 
@@ -115,9 +119,9 @@ def runtime_seconds(work, default):
         if not file.exists():return default
         ledger=json.loads(file.read_text())
     spent,_=known_spend(ledger,work)
-    if spent>=CEILING:raise CorrectnessStop('actual 1000 GPU-hour ceiling reached')
+    if spent>=spend_limit():raise CorrectnessStop(f'actual {spend_limit()} GPU-hour ceiling reached')
     entry=ledger.get('allocations',{}).get(os.environ['SLURM_JOB_ID'],{})
-    remaining=(CEILING-float(spent))*3600/(entry.get('width') or 8)
+    remaining=(spend_limit()-float(spent))*3600/(entry.get('width') or 8)
     if entry.get('planned_end'):remaining=min(remaining,float(stamp(entry['planned_end']))-time.time())
     return max(.01,min(default,remaining))
 
@@ -145,7 +149,7 @@ def refresh_accounting(work):
             entry.update(end=obs['end'],state=obs.get('state'),terminal_observation=obs)
         else:warn('prior allocation accounting','termination telemetry not yet available for '+prior,work)
     pc.wd.write_durably(path,ledger)
-    pc.track_allocation(work,'scientific',CEILING,CEILING)
+    pc.track_allocation(work,'scientific',spend_limit(),spend_limit())
 
 
 def writer_bytes(work, *, arm=None):

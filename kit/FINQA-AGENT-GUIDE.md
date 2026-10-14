@@ -119,3 +119,9 @@ git -C "$KIT/.." diff "$V4_KIT_TAG" > "$WORK/main-local.diff"
 Include untracked helpers separately. Flag any science changes prominently and
 let the owner decide whether the run counts. Do not push tags, publish changes,
 or contact anyone from the kit.
+
+## Phase 3 partner package A
+
+Package A now uses the plain jobs in [README-p3a.md](README-p3a.md).
+Pass local model paths, venv Python paths, GPU IDs and a fresh OUT directly.
+Its jobs do not read this FinQA WORK or use campaign/allocation accounting.

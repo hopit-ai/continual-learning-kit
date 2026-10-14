@@ -1,0 +1,287 @@
+{
+  "schema": "kit-campaign.v1",
+  "name": "3a-shortcut",
+  "workdir_env": "WORK",
+  "rows": [
+    {
+      "id": "inputs",
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "prepare",
+        "--work",
+        "{work}"
+      ],
+      "timeout_seconds": 36000
+    },
+    {
+      "id": "base-original",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "base",
+        "--panel",
+        "original",
+        "--out",
+        "{work}/3a/eval/base-original-a{attempt}"
+      ]
+    },
+    {
+      "id": "base-letters",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "base",
+        "--panel",
+        "letters",
+        "--out",
+        "{work}/3a/eval/base-letters-a{attempt}"
+      ]
+    },
+    {
+      "id": "base-balanced",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "base",
+        "--panel",
+        "balanced",
+        "--out",
+        "{work}/3a/eval/base-balanced-a{attempt}"
+      ]
+    },
+    {
+      "id": "base-rank_preserved",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "base",
+        "--panel",
+        "rank_preserved",
+        "--out",
+        "{work}/3a/eval/base-rank_preserved-a{attempt}"
+      ]
+    },
+    {
+      "id": "r1-original",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r1",
+        "--panel",
+        "original",
+        "--out",
+        "{work}/3a/eval/r1-original-a{attempt}"
+      ]
+    },
+    {
+      "id": "r1-letters",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r1",
+        "--panel",
+        "letters",
+        "--out",
+        "{work}/3a/eval/r1-letters-a{attempt}"
+      ]
+    },
+    {
+      "id": "r1-balanced",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r1",
+        "--panel",
+        "balanced",
+        "--out",
+        "{work}/3a/eval/r1-balanced-a{attempt}"
+      ]
+    },
+    {
+      "id": "r1-rank_preserved",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r1",
+        "--panel",
+        "rank_preserved",
+        "--out",
+        "{work}/3a/eval/r1-rank_preserved-a{attempt}"
+      ]
+    },
+    {
+      "id": "r2-original",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r2",
+        "--panel",
+        "original",
+        "--out",
+        "{work}/3a/eval/r2-original-a{attempt}"
+      ]
+    },
+    {
+      "id": "r2-letters",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r2",
+        "--panel",
+        "letters",
+        "--out",
+        "{work}/3a/eval/r2-letters-a{attempt}"
+      ]
+    },
+    {
+      "id": "r2-balanced",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r2",
+        "--panel",
+        "balanced",
+        "--out",
+        "{work}/3a/eval/r2-balanced-a{attempt}"
+      ]
+    },
+    {
+      "id": "r2-rank_preserved",
+      "needs": [
+        "inputs"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_run.py",
+        "score",
+        "--work",
+        "{work}",
+        "--model",
+        "r2",
+        "--panel",
+        "rank_preserved",
+        "--out",
+        "{work}/3a/eval/r2-rank_preserved-a{attempt}"
+      ]
+    },
+    {
+      "id": "report",
+      "needs": [
+        "inputs"
+      ],
+      "wants": [
+        "base-original",
+        "base-letters",
+        "base-balanced",
+        "base-rank_preserved",
+        "r1-original",
+        "r1-letters",
+        "r1-balanced",
+        "r1-rank_preserved",
+        "r2-original",
+        "r2-letters",
+        "r2-balanced",
+        "r2-rank_preserved"
+      ],
+      "timeout_seconds": 36000,
+      "command": [
+        "python",
+        "{kit}/chemistry_shortcut_report.py",
+        "--archive",
+        "{work}",
+        "--out",
+        "{work}/3a/report-reading/a{attempt}"
+      ]
+    }
+  ]
+}

@@ -553,7 +553,11 @@ def rewrite_pool(items, demonstrations, out, generator, tokenizer, manifest, *, 
     return _run_pool(items, out, generator, tokenizer, manifest, 4, demonstrations=demonstrations, shard_index=shard_index, shard_count=shard_count)
 
 
-def _run_pool(items, out, generator, tokenizer, manifest, attempts, demonstrations=None, *, shard_index=None, shard_count=1):
+def _run_pool(items, out, generator, tokenizer, manifest, attempts, demonstrations=None, *, shard_index=None, shard_count=1,
+              verify_fn=None, teacher_messages_fn=None):
+    # Narrow adapters let registered screens reuse the durable attempt journal.
+    verify_fn = verify_fn or verify
+    teacher_messages_fn = teacher_messages_fn or teacher_messages
     if not 1 <= attempts <= 4:
         raise ValueError("attempts must be 1..4")
     from kit.v4_contract import technical_synthetic
@@ -565,7 +569,7 @@ def _run_pool(items, out, generator, tokenizer, manifest, attempts, demonstratio
     rewriting = demonstrations is not None
     teachers = verified_lookup(items, demonstrations) if rewriting else {}
     active = [i for i in items if str(i["id"]) in teachers] if rewriting else items
-    prompts = {str(i["id"]): rewrite_messages(i, teachers[str(i["id"])]) if rewriting else teacher_messages(i) for i in active}
+    prompts = {str(i["id"]): rewrite_messages(i, teachers[str(i["id"])]) if rewriting else teacher_messages_fn(i) for i in active}
     provenance = {"stand_in_teacher": manifest.get("stand_in_teacher", False),
                   "teacher_model": manifest.get("teacher_model", manifest.get("model", "unspecified"))}
     manifest = json.loads(json.dumps({**manifest, **provenance, "action": "rewrite" if rewriting else "generate",
@@ -637,7 +641,7 @@ def _run_pool(items, out, generator, tokenizer, manifest, attempts, demonstratio
                     raw = raw_by_key[key]
                     from kit.v4_timing import utc_now, receipt
                     started, clock = utc_now(), time.monotonic()
-                    result = verify(item, raw, tokenizer, mapped_target=True) if rewriting else verify(item, raw, tokenizer)
+                    result = verify_fn(item, raw, tokenizer, mapped_target=True) if rewriting else verify_fn(item, raw, tokenizer)
                     timing_path = timing_journal / f"{sha(key[0])}-{attempt}.json"
                     timing_doc = json.loads(timing_path.read_text()) if timing_path.exists() else None
                     if timing_doc is None and raw.get("generate_timing"):

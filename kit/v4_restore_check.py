@@ -38,6 +38,13 @@ def state_hash(value):
     visit(value);return digest.hexdigest()
 
 
+def checkpoint_step(path):
+    """Step from the nearest global_step_N component: global_step_N, global_step_N/actor or global_step_N/v4-ema."""
+    for part in (Path(path),*Path(path).parents):
+        if part.name.startswith('global_step_'):return int(part.name.removeprefix('global_step_'))
+    raise ValueError(f'no global_step_N component in checkpoint path: {path}')
+
+
 def install_checkpoint_probe():
     """Observe LIVE restored state, not just the files handed to a loader."""
     if not os.environ.get('V4_RESTORE_PROBE_OUT'):return
@@ -60,7 +67,7 @@ def install_checkpoint_probe():
             components['scheduler']=state_hash(owner.lr_scheduler.state_dict() if owner.lr_scheduler else None)
         out=Path(os.environ['V4_RESTORE_PROBE_OUT']);out.mkdir(parents=True,exist_ok=True)
         leg=os.environ['V4_RESTORE_LEG']
-        step=2 if event=='loaded' else int(Path(path).parent.name.removeprefix('global_step_')) if kind=='EMA' else int(Path(path).name.removeprefix('global_step_'))
+        step=2 if event=='loaded' else checkpoint_step(path)
         atomic_json(out/f'{leg}-{event}-{kind}-s{step}-r{owner.rank}.json',
                     {'leg':leg,'event':event,'step':step,'rank':owner.rank,'components':components})
     for name,event in (('save_checkpoint','saved'),('load_checkpoint','loaded')):
