@@ -468,3 +468,14 @@ def test_empty_checkpoint_tracker_is_an_interruption_not_a_crash(tmp_path):
     run=tmp_path/'run'; (run/'train').mkdir(parents=True)
     (run/'train'/'latest_checkpointed_iteration.txt').write_text('')   # write interrupted
     assert train.completed_training(run,'F',4) is False
+
+
+def test_dedup_stops_at_the_candidate_limit_in_the_given_order():
+    from kit import p3b_replay_data as replay
+    import random
+    rng=random.Random(0); words=['alpha','bravo','cedar','delta','ember','fjord','grove','harbor','iris','jade','kiln','lumen']
+    rows=[dict(id=str(i),prompt=' '.join(rng.choice(words)+str(rng.randrange(10**6)) for _ in range(12))) for i in range(50)]
+    rows.insert(3,dict(id='dup',prompt=rows[0]['prompt'].upper()))
+    kept,excluded=replay.clean(rows,[dict(id='p',prompt='held out panel prompt')],limit=10)
+    assert [r['id'] for r in kept]==[r['id'] for r in rows if r['id']!='dup'][:10]
+    assert [e['id'] for e in excluded]==['dup']

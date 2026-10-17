@@ -16,13 +16,17 @@ def normal(text):
     return ' '.join(unicodedata.normalize('NFKC', text).casefold().split())
 
 
-def duplicate(a, b):
-    a, b = normal(a), normal(b)
+def prepared(text):
+    """Normalised text and its word 5-shingles, computed once per prompt."""
+    n = normal(text); words = n.split()
+    return n, frozenset(tuple(words[i:i+5]) for i in range(len(words)-4))
+
+
+def near(pa, pb):
+    """The registered near-duplicate rule on prepared prompts."""
+    (a, x), (b, y) = pa, pb
     if a == b: return True
-    def shingles(x):
-        words = x.split(); return {tuple(words[i:i+5]) for i in range(len(words)-4)}
-    x, y = shingles(a), shingles(b)
-    if x and y and len(x & y) / len(x | y) >= .8: return True
+    if x and y and min(len(x), len(y)) >= .8 * max(len(x), len(y)) and len(x & y) / len(x | y) >= .8: return True
     # Normalised Levenshtein similarity: 1 - distance / max(lengths).
     limit = max(len(a),len(b)) // 10
     if abs(len(a)-len(b)) > limit: return False
@@ -38,6 +42,9 @@ def duplicate(a, b):
         if min(current.values(),default=limit+1)>limit: return False
         previous=current
     return previous.get(len(b),limit+1)<=limit
+
+
+def duplicate(a, b): return near(prepared(a), prepared(b))
 
 
 def checker(text, ground_truth, *, validate_only=False):
@@ -65,12 +72,25 @@ def checker(text, ground_truth, *, validate_only=False):
     return results
 
 
-def clean(rows, panels):
+def clean(rows, panels, limit=None):
+    """Greedy de-duplication in the given order, stopping once `limit` rows are kept.
+
+    Manager amendment (17 Oct): callers pass rows already in the registered hash order, so only the
+    rows that can become candidates are compared (about limit x (limit + panels) comparisons instead
+    of all-pairs over the source). Which member of a near-duplicate source pair survives now follows
+    hash order rather than parquet order; the duplicate rule itself is unchanged.
+    """
+    panel_ids = {str(p['id']): p for p in panels}
+    pool = [(p, prepared(p['prompt'])) for p in panels]
+    exact = {pp[0]: p for p, pp in pool}
     kept, exclusions = [], []
     for row in rows:
-        match = next((other for other in panels + kept if str(row['id']) == str(other['id']) or duplicate(row['prompt'], other['prompt'])), None)
+        if limit is not None and len(kept) >= limit: break
+        rp = prepared(row['prompt'])
+        match = panel_ids.get(str(row['id'])) or exact.get(rp[0]) or next((p for p, pp in pool if near(rp, pp)), None)
         if match: exclusions.append(dict(id=row['id'], overlaps=match['id'], prompt_sha256=t.sha(row['prompt'])))
-        else: kept.append(row)
+        else:
+            kept.append(row); pool.append((row, rp)); exact[rp[0]] = row
     return kept, exclusions
 
 
@@ -116,8 +136,8 @@ def job(a):
         provenance = dict(rows_sha256=s.file_hash(a.rows), technical_synthetic=True)
     bind(root / 'inputs.json', dict(source_revision=SOURCE, checker=CHECKER, panels_sha256=s.digest(panels), **provenance))
     if (root / 'manifest.json').exists(): frozen_files(root); print('SKIP: frozen replay'); return
-    eligible, excluded = clean(rows, panels)
-    candidates = sorted(eligible, key=lambda r: (t.sha('package-b-replay-v1|' + r['id']), r['id']))[:2048]
+    ordered = sorted(rows, key=lambda r: (t.sha('package-b-replay-v1|' + r['id']), r['id']))
+    candidates, excluded = clean(ordered, panels, limit=2048)
     t.write_jsonl(root / 'exclusions.jsonl', excluded); t.write_jsonl(root / 'candidates.jsonl', candidates)
     os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, V4_PHASE0_INFERENCE='0')
     import time

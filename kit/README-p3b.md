@@ -28,7 +28,7 @@ Use SDPO `7c457fc1b1f636ae794eb0362ba37d4743b06fbc`, base revision
 `b968826d9c46dd6066d109eabc6255188de91218`, teacher revision
 `6a9e13bd6fc8f0983b9b99948120bc37f49c13e9`. The trainer venv runs all training,
 8B generation and scoring; the inference venv (vLLM 0.18) runs only the 27B.
-Replay checking also needs `langdetect` (the pinned checker imports it),
+Replay checking also needs `langdetect` (the pinned checker imports it), `rapidfuzz` (fast de-duplication),
 pyarrow and huggingface_hub. The local reader needs numpy.
 
 Tier 1 goes first. Only overlap with A on disjoint GPUs and with sufficient
