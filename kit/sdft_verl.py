@@ -92,7 +92,11 @@ def build_sdft_teacher_batch(self, batch, reward_tensor, reward_extra_infos_dict
                                            batch.batch["response_mask"], chat_template_kwargs=chat_kwargs,
                                            max_reprompt_len=int(sd.max_reprompt_len))
     scores = reward_tensor.sum(dim=-1).detach().cpu().tolist()
-    metrics = objective.group_metrics(batch.non_tensor_batch["uid"], scores, float(sd.success_reward_threshold))
+    uids = batch.non_tensor_batch["uid"]
+    if os.environ.get('P3B_REPLAY') == '1':
+        tasks = [i for i,e in enumerate(extra_infos) if not e.get('p3b_replay')]
+        uids, scores = [uids[i] for i in tasks], [scores[i] for i in tasks]
+    metrics = objective.group_metrics(uids, scores, float(sd.success_reward_threshold))
     metrics["sdft/teacher_prompt_tokens_max"] = float(max(built["teacher_prompt_lengths"]))
     global _SHOWN
     if not _SHOWN:                                   # once a run: the smoke reads the teacher's exact context in console.log
@@ -107,6 +111,9 @@ def build_sdft_teacher_batch(self, batch, reward_tensor, reward_extra_infos_dict
 
 def install_trainer_patch() -> None:
     check_pinned()
+    if os.environ.get('P3B_REPLAY') == '1':
+        from kit.p3b_reward import install_metrics
+        install_metrics(ray_trainer)
     ray_trainer.RayPPOTrainer._maybe_build_self_distillation_batch = build_sdft_teacher_batch
     print("arm D (kit/sdft_verl.py): teacher context = question + resolved context_source (demonstration or rewrite), every sample a target "
           "[pid %d]" % os.getpid(), flush=True)

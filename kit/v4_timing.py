@@ -341,6 +341,16 @@ def training_tokens(batch):
     if 'response_mask' in tensors:
         mask=tensors['response_mask'];supervised=mask
         if 'self_distillation_mask' in tensors:supervised=mask*tensors['self_distillation_mask'].reshape(-1,1)
+        if os.environ.get('P3B_REPLAY')=='1':
+            # Replay supervises frozen labels including EOS, not its sampled rollout.
+            from kit.sdft_objective import loss_mask
+            extras=batch.non_tensor_batch['extra_info']
+            task_mask=loss_mask(supervised)
+            task_tokens=sum(int(task_mask[i].sum().item()) for i,e in enumerate(extras) if not e.get('p3b_replay'))
+            replay_tokens=sum(len(e['p3b_target_ids']) for e in extras if e.get('p3b_replay'))
+            return {'generated_trajectories':int(mask.shape[0]),'generated_tokens':int(mask.sum().item()),
+                    'supervised_tokens':task_tokens+replay_tokens,
+                    'task_supervised_tokens':task_tokens,'replay_supervised_tokens':replay_tokens}
         return {'generated_trajectories':int(mask.shape[0]),'generated_tokens':int(mask.sum().item()),
                 'supervised_tokens':int(supervised.sum().item())}
     if 'loss_mask' in tensors:

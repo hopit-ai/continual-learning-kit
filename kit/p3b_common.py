@@ -6,6 +6,7 @@ import random
 from kit.p3a_common import (KIT, CorrectnessStop, NotReady, atomic, check, entry as plain_entry, logging,
                            model_path, retain_partial, s, t)
 R = KIT / 'resources/p3b'
+RESET_PRIORITY = ('D+replay', 'D', 'F', 'F+replay')
 
 
 def require(ok, message):
@@ -46,9 +47,22 @@ def cycle(rows, seed, n):
     return [order[i % len(order)] for i in range(n)]
 
 
-def mixed(task, replay, seed):
+def mixed(task, replay, seed, *, skip_ids=(), skipped_draws=None):
     require(len(task) == 1280, 'task schedule must be 40 x 32')
-    generic = iter(cycle(replay, seed, 160))
+    if skip_ids:
+        # Shuffle the FULL pool first, exactly as F does; never shuffle survivors.
+        order = cycle(replay, seed, len(replay)); excluded = set(skip_ids)
+        require(any(str(r['id']) not in excluded for r in order), 'no eligible D replay rows')
+        selected = []; draw = 0
+        while len(selected) < 160:
+            row = order[draw % len(order)]
+            if str(row['id']) in excluded:
+                if skipped_draws is not None:
+                    skipped_draws.append(dict(id=str(row['id']), draw_index=draw, replay_slot=len(selected)))
+            else: selected.append(row)
+            draw += 1
+        generic = iter(selected)
+    else: generic = iter(cycle(replay, seed, 160))
     return [next(generic) if i % 32 in (7, 15, 23, 31) else row for i, row in enumerate(task)]
 
 

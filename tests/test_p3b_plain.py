@@ -386,7 +386,7 @@ class _MixedBatch:
     def to(self,device): return self
 
 
-def _mixed_actor_update(flags,distributed=False):
+def _mixed_actor_update(flags,distributed=False,reward_value=0.,return_state=False):
     import torch
     from kit import sdft_actor
     calls=[]
@@ -410,10 +410,15 @@ def _mixed_actor_update(flags,distributed=False):
     def step():
         norm=torch.nn.utils.clip_grad_norm_(actor.parameters(),1.); optimizer.step(); return norm
     owner._optimizer_step=step
-    metrics=sdft_actor.update_policy(owner,_MixedBatch(flags))
+    data=_MixedBatch(flags)
+    for key in ('token_level_scores','token_level_rewards','advantages','returns'):
+        data.batch[key]=torch.full_like(data.batch['old_log_probs'],reward_value)
+    metrics=sdft_actor.update_policy(owner,data)
     assert calls==['teacher','actor']*len(flags)
     assert all(p.grad is None for p in teacher.parameters())
-    assert metrics['p3b/replay_sft_loss']>0 and metrics['actor/pg_loss']>0
+    assert (metrics['p3b/replay_sft_loss']>0)==any(flags)
+    assert (metrics['actor/pg_loss']>0)==(not all(flags))
+    if return_state: return [p.detach().clone() for p in actor.parameters()],metrics
     return calls
 
 
@@ -427,6 +432,30 @@ def test_mixed_actor_calls_teacher_and_actor_once_per_item(monkeypatch):
     flags=[i in (7,15,23,31) for i in range(32)]
     assert len(_mixed_actor_update(flags))==64
     assert len(objectives)==28  # Four replay projections never enter the KL objective.
+
+
+def test_rewards_never_enter_mixed_actor_loss(monkeypatch):
+    import torch
+    monkeypatch.setenv('P3B_REPLAY','1')
+    a,metrics_a=_mixed_actor_update([False,False,False,True],return_state=True)
+    b,metrics_b=_mixed_actor_update([False,False,False,True],reward_value=1000.,return_state=True)
+    assert all(torch.equal(x,y) for x,y in zip(a,b))
+    assert metrics_a==metrics_b
+
+
+def test_actor_metrics_collect_with_replay_only_first_rank(monkeypatch):
+    import ast
+    monkeypatch.setenv('P3B_REPLAY','1')
+    _,replay_metrics=_mixed_actor_update([True]*4,return_state=True)
+    _,task_metrics=_mixed_actor_update([False]*4,return_state=True)
+    root=next((p/'references/SDPO' for p in (c.KIT.parent,*c.KIT.parent.parents)
+               if (p/'references/SDPO/verl/protocol.py').is_file()),None)
+    if root is None: pytest.skip('pinned SDPO source checkout unavailable')
+    node=next(n for n in ast.parse((root/'verl/protocol.py').read_text()).body
+              if getattr(n,'name','')=='list_of_dict_to_dict_of_list')
+    ns={};exec(compile(ast.Module(body=[node],type_ignores=[]),'<pinned verl metric collector>','exec'),ns)
+    collected=ns['list_of_dict_to_dict_of_list']([replay_metrics,task_metrics])
+    assert all(len(values)==2 for values in collected.values())
 
 
 def _gloo_mixed_worker(rank,root):
@@ -479,3 +508,134 @@ def test_dedup_stops_at_the_candidate_limit_in_the_given_order():
     kept,excluded=replay.clean(rows,[dict(id='p',prompt='held out panel prompt')],limit=10)
     assert [r['id'] for r in kept]==[r['id'] for r in rows if r['id']!='dup'][:10]
     assert [e['id'] for e in excluded]==['dup']
+
+
+@pytest.fixture
+def replay_schedules(tmp_path):
+    out=tmp_path/'out'; root=out/'replay'; root.mkdir(parents=True)
+    # Include an over-cap row: F must preserve the entire tier-1 pool and cycle.
+    pool=[dict(id=f'r{i}',prompt='x'*2049 if i==0 else 'generic',response='target') for i in range(1328)]
+    c.t.write_jsonl(root/'replay.jsonl',pool)
+    c.atomic(root/'manifest.json',c.files_manifest(root,['replay.jsonl'],technical_synthetic=True))
+    targets=out/'targets';targets.mkdir()
+    for seed in range(101,106):
+        c.t.write_jsonl(targets/f'schedule-{seed}.jsonl',
+            [dict(id=f't{i}',prompt='task',response='solution',task='math_screen') for i in range(1280)])
+    c.atomic(targets/'inputs.json',dict(task='math_screen'))
+    c.atomic(targets/'manifest.json',c.files_manifest(targets,
+        [f'schedule-{seed}.jsonl' for seed in range(101,106)],technical_synthetic=True))
+    return out,pool
+
+
+@pytest.mark.parametrize('seed',range(101,106))
+@pytest.mark.parametrize('route',('finqa','standalone','sequence','reset'))
+def test_f_replay_registered_routes(replay_schedules,seed,route):
+    from kit import p3b_train as train
+    out,pool=replay_schedules; targets=out/'targets'
+    args=types.SimpleNamespace(out=out,standin=True,gpu='0',recipe='F+replay',route=route,seed=seed,
+        task_schedule=targets/f'schedule-{seed}.jsonl',schedule_manifest=targets/'manifest.json')
+    train.job(args)
+    name=f'{route}-F+replay-s{seed}'
+    task=c.t.read_jsonl(args.task_schedule)
+    expected=c.mixed(task,[dict(r,p3b_replay=True) for r in pool],seed)
+    saved=json.loads((out/'identities'/f'{name}.json').read_text())
+    assert saved['rows']==c.s.digest(expected)
+    assert saved['steps']==40 and saved['batch']==32
+    assert not (out/'runs'/name/'replay-selection.json').exists()
+    train.job(args)  # unchanged identity and successful retry
+
+
+@pytest.mark.parametrize('recipe,route,seed',[
+    ('F','finqa',101),('D','finqa',105),('F+replay','finqa',100),
+    ('F+replay','standalone',106),('unknown','sequence',101),('F+replay','unknown',101)])
+def test_unregistered_training_combinations(tmp_path,recipe,route,seed):
+    run('replay_train',tmp_path/'out','--recipe',recipe,'--route',route,'--seed',seed,code=2)
+
+
+def test_f_replay_code_route_refused(replay_schedules):
+    out,_=replay_schedules
+    c.atomic(out/'targets/inputs.json',dict(task='code'))
+    run('replay_train',out,'--recipe','F+replay','--route','standalone','--seed',101,
+        '--task-schedule',out/'targets/schedule-101.jsonl','--schedule-manifest',out/'targets/manifest.json',code=2)
+
+
+@pytest.mark.parametrize('origin,hashes,accepted',[
+    ('finqa-F+replay-s105/hf-step40',{'weight':'right'},True),
+    ('finqa-F+replay-s104/hf-step40',{'weight':'right'},False),
+    ('finqa-D+replay-s105/hf-step40',{'weight':'right'},False),
+    ('recover-F-n64-s105/hf-step4',{'weight':'right'},False),
+    ('finqa-F+replay-s105/hf-step20',{'weight':'right'},False),
+    ('finqa-F+replay-s105/hf-step40',{'weight':'wrong'},False)])
+def test_f_replay_sequence_receipt_binding(tmp_path,monkeypatch,origin,hashes,accepted):
+    from kit import p3b_train as train
+    receipt=tmp_path/'receipt.json'
+    c.atomic(receipt,dict(model_dir='/registered/runs/'+origin,model_file_hashes=hashes))
+    args=types.SimpleNamespace(out=tmp_path/'out',seed=105,recipe='F+replay',route='sequence',
+        standin=False,gpu='0,1,2,3,4,5,6,7',sdpo=tmp_path,tokenizer='base',model='incoming',
+        incoming_receipt=receipt,task_schedule=tmp_path/'schedule',schedule_manifest=tmp_path/'manifest')
+    monkeypatch.setattr(train.subprocess,'check_output',lambda *a,**k:'7c457fc1b1f636ae794eb0362ba37d4743b06fbc')
+    # Exercise the real receipt hash comparison as well as the route/seed check.
+    monkeypatch.setattr(c,'model_path',lambda p:p)
+    monkeypatch.setattr(c.t,'local_identity',lambda path,*a:dict(model_file_hashes={'weight':'right'},
+        model_revision=c.s.MODELS['student'][1]))
+    def checked_identity(path,role=None,receipt=None):
+        return {} if role=='student' else c.identity(path,role,receipt)
+    monkeypatch.setattr(train,'identity',checked_identity)
+    if accepted:
+        # The missing manifest is after all incoming identity and origin checks.
+        with pytest.raises(FileNotFoundError): train.job(args)
+    else:
+        with pytest.raises(c.CorrectnessStop,match='receipt|matched original FinQA final'): train.job(args)
+
+
+def test_f_replay_reports_and_reset_priority(tmp_path):
+    rows=[]
+    def add(arm,seed,step,panel,ncorrect):
+        rows.extend(dict(arm=arm,seed=seed,step=step,panel=panel,cap=2048,question_id=str(q),
+            correct=int(q<ncorrect),output_tokens=10,finished=1) for q in range(100))
+    panels=('finqa','ifeval','knowledge','math')
+    for p in (*panels,'math_screen'):add('base',0,0,p,20)
+    for seed in range(101,106):
+        for p in panels:
+            for arm in ('F','finqa-D+replay','finqa-F+replay'):add(arm,seed,40,p,30)
+        for recipe in c.RESET_PRIORITY:
+            for route in ('standalone','sequence','reset'):
+                for step in (0,10,20,30,40):
+                    add(route+'-'+recipe,seed,step,'math_screen',20+step//(2 if route=='standalone' else 5))
+                for step in (0,20,40):
+                    for p in panels:add(route+'-'+recipe,seed,step,p,30)
+    result=reader.analyse(rows,20)
+    assert c.RESET_PRIORITY==('D+replay','D','F','F+replay')
+    assert result['reset_recipe']=='D+replay'
+    for index,recipe in enumerate(c.RESET_PRIORITY):
+        # Rule out each preceding recipe without changing the others' deficits.
+        current=[dict(r,correct=int(int(r['question_id'])<20+r['step']//2))
+            if r['arm'] in {'sequence-'+p for p in c.RESET_PRIORITY[:index]} and r['panel']=='math_screen'
+            else r for r in rows]
+        assert reader.analyse(current,20)['reset_recipe']==recipe
+    assert {len(r['seeds']) for r in result['prevention'] if r['candidate']=='finqa-F+replay'}=={3,5}
+    assert {(r['report'],tuple(r['seed_ids'])) for r in result['finqa_acquisition'] if r['arm']=='finqa-F+replay'}=={
+        ('original',(101,102,103)),('all',(101,102,103,104,105))}
+    assert {r['route'] for r in result['curves'] if r['recipe']=='F+replay'}=={'standalone','sequence','reset'}
+    assert all(len(r['points'])==5 for r in result['curves'])
+    assert len([r for r in result['acquired_finqa_retention'] if r['arm']=='sequence-F+replay'])==5
+    assert len([r for r in result['summaries'] if r['arm']=='sequence-F+replay' and r['panel'] in panels])==60
+    # Scoring and collection accept the new arms and preserve their evidence.
+    out=tmp_path/'out'
+    for arm in ('finqa-F+replay','standalone-F+replay','sequence-F+replay'):
+        for seed in (104,105):run('score',out,'--arm',arm,'--seed',seed,'--step',40,'--panel-set','finqa')
+    archive=tmp_path/'return.tar.gz';run('collect',out,'--archive',archive)
+    returned,files=reader.load(archive)
+    assert {r['arm'] for r in returned}=={'finqa-F+replay','standalone-F+replay','sequence-F+replay'}
+    assert {int(r['seed']) for r in returned}=={104,105}
+    assert len(returned)==60 and 'collect-manifest.json' in files
+
+
+def test_f_replay_reset_single_branch(tmp_path):
+    out=tmp_path/'out';trigger=tmp_path/'trigger.json'
+    c.atomic(trigger,dict(reset_recipe='F+replay'))
+    for seed in range(101,106):
+        run('reset',out,'--trigger',trigger,'--recipe','F+replay','--seed',seed)
+    c.atomic(trigger,dict(reset_recipe='D'))
+    run('reset',out,'--trigger',trigger,'--recipe','D','--seed',101,code=2)
+    assert len(list((out/'resets').glob('*/manifest.json')))==5

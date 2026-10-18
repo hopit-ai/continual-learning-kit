@@ -104,7 +104,7 @@ def analyse(rows, repeats=10000):
             recoveries.append(dict(arm=arm,size=size,primary=size==64,seeds=seeds,bars=bars,initial_loss=initial,protection=protection,half_recovery=half,residual=residual,useful=useful,near_base=(useful and lower(residual,-3) and residual['upper']<=3) if defined else None,status='UNDEFINED_RECOVERY' if not defined else 'PASS' if useful else 'INCONCLUSIVE_OR_FAIL'))
     curves=[]; acquisitions=[]; deficits=[]; sequence_bars=[]
     triggers=[]
-    for recipe in ('D+replay','D','F'):
+    for recipe in RESET_PRIORITY:
         for panel in ('code','math_screen'):
             alone=[curve(groups,'standalone-'+recipe,seed,panel) for seed in range(101,106)]
             seq=[curve(groups,'sequence-'+recipe,seed,panel) for seed in range(101,106)]
@@ -146,21 +146,21 @@ def analyse(rows, repeats=10000):
             deployable=len(serving)==10 and all(r['serving_ratio'] is not None and r['serving_ratio']<=1.5 for r in serving)
             sequence_bars.append(dict(deployable=passed and deployable,at_cost=passed and len(serving)==10 and any(r['at_cost'] for r in serving),recipe=recipe,panel=panel,final_vs_standalone=final,final_question_pairs=ends,stage1_vs_base=stage1,stage2_retention=protections,passes=passed))
     reset_comparisons=[]
-    for recipe in ('D+replay','D','F'):
+    for recipe in RESET_PRIORITY:
         for panel in ('finqa','ifeval','knowledge','math','code','math_screen'):
             pairs=[dict(seed=seed,**paired(groups[('sequence-'+recipe,seed,40,panel)],groups[('reset-'+recipe,seed,40,panel)],repeats)) for seed in range(101,106) if ('sequence-'+recipe,seed,40,panel) in groups and ('reset-'+recipe,seed,40,panel) in groups]
             reset_comparisons.append(dict(recipe=recipe,panel=panel,seeds=pairs,seed_interval=bound([r['change'] for r in pairs],5)))
     finqa_acquisition=[]
-    for arm,n in [('D',5),('F',5),('finqa-D+replay',5),('finqa-F+replay',3)]:
+    for arm,n in [('D',5),('F',5),('finqa-D+replay',5),('finqa-F+replay',3),('finqa-F+replay',5)]:
         values=[accuracy(groups[(arm,seed,40,'finqa')])-accuracy(base['finqa']) for seed in range(101,101+n) if (arm,seed,40,'finqa') in groups and 'finqa' in base]
         stats=bound(values,n)
-        finqa_acquisition.append(dict(arm=arm,seeds=values,seed_interval=stats,passes=lower(stats,0) and stats['lower']>0))
+        finqa_acquisition.append(dict(arm=arm,seed_ids=list(range(101,101+n)),report='original' if arm=='finqa-F+replay' and n==3 else 'all',seeds=values,seed_interval=stats,passes=lower(stats,0) and stats['lower']>0))
     prevention=[]; reset_damage=[]; auc_pairs=[]
-    for candidate,control,nseeds in [('finqa-D+replay','D',5),('finqa-F+replay','F',3),('finqa-F+replay','finqa-D+replay',3)]:
+    for candidate,control,nseeds in [('finqa-D+replay','D',5),('finqa-F+replay','F',3),('finqa-F+replay','finqa-D+replay',3),('finqa-F+replay','F',5),('finqa-F+replay','finqa-D+replay',5)]:
         for panel in ('finqa','ifeval','knowledge','math'):
             pairs=[dict(seed=seed,**paired(groups[(control,seed,40,panel)],groups[(candidate,seed,40,panel)],repeats)) for seed in range(101,101+nseeds) if (control,seed,40,panel) in groups and (candidate,seed,40,panel) in groups]
-            prevention.append(dict(candidate=candidate,control=control,panel=panel,seeds=pairs,seed_interval=bound([r['change'] for r in pairs],nseeds)))
-    for recipe in ('D+replay','D','F'):
+            prevention.append(dict(candidate=candidate,control=control,panel=panel,seed_ids=list(range(101,101+nseeds)),report='original' if candidate=='finqa-F+replay' and nseeds==3 else 'all',seeds=pairs,seed_interval=bound([r['change'] for r in pairs],nseeds)))
+    for recipe in RESET_PRIORITY:
         for panel in ('finqa','ifeval','knowledge','math','code','math_screen'):
             for seed in range(101,106):
                 pre=groups.get(('sequence-'+recipe,seed,0,panel)); post=groups.get(('reset-'+recipe,seed,0,panel))
@@ -187,7 +187,7 @@ def analyse(rows, repeats=10000):
     # curves must not block a complete comparison on the selected task.
     reset_panels={p for (arm,seed,step,p) in groups if p in ('code','math_screen')
                   and arm.startswith(('standalone-','sequence-'))}
-    for recipe in ('D+replay','D','F'):
+    for recipe in RESET_PRIORITY:
         if recipe in triggers:
             reset_recipe=recipe; break
         if not reset_panels or not all(d['complete'] for d in deficits if d['recipe']==recipe and d['panel'] in reset_panels):
@@ -225,7 +225,7 @@ def job(a):
     result['technical_synthetic']=synthetic
     summaries=[dict(path=n,**json.loads(b)) for n,b in sorted(files.items()) if n.endswith('/summary.json') and n.startswith('runs/')]
     result['cost']=dict(training_gpu_hours=sum(r.get('gpu_hours',0) for r in summaries if r.get('gpu_hours') is not None),training=summaries,
-        preparation=[dict(path=n,**json.loads(b)) for n,b in sorted(files.items()) if n.endswith('cost.json')],costs_complete=False,missing_costs='Absent preparation/scoring/failed-run timings remain unknown; no proxy is a measurement',slot_proxy_gpu_hours=17.7,registered_maximum=956.)
+        preparation=[dict(path=n,**json.loads(b)) for n,b in sorted(files.items()) if n.endswith('cost.json')],costs_complete=False,missing_costs='Absent preparation/scoring/failed-run timings remain unknown; no proxy is a measurement',registered_ceiling_gpu_hours=1000,stage_counts=dict(recovery=12,prevention=10,tier2=40,conditional_reset=5))
     atomic(a.out / 'reading.json',result); atomic(a.out / 'reset-trigger.json',dict(reset_recipe=result['reset_recipe'],source_sha256=s.digest(rows),technical_synthetic=synthetic))
     atomic(a.out / 'read-complete.json',dict(source=fingerprint,bootstrap=a.bootstrap,standin=a.standin))
     print('Read',len(rows),'question rows; reset recipe:',result['reset_recipe'])

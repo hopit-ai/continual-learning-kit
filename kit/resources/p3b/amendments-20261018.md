@@ -1,0 +1,17 @@
+# Package B registration amendments, 17–18 October 2026
+
+The frozen registration remains `registration.md`; these owner-approved
+amendments are appended separately without changing that registration or its hash.
+
+## Amendment, 17 October (owner: "Go ahead with your recommendation"; before any tier-2 result)
+
+- **Selected task:** package A's screen ended with LiveCodeBench FAIL (complete, 62/100) and MATH PASS (complete, 93/100), so tier 2 uses MATH (500 training / 100 evaluation, registered rational-answer verifier, bar of at least 6/100). No coding or frontier claim follows from MATH.
+- **Added diagnostic, declared before results:** every tier-2 run also scores FinQA and general-v1 at stage-2 **step 20**, besides the registered 0/40 boundaries. This detects temporary forgetting followed by recovery. It is diagnostic only: endpoints stay at step 40, and it adds no pass/fail rule. Cost is about 30 x 2 scorings, a few GPU-hours.
+- **Reporting emphasis (no change to the bars):** report FinQA questions acquired in stage 1 (wrong at base, right after FinQA training) and how many survive MATH training, per seed with denominators, alongside net FinQA change. Net accuracy can hide lost acquired answers behind newly correct ones.
+- **To confirm from the partner's archive:** the frozen 8B's MATH headroom score (the screen rule was at most 90/100).
+
+## Amendment, 18 October (owner: "1 yes", "2 yes"; after tier-1 means were reported, before any tier-2 result)
+
+- **D+replay over-cap replay rows (a disclosed, bounded departure).** All five D+replay prevention runs on `kit-p3b-v3` stopped before training: 15 of the 1,328 replay rows (1.13%) have student prompts over D's unchanged 2,048-token prompt cap (maximum 3,714; `data.truncation=error`), and a second kit bug mismatched reward fields in mixed batches. D+replay now keeps the same seed-shuffled replay order as F+replay and skips over-cap rows in place, taking the next row until each replay slot is filled. Caps, task positions and the four replay items per batch are unchanged; 1,313 rows remain eligible for D+replay, while F+replay keeps all 1,328. The bound is on pool membership, not on exposure or score effects; skipped IDs, token lengths and per-seed skipped draws are recorded with each run. Failed v3 runs are kept; corrected runs restart from the registered starts.
+- **F+replay joins tier 2.** Add F+replay FinQA seeds 104–105 using the unchanged tier-1 recipe; report the original three seeds and all five separately. Add five base→MATH F+replay stages and five matched FinQA→MATH F+replay stages from the exact F+replay prevention finals. Tier 2 therefore comprises **40 stages**. Inherit all registered settings, schedules, targets, scoring, uncertainty rules and bars; no comparison-bearing setting is reduced. F+replay is appended last in reset priority; at most one five-seed reset branch remains. Reason: F+replay looked like the most promising prevention recipe on tier-1 means, and without stage-2 evidence package C could not consider it.
+- **Cost.** The 570 GPU-hour tier-2 figure was a slot proxy (71 eight-GPU node-hours). The partner's measured times are about 20 minutes per F stage and 6 minutes per recovery run; the 12 added stages are about 4 node-hours (32 GPU-hours) by that timing, plus scoring. An operational forecast from his D and MATH timings replaces the proxy; B's 1,000 GPU-hour ceiling is unchanged.

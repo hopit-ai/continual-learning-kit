@@ -157,6 +157,7 @@ def update_policy(self, data):
     import os
     if os.environ.get('P3B_REPLAY') == '1':
         metrics.update({'p3b/replay_sft_loss':0., 'p3b/replay_tokens':0, 'p3b/task_response_tokens':0, 'p3b/replay_sampled_tokens':0})
+        task_diagnostics = [0., 0., 0.]  # count, sequence entropy sum, IS weight sum
     self.actor_optimizer.zero_grad()
     device = next(self.actor_module.parameters()).device
     for mini_batch in mini_batches:
@@ -205,6 +206,10 @@ def update_policy(self, data):
             metrics['actor/pg_loss'] += loss.detach().item() / len(micro_batches)
             metrics['actor/entropy'] = (statistics[...,2].detach()*inputs['response_mask']).sum().item() / inputs['response_mask'].sum().clamp(min=1).item()
             metrics['sdft/is_sequence_weight_mean'] = sequence_weight.mean().item()
+            if os.environ.get('P3B_REPLAY') == '1':
+                task_diagnostics[0] += 1
+                task_diagnostics[1] += metrics['actor/entropy']
+                task_diagnostics[2] += metrics['sdft/is_sequence_weight_mean']
             del teacher, statistics, loss, scaled
         norm = self._optimizer_step()
         metrics['actor/grad_norm'] = norm.detach().item()
@@ -215,9 +220,14 @@ def update_policy(self, data):
         metrics['v4/completed_optimizer_updates'] = getattr(self, '_v4_completed_updates', 0)
     if os.environ.get('P3B_REPLAY') == '1':
         keys=('p3b/replay_tokens','p3b/task_response_tokens','p3b/replay_sampled_tokens')
-        counts=torch.tensor([metrics[k] for k in keys],device=device)
+        counts=torch.tensor([metrics[k] for k in keys]+task_diagnostics,device=device,dtype=torch.float64)
         if torch.distributed.is_initialized(): torch.distributed.all_reduce(counts)
-        metrics.update(dict(zip(keys,counts.cpu().tolist())))
+        values=counts.cpu().tolist()
+        metrics.update(dict(zip(keys,map(int,values[:3]))))
+        # Every rank returns the same keys, even if its shard is entirely replay.
+        # Global task means avoid diluting these diagnostics with replay zeros.
+        metrics['actor/entropy']=values[4]/max(values[3],1.)
+        metrics['sdft/is_sequence_weight_mean']=values[5]/max(values[3],1.)
         metrics['p3b/combined_loss']=metrics['actor/pg_loss']+metrics['p3b/replay_sft_loss']
     self.actor_optimizer.zero_grad()
     return metrics

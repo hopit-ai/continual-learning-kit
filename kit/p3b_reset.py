@@ -32,6 +32,7 @@ def job(a):
     require(a.standin or decision.get('technical_synthetic') is False,'synthetic/unknown trigger cannot reset a real model')
     if decision.get('reset_recipe') is None: print('SKIP: no reset trigger'); return
     require(decision['reset_recipe']==a.recipe,'only registered priority recipe may reset')
+    require(a.recipe in RESET_PRIORITY, 'unregistered reset recipe')
     root=a.out / 'resets' / f'{a.recipe}-s{a.seed}'
     require(a.standin or a.incoming_receipt is not None,'original FinQA export receipt required')
     observed=dict(technical_synthetic=True) if a.standin else dict(incoming=identity(a.model,receipt=a.incoming_receipt),base=identity(a.base,'student'))
@@ -39,6 +40,7 @@ def job(a):
         origin=Path(json.loads(a.incoming_receipt.read_text()).get('model_dir',''))
         slot=f'{a.recipe}-finqa-alone-s{a.seed}' if a.recipe in ('D','F') else f'finqa-{a.recipe}-s{a.seed}'
         require(slot in origin.parts and origin.name=='hf-step40','reset needs matched original FinQA final')
+    bind(a.out / 'identities' / 'reset-branch.json',dict(recipe=a.recipe))
     bind(a.out / 'identities' / (root.name+'-reset.json'),dict(trigger=s.file_hash(a.trigger),**observed))
     if (root / 'manifest.json').exists():
         frozen_files(root)
@@ -72,6 +74,6 @@ def job(a):
 
 def configure(p):
     p.add_argument('--model');p.add_argument('--base');p.add_argument('--incoming-receipt',type=Path)
-    p.add_argument('--trigger',type=Path,required=True);p.add_argument('--recipe',choices=('D+replay','D','F'),required=True)
+    p.add_argument('--trigger',type=Path,required=True);p.add_argument('--recipe',choices=RESET_PRIORITY,required=True)
     p.add_argument('--seed',type=int,choices=range(101,106),required=True)
 if __name__ == '__main__': raise SystemExit(entry(job,configure,'p3b-reset-{recipe}-{seed}'))

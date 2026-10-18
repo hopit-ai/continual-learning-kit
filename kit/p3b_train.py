@@ -79,13 +79,37 @@ def training_rows(rows, tokenizer, recipe, recovery=False):
     return converted
 
 
+def d_replay_rows(task, replay, seed, tokenizer):
+    """D alone skips over-cap draws in the original seed-shuffled full pool."""
+    skipped = []; eligible = []; excluded = []
+    for row in replay:
+        prompt = row['prompt']
+        if isinstance(prompt, str): prompt = [dict(role='user', content=prompt)]
+        pids, _ = t.tokenize_student(tokenizer, prompt, row['response'])
+        prompt_tokens = len(pids)
+        if prompt_tokens > 2048:
+            skipped.append(str(row['id']))
+            excluded.append(dict(id=str(row['id']), prompt_tokens=prompt_tokens))
+        else: eligible.append(str(row['id']))
+    require(bool(eligible), 'no eligible D replay rows')
+    sources = {r.get('data_source', {'code':'livecodebench','math_screen':'math_screen'}.get(r.get('task'))) for r in task}
+    require(len(sources) == 1 and next(iter(sources)) in ('finqa','math_screen','livecodebench'),
+            'D replay needs one supported task reward schema')
+    source = next(iter(sources))
+    replay = [dict(r, extra_info=dict(r.get('extra_info') or {}, p3b_task_source=source)) for r in replay]
+    draws = []
+    rows = mixed(task, replay, seed, skip_ids=skipped, skipped_draws=draws)
+    return rows, dict(seed=seed, prompt_cap=2048, pool_rows=len(replay), eligible_replay_rows=len(eligible),
+                      eligible_replay_ids=eligible, skipped_ids=skipped, skipped=excluded, skipped_draws=draws,
+                      skipped_draw_count=len(draws))
+
+
 def job(a, recovery=False):
-    frozen_hashes(); tests_path=None
+    frozen_hashes(); tests_path=None; tokenizer=None; replay_selection=None
     if recovery:
         require(a.seed <= 103 and (a.arm != 'base' or a.seed == 101), 'unregistered recovery seed')
         name = f'recover-{a.arm}-n{a.size}-s{a.seed}'; recipe = 'F'; steps, batch = 4, 16
     else:
-        require(a.recipe != 'F+replay' or (a.route == 'finqa' and a.seed <= 103), 'F+replay is tier-1 seeds 101..103 only')
         require(a.route != 'finqa' or '+replay' in a.recipe, 'tier-1 new stages use replay')
         name = f'{a.route}-{a.recipe}-s{a.seed}'; recipe = a.recipe[0]; steps, batch = 40, 32
     require(a.standin or len(set(a.gpu.split(',')))==8, 'v4 training uses eight distinct GPUs')
@@ -130,14 +154,23 @@ def job(a, recovery=False):
             require(frozen_files(a.out / 'targets')['technical_synthetic']==a.standin,'stand-in targets cannot train real models')
             check(a.task_schedule, frozen_files(a.out / 'targets')['files'][f'schedule-{a.seed}.jsonl'])
             target_info=json.loads((a.out/'targets/inputs.json').read_text())
+            require(a.recipe != 'F+replay' or target_info['task']=='math_screen',
+                    'F+replay tier 2 is registered for MATH only')
             if target_info['task']=='code':
                 tests_path=Path(target_info['tests_path']);check(tests_path,target_info['tests_sha256'])
         if '+replay' in a.recipe:
             freeze = frozen_files(a.out / 'replay'); require(freeze['technical_synthetic'] == a.standin, 'synthetic replay mismatch')
             replay = [dict(r, p3b_replay=True) for r in t.read_jsonl(a.out / 'replay/replay.jsonl')]
-            rows = mixed(rows, replay, a.seed)
+            if a.recipe == 'D+replay' and not a.standin:
+                from transformers import AutoTokenizer
+                tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
+                rows, replay_selection = d_replay_rows(rows, replay, a.seed, tokenizer)
+                print('D+replay selection:', json.dumps({k:v for k,v in replay_selection.items()
+                      if k != 'eligible_replay_ids'}, sort_keys=True), flush=True)
+            else: rows = mixed(rows, replay, a.seed)
     require(len(rows) == steps*batch, 'wrong training exposures')
     observed = dict(incoming=incoming, rows=s.digest(rows), seed=a.seed, name=name, route='recovery' if recovery else a.route, recipe=getattr(a,'recipe','F'), steps=steps, batch=batch, settings_sha256=s.file_hash(R/'v4-recipes.json'), technical_synthetic=a.standin)
+    if replay_selection is not None: observed['replay_selection'] = replay_selection
     bind(a.out / 'identities' / (name + '.json'), observed)
     if (run / 'complete.json').exists():
         doc = frozen_files(run)
@@ -147,12 +180,13 @@ def job(a, recovery=False):
                 identity(run / f'hf-step{step}', receipt=run / f'export-{step}.json')
         print('SKIP:', name); return
     data.mkdir(parents=True, exist_ok=True); run.mkdir(parents=True, exist_ok=True)
+    if replay_selection is not None: bind(run / 'replay-selection.json', replay_selection)
     if a.standin:
         for step in ([4] if recovery else [10,20,30,40]): atomic(run / f'export-{step}.json', dict(technical_synthetic=True, step=step))
         atomic(run / 'summary.json', dict(**observed, seconds=0, gpu_hours=0))
     else:
         from transformers import AutoTokenizer
-        tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
+        if tokenizer is None: tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
         import pyarrow as pa
         import pyarrow.parquet as pq
         converted = training_rows(rows,tokenizer,recipe,recovery)
@@ -204,5 +238,7 @@ def job(a, recovery=False):
             atomic(run / f'export-{step}.json',identity(export))
         seconds=json.loads((run / 'trained.json').read_text())['seconds']
         atomic(run / 'summary.json',dict(**observed,seconds=seconds,gpu_hours=seconds*8/3600 if seconds is not None else None))
-    atomic(run / 'manifest.json',files_manifest(run,['summary.json'],technical_synthetic=a.standin))
+    names = ['summary.json'] + (['replay-selection.json'] if replay_selection is not None else [])
+    details = dict(replay_selection=replay_selection) if replay_selection is not None else {}
+    atomic(run / 'manifest.json',files_manifest(run,names,technical_synthetic=a.standin,**details))
     atomic(run / 'complete.json',dict(complete=True))
