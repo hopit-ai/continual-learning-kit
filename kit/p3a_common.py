@@ -124,7 +124,18 @@ def logging(out, name):
     finally:
         sys.stdout.flush(); sys.stderr.flush()
         for fd, old in zip((1, 2), saved): os.dup2(old, fd); os.close(old)
-        tee.stdin.close(); tee.wait()
+        tee.stdin.close()
+        # INFRASTRUCTURE FIX (not a decision rule). vLLM worker subprocesses are spawned
+        # while fds 1,2 point at the tee pipe, so they inherit the write end. If the
+        # engine is not shut down before this exits, tee never sees EOF and tee.wait()
+        # blocks forever -- observed 2026-10-16, p3a_teacher.py hung 3h25m AFTER writing
+        # every output. Bound the wait and force tee closed; the task script reaps any
+        # surviving GPU workers afterwards.
+        try:
+            tee.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            sys.stderr.write('logging(): tee did not exit in 120s (inherited pipe); killing it\n')
+            tee.kill(); tee.wait()
 
 
 def entry(job, configure, name):

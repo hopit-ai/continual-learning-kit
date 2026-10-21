@@ -385,3 +385,7 @@ done
 This covers all 23 exports: D/F/R/S seeds 101–105 and D-R seeds 101–103.
 `OUT20/return/scores.csv.gz` contains the scores; its metrics export is empty
 because no training runs in OUT20.
+
+## Next partner message
+
+The v0+, interpolation-screen and replay-breadth jobs are in [README-next.md](README-next.md). Existing Package B commands and frozen inputs remain unchanged.

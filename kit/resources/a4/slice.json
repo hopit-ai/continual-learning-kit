@@ -1,0 +1,22 @@
+{
+  "manifest": "ed5a8b17357e3e9679f12b653e7a782dfab5af7ac9ddf14452183f26ae4cbcad",
+  "files": {
+    "batch-2026-01.json": "611b190d9f244dc85d20569ca932311b3b834b0094ec73ff00c4f4a94877497e",
+    "batch-2026-01.trainer.jsonl": "27d327ac35aa52a4cf7880f4f042a9a0ea46b832e0e0de56e86e4a1a1f76a8cd",
+    "batch-2026-02.json": "adcfa667b07a8e9a730dc8d6440ec5a68329c2376401af3857b739a52b449eaa",
+    "batch-2026-02.trainer.jsonl": "d8aac98be6d181193acb49c485182e5459845d45e40386dfa33f61a91d5de76d",
+    "batch-2026-03.json": "ee56c59b603dd6a69e64adce3591a76ead2b7792774051c1853b497b8dda2b4d",
+    "batch-2026-03.trainer.jsonl": "216fe93f64813973d75581c45ea4f52af56ada5d132f80f441922e27f1ba752e",
+    "batch-2026-04.json": "4cbc5a4d2cb2d9a9c8feeebb084c117fbd4930eae4327a9cb0ee8823a050b5e7",
+    "batch-2026-04.trainer.jsonl": "56f7ceeb441f89f5efbc78823b73aadc3c77a97d3a68545e8a28d3d124d4bdfd",
+    "batch-2026-05.json": "2a0ca53080c6f0f26ce239704bbb7be8cab06fa7a5baf4abf8a0b088d17f98ee",
+    "batch-2026-05.trainer.jsonl": "bc2e2ff6105a55092aff698bbd3e7756e6147d85d33e739932ee0548ee8bfa34",
+    "batch-2026-06.json": "0c2c0ffc39a8a7fc61a878bfb63a720a03c4adcac59edec82cf4ddc323d6fe33",
+    "batch-2026-06.trainer.jsonl": "d60832a2764813139c703788283cf1d5358254a1640df6e9b969c3355c652d96",
+    "gold-audit.csv": "e57f4bd404846a0551c8cab79179206165edaf65d82da195a2bcdc7c5e64f8ff",
+    "manager-gold-recompute.txt": "0d8319c71c5035d0b526e5ed28e4b0556050b3a19b8af532f6d1ded24f4a26ee",
+    "manifest.json": "ed5a8b17357e3e9679f12b653e7a782dfab5af7ac9ddf14452183f26ae4cbcad"
+  },
+  "registration_sha256": "f9b56973a0126649c9c6ef33c685ccc419f738f50cad5a52ed966a32fc8f2522",
+  "sec_source_sha256": "c43fe149fbf5af4a952807df37635719f6c75a861d8b90c32a32b62c2e7c2652"
+}

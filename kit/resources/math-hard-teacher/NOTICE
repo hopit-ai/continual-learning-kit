@@ -1,0 +1,7 @@
+Problem statements and reference answers in this directory come from the MATH dataset (Hendrycks et al., 2021),
+as mirrored by EleutherAI/hendrycks_math at revision 21a5633873b6a120296cce3e2df9d5550074f4a3.
+Licence: MIT, as stated by the authors' repository (https://github.com/hendrycks/math/blob/main/LICENSE) and the
+mirror's dataset card. The authors' original release is no longer distributed (rights-holder takedown, disclosed in
+docs/phase3/3c-second-task-screen-preregistration.md); any publication must say which copy was used.
+Selection, hashes and counts: manifest.json. Registration: docs/phase3/hard-math-screen-preregistration-20261020.md.
+This file is not part of the hashed freeze.

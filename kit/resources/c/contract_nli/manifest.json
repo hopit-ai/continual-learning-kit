@@ -1,0 +1,2159 @@
+{
+  "canonical_json": "ensure_ascii=False, sort_keys=True, separators=(comma, colon); original content preserved; includes gold label",
+  "context": 12288,
+  "input_cap": 10240,
+  "output_cap": 2048,
+  "ranking": "sha256(UTF-8(\"C-20261014|\" + canonical JSON content)); global ascending order; skip full label/group quotas",
+  "schema": "legal-headroom.v1",
+  "source": {
+    "archive_sha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+    "cross_split_document_excluded": {
+      "dev": 0,
+      "test": 17,
+      "train": 17
+    },
+    "dataset": "ContractNLI (Hitachi America, Ltd.)",
+    "deduplication": "document ID and NFKC/casefold/whitespace-normalized document content; all cross-split members excluded",
+    "hypotheses": {
+      "nda-1": {
+        "hypothesis": "All Confidential Information shall be expressly identified by the Disclosing Party.",
+        "short_description": "Explicit identification"
+      },
+      "nda-10": {
+        "hypothesis": "Receiving Party shall not disclose the fact that Agreement was agreed or negotiated.",
+        "short_description": "Confidentiality of Agreement"
+      },
+      "nda-11": {
+        "hypothesis": "Receiving Party shall not reverse engineer any objects which embody Disclosing Party's Confidential Information.",
+        "short_description": "No reverse engineering"
+      },
+      "nda-12": {
+        "hypothesis": "Receiving Party may independently develop information similar to Confidential Information.",
+        "short_description": "Permissible development of similar information"
+      },
+      "nda-13": {
+        "hypothesis": "Receiving Party may acquire information similar to Confidential Information from a third party.",
+        "short_description": "Permissible acquirement of similar information"
+      },
+      "nda-15": {
+        "hypothesis": "Agreement shall not grant Receiving Party any right to Confidential Information.",
+        "short_description": "No licensing"
+      },
+      "nda-16": {
+        "hypothesis": "Receiving Party shall destroy or return some Confidential Information upon the termination of Agreement.",
+        "short_description": "Return of confidential information"
+      },
+      "nda-17": {
+        "hypothesis": "Receiving Party may create a copy of some Confidential Information in some circumstances.",
+        "short_description": "Permissible copy"
+      },
+      "nda-18": {
+        "hypothesis": "Receiving Party shall not solicit some of Disclosing Party's representatives.",
+        "short_description": "No solicitation"
+      },
+      "nda-19": {
+        "hypothesis": "Some obligations of Agreement may survive termination of Agreement.",
+        "short_description": "Survival of obligations"
+      },
+      "nda-2": {
+        "hypothesis": "Confidential Information shall only include technical information.",
+        "short_description": "None-inclusion of non-technical information"
+      },
+      "nda-20": {
+        "hypothesis": "Receiving Party may retain some Confidential Information even after the return or destruction of Confidential Information.",
+        "short_description": "Permissible post-agreement possession"
+      },
+      "nda-3": {
+        "hypothesis": "Confidential Information may include verbally conveyed information.",
+        "short_description": "Inclusion of verbally conveyed information"
+      },
+      "nda-4": {
+        "hypothesis": "Receiving Party shall not use any Confidential Information for any purpose other than the purposes stated in Agreement.",
+        "short_description": "Limited use"
+      },
+      "nda-5": {
+        "hypothesis": "Receiving Party may share some Confidential Information with some of Receiving Party's employees.",
+        "short_description": "Sharing with employees"
+      },
+      "nda-7": {
+        "hypothesis": "Receiving Party may share some Confidential Information with some third-parties (including consultants, agents and professional advisors).",
+        "short_description": "Sharing with third-parties"
+      },
+      "nda-8": {
+        "hypothesis": "Receiving Party shall notify Disclosing Party in case Receiving Party is required by law, regulation or judicial process to disclose any Confidential Information.",
+        "short_description": "Notice on compelled disclosure"
+      }
+    },
+    "length_excluded": {
+      "dev": 0,
+      "test": 0,
+      "train": 17
+    },
+    "licence": "CC-BY-4.0 per TERMS",
+    "max_pairs_per_document": 3,
+    "source_counts": {
+      "dev": 1037,
+      "test": 2091,
+      "train": 7191
+    },
+    "source_files_sha256": {
+      "dev.json": "310af7d661d2ab50ee3700169cef524c75f39fb296bbf5a515c229eb0f42e68e",
+      "test.json": "460267b56052a2dc5aead98eb35eadef9e6734d5723d37b4a9790e410f812387",
+      "train.json": "dbceb356cd6203b35b27be94a5fa85e499a81c34c42c89ad53060b39f0257ba5"
+    }
+  },
+  "splits": {
+    "panel": {
+      "documents_or_contexts": 52,
+      "file": "panel.jsonl",
+      "items": 100,
+      "labels": {
+        "contradiction": 33,
+        "entailment": 34,
+        "not_mentioned": 33
+      },
+      "max_input_tokens": 6460,
+      "membership": [
+        {
+          "id": "contract_nli:dev:547:nda-20",
+          "prompt_sha256": "c58e30599c10a3954e9f1ba2f315ffa6c6d6905f8ac5afa9a1a2b97475ac6091",
+          "rank_sha256": "00d7d1334b71654c795c9a7ce4e6a6e705610c5556736620d7eba50cff476d99"
+        },
+        {
+          "id": "contract_nli:dev:56:nda-5",
+          "prompt_sha256": "488421c40dbad3b8c3e0d151dc7507a1734e2ff1905f4d2406299b54030d3c42",
+          "rank_sha256": "015043a367b50754403653fd1b6e01f2ea4da2daf42cf21af0d664650da8ddb0"
+        },
+        {
+          "id": "contract_nli:dev:73:nda-13",
+          "prompt_sha256": "eeec77771472914556b8f6d4a5ce67290b400156f426b5222b14c01e096abaf8",
+          "rank_sha256": "01b808f4a25104feb9ef8d5224e093657c3ede3dfa9f02fc988b4ffcfe5ca9e9"
+        },
+        {
+          "id": "contract_nli:dev:381:nda-16",
+          "prompt_sha256": "32ed61abefac68ce33b757a07fc1c6a9926921600db7c10c5088fc5616fccdc4",
+          "rank_sha256": "02394808a6fe101921193dc851912f8b3345f9645dfab4ef1d4c422d9bb4b5ab"
+        },
+        {
+          "id": "contract_nli:dev:575:nda-19",
+          "prompt_sha256": "7b5e42da35ca539342dc8eaf69a22ef090ca2f6f3ed4257e7b667aac6bb76ea2",
+          "rank_sha256": "023f7c38d327365f3f13d607e470a4dd70b66057f03c240e60cd32de81a2036f"
+        },
+        {
+          "id": "contract_nli:dev:81:nda-19",
+          "prompt_sha256": "c1b5094ab4fd4d4c3836a377d2f935b5f50ed6a790eca7006b11cd07d24f4d99",
+          "rank_sha256": "02445851b04bb5173012964cf3203f2e6f5971135b437630fe6a8216a77ec91b"
+        },
+        {
+          "id": "contract_nli:dev:10:nda-8",
+          "prompt_sha256": "d36883f54a28993919df2fa50bf8feae1090b90c81ba95f21301bb8eb3078fff",
+          "rank_sha256": "02505e1636d73d93cc25fe5cd21c09f00c961ab2a89219255865c5316f6b25c3"
+        },
+        {
+          "id": "contract_nli:dev:54:nda-1",
+          "prompt_sha256": "7032e552690f7cc24670c80d98212c509159d5c19731007449ff130f0d24ea49",
+          "rank_sha256": "0251f2dd55b976449451f8ea164435a579e38c724ace9812542d021bfc7b541f"
+        },
+        {
+          "id": "contract_nli:dev:82:nda-20",
+          "prompt_sha256": "18f253e09bcfa02af43ef415689188137bd0dc8693856360add5f54ebd3c3d66",
+          "rank_sha256": "028b7db7c4ad213c09bae6babd1e5a048a56d774316cde982ef31fef5813d392"
+        },
+        {
+          "id": "contract_nli:dev:507:nda-2",
+          "prompt_sha256": "d2fb6995bba6b1395a8fea28855841391a5a7677d2d8f547006a94781b0cb69e",
+          "rank_sha256": "02a962b00c9540e434c6528b17d6e385a07594eb7a6c8f9633ab6611d198ef6d"
+        },
+        {
+          "id": "contract_nli:dev:435:nda-3",
+          "prompt_sha256": "7408cb33f82e7a2d6216b013157e46135fca976f33d0fe9587d494d69fb7d2fe",
+          "rank_sha256": "03241c6b35c985023cce6fb0d999b57110994a83dba015bf30979b2a0377f290"
+        },
+        {
+          "id": "contract_nli:dev:478:nda-18",
+          "prompt_sha256": "f194c0515d4ac6057db8f73653b38a9be98d07bf6d94a68dd6d4d90d420a1964",
+          "rank_sha256": "032750c87e413046207d4a3bb89985811ce7f6841fe41ef6b889a3a83118301b"
+        },
+        {
+          "id": "contract_nli:dev:27:nda-5",
+          "prompt_sha256": "85cd072c483c91b65fdd90191bf4fc72b8f72d82fa11b66cb2198da43b2a1a1d",
+          "rank_sha256": "033242842a61b8d9b87407d97e2abd6b34b198bde12b3a085dc17d1b69589488"
+        },
+        {
+          "id": "contract_nli:dev:582:nda-2",
+          "prompt_sha256": "5981e2b508a7f5b06b4783f375ad4678b8f1621298b32e07a5eb47312b30c33c",
+          "rank_sha256": "0386e21c90f6f94b83c1d8fa9fd3d3df6dbbdbe5bec77cb4e5044573c3586fd6"
+        },
+        {
+          "id": "contract_nli:dev:82:nda-1",
+          "prompt_sha256": "a2cd721dd8ba925989a128bc37a7751d12a29856d27bb14367945f9ec7a62789",
+          "rank_sha256": "03b428aec7a1238ec58681fee81efd2ffb7e02db2133385f973cf9f837786441"
+        },
+        {
+          "id": "contract_nli:dev:32:nda-17",
+          "prompt_sha256": "ca583098707742da06f066f517a3f785f693ba08a09c18f76fcacb0d5713c085",
+          "rank_sha256": "04540528af24f81017f05b511419bd377c62e96dda21ce1af19a28e3e152e725"
+        },
+        {
+          "id": "contract_nli:dev:152:nda-4",
+          "prompt_sha256": "94ad760eda698237487e2a5514e0a77acd67b4643a434c42bd27316b65683d24",
+          "rank_sha256": "0481bfe15b4bf9e376988da24fab1eaea0a30826df22fc2a7910c214b19edfc3"
+        },
+        {
+          "id": "contract_nli:dev:35:nda-13",
+          "prompt_sha256": "5744052c87d86175c5e6e4263de112e36eca610a371177b927b87028a2329c8e",
+          "rank_sha256": "04ad7216bb4021a633541b64b4d934515cd272c9fe7c2be5da6a773464c32e0c"
+        },
+        {
+          "id": "contract_nli:dev:64:nda-18",
+          "prompt_sha256": "2f52972c4f7d877abcd7541a7afeae40fda51d748307644f5200c9a2b042a164",
+          "rank_sha256": "04bef49b7112d4ba5061163debe6ae6bfc907eda2b072bb18095feaef7d8d94d"
+        },
+        {
+          "id": "contract_nli:dev:20:nda-2",
+          "prompt_sha256": "7bdad65c6da33ff07245fd7393c047231e0e4a0730e9fe2fd0ec8d9612b709f5",
+          "rank_sha256": "04c8b402397830edcc867e5f69ea4f7790756de75c6d58565d368ae5511b89cc"
+        },
+        {
+          "id": "contract_nli:dev:19:nda-12",
+          "prompt_sha256": "d1a4d2f24f839cc0ccf7aaae17249f22abadebe7efc172fb7a72373f0fd00cc0",
+          "rank_sha256": "050ba3e25a28e2c96e30862f8eac2405320db299302b2172e395e69eb4c4b517"
+        },
+        {
+          "id": "contract_nli:dev:13:nda-15",
+          "prompt_sha256": "f32fcfb49ead858fbf05564f68225bc10ce79c02814ae7edc3155739590d92b0",
+          "rank_sha256": "05295357622247e48755b1ec5b2bdb7fabfcf2652a07c06ecb150cf4c56d6058"
+        },
+        {
+          "id": "contract_nli:dev:19:nda-17",
+          "prompt_sha256": "35fc087f5267ec6ba65daf557bb6dec7c8b4fdb8ee4059f149d570b44383c7ae",
+          "rank_sha256": "053526d4acaebdb4b2a48ff8c37d6ddf0c8f6158cc0af0a9f87e4b9ed6860daf"
+        },
+        {
+          "id": "contract_nli:dev:14:nda-15",
+          "prompt_sha256": "b15b7e4ecdbb3b86afd7ca9afa3b7b2b3a09a9532892272183d509cb5db6121c",
+          "rank_sha256": "067e34cf2106b6a18ec943a573f3deacc03e1a8dcc49cb42d6074fb7dba75433"
+        },
+        {
+          "id": "contract_nli:dev:16:nda-1",
+          "prompt_sha256": "8d7dbe561724c8ca0b4d9988e06c0bb5e33bd47b03d71d57bfe80b7c737af6bc",
+          "rank_sha256": "069db69456445d30798a9ecc0802e69a313f692ab3818a062adc85499797c118"
+        },
+        {
+          "id": "contract_nli:dev:598:nda-17",
+          "prompt_sha256": "5899f877635a3d82e85529f4ec37098ce2cac788f9a863e45619ce9981b2c3c8",
+          "rank_sha256": "0741460100f2e71824e425675131b4ab647ea173752ce39174360eb0e53d67f8"
+        },
+        {
+          "id": "contract_nli:dev:586:nda-19",
+          "prompt_sha256": "ccd749a5929ade93215321e66d19e8996e4f20f6921268acfc61593cab0becb8",
+          "rank_sha256": "07415d70a08e485424b34a9a3ad1921d9956727773bc8aff1a82e113017dfa4a"
+        },
+        {
+          "id": "contract_nli:dev:590:nda-13",
+          "prompt_sha256": "b4813422693c3a104d0ea8c9ef9a8575536e22a7bc756667fb3f26ccd9743735",
+          "rank_sha256": "075618bf3588bbbf132aeaf1b04ac5d0bf25f0a66555fba0c8f658033af03568"
+        },
+        {
+          "id": "contract_nli:dev:13:nda-11",
+          "prompt_sha256": "650775d4d6e84329f257722418fac4dbee1136edcab8a6e59b56815ae903eb3a",
+          "rank_sha256": "075d73238bead70ff671b608eec8b74c64af271f27df9eba8b477476f5b1288b"
+        },
+        {
+          "id": "contract_nli:dev:610:nda-13",
+          "prompt_sha256": "87a44c46efdf41659251ae95c649d41d353cf595a3c4f71ee94dfaac60157e88",
+          "rank_sha256": "076937dfef4cb12961e89f56e4816e9b8bd9a1dfd36c6aa7fbab70d87aeea209"
+        },
+        {
+          "id": "contract_nli:dev:411:nda-15",
+          "prompt_sha256": "1f1b8a24ddd49d8b164275df0e981bd59f84bdf2f965d7197600254cc8f2893b",
+          "rank_sha256": "07ab389ad940066db005723280e44a7464ad25020fab4f610d04d58d55626b1b"
+        },
+        {
+          "id": "contract_nli:dev:152:nda-16",
+          "prompt_sha256": "b796a8075df40932963161ee16220ec691ac1bebd2bd3d6c98fc6448c457493d",
+          "rank_sha256": "07b5771eb8e78820c4905e20d2e04625cf94398d016727d77285f0b6c3221ae9"
+        },
+        {
+          "id": "contract_nli:dev:64:nda-3",
+          "prompt_sha256": "dc9afab717b9509208a85b3d97a0cd125c81c5ed7cbb21a3baebfac767583ade",
+          "rank_sha256": "080312a812b042f3a997393b511e6ddfef16603d2c01b567a7c8f1907ea29134"
+        },
+        {
+          "id": "contract_nli:dev:563:nda-12",
+          "prompt_sha256": "11007f1dbb3588814fd7d1fc5146626b36eec10ab6bc3aa5d054ec2b4fb14a3f",
+          "rank_sha256": "0897274afa924b9436f169ead02d4ee8b2690b19e39bd372c135afbcd461824e"
+        },
+        {
+          "id": "contract_nli:dev:152:nda-5",
+          "prompt_sha256": "a617dd6e435bcf680c0af233e81c290150812b8c93a04ba7a15a38dbafc98a42",
+          "rank_sha256": "0897463cd289e61e08869e53f33a708a995640b33b92a3a9b12c7bca808c76e6"
+        },
+        {
+          "id": "contract_nli:dev:7:nda-1",
+          "prompt_sha256": "8f83ac95deaa9f9815dbdcdb9f4b9494a29d80b0297ed80a65932b93ebcf5265",
+          "rank_sha256": "08bf216f46d8e36914253aef18af90a5b3d72120e96086dca0b548fab28dbf60"
+        },
+        {
+          "id": "contract_nli:dev:44:nda-4",
+          "prompt_sha256": "bf3edf2edde057f001d90dd790f681865c44ddbba6040a43c3af293558f112af",
+          "rank_sha256": "08e9fade458005f94498ce73ed9ae692b0d63f21ce2661fa2bc37c3743d586cc"
+        },
+        {
+          "id": "contract_nli:dev:81:nda-18",
+          "prompt_sha256": "59397a4be1747248e6101f737738deae6b50231a2df81fc2f837ee1ae8533db2",
+          "rank_sha256": "092e6ac72385185963e00d5e01da4a13e5595071dbc2deee33f9758a8b570ead"
+        },
+        {
+          "id": "contract_nli:dev:56:nda-18",
+          "prompt_sha256": "77100ab4424ac9abade93e372f58ec9f354059dcd1322cb7bd67000ee353fd7c",
+          "rank_sha256": "0a0d164204a98b42a40f570ebafa10ef17b65c052562188b57966da075aaf386"
+        },
+        {
+          "id": "contract_nli:dev:575:nda-16",
+          "prompt_sha256": "c5b9fe759595f341749b20e431f43287d81df4025c69632d691ee496078c1422",
+          "rank_sha256": "0a70a02b5eba2666b6cef51d05470494bc6776cd9ed333f6fa109883024932c1"
+        },
+        {
+          "id": "contract_nli:dev:54:nda-10",
+          "prompt_sha256": "b4fa3f142d85fcbcd31732517478da00f24851d9b1542c1b5a65fe664c5b31c5",
+          "rank_sha256": "0b3cbc1141288625a1ac794dd01137036efcfe763e486fbf0a208ff18e900da3"
+        },
+        {
+          "id": "contract_nli:dev:81:nda-4",
+          "prompt_sha256": "dde69bc6deb65cc3cb960b5796d6b55af0c22439b70a82b6908f215ffb930c6c",
+          "rank_sha256": "0be9f7c7added24f11c9d4137fd24ed01e733e6935059f62d49475483f4a9553"
+        },
+        {
+          "id": "contract_nli:dev:9:nda-2",
+          "prompt_sha256": "892a2d5daaa876cd7bcb5b1c209c58390ec0d9569bb727dea252031297a4858d",
+          "rank_sha256": "0bf1bea9403eab4d88f3926b92f98316147bcdd1f9d2f2e01a67065c6f2afbda"
+        },
+        {
+          "id": "contract_nli:dev:35:nda-3",
+          "prompt_sha256": "88f489310dcdb68ffc284b6df2095d51f6d98c20236d8bf11a853eef6765ca05",
+          "rank_sha256": "0bfe2823b406b5dd0d830e9b98edff096c59e3ae2de190c930297a9704ea013d"
+        },
+        {
+          "id": "contract_nli:dev:69:nda-2",
+          "prompt_sha256": "5f3effcea06cf19411c23078e1f5274ab00d5031bb767d152a19379270b5a6c4",
+          "rank_sha256": "0ce3d7cdfe2e238aa6b68be05482312bcc09f9d3007ba1eeccbae7216e8125b2"
+        },
+        {
+          "id": "contract_nli:dev:54:nda-5",
+          "prompt_sha256": "201861e4523baab2d5d41d967d894f22ac9f1d2af69a2f91b4ff7415e87b8cba",
+          "rank_sha256": "0d0b6196479875ad1e194ea418a49721fce141a16e94ac4b42731c283f0aa192"
+        },
+        {
+          "id": "contract_nli:dev:28:nda-2",
+          "prompt_sha256": "ae313941edcfbbc525022859f2f0c32ff73dd8f45c7a11115a848781bbe4c44c",
+          "rank_sha256": "0d280ae4bfb36abc91b34762c0bc61d2467b839c7ee3ec79a50f5495feb80751"
+        },
+        {
+          "id": "contract_nli:dev:411:nda-17",
+          "prompt_sha256": "aab173ab4e0af0b4965911b4eee48fcf04b48458fb816285e620c8552192e625",
+          "rank_sha256": "0d358dd6457a62699e05a13c302aa289232d7584947221c8a553aa7d2d0754ae"
+        },
+        {
+          "id": "contract_nli:dev:32:nda-16",
+          "prompt_sha256": "3aaf977fd93662ffe65dd5514abe611d3367e48bab1b041e6a7b9fa4a9c73d5f",
+          "rank_sha256": "0d44c13915b2c8f72a070ba681d793d6d1e0f76b8069893d325abe77185b4868"
+        },
+        {
+          "id": "contract_nli:dev:33:nda-10",
+          "prompt_sha256": "377e19ae81492e5578b80f265ab3b5f625d4b58de78b62dcfc99abf1f156bd3a",
+          "rank_sha256": "0d7b90887db4a0a5ed083de095cd57f08f3da5a773de88d165c70381e4f3a8db"
+        },
+        {
+          "id": "contract_nli:dev:33:nda-1",
+          "prompt_sha256": "5cacb0be8f29e69b9fee607dc3e0c684516ea33fa25c71be2ffa6e53b81b405b",
+          "rank_sha256": "0d830fdeec73ddb2e46ce46330483f4cee5c3a58b033fcb3b18d703ca2fe626b"
+        },
+        {
+          "id": "contract_nli:dev:61:nda-19",
+          "prompt_sha256": "a1efe4a2a9ae2415d9ba53cd59e751c0d736a4d44a1a161a0ef73775ea51f277",
+          "rank_sha256": "0dab7a88b0aa5130a27d3096c28e41b712b51fc579bf75d08e96820cb69403e6"
+        },
+        {
+          "id": "contract_nli:dev:205:nda-16",
+          "prompt_sha256": "3ca672063c815087ef54e86e596abcd548fb52cc65ab55aecbd5829054acaef1",
+          "rank_sha256": "0dac54e2f78bb043aeff035c48d3a96b6942679290b4943ba0ffc140705f134a"
+        },
+        {
+          "id": "contract_nli:dev:478:nda-13",
+          "prompt_sha256": "39d151543313a55ebf383e1caaf1e26f4f5c7d66fa7f4dfc6c997cf24254c484",
+          "rank_sha256": "0dc14c4453e2db40bf2163d651061f13bbb1f6cd3e5d05ddbf1c80693de0213d"
+        },
+        {
+          "id": "contract_nli:dev:507:nda-13",
+          "prompt_sha256": "18b1f15e26f0987a99889ca55759fcff40533484027c1f80355a811ca60b838f",
+          "rank_sha256": "0df370a21031c5ba829fd260581c81c3828bc7c1ed12d43da24162a0f2830276"
+        },
+        {
+          "id": "contract_nli:dev:456:nda-4",
+          "prompt_sha256": "34d9ed86f5413197604b4d324e9451c622801d2bce7a3d4f47427f67ef0a1cd4",
+          "rank_sha256": "0e1c87233918ba1fb65ae77b3a8a7c8b7ae7aed8ab31fb30286a33df8ef65e0e"
+        },
+        {
+          "id": "contract_nli:dev:45:nda-20",
+          "prompt_sha256": "0b55a6b45370f2ff4ba76b2ab089bb69ccdddfd2c293e0230dda199694b25fc2",
+          "rank_sha256": "0e4a02e30799bb20b2bf9132050623714b8923f72c8de9edde631c5cb4d56f75"
+        },
+        {
+          "id": "contract_nli:dev:547:nda-7",
+          "prompt_sha256": "ada7b112dc38ad31ee184b00a684499be14b4c51a7b8cdff89f86929d4129b3c",
+          "rank_sha256": "0fa2be45b15200e4a4f3d9522f4753a926a0d3fb964ee3a8f29da7679e1f65d5"
+        },
+        {
+          "id": "contract_nli:dev:29:nda-12",
+          "prompt_sha256": "58cfef7d6c2189acbfffed7d350371b9198fb53732fc435d71a47d797abbe75c",
+          "rank_sha256": "100f3e4fe28f93f465c17e7be2a6ac0d93757906463d348d21c54db4827a1b22"
+        },
+        {
+          "id": "contract_nli:dev:3:nda-19",
+          "prompt_sha256": "f85abb408314e5ad0489b8b9f5e1133837460de597be38c4b320c59970a7a24d",
+          "rank_sha256": "1024880a8fc65d3f1be0bfc21be5d6b27badafc193444b732b1d05d4634c6bc3"
+        },
+        {
+          "id": "contract_nli:dev:35:nda-7",
+          "prompt_sha256": "228e9b8678ed76f0ed404c6b27436dd76e26a10a87e91dbeb2653eb0f2dd3c54",
+          "rank_sha256": "10357e73aafaee353f23aba9fb103bb458a714d8c7cac1dd012c165ecb5d9f17"
+        },
+        {
+          "id": "contract_nli:dev:582:nda-12",
+          "prompt_sha256": "1cb1064689caed566061e36a9449f23f24b10fc4412b98ffbb6802202ca82c76",
+          "rank_sha256": "105b5d88d40e20158dd2ebc926697a0c12caf42ddf151f413ced924ee5305297"
+        },
+        {
+          "id": "contract_nli:dev:75:nda-2",
+          "prompt_sha256": "9a60966ad165ffc0d58b558ddfc44a09f46f47be2dd08d19b60c4b197ca3de6c",
+          "rank_sha256": "1272ff100a21767bd3325114f4805989af04ae6db9fb3217c8cf497ae6aeb38f"
+        },
+        {
+          "id": "contract_nli:dev:13:nda-20",
+          "prompt_sha256": "be649f673bd89ec3424a07d37c32fe1a6e4f0d783f5252eec898c63dc867f139",
+          "rank_sha256": "12f46bbef83860351d99072a92e599d77c35dffec640e57ee7f8939ec7e0e313"
+        },
+        {
+          "id": "contract_nli:dev:406:nda-18",
+          "prompt_sha256": "4c73ba96a5cfb53ebf0ff57f6e5c2e3137f76d8301237efddd778ef863ee0a43",
+          "rank_sha256": "132c394d4ca7bb49649afaa6c0b0769ccce0624ae8a9af0ea4210fc5ec02a25e"
+        },
+        {
+          "id": "contract_nli:dev:456:nda-12",
+          "prompt_sha256": "fc7e4846388579c190eb3ff5c2159434b162156ff04b78d36783a4d87bf04733",
+          "rank_sha256": "14f7cc9b9c581cf05822e344d22e4d2648ce1d42bb6848f1de7d15aac0bbf64a"
+        },
+        {
+          "id": "contract_nli:dev:12:nda-20",
+          "prompt_sha256": "957df4d7b41a7030cf99fe314103c3e337ccb0a0b33100f15ef986abff21837e",
+          "rank_sha256": "150b6bb1f3124602eb631ea61abb3ba3cf4b9ef925a16304089e9245b41ef7db"
+        },
+        {
+          "id": "contract_nli:dev:435:nda-7",
+          "prompt_sha256": "c3301a5b2e9d291342b0ecea78d82d848dd94fe2735655cd56a0828e2ae01947",
+          "rank_sha256": "158cacf151808531a22fb85a7d705357e6a79501ebbac14e83aee79da71b9f2f"
+        },
+        {
+          "id": "contract_nli:dev:14:nda-12",
+          "prompt_sha256": "c22d935c34cc37b1eab4131d22c8a9484dfb60e1ec7d2f9f5751db75b518e5c6",
+          "rank_sha256": "159446b23083345eb2466a04c7c512a879c3d83cb90285c67b6cd8b88f870539"
+        },
+        {
+          "id": "contract_nli:dev:406:nda-2",
+          "prompt_sha256": "09db7d0783474d59cd4f379aa057e5979b30cf0385032eeb58829c22523f51f4",
+          "rank_sha256": "15a8a9e7bd221f28f4e036ff78857819c4b9a4afa822e8aaca73d0631f563727"
+        },
+        {
+          "id": "contract_nli:dev:82:nda-17",
+          "prompt_sha256": "427629a95db5d4383709ccd35940322257128cbf2d1e83e3e066353320d97dee",
+          "rank_sha256": "15d5a4351e02554ffa32318ae63c6c297498a536d525a7839a202fd094ddc1b6"
+        },
+        {
+          "id": "contract_nli:dev:482:nda-18",
+          "prompt_sha256": "8572500de1202dec2e551069c306f056e10adfb0723f1effc3b3d554ade793e2",
+          "rank_sha256": "16d90148795276310c403ed6b0b1d9b0c0c24a2972cd6ab0934c1e82bdf26473"
+        },
+        {
+          "id": "contract_nli:dev:575:nda-2",
+          "prompt_sha256": "bc4493f1be2ef8e330ffce71425cae4431f6a27030d3ac765b5f129d1937a312",
+          "rank_sha256": "183393819f93d8b98f649f333fd0533968136184d74f225934369489a21127cd"
+        },
+        {
+          "id": "contract_nli:dev:440:nda-2",
+          "prompt_sha256": "ace94dd872ff255fb080f0494605f184b19596deb255a28c9d1b2276a8510bd3",
+          "rank_sha256": "18754d86f64576700d4e10f34476e25027c1cf9ce065b35c2d2708152f09fd6d"
+        },
+        {
+          "id": "contract_nli:dev:17:nda-18",
+          "prompt_sha256": "6f37416233799168f03b809286589f01cee081ef7d85e89ac3151526dffbe447",
+          "rank_sha256": "18b4974549ffe5ce9346bd4fd6528172d5ad9dbbcb477acc5cdf1e5c3cc25256"
+        },
+        {
+          "id": "contract_nli:dev:547:nda-15",
+          "prompt_sha256": "ce93a8a75fe7d3b3760bbe49b93865f387f666ff8451bca7cc82f9be904ff323",
+          "rank_sha256": "19ff48f499eec791fcd9d6c8df89eb22444cd5f2092e9cf7152a931295c5ff4a"
+        },
+        {
+          "id": "contract_nli:dev:507:nda-12",
+          "prompt_sha256": "0eb2b7c938efdb6819c44f79c1aca238a27e0701c9891dd5176c80712b2a6b5e",
+          "rank_sha256": "1a16fc55f8f6afaea5910593fb8601485a9ca6c8ec6a07e2d51bda07a5fdd1d7"
+        },
+        {
+          "id": "contract_nli:dev:478:nda-2",
+          "prompt_sha256": "1c717cff82255fd95b37819560fcb8ee55adc6af9763c7b99c903769ee43672a",
+          "rank_sha256": "1b6871d59b7e60351760995161c1eb0b52649026e02586446b3d7dfa4c424d86"
+        },
+        {
+          "id": "contract_nli:dev:590:nda-2",
+          "prompt_sha256": "995a3f8c12b81b5b47ccd8e636b7fb4d07250e791329d9376fc0febbad9f5a3f",
+          "rank_sha256": "1b9c0c47b5f7bcd9444080733628d693881a99f87c0551bf4b8c23b934aeeb68"
+        },
+        {
+          "id": "contract_nli:dev:56:nda-2",
+          "prompt_sha256": "d335a05b24ed95914c2c0632d301e480e87e53908ee4b3a2acd992e85ba9cb53",
+          "rank_sha256": "2826b551a6bd69d8841f2e21393081e2039c6440095485b10512b74eebcff778"
+        },
+        {
+          "id": "contract_nli:dev:73:nda-17",
+          "prompt_sha256": "94f20c9ad8f9b65a43f3bc9820160579a7b324723a0e05662f8b3a17ce44705f",
+          "rank_sha256": "2f18e555eb71d749680dc355b71aa9ab52915a90d7181236af436f51917c9c72"
+        },
+        {
+          "id": "contract_nli:dev:482:nda-7",
+          "prompt_sha256": "a31cc7375cf576cdd2ea6185c1a398a93277fa08fb374e405e5887eea1d327fc",
+          "rank_sha256": "2f4d8fac1c6f03fd26e79f073e14558d518bd6d07df63ee218ed46cb17755ee5"
+        },
+        {
+          "id": "contract_nli:dev:381:nda-2",
+          "prompt_sha256": "55ccb4284f1d3c7b2fea033e1c0c5b6d084831d46779bef5d71f17762f26e309",
+          "rank_sha256": "39c29cd0e088b05614d6f8cd6a5cc1c518f8fa5369a1ce2531649e4429a04526"
+        },
+        {
+          "id": "contract_nli:dev:73:nda-1",
+          "prompt_sha256": "23ed374ad5dccf85ea08c4c3690d0ba82396a57070b8e10583ecaf7f027dfd88",
+          "rank_sha256": "3a908c3a17cff5e8fe680399ddba6100225230b40db3987703608229cc129583"
+        },
+        {
+          "id": "contract_nli:dev:411:nda-5",
+          "prompt_sha256": "12e79b26ad56ca242c9530393e2ec44efdcfef3ac5ba9603fa4dcab62c069127",
+          "rank_sha256": "3ac4a2f866dc4c02cad4edb46adf3c5b185c645a815fd3d41a3472dcfa99bf4a"
+        },
+        {
+          "id": "contract_nli:dev:37:nda-1",
+          "prompt_sha256": "eac7769c9dac5d2101826714dada6a85600fd82a7290c599dc06087d7d636b06",
+          "rank_sha256": "3afbcd02b9478737f7ea0a0cfd5c169f93b6ede4d9448d67ff3d0a30ee5b09db"
+        },
+        {
+          "id": "contract_nli:dev:406:nda-17",
+          "prompt_sha256": "8a92ef331e28094aa38241c39bd48884c7b7d3ea6f6bed106237a36c77213cfe",
+          "rank_sha256": "3c8e2ab37106cc273f679030682d88461b271e1b1a92135bef767efcf37a54a1"
+        },
+        {
+          "id": "contract_nli:dev:563:nda-2",
+          "prompt_sha256": "22e1f43d4386b0915e2a7bef067ef69134eb489fbc14e11ded8ef6003a19c72c",
+          "rank_sha256": "3cfc5be0585403adfc183800962735a75341536f4ff61c89527d4b903fdaff9e"
+        },
+        {
+          "id": "contract_nli:dev:79:nda-7",
+          "prompt_sha256": "36044398bf2ac872b0a3580472e0b1c3ee2bdd41485523164be0b59074bf1d3f",
+          "rank_sha256": "3ff55f287de41d7699ed640d076ecbe5f0ec1cc6c13528bc5383ee6721781d50"
+        },
+        {
+          "id": "contract_nli:dev:440:nda-20",
+          "prompt_sha256": "310e98af085f06783998c9bed00ae6134aaac4ec6ded8341da88f9ff7c4032e2",
+          "rank_sha256": "41018515be529e2ae55a2a281653e19d684124dbca03d532624f68281b054aad"
+        },
+        {
+          "id": "contract_nli:dev:435:nda-4",
+          "prompt_sha256": "a8e8fed121ff65e1bf37c34cff2d964677f7953d152914a0b3e52c176d9c09db",
+          "rank_sha256": "47a84c2c1b3c01542a40c6755e227fcef2d3d26722bf860f172a229a65a6df04"
+        },
+        {
+          "id": "contract_nli:dev:205:nda-2",
+          "prompt_sha256": "db4009ba37bcbde164d1700d2daa09432ebf983eefbc6173b9a84cab07c34b62",
+          "rank_sha256": "490eb10078e3d2e69f448ab236a656e85e963f9629a02c2a5e98e5530efe4ab2"
+        },
+        {
+          "id": "contract_nli:dev:398:nda-2",
+          "prompt_sha256": "6843b9ba1b79e6212098c514f34c1b744ffed92b336d518a1c47328741a5719a",
+          "rank_sha256": "4e63e343a37cfe023329c2feb96f438354699afdffef620fe82c9f78c62291ba"
+        },
+        {
+          "id": "contract_nli:dev:70:nda-2",
+          "prompt_sha256": "6acf35538ec1a19f96a55a984d47aa28a12bafb4ce59869007301237e79dc7be",
+          "rank_sha256": "506873e7791c1fa8099ed19cb9740b2a7b70f88b74bf4c16343ac0bed6c15324"
+        },
+        {
+          "id": "contract_nli:dev:605:nda-2",
+          "prompt_sha256": "0d4795e11aa1dc27ec1daa68d01ed2ad07357d2194e30fb7dd2d8c699f5b3022",
+          "rank_sha256": "5376b4af68847ac78114e6e9dfb562fa69637c7b36aae54aeeb27d0fa09f7519"
+        },
+        {
+          "id": "contract_nli:dev:482:nda-2",
+          "prompt_sha256": "8a586f392ea0fee4cdbcfc0a6b96b4d79db5522c35092db066dde2a03d6da9af",
+          "rank_sha256": "554c419230ad012d193ea18ca4f9e7ee82107b09b2de579c3d6f3a3501fbae04"
+        },
+        {
+          "id": "contract_nli:dev:33:nda-2",
+          "prompt_sha256": "5f3d8e67d71ce67a4b482a78498ed7454c56ac45776a3df9bb5de5eb3ccae9eb",
+          "rank_sha256": "5b0e2f0f720172f7a270c987f90d2435da1edef09660d9b0067b4d7b062f0a1d"
+        },
+        {
+          "id": "contract_nli:dev:20:nda-1",
+          "prompt_sha256": "879f295c4e095d51e86837b884a910834a472590c1d4f08c789d58bc56122e45",
+          "rank_sha256": "645138ddb2c573269150ba8d10b006332a437e6fb5ef5186dd2970f38856e0e7"
+        },
+        {
+          "id": "contract_nli:dev:3:nda-2",
+          "prompt_sha256": "16edfdda85933b663b92023fd30b3267b5bb8b04862e4fea8f4e0b289c85472e",
+          "rank_sha256": "68941e939755fcdc554231a7adf508a25e133f0149ba7d1d06b00bc561183516"
+        },
+        {
+          "id": "contract_nli:dev:12:nda-2",
+          "prompt_sha256": "63e0fbd3b146ea2da4d26ea841e669fb416a06a740371eec7dc08240beec90ac",
+          "rank_sha256": "6988a294bae1c007f8cf0a493e0e3c171193ec17dc2d6327e7d70251dc7a2009"
+        }
+      ],
+      "sha256": "f7e074914a8ea1257e6dfc91a8c1a1c4098b41d785203ea3ccceca705975e170"
+    },
+    "test": {
+      "documents_or_contexts": 73,
+      "file": "test.jsonl",
+      "items": 100,
+      "labels": {
+        "contradiction": 33,
+        "entailment": 34,
+        "not_mentioned": 33
+      },
+      "max_input_tokens": 7990,
+      "membership": [
+        {
+          "id": "contract_nli:test:432:nda-12",
+          "prompt_sha256": "1707245a16e4da703af2da4d398f4e1f13dbce05ab1de090a005169986a3d3f7",
+          "rank_sha256": "001fe8f5e7463b81f32f5b5e31053cc90d68ce4812865566aa31177c45e784d2"
+        },
+        {
+          "id": "contract_nli:test:596:nda-15",
+          "prompt_sha256": "befb6e7d50f8b5d3b17afe787ca41156149478378f7af9777f95a782d6836094",
+          "rank_sha256": "002ae07bff754ec3ca73e58123a400d6f0c2a0364016aa4036c426845fb71972"
+        },
+        {
+          "id": "contract_nli:test:8:nda-12",
+          "prompt_sha256": "5961faf645198ff3aa82f33337489d905c9a8a0c0aec334b499db6e99a689360",
+          "rank_sha256": "009b767f35d7ae258a2ae93a1cc778c819c66768d0074817a4e77d2e5277506d"
+        },
+        {
+          "id": "contract_nli:test:213:nda-4",
+          "prompt_sha256": "875973411af5816085d3d90cc51edd0b53b7f5f31e8681b22b2a39453b70a576",
+          "rank_sha256": "01bc76db03ca7043eb1f361e95efdbe7ef7b1d35d1a070e7a245d88bfd9b6e4b"
+        },
+        {
+          "id": "contract_nli:test:213:nda-11",
+          "prompt_sha256": "7125a698ce4f3b04a272b371f91b018b82f0fb068af07895ec6616059f279d85",
+          "rank_sha256": "01bf05649fc7394680bc4417f9561b5b0aa6bf673f9937ff415766a27343a5bf"
+        },
+        {
+          "id": "contract_nli:test:408:nda-1",
+          "prompt_sha256": "042073e5006c33bba48e0ca8db3bbadd5c934b8d3f66a87e6d9b207ada0f340f",
+          "rank_sha256": "01cc085db356a1ef6d8c76872754e083538ea7b549c1d05442c5bc13245b6219"
+        },
+        {
+          "id": "contract_nli:test:190:nda-7",
+          "prompt_sha256": "a2c3e9de0fdceceda3e98d947ce43e39e15b7e052716c66aa4a4ca12d62c4fe0",
+          "rank_sha256": "01d91cf80c15e2ade07ca8a4bb7eacf2a98d022619a84acb9045d010dcb1dfc5"
+        },
+        {
+          "id": "contract_nli:test:11:nda-15",
+          "prompt_sha256": "e643fa56009656f46be25d74cbfd0efe49a82d99980ac40e17b4dda12a43f68b",
+          "rank_sha256": "01da69a0ddb1a79eda624e3d056adeb27bdc1b5ba879960a2e6ce0351366d336"
+        },
+        {
+          "id": "contract_nli:test:555:nda-5",
+          "prompt_sha256": "a8b474fe3de3da867657e08370c14b9dc30c9c0277d436543889202bca3eecbc",
+          "rank_sha256": "020efaa7c1e541e69281f6805ef4d100c51bdbe34bc1b78198c77c9ba1be5900"
+        },
+        {
+          "id": "contract_nli:test:62:nda-19",
+          "prompt_sha256": "42a4dddadd76c97d6bed164bb35a215dfbc4d51d3d7792586d7d7a428c4c3b44",
+          "rank_sha256": "021d1c1b07bcfb130ae87c48d9cceed896c53c526571749f22e04b5f252955ce"
+        },
+        {
+          "id": "contract_nli:test:84:nda-10",
+          "prompt_sha256": "8a57737336f916df7eb9ca068750a4514a12f2d6c605b8185dc270d84cc2c8e7",
+          "rank_sha256": "0244da33f48df51db1b1b797e80312e9d67d8f4f9ae2074f672ad46228e4d8a5"
+        },
+        {
+          "id": "contract_nli:test:129:nda-13",
+          "prompt_sha256": "b9c17c49848d4be35c14f652a99442696f65241e5f650bfe96c719c952f1bda8",
+          "rank_sha256": "0247e855d6d2ee733a1ef18e2ea9b76a983e369b34b6848504a55ada5594cc7e"
+        },
+        {
+          "id": "contract_nli:test:558:nda-2",
+          "prompt_sha256": "a4dcb9132068d369c064a5d3202ffbcdafd50a6c5870b5b8db288982eda394f9",
+          "rank_sha256": "02758ef44175565b38299ff31b6db5d6775f7962e8b3a1bc381ffc48ada086ee"
+        },
+        {
+          "id": "contract_nli:test:4:nda-12",
+          "prompt_sha256": "b0c0edae5f2f1d9d649cb7a22138dfa75c679fa0b555ba85f4d25ba1c4741ff7",
+          "rank_sha256": "027a276f2bec42e17ffa78babded1ccad34f2e0ea71a9317790b9cfcf63a2efd"
+        },
+        {
+          "id": "contract_nli:test:542:nda-11",
+          "prompt_sha256": "6c4d25b3a95a3927a3ccd74ae20f2857ce64d3b7be207e2aa1aee065fd07e88e",
+          "rank_sha256": "0281a2cb10a7a2ddc40779264d181179cadb4e4f81275ce17d25559d8c691dcb"
+        },
+        {
+          "id": "contract_nli:test:62:nda-18",
+          "prompt_sha256": "082ce5dc1df3565debbf77ee41d1dcb44f2873933af447201ac0eef1dd120ca7",
+          "rank_sha256": "02a8962e638fc505feecca9da8b118545ee4c281fb9ad7b040ef94cf30248691"
+        },
+        {
+          "id": "contract_nli:test:549:nda-19",
+          "prompt_sha256": "93cbfc567007382b28e382edb1dfbd82a2c2ac95a14e7af81353e1a6eb0eebcf",
+          "rank_sha256": "02ab61b1bce9f08b658694433d184aa8e48ad13453f2ddbc1cb0d28ed9c3d90d"
+        },
+        {
+          "id": "contract_nli:test:227:nda-4",
+          "prompt_sha256": "4cb8877fbf1bd679e1c78546237f16b04ca6303b8a298a78b825e57eed1076e7",
+          "rank_sha256": "02b54c9a89207624cf745cd0e10ac65554b6122ee190f09eac873fed07f1e6d9"
+        },
+        {
+          "id": "contract_nli:test:496:nda-11",
+          "prompt_sha256": "e6c7446c18760c68a108f4289844a3d826d7d655fd70d619eb4489901084b423",
+          "rank_sha256": "031020c5ea54c78ee8168786fdb3515852c0119db6773009d6c9973684e9f971"
+        },
+        {
+          "id": "contract_nli:test:36:nda-3",
+          "prompt_sha256": "a41f543b163aade39ee6130db838444cbff129902b559664c95529ce906fbb84",
+          "rank_sha256": "034eec19e4ed52ecf7de9922b73cd8bca181669721833e002869042c14b223e4"
+        },
+        {
+          "id": "contract_nli:test:57:nda-1",
+          "prompt_sha256": "e2f6887e5652b6014bf7cd7b7ede401df98e58367db74b1fc56f05066bf55da3",
+          "rank_sha256": "035c46ed11f681acf6ef9c94faf34d496712d7e33b400e54831d7b10724c5c57"
+        },
+        {
+          "id": "contract_nli:test:55:nda-20",
+          "prompt_sha256": "8046c20e98d68d527d4b88e1f4aaf7237c495483c65181cf063b245b29fe2a61",
+          "rank_sha256": "03a1454216ef9eb6024ed194a348ad8db77e23311c050bb3b9fca16599e11c50"
+        },
+        {
+          "id": "contract_nli:test:58:nda-13",
+          "prompt_sha256": "9e674eb7aa1808411dc0d258eae45a93b0961936a6224b20350a6caa10309edb",
+          "rank_sha256": "03b62b8202af655bfa632d35c5e0eb1d386c4d98e998d1c5461da96739051a05"
+        },
+        {
+          "id": "contract_nli:test:51:nda-15",
+          "prompt_sha256": "abbecc89a93d1f53abae6cf94ce436014db33c9d3e6e1c2ed79e88a0cc84a713",
+          "rank_sha256": "03c8d21f8529d8781c4c74c79b71fd84147e88d6c98eefdbc11edb30effffa4b"
+        },
+        {
+          "id": "contract_nli:test:5:nda-2",
+          "prompt_sha256": "31cfa99ff6612d122cdb25fc2072efe0a77d3fda4f39fcf1737bb42e1c71c1fc",
+          "rank_sha256": "03cc79ddd471e5c5132cb3e554be743d1e91066d56b33f5e80a086ca964912f5"
+        },
+        {
+          "id": "contract_nli:test:596:nda-12",
+          "prompt_sha256": "8e990d9639a31adcf34909a1228bfa8958f6b1be58abf2f5c3beae4b9392b38c",
+          "rank_sha256": "03eebc5877256e04f90b4b9ff461f6cdffbf0bf41d5e24129f8d211aa9517448"
+        },
+        {
+          "id": "contract_nli:test:46:nda-20",
+          "prompt_sha256": "47b8277ba98003af44970b0305e80f4b8c20a9f43baf92ba501995642a5368c5",
+          "rank_sha256": "03fc17224cd2a99129a306769d01680db52fabe40deffda356c6b0e310fb374d"
+        },
+        {
+          "id": "contract_nli:test:83:nda-12",
+          "prompt_sha256": "1f59cbb7cca119be05fcdb20796259e43249fe62a1ab3c33669966c377c2e13b",
+          "rank_sha256": "040b31d0a0a988d8cd705bb7e9de7c909e8082f328d81d35de80d1dd5a949c48"
+        },
+        {
+          "id": "contract_nli:test:432:nda-13",
+          "prompt_sha256": "176026c1c767c5a086923c27d7576ba1ef5e1359dc5e3a3481d19e833bbfe4b0",
+          "rank_sha256": "0418cdef5940f2079fde1cee2191129f25136c342996fbc263384a7185e47256"
+        },
+        {
+          "id": "contract_nli:test:48:nda-2",
+          "prompt_sha256": "3c5cf508161f52ce558205e54642b1aa94fb1c1528c3a50748b19e43e8aeebc2",
+          "rank_sha256": "04b017bc5bcbb39f6baf51971456c9423d6fcde033f781c3ea6f570f5f1f4d69"
+        },
+        {
+          "id": "contract_nli:test:181:nda-4",
+          "prompt_sha256": "1c2d645464575ac4e34af68232cd1d66ff55d3f135462fd04dc7b00a24c1574b",
+          "rank_sha256": "04b5b75ff6e8beed3dbcf2de15c3c71e3f6340bfa57dce4264f1ec0a7a7088fe"
+        },
+        {
+          "id": "contract_nli:test:99:nda-13",
+          "prompt_sha256": "5add3ca1549b2d20156ea2cb0131fc52c446c66dc86b1cec57363b063ad822a6",
+          "rank_sha256": "04b9d9dffc07d796977184b04db2895c37a350587cd2ee2e4446d7ff969a044a"
+        },
+        {
+          "id": "contract_nli:test:408:nda-8",
+          "prompt_sha256": "4c7a0f012b918c91a74b0d7f3e4be40c745d352b449ff47e573c48642cae237a",
+          "rank_sha256": "04bf04921764cf90b49a7647cf5f289e7fb24d2aa0002ca82373b3abc7cbe841"
+        },
+        {
+          "id": "contract_nli:test:452:nda-15",
+          "prompt_sha256": "fa2176a38c249957f153431fe79a54019c39a0c40f46d8f472a82e256bcc587b",
+          "rank_sha256": "05039322ce485d61e70dd7d217570a39077b98afa255bcbfd8e2d810571928f1"
+        },
+        {
+          "id": "contract_nli:test:18:nda-1",
+          "prompt_sha256": "a82ad3a467781defc094cd2c9b80e4983275a93c5626ee08a2249942d5084e6b",
+          "rank_sha256": "051eca19eb3b14e0b287094f251ac539b88833de50c3a5049957d36fbcf42085"
+        },
+        {
+          "id": "contract_nli:test:546:nda-19",
+          "prompt_sha256": "8ced90d6139ff2b980b2d8530c3317ff9e4946099f3a05e0a74cdd55989cf192",
+          "rank_sha256": "05320b3a83359c6dd1b5c3ed776dd7681ebccb15dfc090912e92d3638d1190cd"
+        },
+        {
+          "id": "contract_nli:test:354:nda-1",
+          "prompt_sha256": "08a389e705c854772ba18b847c2fa07ba676f558551e4ebca6a508d2a47bff73",
+          "rank_sha256": "0540bbcc406ea25c802865d7d50e5920df3d92d54c9f72b501801f1b35037b05"
+        },
+        {
+          "id": "contract_nli:test:2:nda-18",
+          "prompt_sha256": "c14218a797ef220566b18369749137fb4268d275873b1ef6d548fc4e4151cdc1",
+          "rank_sha256": "05733a88b76e33819c5cde96528a14987e873d9bde0110e1d84f45b77a527a72"
+        },
+        {
+          "id": "contract_nli:test:25:nda-5",
+          "prompt_sha256": "75f51f5f70662f23aef02baeeca33a5ab7dfd053d2467ae3de93f88d9bcbfe83",
+          "rank_sha256": "058a29e3f52c7eb2af58479c1c822ec0860e0d9affb1186ee14f823eaabe4195"
+        },
+        {
+          "id": "contract_nli:test:493:nda-1",
+          "prompt_sha256": "5fd14d9a6a384592c5e0cbecb4516ce9e50e1d9abdb81d6d7c4d9d5fa91cc893",
+          "rank_sha256": "0591f42e69247192be4a1ab466234b8f4f96765bbcf0b23df7a81918fe408590"
+        },
+        {
+          "id": "contract_nli:test:23:nda-18",
+          "prompt_sha256": "5d413dc6f072c35b2038004208a83c370c4662ddbc200b4ee80e02c8e3959546",
+          "rank_sha256": "05c2e1927fdde547c9a0e69e84c9d64c95a5b04b714a75539db9d9ae835d8459"
+        },
+        {
+          "id": "contract_nli:test:401:nda-17",
+          "prompt_sha256": "ff2a61c45d4deb2d78ba5cef53b255b4a726995280d0bb2e343c03a133e2f383",
+          "rank_sha256": "05e25e289eec9d4b37f8ad704c6c0b372b103fe49a0f8f8dc7f501ffa93f0e79"
+        },
+        {
+          "id": "contract_nli:test:165:nda-15",
+          "prompt_sha256": "9d851af47974d9dde40931df58aebc37fcdeea22382e5dff1e1643478bf9d693",
+          "rank_sha256": "05e9090a09c7776fba364c590aeab52e6c6993828badec584fb47a48b224f5ab"
+        },
+        {
+          "id": "contract_nli:test:542:nda-16",
+          "prompt_sha256": "9347d5782d2a1c69ead4a32a72f46393c488eda689c3054b1269abbc91c440ba",
+          "rank_sha256": "05f7c99e67e8ade0acfe7ffa8e385d998e195c6b420bfe0c3202f66966680aad"
+        },
+        {
+          "id": "contract_nli:test:53:nda-4",
+          "prompt_sha256": "8287e6eadfc5ce12ecad76e16aa315aaedff50af6edc44af5a618a6fedfc4014",
+          "rank_sha256": "061f2c125817c3e2fa844f73c810ea5270f3ddaf73ddc26e5379093f03c713d3"
+        },
+        {
+          "id": "contract_nli:test:446:nda-18",
+          "prompt_sha256": "69c31f19f83084c6ae5787c4589bd20978701f174bc74fe36103e56d5c954f8d",
+          "rank_sha256": "0626741828774ce870e9a4ae2b16cfb0bfb7726e49ef518431c07b11d74d3ee2"
+        },
+        {
+          "id": "contract_nli:test:138:nda-1",
+          "prompt_sha256": "ace866d8071c7c1eec7334c22798823f87e4423f007e28d6292d055bc70c48a1",
+          "rank_sha256": "06b12ebae26c01c1a31ae5ba2fcd78203a6c5a2e9b2550ec43b574283ac3136b"
+        },
+        {
+          "id": "contract_nli:test:90:nda-2",
+          "prompt_sha256": "c2ae9efb9d0acf3a431fabcf00e22e43a2601c7e097d7f890e76a7a46fcd38af",
+          "rank_sha256": "06c0a3240528d6d41e3ed79aff31777b9068ff3459b82453563b6faf9a945ee0"
+        },
+        {
+          "id": "contract_nli:test:212:nda-18",
+          "prompt_sha256": "734b637a5e7c388298cf0be8694b734b3ef6e0f37b7881d78b48e3528509b9e7",
+          "rank_sha256": "06fd11a880a6956a8bafecefa696e65493ee205783fcb82d227fdcea1c1530e8"
+        },
+        {
+          "id": "contract_nli:test:24:nda-16",
+          "prompt_sha256": "e95cb3da40b4634ec495b5088e9d6dcc31697c5b9a75be25cc86ff04f186f34f",
+          "rank_sha256": "071ce50283a04ed51d72a7cd9dc46efe1fbf534f7000839be383daed8d8ae265"
+        },
+        {
+          "id": "contract_nli:test:540:nda-17",
+          "prompt_sha256": "e98ad88715b7a4ad96851b98448d1581e355e84f19995509df4f212b0923aad5",
+          "rank_sha256": "07424f9762e76f8b43397f78b155f53aeaf33c9c778ae9f02f14bacd6606d1d5"
+        },
+        {
+          "id": "contract_nli:test:23:nda-16",
+          "prompt_sha256": "2bdf959875895339c6e5b5c3d598a2b18031e7e5b50b57c2fd63774ded794bce",
+          "rank_sha256": "074f413973a7c338e93b1cb9f2bc79d4a0a80173eec49e90ee5bc66925ef6831"
+        },
+        {
+          "id": "contract_nli:test:157:nda-4",
+          "prompt_sha256": "fe68138a45488e2463c46583f815a0a580a7c8382ac5b3a5c81f150a75de2f58",
+          "rank_sha256": "0758b574e35dc2a4f3fa2be67eb048f1606ee87609cbfa8e466aa1cf9adabb12"
+        },
+        {
+          "id": "contract_nli:test:401:nda-18",
+          "prompt_sha256": "c452516415767fcf5b9a2a01eca719ee1e08b0e7a12b6d13c674a3eb48103a22",
+          "rank_sha256": "07994043c365766a39e6c78d91315755e080c2075259314be5c9dc2877a3c47b"
+        },
+        {
+          "id": "contract_nli:test:310:nda-20",
+          "prompt_sha256": "d3b376ff12cc85d20f97e5fd618a66d15119e9dbf4ac9b90d666c4db3330ef15",
+          "rank_sha256": "07db9d5d3bb1bf0146b5e11c7b9756ce0a5cb0039046d0c2e6642750b0af39dd"
+        },
+        {
+          "id": "contract_nli:test:389:nda-3",
+          "prompt_sha256": "6326b1e53412baf32ef6834d4bbc8f449673f6df86f5a978dd4e6ae2213cc669",
+          "rank_sha256": "07ecee85c2d945b9d6460c592c34b2db217c7976775ed7c4842217f4d8e12fd6"
+        },
+        {
+          "id": "contract_nli:test:1:nda-12",
+          "prompt_sha256": "6374b9102f4df9adc5f2a26379b6e393ebaa832cbed46c8c523ed43b684cf379",
+          "rank_sha256": "0819c0709515ee065704f8f6e57f1f7427f4da1c034843efbd917838cc1797af"
+        },
+        {
+          "id": "contract_nli:test:23:nda-20",
+          "prompt_sha256": "77db8cd9d9aeb76e20153a63cf3423684b98dc25f9378ae87e0b7df636e49da1",
+          "rank_sha256": "08367710cfd79cbf460a65833ed9b3390584728c69f96dcb614cf00fbe1a3986"
+        },
+        {
+          "id": "contract_nli:test:1:nda-8",
+          "prompt_sha256": "1cf3f672cecfb1488c47188a06e1d679e4914242dad6869c2c9be1ebb92350bd",
+          "rank_sha256": "0857d6393fb92ebecca95686ce0f0fea55d1260b9df2f41513adfb36476c9074"
+        },
+        {
+          "id": "contract_nli:test:57:nda-2",
+          "prompt_sha256": "9c76671b997d41ffbe7e7ddb20f37f91d5d327a079d955d7c3f1cb0fb9ea79da",
+          "rank_sha256": "087baa94f51836a4141ee90613399d442b2ea0edcc32e57bbd7cc98e951d0b76"
+        },
+        {
+          "id": "contract_nli:test:50:nda-17",
+          "prompt_sha256": "82f0b8143deb01eabef11aa8393e334041250ddfdfd3d4e36d7a08ab99829401",
+          "rank_sha256": "088e444c527be3fdda8ff4b40d265a1ece6634489fc4085ba183a7e504abec30"
+        },
+        {
+          "id": "contract_nli:test:129:nda-3",
+          "prompt_sha256": "1be04a4b1c7307efc3d4f22d886db59faba7fdebb25e61c654d256408ea5f5e9",
+          "rank_sha256": "089b3eccc67b0a06ff6fdb2b3da4868c042811e61087103af77b1e425ef2a2c1"
+        },
+        {
+          "id": "contract_nli:test:408:nda-18",
+          "prompt_sha256": "1cc331200ce5011f54e53c2b18fe6f425c6d36ccd756597ef9fb894c1f24978a",
+          "rank_sha256": "089dc0b5625363e8f1ae70130964a086ffc142820fc1d47de25c75fce2cfbf2a"
+        },
+        {
+          "id": "contract_nli:test:307:nda-8",
+          "prompt_sha256": "cfb02a87b2e9ded7cf3e793c438509c21e6244d6f0e115ec79279c2854158c43",
+          "rank_sha256": "08fa68afff3e424c03adedf6348965277dc4f421500a0cf5ce4c33e546ede5d4"
+        },
+        {
+          "id": "contract_nli:test:611:nda-13",
+          "prompt_sha256": "51fe85fa47bf31a2523ef9bfd8c215261951b4400d94b04332feaedb01620fe3",
+          "rank_sha256": "0928d55cdfd857a11aeff97bde6ad4428c1cc395c7db6728acfe27208595e451"
+        },
+        {
+          "id": "contract_nli:test:49:nda-5",
+          "prompt_sha256": "01279f3fa5395c32f2e60745a939cc1ed1fbaf2261cefc9c1ebe42275d5da93d",
+          "rank_sha256": "095b99cfb7903fe635c78259ab786361f68e4c15deaf504a37f781021baa4b23"
+        },
+        {
+          "id": "contract_nli:test:412:nda-8",
+          "prompt_sha256": "e00921c298d7dd7f9bb92d4027632850a4ad6f68f60a8babd616d3a304c30644",
+          "rank_sha256": "09c69aa3792baa559fb619a57f446b4acf594aeac591ba911150de3fc3d83a02"
+        },
+        {
+          "id": "contract_nli:test:190:nda-2",
+          "prompt_sha256": "6ae16698ee940be91875021e50e1ea26216b0fd6f60c94a70f0969e8932c3aa8",
+          "rank_sha256": "09df080993878ae3f04d4c1a699d8c4762f862663576b38e3beed7103ce33ee2"
+        },
+        {
+          "id": "contract_nli:test:21:nda-2",
+          "prompt_sha256": "cb5cc624401401ec6e8f690c61263683156b1aaa48ef98805d27938a79982a8c",
+          "rank_sha256": "09fa842fe2c1ecc7dd249ce1616fdb7582f856f813ee820ff7f8ae5423c41221"
+        },
+        {
+          "id": "contract_nli:test:549:nda-8",
+          "prompt_sha256": "fbf3e906defd280693dbffb0191234d29478c887dfba321ba7d53170214cd9d7",
+          "rank_sha256": "0a422aa9bade0b290fc686012c6b5e676cad1fcdaed380e984109b8ef5110871"
+        },
+        {
+          "id": "contract_nli:test:43:nda-17",
+          "prompt_sha256": "36ea5c51745c2d8a752f5604354bbae3bbb5c26c864c79e3b156e98d45ac4293",
+          "rank_sha256": "0a48804eccafdc300fca2dd3759642ee3ebfbb150b44dea5ff721364c2f45031"
+        },
+        {
+          "id": "contract_nli:test:157:nda-7",
+          "prompt_sha256": "6647351a6d27191578d5eb308a09bc585d5fcfbe5132dcb6d2970a8b3b4976c8",
+          "rank_sha256": "0a576546e3f18b656d4f7960e39d547e00768e16230c42220aee11e7099d066f"
+        },
+        {
+          "id": "contract_nli:test:433:nda-2",
+          "prompt_sha256": "f39fa5b4dd816ba82eddf3e5cb730a999a652d9a8c1f7aa920f79e0975afea8c",
+          "rank_sha256": "0a64dc241578a58c7e04d7dfaf0f7afb2bde88a5eb3df35d96c96ed371757edd"
+        },
+        {
+          "id": "contract_nli:test:225:nda-10",
+          "prompt_sha256": "4ed5eb5b722042675765f62e9bfbf9bb82cf87983f7dcc5d5fb5afdeff78125a",
+          "rank_sha256": "0a8d855aa0a57afae344f6c8aa3bfba469ef9dc46178f8a3938e2be01e884385"
+        },
+        {
+          "id": "contract_nli:test:53:nda-2",
+          "prompt_sha256": "844708a3f5d0279606e8ea0c786f1f9e780545ab9e3c91054933fc3ec7625cf4",
+          "rank_sha256": "0e0cd00f6c894d5c48d8b53909e802b7656edf4a94b16165750d9a703ff18aca"
+        },
+        {
+          "id": "contract_nli:test:218:nda-1",
+          "prompt_sha256": "6fce7e15e50a6906b54ca1fc2b7a299663ea80c56406c17a1faf9aafb219ff8c",
+          "rank_sha256": "10e4a0e79674fa44c7e1e7ef4ec911447d7f4fd90f389f8155cdccbda7c94d88"
+        },
+        {
+          "id": "contract_nli:test:357:nda-2",
+          "prompt_sha256": "a0afc1591a599dee648c4145b085048617747645bdc32085c9e01d8b3ebf859b",
+          "rank_sha256": "114286997c394808fa50ef0a88f46ac16a74c02f01046d797ecee89b7ce40571"
+        },
+        {
+          "id": "contract_nli:test:600:nda-17",
+          "prompt_sha256": "a7984a5e468b9183bc2c5a3786119d769d2b5647b68f1712bd2dcfd6853d6a8f",
+          "rank_sha256": "11f391816926cf4691a0710f70f544ea79250cfce1a650588ab080dd92b985b0"
+        },
+        {
+          "id": "contract_nli:test:496:nda-2",
+          "prompt_sha256": "915c3de61ae5ef82770184c03c093ea02dcd0e746c00e11fb151a502e07909bd",
+          "rank_sha256": "1299021ae4376b92e36f6654136abeac9b43b2180f1c06264025d1e2f6f1c3f5"
+        },
+        {
+          "id": "contract_nli:test:225:nda-2",
+          "prompt_sha256": "04ab305887d1625b17c57ffcd309bb8b2bcebc65cbd82f268bfc31edd49afa83",
+          "rank_sha256": "13870043c5435f19e66a296ed3c8bdf71e2511c969864d44cdbe6a29a8b22864"
+        },
+        {
+          "id": "contract_nli:test:85:nda-17",
+          "prompt_sha256": "77309dd3b4dda067ec885ef671d51bd64ec5d01169abb58d0b76f82b21dc379b",
+          "rank_sha256": "13a3eb034c29838915e06bc8d2dbf537e5256ffafb2182560d693eb5aa20dfc8"
+        },
+        {
+          "id": "contract_nli:test:452:nda-1",
+          "prompt_sha256": "539cf5a615695ea27d60f85566bca3897b79fdf8d13fc2ffe7be5800eb716941",
+          "rank_sha256": "13e8a0efa97472332e4436e04eb7a52fe3863590a46dfe0802de814485e6c03a"
+        },
+        {
+          "id": "contract_nli:test:6:nda-2",
+          "prompt_sha256": "749c638d86a883d900f5b5f004a1f5aa6c574b58f4a226fe1e0cd9fbbaa73b50",
+          "rank_sha256": "1424bb2467c742617bf170eaa175b5a9b539644738959cb018cebb98bd3b678b"
+        },
+        {
+          "id": "contract_nli:test:413:nda-2",
+          "prompt_sha256": "071ad50601fef0b807636a0d948204b7e0627f8517cba9ea1e87256c6d427a2a",
+          "rank_sha256": "145f1293b8c7003310442490e42344bb3db24a82f2c9c56789b1ed347361d9fe"
+        },
+        {
+          "id": "contract_nli:test:227:nda-2",
+          "prompt_sha256": "a294ceb7ea423d8f363d403c453d8e77025353fd8382b30a7bcd3cf0b4d473fa",
+          "rank_sha256": "16b9f9ff137a6311eb21416d8ce0a7cec3db13f30ccddf834259c31df8db2640"
+        },
+        {
+          "id": "contract_nli:test:585:nda-1",
+          "prompt_sha256": "d2f695f7221439f78ab91c79718c292cce34e63c51e39dd07f709b23dd5115bc",
+          "rank_sha256": "172b53ec326f55243d2b3fcbd09f73fc3b6f8c17f57de88aca5923e7a1d16c57"
+        },
+        {
+          "id": "contract_nli:test:606:nda-1",
+          "prompt_sha256": "4da9febb8f82eef5c74291eb7957b880149640dbed29a0c8d18c25ab6d807653",
+          "rank_sha256": "18241b23563538fa37cc686eb1f9ca0b3bacb50c25f1b73c372ff75baa58eb3e"
+        },
+        {
+          "id": "contract_nli:test:526:nda-20",
+          "prompt_sha256": "e4ab752c4b09dd49e28714e4ebd817639fc9a74f8130e090669a9dee97076f11",
+          "rank_sha256": "18d3965c681010a76446aa595dbc2c4e3a92aade296b5fd8b3f3780630e91f59"
+        },
+        {
+          "id": "contract_nli:test:36:nda-2",
+          "prompt_sha256": "6b06c96a9f52849e159048e427fd1e96db8b199ce70bfd8488fa8bc6082a466d",
+          "rank_sha256": "1991f042b56e2c607b6cbc8f22b778e69ac10d9641a4a591e3a71355c5940235"
+        },
+        {
+          "id": "contract_nli:test:600:nda-20",
+          "prompt_sha256": "985ae1a7f38d8543a87513e9a1f5007affc315b049413d7d870178fa6af8bf98",
+          "rank_sha256": "19b79e681dfb164ca1f039ad25f2ebade0fd11ba8e25d7e8b894ace02f62b4cc"
+        },
+        {
+          "id": "contract_nli:test:117:nda-1",
+          "prompt_sha256": "88ec2c6082c5574b585672f27733f4c0fb2c83694a6bb0c76482def70981d1b0",
+          "rank_sha256": "1a4d91560ac3a4a135df7d3a0aa5f15cee1a355a2f57be647fb7a3312862079e"
+        },
+        {
+          "id": "contract_nli:test:68:nda-7",
+          "prompt_sha256": "331a17f5d39c4ccd7c96868e1845718b19b47183ee92b8141a8f55726a5e3cce",
+          "rank_sha256": "1a507039b01d944405436d7d597885a0a8d9315ae0ca79e7371bab0addf582e6"
+        },
+        {
+          "id": "contract_nli:test:67:nda-20",
+          "prompt_sha256": "565343e60356c3ee8e94e862e13ff060909c4329f1c53b6a877313b72508d55e",
+          "rank_sha256": "1c3fe2741e42c501cb2d5e2bb6387e1488a40ba7a73738924e5c6efbcbace468"
+        },
+        {
+          "id": "contract_nli:test:600:nda-7",
+          "prompt_sha256": "8570bfc3029ec523b41a2853a1e4a63a160e70b23aee8d8f3bbf4083dcb9a587",
+          "rank_sha256": "1d2c4e9aaf7e2a04f5a373ff6cc4213d2dbaed7ea17ef1b5675f2381c5db9b16"
+        },
+        {
+          "id": "contract_nli:test:413:nda-3",
+          "prompt_sha256": "8ea7e2033ff4dd447f2238dc4cd701f757faeb5c0e874a1f95749d1fdb99d052",
+          "rank_sha256": "1ea6597c41680fb1dc0eac97d671f9adff0cd42d9666a3094ceee0c266a5ca8e"
+        },
+        {
+          "id": "contract_nli:test:4:nda-1",
+          "prompt_sha256": "c0e41ce71ef975fd3560fa5cbe5e43f24fb1fcf79664c67cb446ecdafc19cbd7",
+          "rank_sha256": "211fc4d71208e65f89f8165a971279627354755c1416f83aa592fdee00cc10ec"
+        },
+        {
+          "id": "contract_nli:test:40:nda-2",
+          "prompt_sha256": "cc218f6f93e642fda3e375732ab38f2c08012fbf3feed6b5097c5c385eb52c4f",
+          "rank_sha256": "24ee5c9c4129bfe29d31d5668e6c9fa79cf316e0f99a5444d80b1566ddc59989"
+        },
+        {
+          "id": "contract_nli:test:497:nda-20",
+          "prompt_sha256": "2f09148eecb02ba41b82c2f4c46f03353ab2fb4f57bb2e2398e2605283850344",
+          "rank_sha256": "2622d5a5050b40a49f688b6108e508448a0f59940b41eef9a387711ac426feb1"
+        },
+        {
+          "id": "contract_nli:test:400:nda-1",
+          "prompt_sha256": "ba8d77fbfe668aeb1c75ea8183dac969dbb494f370b8b23a6418d6584ce7966a",
+          "rank_sha256": "27e12a89924394093203e6d3cbb480d2d2459cfb5a8da9b4c831a120ec472017"
+        },
+        {
+          "id": "contract_nli:test:401:nda-19",
+          "prompt_sha256": "41b15ad7ca0c231c2dfd732ed85ea584998932895fc3cfd0e93ca8a587243f4a",
+          "rank_sha256": "2a22177f32d3be1c51fba9f2242d4c76d21e95822ec97fe3f67719a8a0a1a89f"
+        }
+      ],
+      "sha256": "582413faf8dbe5c0048d7bd82567a75006c8befdcdaa06c8e70dd6fd957e7254"
+    },
+    "train": {
+      "documents_or_contexts": 170,
+      "file": "train.jsonl",
+      "items": 200,
+      "labels": {
+        "contradiction": 67,
+        "entailment": 67,
+        "not_mentioned": 66
+      },
+      "max_input_tokens": 6559,
+      "membership": [
+        {
+          "id": "contract_nli:train:210:nda-13",
+          "prompt_sha256": "cfc839682287ad2a7155c0e82c6042fb0be6da42c2d393cfae2d521d81af4a6b",
+          "rank_sha256": "0000584e683fb385caccb00c2c64c406d2149976544b18a6162880fde406238c"
+        },
+        {
+          "id": "contract_nli:train:473:nda-15",
+          "prompt_sha256": "03bd3582a8f1f3cf147927fc293393d73408017c4532bc4e37b7512918f6df64",
+          "rank_sha256": "000814eca295b784b94aedbc8d5214609b09bc11342f0e7b6967c3f194d0acd1"
+        },
+        {
+          "id": "contract_nli:train:115:nda-15",
+          "prompt_sha256": "43a985e90f5cf778b5ec2e6b073943004a6a6686cfaf170bd46c999dc9a46f26",
+          "rank_sha256": "000beb6a640145645e0c03f25cf060a7feb20a1059733b8351565851779dff5b"
+        },
+        {
+          "id": "contract_nli:train:174:nda-16",
+          "prompt_sha256": "ba967cba9283d2e2347441c5d4ad017d8ff92acd73f8538eab7487123b2ea807",
+          "rank_sha256": "000c993b229b08c541e2a4b989d72ae60b9e7ed4edc20db08e32e992962a269d"
+        },
+        {
+          "id": "contract_nli:train:607:nda-1",
+          "prompt_sha256": "e2a9e78cc917838b65f372e527c6c938860cd92933504c3131e9cac7ecbda1a0",
+          "rank_sha256": "0011b56ed37cbdbdb3c73a6f14e159ccd85ba30233a385d7cf4f92b116afd048"
+        },
+        {
+          "id": "contract_nli:train:519:nda-11",
+          "prompt_sha256": "b9eeee705782de650a44df3bdfc17b1d38453a411494df896e77aad7b7096b2e",
+          "rank_sha256": "001827f27b43bd86251f1446efae1a2229890513dced45b5a81410d07cc6fa4d"
+        },
+        {
+          "id": "contract_nli:train:516:nda-2",
+          "prompt_sha256": "b0caf04043a9ee20d2c2f95db8db3013d830b135ae87c39a7c9d44f63589bdd6",
+          "rank_sha256": "001d821b8656bb00a2c978a72a201d1e8a4e59093aad6270cc2e159ef3a913f6"
+        },
+        {
+          "id": "contract_nli:train:132:nda-15",
+          "prompt_sha256": "06401930135f4473686a9d51046f784325352f233e55c47cc7a2465dd1670381",
+          "rank_sha256": "0052723d54fb54b621761dad1144dccb20cc8d6d9d2aea369150dfc2164a1350"
+        },
+        {
+          "id": "contract_nli:train:427:nda-1",
+          "prompt_sha256": "382ad3113269ba9a8d6989c3f1462fb8e87269b8e6e640d66a8e2f3d0beec19f",
+          "rank_sha256": "00561fc5fe2d924463911766bbf617e993490825b5b9efb5f55a2acd6067936a"
+        },
+        {
+          "id": "contract_nli:train:624:nda-15",
+          "prompt_sha256": "842127741033f6d6f62e73158f8385b03171098ac9e450a65f27799a5e9a4e3f",
+          "rank_sha256": "0058b3bebe661582dd1349078384352fe14e463a9dfe2ac521d21de2f50c905a"
+        },
+        {
+          "id": "contract_nli:train:87:nda-19",
+          "prompt_sha256": "fa29021e3a4c5739a68742e5b03bc2fd0495bedf316eff99efd3b7699d3ca0c7",
+          "rank_sha256": "005e901422a549cef392bbbf0e7798cb029b2d248840a944a3257479475e3857"
+        },
+        {
+          "id": "contract_nli:train:133:nda-18",
+          "prompt_sha256": "c26c63f1535b6bec45733a731754db994ea37f0b1bbbb9a0f304be794826bc5d",
+          "rank_sha256": "005fa8facb20222407154f87f2f51ed602e9ec1a9c4d11a453c64f686fb09ff8"
+        },
+        {
+          "id": "contract_nli:train:438:nda-5",
+          "prompt_sha256": "17f3abc8e703cec5f08da8ab900c16072a19959a5e95342fdbea642a265403bf",
+          "rank_sha256": "0075f05b2389de47d82058d74e15194e703f6571092ac3394b56fe378526cdae"
+        },
+        {
+          "id": "contract_nli:train:399:nda-7",
+          "prompt_sha256": "6ecc7fbab45895225542e6efd95574871949d79ea652fda6963e516bdf77b95b",
+          "rank_sha256": "007f15d7fb33291b6200ea187d3ff7584ad520f21031aca7b3bd2687533627d0"
+        },
+        {
+          "id": "contract_nli:train:328:nda-10",
+          "prompt_sha256": "8535a669ab66104d3da66952c0059e7a40815f5920013f2c842eef8f112a9a14",
+          "rank_sha256": "00831645e60ef1f30c944cff4ab800706c285c3bfb7f8ec59973d335413a8da3"
+        },
+        {
+          "id": "contract_nli:train:317:nda-5",
+          "prompt_sha256": "9ad2bac459a6e70fa0a267d5d71a3767191f812478fb773aae5f11c59fcb91e9",
+          "rank_sha256": "0093eecc1c9b2249d8f8dadbbb3f69bc64bbba5a3178785ecfff7760fa635292"
+        },
+        {
+          "id": "contract_nli:train:100:nda-20",
+          "prompt_sha256": "0ddb8a8cf50fe48453425ac508b45e9998abbf4874ade0b4781e86176414e046",
+          "rank_sha256": "009703bb48ce51a8d24955d7507559ed0de3f9473f7f9becd4ed0c82e6e65d78"
+        },
+        {
+          "id": "contract_nli:train:581:nda-11",
+          "prompt_sha256": "f94c4f697db96b0334c5fd5b449ca1f8dfb16c2c0dc3d7f7c61ccc7e2762b976",
+          "rank_sha256": "00a962ba869e200b1e57e4e4f59635e59a7c036a13e00d013b63d11ce5b17e84"
+        },
+        {
+          "id": "contract_nli:train:553:nda-12",
+          "prompt_sha256": "f60f8974d570773e33b479f6044e95fae9cd428fae5561a4fdb395410a6d508a",
+          "rank_sha256": "00af9bbe56ddda9ed7eb22954cd809b348e35f5fe8d9b9a756b00c75205bd341"
+        },
+        {
+          "id": "contract_nli:train:276:nda-20",
+          "prompt_sha256": "ad8a9d63b22e46e4a956b77b3cf84f67158a57f2d50c1af4b4b1a7789a80a495",
+          "rank_sha256": "00c11df2a66ba92b8f9d7fc9f468cda106cdc0ae890c60a891c0ae4975079f8f"
+        },
+        {
+          "id": "contract_nli:train:184:nda-15",
+          "prompt_sha256": "38c6527fa4f6935e585ccbeb163f715334017a8d299e53903624868e951fd003",
+          "rank_sha256": "00cf7bbb6d888e4bdd0f4a12d4e9cd41536d0818dee8798d4e3b04e979fa7e89"
+        },
+        {
+          "id": "contract_nli:train:417:nda-16",
+          "prompt_sha256": "966c62fb4d33331be3ee82d3165ecd03e0ef9f024ede9ded464e960fbda92fb6",
+          "rank_sha256": "00d12902900c31e405fd47f7647091e422b5909c925fd20f31b2d1db79c5ed57"
+        },
+        {
+          "id": "contract_nli:train:593:nda-8",
+          "prompt_sha256": "51a51de22deae6e37fc7e19419c39a71f8bf6539d28e274e8aa6d385c7ef44c8",
+          "rank_sha256": "00e183af46aa12087562006948cf87a02d0a6a3e1c26c09bd76389c9a3bdde16"
+        },
+        {
+          "id": "contract_nli:train:303:nda-11",
+          "prompt_sha256": "2513b683aff09a6988ea24354e6015ed27c1683c94432d2bb43430a9de12dfdd",
+          "rank_sha256": "00e61f6fcb176129df9890e4f76421626127e6ac2c30ba6a8456c1adb28f5212"
+        },
+        {
+          "id": "contract_nli:train:187:nda-7",
+          "prompt_sha256": "93ba90e34e40bfce0f114ec9b159a6393da494a29478eee05a2d5eeb2ef42cd9",
+          "rank_sha256": "00f5711680a7f61bb5f88e4ba7e4d9faf62065cb5a1265523f120190a9ea71f6"
+        },
+        {
+          "id": "contract_nli:train:166:nda-19",
+          "prompt_sha256": "ae20d13184d84120ac7aecd1610305103381bc276ce96e4867e9d147371bc522",
+          "rank_sha256": "00f937948c7d3799dc017d8fa9f02da82cb5a2d0b457275583ce6b3994973de2"
+        },
+        {
+          "id": "contract_nli:train:470:nda-15",
+          "prompt_sha256": "d20680cceda6a5f02d01acb534e8269d20b7b9ffec63190c1ec275fcd41ee9d3",
+          "rank_sha256": "00fb4b960f5199f538a53b509d275113bfcf56481fa17056c2d9ba69f76a910a"
+        },
+        {
+          "id": "contract_nli:train:445:nda-18",
+          "prompt_sha256": "fcc128c777cb2023b6c3801a691619e729ee3b708efa16fcef5a3d7bb2f7b34b",
+          "rank_sha256": "0100f194ffe80a06295f37302e8bcb85c7ae463b41a87c0c148161d51497709e"
+        },
+        {
+          "id": "contract_nli:train:439:nda-10",
+          "prompt_sha256": "98f26222fd9f0c5d2952be03a75aabff7ebb7828724bb560fdc52e61c2797798",
+          "rank_sha256": "010400a96fabe165bba65be6a3e9898b72e33f957022ffa4668e4bb8336547d2"
+        },
+        {
+          "id": "contract_nli:train:332:nda-16",
+          "prompt_sha256": "b383a38ab620ccc4867ec5021619ae318bc615e726893e821bb3635ce2e64ad9",
+          "rank_sha256": "0114440f8651dc795acf494ba8df53ceea46e7fab4ad5f1f038d4bb603dec189"
+        },
+        {
+          "id": "contract_nli:train:135:nda-10",
+          "prompt_sha256": "1c2e902c5e4b149f29e920fed359af437ca81a5cb83b142b01e795851557ebe5",
+          "rank_sha256": "01305b8cefe8d31e5049d0f38848a12f2a28b73f1caed00b44d0b7e44abaade5"
+        },
+        {
+          "id": "contract_nli:train:308:nda-8",
+          "prompt_sha256": "16327c164c7c683df8a8a9066326ef52333bcb35187c0c855bb620faff72acd4",
+          "rank_sha256": "01378936dc8663aa53c2f8cef1cc4f3e0c6f80953bfdbdeebe2920c281343cd4"
+        },
+        {
+          "id": "contract_nli:train:437:nda-8",
+          "prompt_sha256": "5e47b951a2279f2035c9652b058f5c01023098e1dbdb5c7244fb76362d16d7d6",
+          "rank_sha256": "013c63d4cc82601dbceb3da1a343856e9fd3d82af20f85b1443c8f19ada14b27"
+        },
+        {
+          "id": "contract_nli:train:196:nda-18",
+          "prompt_sha256": "e41dcdc08d03d1fb1b853190fbf95b2d90af38d277fb4f0786a8a5796bf572e4",
+          "rank_sha256": "015f03063efc776e2b365e6bd13e6b7ee93d42d05db8895f6c0b772ab5119d2b"
+        },
+        {
+          "id": "contract_nli:train:364:nda-20",
+          "prompt_sha256": "6e8d9d8b994896e77d42289b76a90d20cb50ad2eff04c3751c591403944261c4",
+          "rank_sha256": "017d45aad6248a83b62aec8dfaca6b5571250da34cccf9c68860da575c3140bf"
+        },
+        {
+          "id": "contract_nli:train:110:nda-8",
+          "prompt_sha256": "3c21647d3f7be748868f2dba095aae9288d6734e7b227ac04f4980bcb0c608bb",
+          "rank_sha256": "0182c447c9a6466d265795eb520f52b9f34779c335e19a73ca100b4d9dfeae1a"
+        },
+        {
+          "id": "contract_nli:train:196:nda-8",
+          "prompt_sha256": "4fad57f93b92ba074f80d53a9ad1d0da3d1e7fd76ac7c77d701727036319233f",
+          "rank_sha256": "018a372712eb7c887a43047c6d8db065d108d63279f31904e6ca0263253ddbbf"
+        },
+        {
+          "id": "contract_nli:train:426:nda-10",
+          "prompt_sha256": "237154cf9a9d4d10d667447fc60ef963fee32011ede3dee67effac8ab68d1e51",
+          "rank_sha256": "018f6e0f7f57378c6a9c71eb2fb4dd380a5f59902edc85a87c3762ef02e99303"
+        },
+        {
+          "id": "contract_nli:train:365:nda-11",
+          "prompt_sha256": "1a55b4b8007f278fb91ebdff7cbcf55b2f6b5b78d63494588becee16938096a0",
+          "rank_sha256": "019ecc59db329993f5427cef76c06b48a604a47bfd61f2679e08abef11f873f5"
+        },
+        {
+          "id": "contract_nli:train:327:nda-20",
+          "prompt_sha256": "1b036c9511ecc958913439db523ddc1a7aba224e7dafea40706d683ba0811c7b",
+          "rank_sha256": "01a0b87ab26bbae67984f5f66c91e38d4d52379c64c8dc4f58e4b79d8e8cc8dc"
+        },
+        {
+          "id": "contract_nli:train:105:nda-17",
+          "prompt_sha256": "4e6a8913b869432886db5eea62c13c129c4649edee418f1d8c459fcebf7dff3c",
+          "rank_sha256": "01bf9e873fd1171cea04db888dfab0494d3f4d320c79dc9a7f42d1b7940e6eed"
+        },
+        {
+          "id": "contract_nli:train:393:nda-15",
+          "prompt_sha256": "eeb7b040912c063c9445fd0bccd201746a9c39623e2726334e14b4cd0f5a8586",
+          "rank_sha256": "01c6b4dd911ed2ef266bd7261d4129dbd00574b223a6798f7c39378fafb38272"
+        },
+        {
+          "id": "contract_nli:train:607:nda-19",
+          "prompt_sha256": "925a847dc06fe2249b1a1d4f076e177483a0be7ee7cf8388d3861e97d89c7c31",
+          "rank_sha256": "01cd5237ba8cb6bfdd6262c8f4dc32e9ef3a5406265f69eff8e7d0b6d91f045c"
+        },
+        {
+          "id": "contract_nli:train:331:nda-20",
+          "prompt_sha256": "d82538fa665cd14b922cd4e064431c96a90d537d150f343bdb9e2296e622100d",
+          "rank_sha256": "01d286f06cf671b54fff77bac502558b8a1658157dac775e01506afc8293d014"
+        },
+        {
+          "id": "contract_nli:train:348:nda-8",
+          "prompt_sha256": "a5d0bb2dce5a98b5e93e6312efdb8a86ecc79a01f07faf3b70d9a0159b07cf39",
+          "rank_sha256": "01d7b804e269891f0c412340ef74339978f4f8e74b3361530fa4a4e9c3f04a99"
+        },
+        {
+          "id": "contract_nli:train:437:nda-7",
+          "prompt_sha256": "ed8d6787288f6c62b5c9e9f1bb9e0a69ec5ef00a14c1fc2d46849701f1d31c8e",
+          "rank_sha256": "0209a93f631bd1f76878ccbdef73880e36c77d95220b369c611fbbc80d29e0d3"
+        },
+        {
+          "id": "contract_nli:train:383:nda-18",
+          "prompt_sha256": "75c246b2da134e11483f9d90dae33364860d66d7d15330ac3c346587eb444f75",
+          "rank_sha256": "020b4772f4ba6496027be81ce0b68269fb4749acc967a494510c574d8ecf9fbf"
+        },
+        {
+          "id": "contract_nli:train:567:nda-13",
+          "prompt_sha256": "9fa4c6f0bbbc3cfe83ed09e690a177a244729c28b3186cd7a80b012540709174",
+          "rank_sha256": "020daae092ba1076ad61b3f389c102080b2bf4853f2a0f3f065b1d0b2d4f9a68"
+        },
+        {
+          "id": "contract_nli:train:341:nda-7",
+          "prompt_sha256": "94fec48511ad3f12da2fb15da1dbfc4e4298a4e50b514611ff201bc930d55505",
+          "rank_sha256": "020e536065630d7bc0a894351a567323adaf9eaeafd1ed654ba3e5140b69ea13"
+        },
+        {
+          "id": "contract_nli:train:579:nda-2",
+          "prompt_sha256": "5079d0dde2f590f75b5fcea6cb0b09073e47c81fb1251be2b72d80d499fccc8f",
+          "rank_sha256": "021669e89e25b42c9887a6e7b58913d15c08b879dce1adf4f383ef36c24a2659"
+        },
+        {
+          "id": "contract_nli:train:184:nda-17",
+          "prompt_sha256": "60c22fde01638452dca2451ec62ae3dedbc45ee304961ca5698765d247cbd3af",
+          "rank_sha256": "0216aad379e350e034cb27775bf90b0e998e2568532d0ccf72baae3dca79d843"
+        },
+        {
+          "id": "contract_nli:train:291:nda-8",
+          "prompt_sha256": "ba40c85cc8615587177e26d880611f76fefe65661cef9f05f808b62a5c6a7bb8",
+          "rank_sha256": "021a4581ac2300a90866051901d6e15858138c256bb65e33600f5d9388cece4a"
+        },
+        {
+          "id": "contract_nli:train:169:nda-4",
+          "prompt_sha256": "921ec1d725bc19acd629d71a8015e1e51c838461fd9ec481e12695d772a635a6",
+          "rank_sha256": "022f062ca80965634a7f2314f01f95fd195acd177474a6a84dfc83fdaaabdb14"
+        },
+        {
+          "id": "contract_nli:train:350:nda-10",
+          "prompt_sha256": "594d10f05fe2aaedfa8a1586400d532a73be5ae546957c7fb405a32981e8f44b",
+          "rank_sha256": "022f670e00a0ebf164fa4b2a494d59a6cef079093e63f5143a0c7a6c16b110d7"
+        },
+        {
+          "id": "contract_nli:train:367:nda-17",
+          "prompt_sha256": "4a97df571df882bd80f0da977afe3414b2d3cceecaa6409dc568057f6c475f2b",
+          "rank_sha256": "0238eca3b0c4dec3e83f03c5a5cc14e0bbada8db6fd7aabcbdd79a382bb2325a"
+        },
+        {
+          "id": "contract_nli:train:161:nda-15",
+          "prompt_sha256": "8cbee4d09cf12eeb9bb562ad6be3fdfcfb137d124b31c4ab7d21cda2be399469",
+          "rank_sha256": "023d4f034bb8a3a2d2151d7a5d051c8fbe63b46cb07005c83945dd0af14d25e8"
+        },
+        {
+          "id": "contract_nli:train:423:nda-2",
+          "prompt_sha256": "c87ec380a3a898fc6d2cae94696cb0f625461871f0fa6a9b49bbac53aa597659",
+          "rank_sha256": "024091e3663a9f229cf1d83c47964ecd928499a8f13d8084850d05083b1db2e0"
+        },
+        {
+          "id": "contract_nli:train:249:nda-12",
+          "prompt_sha256": "a70debe06becd7123d3edbca2fc01babf7dd8b7a982d3d1e25d8894f3a3f2400",
+          "rank_sha256": "0254b5a2695a1031026e66e22bde68622fa75cc4ee3863e4e77228a41030baca"
+        },
+        {
+          "id": "contract_nli:train:473:nda-2",
+          "prompt_sha256": "441402a94dede5886374e145f55197c85978decf1092f8005a7f7f2835fd338d",
+          "rank_sha256": "025b800ce6b8405f2242812343ddb48acc0abf5fb71969976d15d05f3d0deb99"
+        },
+        {
+          "id": "contract_nli:train:502:nda-3",
+          "prompt_sha256": "13883c7f2b7514e4ce9e05561e46af8afb8324e46a852675ddfc8a085d911d0c",
+          "rank_sha256": "0260d88c3fa462afe0ba6574fd85ce47401e1614a0a5b29469914c6b43ddb5b2"
+        },
+        {
+          "id": "contract_nli:train:95:nda-20",
+          "prompt_sha256": "832015d32f1553e8279835e990dc8eb09dac845482f8d669eb66eff2649e3a5a",
+          "rank_sha256": "0267aa8c46f9df8d19cc2eb18ef69c5eff625f73343f96b8a3c60b5c615f63f9"
+        },
+        {
+          "id": "contract_nli:train:373:nda-5",
+          "prompt_sha256": "67b532d5b3cdf05b6f009dbb40a213266a578a43845241eb361e41f5a6063bfb",
+          "rank_sha256": "02879d68f0107b3c5d0a8cb18ddce989f8a5ecb9ce5325dbb0e5cde2159a38b4"
+        },
+        {
+          "id": "contract_nli:train:472:nda-13",
+          "prompt_sha256": "e5dab0d292e26be2f50f752112c5fea3a2d99f121b1e8c43e0615d6385ca6edd",
+          "rank_sha256": "0298a61d3c3dafa23e8e2e601d5e9a85f3d8395721ae048c2bba7fb24cd78bf1"
+        },
+        {
+          "id": "contract_nli:train:91:nda-20",
+          "prompt_sha256": "f981a5d443a257c10e00ae137488752de42af390352bd6c141671f0a0db4a7fd",
+          "rank_sha256": "0298db774bb743e80dbdcee7fbd63d0630dc57531983da658a816380e2565936"
+        },
+        {
+          "id": "contract_nli:train:522:nda-5",
+          "prompt_sha256": "537dc701167970f168828f8f66dca85b15adcddc8bb61d8a810f35c4c09cade5",
+          "rank_sha256": "029df0f71d0517420bf1a1c80ccd8a08aadbf06f707afa9864e0a91f0c6da8b5"
+        },
+        {
+          "id": "contract_nli:train:34:nda-5",
+          "prompt_sha256": "7ff7e031e76a7f4cf40c877e8d931889d42ed74c57da88bc24e030f890412435",
+          "rank_sha256": "02a6bb768ea1c958a8639fd07b073112ecc4555de9397e8bba706fa30b80be3a"
+        },
+        {
+          "id": "contract_nli:train:463:nda-13",
+          "prompt_sha256": "379b38238650528f0b7716d417f8f402363302b2066e9422e6989d057d9c21db",
+          "rank_sha256": "02a99a2ca7e1c295969198299e4ea515e2ca787602e10a025d399fa1188fdc39"
+        },
+        {
+          "id": "contract_nli:train:192:nda-17",
+          "prompt_sha256": "fdc0e281f821dd872e1546711ca00195e67526e1337f218e9e361e1e5104d5e3",
+          "rank_sha256": "02af9270358f53d7f4cde627c4133db8e9208a65b7c74aa62b6d75b1566ef615"
+        },
+        {
+          "id": "contract_nli:train:472:nda-15",
+          "prompt_sha256": "a3f1acdcf30fe92a22226e1b43e9e4bf6c2c631c0f118968b630fdf92f626f4a",
+          "rank_sha256": "02d464f45686d2341fe51f0c71079c1a771c041f8d885049acffdb2d4c45d9eb"
+        },
+        {
+          "id": "contract_nli:train:141:nda-13",
+          "prompt_sha256": "1ca111fec5bca10067166c4efc0df5b34f2073efb6f6acc08a4e6dc1a7b923c4",
+          "rank_sha256": "02d491ad85303c5a87551af0201844fe96349750b9c7b8fb6353afc114584811"
+        },
+        {
+          "id": "contract_nli:train:172:nda-17",
+          "prompt_sha256": "24b16c7f9ef97c6e927e575d739945c610abd46651ac245705b37cfb891c1c40",
+          "rank_sha256": "02da17bee138db7fcadc2c562e18a45bed5e5cb369dae0248fcdb312e4156399"
+        },
+        {
+          "id": "contract_nli:train:316:nda-19",
+          "prompt_sha256": "9a727137254428074cc6b3a783d52f58583a5635abbdaf394b8e0578436e8483",
+          "rank_sha256": "03165abb15a12d4e0b14fea81f6c8099ed2ccee43bda2d7e48c5312dd65cfd78"
+        },
+        {
+          "id": "contract_nli:train:96:nda-12",
+          "prompt_sha256": "15e0c2f4424db4c4d2a62363ea3a18202cd14591242f2b4011e833ee07fb289e",
+          "rank_sha256": "031f9752bea19b8c3f30fc7604012bf43be1b06793f5a0372bf56a5410b1d99b"
+        },
+        {
+          "id": "contract_nli:train:241:nda-4",
+          "prompt_sha256": "034a6f2366256c487f6b3af0dae0614c09bf79c0308d05c0dc556e47be1742da",
+          "rank_sha256": "0327b9e653468f343b694322265cfa86b91e6c02b5066c1fce5773075ea709a3"
+        },
+        {
+          "id": "contract_nli:train:487:nda-8",
+          "prompt_sha256": "5d3848f5d8585e88fb21c54b60a12d87b550840a12d31f6be5fcf53479d5ca71",
+          "rank_sha256": "032b5e85262aa27a9859b41b798e5ddd5b1a5597e5da7623078c734ed3564c7e"
+        },
+        {
+          "id": "contract_nli:train:163:nda-10",
+          "prompt_sha256": "a68914c269130096dd18489e586abc67bacdca5030d82f9e424ff249840b8c8f",
+          "rank_sha256": "032fdc3ac28ae87ce762f279cb26a506e19e9f944b014c585ef963e68e793b7d"
+        },
+        {
+          "id": "contract_nli:train:587:nda-2",
+          "prompt_sha256": "279f884e66a469990eb0d608567b31664b011aea02949c9ba09c71f6cefe64af",
+          "rank_sha256": "033f4aedb392348fae9003f9ac7153f97c2bfb1f82787d8c834115eb99e33e07"
+        },
+        {
+          "id": "contract_nli:train:509:nda-7",
+          "prompt_sha256": "72205da079ae608ed8718febfaa46c30079c60253ad0d341109b64005685ceb7",
+          "rank_sha256": "03481d1208ab62ad6c64cf58f9e6ebdb8689b200248a8b327ddbd6da1eb7656b"
+        },
+        {
+          "id": "contract_nli:train:172:nda-10",
+          "prompt_sha256": "8abac435594466c5cd6fa650564926badc192a5140f0520572398a5f63038cf8",
+          "rank_sha256": "034f78327f130484d31ceeaa9f1de72f491951ab55f31ecb1b6b3060cf2a7de5"
+        },
+        {
+          "id": "contract_nli:train:304:nda-7",
+          "prompt_sha256": "65fd4a752995d7701b32e540e3db735188149db7827a7ae4f8786650fdfb7712",
+          "rank_sha256": "0359cf05164bf34b8b93da65875109174e2da818dbbf752192ccd359b1d436a6"
+        },
+        {
+          "id": "contract_nli:train:358:nda-11",
+          "prompt_sha256": "84c1a26bde263eac978a7f3a7c7bf03d97870f26adb56827cd78a3f00b092f09",
+          "rank_sha256": "035b46139cdbed50bb4137c191665ac2c478c2818d0f24dc3f437b290a975113"
+        },
+        {
+          "id": "contract_nli:train:261:nda-3",
+          "prompt_sha256": "5b63bd2b3588c3851fc04421f90cecbcdd6d9788f618f2794cd65c057269b0b7",
+          "rank_sha256": "035b493cf9b7c9cba0ae1759f58754a8e7b7c9ef31df7481bb368a6d3e840c65"
+        },
+        {
+          "id": "contract_nli:train:189:nda-1",
+          "prompt_sha256": "03c727aefdf1a7941b93a05006310d35e448cbe410a6165fe74ce9850099c507",
+          "rank_sha256": "035efb1711a419466d5cd7598a6aa60c16ee13261cf82f2f7f85106bcd42862e"
+        },
+        {
+          "id": "contract_nli:train:602:nda-5",
+          "prompt_sha256": "51ef06c287ee852f528c15c681f83f0d29e8acf5a3e1dce33e2f52119388e8bc",
+          "rank_sha256": "036d6d423fd0588d741fe7e7c06e70c5062772f6b7032497e0970ad25c4d8c14"
+        },
+        {
+          "id": "contract_nli:train:383:nda-16",
+          "prompt_sha256": "12ae4e3da217ccbbd95ca27a71b4973ba9146e671cf3bfa0116771f53f9428fc",
+          "rank_sha256": "0371fac4d815303680f6f705df982cc22ca1690a5ea63e712f0c409a6ff0f747"
+        },
+        {
+          "id": "contract_nli:train:313:nda-15",
+          "prompt_sha256": "a7abed9e6b8fd1645c9bcf79ccbeb10019bc8cf7108eb4fc7fc1d4304016961d",
+          "rank_sha256": "0378aeee4ad378e72f682de52292d7f0cb13d1a5c5124188896023f596e9f9be"
+        },
+        {
+          "id": "contract_nli:train:377:nda-13",
+          "prompt_sha256": "5f0452e121bfcb52917eefd3c154bb0ab7a1321b45ffcbb2918fe4a8bed6e949",
+          "rank_sha256": "0388ec1a285e34b8e13dc7b90ccd8c177758074d64e3aedf766e64288006641a"
+        },
+        {
+          "id": "contract_nli:train:195:nda-13",
+          "prompt_sha256": "98e2e83ee9c4accfb7937baec1620716fda7e6960131de7ad35170008c6a6a9b",
+          "rank_sha256": "0390360f98167f0b8b398c520c7d5d0b40d701794d03204feff41c53b45de8d5"
+        },
+        {
+          "id": "contract_nli:train:146:nda-7",
+          "prompt_sha256": "7da7e75a62e3e9ef34d5152e5e17be2e7cb34af8f843bd89a2ee211374b5c411",
+          "rank_sha256": "03929e8108973fb1208255334d07b364d8cd6019507e90c85f5ae9011e4e8476"
+        },
+        {
+          "id": "contract_nli:train:119:nda-1",
+          "prompt_sha256": "74e2513cca8860ab2fb95d3239331874e7f8f2c08003bc04049f301ffa370aeb",
+          "rank_sha256": "0392fdfac2d2ce9f9e10aa3ccec348f65a379caa67b2a1a77a9f4a54cc8ddd04"
+        },
+        {
+          "id": "contract_nli:train:203:nda-19",
+          "prompt_sha256": "b1c065e34396210783a84d479b8cc109ec6198f47314227f3e91298d3c69e976",
+          "rank_sha256": "0395d142eccb8d46c7e248d497a74c2605e3196078109059668c229c1b69fa5b"
+        },
+        {
+          "id": "contract_nli:train:624:nda-11",
+          "prompt_sha256": "65c3289aba0ec77368118f06e770be53489c51cd46f6aad4f974b3a41c8ad48a",
+          "rank_sha256": "03a943ca1137bec67988a50a963bce70c5e9374072fd6879caa1c6aee6fc5800"
+        },
+        {
+          "id": "contract_nli:train:512:nda-1",
+          "prompt_sha256": "776bd6b78003f9639a6a7aa17122fec1f96836d29df9d6fdbc0e49410f234add",
+          "rank_sha256": "03ae0395b728645b10adb459d89658fea4bba99c31fb9becb6f397e48ed17647"
+        },
+        {
+          "id": "contract_nli:train:281:nda-2",
+          "prompt_sha256": "44c88c7e56424fb32c11df62ff9af6d8d49d273b17a47828c79814c4cc0e0943",
+          "rank_sha256": "03b916843b1b70ed7422e6373d89778642e026e9f25775ac26251e42daf32c29"
+        },
+        {
+          "id": "contract_nli:train:120:nda-10",
+          "prompt_sha256": "6ff22434a7b5b5e769e82e820986327f42393dad7b4aaf110ab551fc62b55156",
+          "rank_sha256": "03c0eb057e62772e2233cf3c4d35b24c7bf4e099fdd9ad4adc6ec2b33f6a2985"
+        },
+        {
+          "id": "contract_nli:train:136:nda-4",
+          "prompt_sha256": "0c3ce3bed637cd7936ffff9b08dc3d6120ad403a49c274da94fed6b43473dd24",
+          "rank_sha256": "03c5be34b6da00f661749d2824ced6babfe37665ac781358731210e340ce3388"
+        },
+        {
+          "id": "contract_nli:train:501:nda-19",
+          "prompt_sha256": "9c69530f126136e24b020f357f4c2e2d1608f9bf065d60de6de685e95179df0d",
+          "rank_sha256": "03cd1c75db6e94e7e0cbf2f1cca9dce94621af831dbd0a0aeb63ea092b829cd4"
+        },
+        {
+          "id": "contract_nli:train:239:nda-4",
+          "prompt_sha256": "1a9d5f37035872b62e46de1c92a9386acbaaa9f53868fb286b6de20802db0a91",
+          "rank_sha256": "03d2f0c5f7bc230f89120c37eae9c00d0d1494c594075bc4134c5baac354f10a"
+        },
+        {
+          "id": "contract_nli:train:604:nda-18",
+          "prompt_sha256": "51cff3210576343d3784bce81b33fba12b51676b7ba827f03baa97ac29cddc47",
+          "rank_sha256": "03f8425d35a95d8fe5c25a247efaa022a0b3ea1ff1629c46d9021bc4a51fcea9"
+        },
+        {
+          "id": "contract_nli:train:142:nda-5",
+          "prompt_sha256": "97109fbf1f1505bff22253a948126bc3d650c225ecae42c27f3764d8fafe05b9",
+          "rank_sha256": "0403041f2e98a7873e7d931e55d8cb6b99e35065cfacdd75aa18118cc97845cb"
+        },
+        {
+          "id": "contract_nli:train:155:nda-17",
+          "prompt_sha256": "3edc91bb89b831c3a6c09274412c23ba710e1dd2cd3b45308d1f029329d26c1b",
+          "rank_sha256": "040bea042624e57e40a42e44425fdac3c3a5f619cd3e4aa2cbc8e56c9eeac6b5"
+        },
+        {
+          "id": "contract_nli:train:187:nda-19",
+          "prompt_sha256": "2143764499398d9a92d744812fcac18fe08dee05e0f010335a9bcdd806686d87",
+          "rank_sha256": "040fb6c6e684bccf9cc4ef36cc4e2594e25abc976b19462dfbca5d7fb117eea8"
+        },
+        {
+          "id": "contract_nli:train:407:nda-1",
+          "prompt_sha256": "6a3df4c242db524fe2df447894bdec80389ad18b4c9a9116e5df593ee8dd6ff6",
+          "rank_sha256": "0414f97d4f22812a1eb9f99a34adbbcef4cdfcfad3d3d9ff2c225277cf1dea2a"
+        },
+        {
+          "id": "contract_nli:train:414:nda-19",
+          "prompt_sha256": "5568f536fa8c4d4d00ffac6fb685e358c23f79b800cf450bce2c03c0e949a38f",
+          "rank_sha256": "0417e53a37bbe775f00909c4a621b1b813a9cda27bc5b750cf0e3ee4c5149e8c"
+        },
+        {
+          "id": "contract_nli:train:88:nda-1",
+          "prompt_sha256": "85725e4c3b3ac6e39164a950162bb9848ef492fb13a03ad7a45ce5326e75595c",
+          "rank_sha256": "04213c2eec30fa617dff0c5c0c25a938237d50c758ef6ceb89afd99b00312e63"
+        },
+        {
+          "id": "contract_nli:train:295:nda-2",
+          "prompt_sha256": "4f41ebbb363fe23e271062adeb41a18f5d3c358af7c7d6160c07d97a3de14712",
+          "rank_sha256": "042bf0505d7a32fc30c2566045426761f06be6a72669f2e97d385e7e24106e9f"
+        },
+        {
+          "id": "contract_nli:train:202:nda-11",
+          "prompt_sha256": "9f1b0fae0a816db3ad0a9b46d01f39a4416ff2924c08ec1d9f07ade3974e0f55",
+          "rank_sha256": "0434ed7b6794301439a5958059201e2ed0d5c4c13a8e5cfde4190aa0e149c89b"
+        },
+        {
+          "id": "contract_nli:train:616:nda-13",
+          "prompt_sha256": "16030101f0333d4cbdaf4cbe7deeb29856f1717181286280543d4e18195bbb15",
+          "rank_sha256": "043518706cadac3e7dd587e6b4485953964bb6d6ca908e56348944807d7077ef"
+        },
+        {
+          "id": "contract_nli:train:561:nda-20",
+          "prompt_sha256": "5277c37ce875b5411613ae28ab403f004a3f2f5eeedf9f2442d4124c07ce7211",
+          "rank_sha256": "044e2a1190210dea804fde1845d009437488603961883ea18592b084f7daaf18"
+        },
+        {
+          "id": "contract_nli:train:385:nda-12",
+          "prompt_sha256": "f6529899656065257a910939536921ea60f15a324ee137c2a07562d66372a35f",
+          "rank_sha256": "0453216439917cbd1e1d56d557f7aae1597cb7e60acf18c527485b8cdaf74954"
+        },
+        {
+          "id": "contract_nli:train:179:nda-12",
+          "prompt_sha256": "720db82d7180afa311b80dabc0092a18e796dc9b8dac69aa056b3c505f0d393e",
+          "rank_sha256": "045aafab7d6c3fb29347f3a51d6d553a3a9de47428ef6f063f2c935196aba78c"
+        },
+        {
+          "id": "contract_nli:train:513:nda-12",
+          "prompt_sha256": "8b1f47ce68515935e3cab6a21a997039febb12714b39817973e7f5b5cdb6f411",
+          "rank_sha256": "0464ebfda0060f0858136a841ea223cd5116f5e4cdd4f54b2e2c3c073ad9a67a"
+        },
+        {
+          "id": "contract_nli:train:268:nda-3",
+          "prompt_sha256": "4bfc18c6f114d11fc9d34ba5f91bc98de72d6a759db131cda279eac6392ac3f8",
+          "rank_sha256": "04694dd900a2e2de59cd6ca6fe2654a99cc6d7cb1c05fe61db56d50519cd6aed"
+        },
+        {
+          "id": "contract_nli:train:419:nda-10",
+          "prompt_sha256": "2b0843310a8f6525c65b26968de93360d70a0a05b86d4a6511c61dbd19f4771b",
+          "rank_sha256": "04756dc282a5b5308286a478692712622b36010760939f2ad4803a3638b015dd"
+        },
+        {
+          "id": "contract_nli:train:449:nda-4",
+          "prompt_sha256": "e0c18fe361eb19debb30d4fb589ad5f543922c0473c34d945be789a572ff5cdd",
+          "rank_sha256": "048b4cd359dcfb372bb2ede5a7bdd334a72eed7fd06e3306816cc961206e02d5"
+        },
+        {
+          "id": "contract_nli:train:609:nda-12",
+          "prompt_sha256": "2496d40923aabcecfaa91cd7ada3f381f7aec5cb88ea51d6265896ae025cda47",
+          "rank_sha256": "049566985380206fd5264855255e82b6b77795f5d4576c1bdb8fa2f3dc2b9547"
+        },
+        {
+          "id": "contract_nli:train:172:nda-13",
+          "prompt_sha256": "b118692d36b031faa48372e977ad9636981c28f26a2d9b1ca1be449cfd42289a",
+          "rank_sha256": "049d24ee6b570fb02e8948160089900ba14b2aa7266a990f502301094c24fba5"
+        },
+        {
+          "id": "contract_nli:train:469:nda-7",
+          "prompt_sha256": "dcc5ab1c2a8ceff77ed7b808d8197fe6f46aa551359a340cf0b9c00ecec8a3e2",
+          "rank_sha256": "04a2cd340033672eb58086fee21ea7f77efcaf638a061157183ba5a4c94bbe62"
+        },
+        {
+          "id": "contract_nli:train:438:nda-18",
+          "prompt_sha256": "6945bf76a78b393d11360c463cc7274c846637b95e3078d046ba2f7d041c78c8",
+          "rank_sha256": "04a53e47c6a67fc9267a453cfcec9d2553451d17df603b06819e2546a5d42eeb"
+        },
+        {
+          "id": "contract_nli:train:103:nda-4",
+          "prompt_sha256": "180579baae5c91e452b429435163cf128c044ee98d7ba266490187457f26d885",
+          "rank_sha256": "04add9544b662bf89d12cefde6f3f30e6515be8e83f6790f0fd275a7f4d55f10"
+        },
+        {
+          "id": "contract_nli:train:442:nda-1",
+          "prompt_sha256": "e1036266f0a04abef6be0e82593ee48705abfd2d7372605258bb1eb7459be1f1",
+          "rank_sha256": "04b243f5e2adb5f58da0c3a8ed60c097c8f827a70fce11bb514446e57118a7ca"
+        },
+        {
+          "id": "contract_nli:train:191:nda-11",
+          "prompt_sha256": "1e62b533d1d3ba5537d0b0a4cdc29dc48a3ea4b08fdb6bf564bf85984fd351fe",
+          "rank_sha256": "04b7bc986959c727f5cb7759e7bde6ec6175eb4234e48b98c52027a02d9409e1"
+        },
+        {
+          "id": "contract_nli:train:470:nda-5",
+          "prompt_sha256": "2d874a0e0b4f38a80cde9c7619f39569ba4eb7de3434eb28440c0ec04f7625f3",
+          "rank_sha256": "04bce0da5eb9ac656274e30c67679789d58561889d9aa60ea5afcc350535b162"
+        },
+        {
+          "id": "contract_nli:train:337:nda-5",
+          "prompt_sha256": "7a5cb722f40b002a6af1e79ae5f6f65d2e8d565c020a983ce247a4f5cb2bad6e",
+          "rank_sha256": "04c35b9d3fda3ad2188a426f0beeab3822bfcec28afc2efec5f786c04c936d15"
+        },
+        {
+          "id": "contract_nli:train:360:nda-5",
+          "prompt_sha256": "5227d65940eef159cd40a2e104242830b33f7d38ef6ef2e04e70f5a275bff6ed",
+          "rank_sha256": "04c61169c9d6fbc715a5ab8a2aaceb18712f9e144bac4e913e6d0ead2ad63efe"
+        },
+        {
+          "id": "contract_nli:train:579:nda-17",
+          "prompt_sha256": "8ac32338380b2d0c4e3976f76f723dd46e00c3ec90b88fa40046fda5429f08b8",
+          "rank_sha256": "04c98b0fb6cf0d99c9b86b89389b4fe97e8df5d87dda5df558c7cbd5388e9863"
+        },
+        {
+          "id": "contract_nli:train:470:nda-11",
+          "prompt_sha256": "66454557eeff51d29c56df092124f814e0ec941bfd8f0b2c380f615a8d1ba05b",
+          "rank_sha256": "04ca240337eda14dda7279598356dfdd8a1c81d9fb631384f721c31a2af07d9f"
+        },
+        {
+          "id": "contract_nli:train:469:nda-17",
+          "prompt_sha256": "861c1b55090a5c7825d1fbe561dc6ba6e212f1e0156cfde6e3a55bbbceddcdba",
+          "rank_sha256": "04d38f3f739bd4dafdd68b20d68aab9bf4a823ef985a842ddf5662ab2955034f"
+        },
+        {
+          "id": "contract_nli:train:230:nda-8",
+          "prompt_sha256": "d53e895dafe4fe1066472bc1a297c91e8639db37a777e8950619f486325ad264",
+          "rank_sha256": "04e0d23a16417639ad8823c2cb2b16d83643932a4f293288d9f2193ce2dc1810"
+        },
+        {
+          "id": "contract_nli:train:249:nda-2",
+          "prompt_sha256": "a527f108ad058400e91f7f44c0cd0b9933282d373b3da65f5fb780e06a9b927e",
+          "rank_sha256": "04eaa6afaad5eb6cf97993a608365f5711aae9761f97bbbafda5d5ae626b9340"
+        },
+        {
+          "id": "contract_nli:train:608:nda-5",
+          "prompt_sha256": "f04cebc1b676a397a8e649fc5a12cfd1e4ef025fc16525930c727209c014fc35",
+          "rank_sha256": "04f8d904f319cb702d5f6c8ae3a87ec6202b898647194048b181a1f6e256009c"
+        },
+        {
+          "id": "contract_nli:train:178:nda-10",
+          "prompt_sha256": "b5ec7d3692be4b112391405352251638aa55b6454eae5bd1da4fbb24ba493bd6",
+          "rank_sha256": "050d61d313af5b5c00816dfac14b2d2e4e053eac44b92bf12586f586573ecea2"
+        },
+        {
+          "id": "contract_nli:train:557:nda-16",
+          "prompt_sha256": "8cbf262ebc55b3dd5802b4fd5715deb3e6dddda8e756d738e803ecaa1992bc32",
+          "rank_sha256": "0510de1fdb849eca6dc3ada9a0db761e4f28786313b0a536bfa4f9449fa982a3"
+        },
+        {
+          "id": "contract_nli:train:271:nda-11",
+          "prompt_sha256": "cd68aa1194f41f3949fedc6120d5acbb43602540088f439dd14cbd359156804d",
+          "rank_sha256": "0520afccef225a11a72a7805ceaabd2bb4cef9717c1d675e37ee4a5f4bc47de0"
+        },
+        {
+          "id": "contract_nli:train:115:nda-3",
+          "prompt_sha256": "23abce4ae5550d0814c49fd2441dc32115f1907d6687ab568ca52f11a0132726",
+          "rank_sha256": "05464c68a43022145022ff112c61495b15a036d84a1a3f2afe90acd40420db27"
+        },
+        {
+          "id": "contract_nli:train:588:nda-15",
+          "prompt_sha256": "956f10a6c1737cf3b8b7ddc360dcb7ff9a3b5b0bf5aa908e00a2bb2dc32df52f",
+          "rank_sha256": "0550fb9bedae6ddd60a366d0473266ef51025a9c5e6e7046a88bafbe878e51df"
+        },
+        {
+          "id": "contract_nli:train:500:nda-20",
+          "prompt_sha256": "9b988f7de9bfab4c31b01c947c65423bd47fd0734a803a30eda8481905fde51d",
+          "rank_sha256": "0573b087aec02c0772fde032de9b16185d80ff151b945dd779d87ab1414567b2"
+        },
+        {
+          "id": "contract_nli:train:121:nda-2",
+          "prompt_sha256": "f7f3df461bda149ec2a2dc2fad9d0f723d57208545f0b883f158ca1e195952ea",
+          "rank_sha256": "0586cafc325d4defff5337266e80e4691a2f8ae7d08be4880695e2f723d9c315"
+        },
+        {
+          "id": "contract_nli:train:305:nda-17",
+          "prompt_sha256": "4800eaa902125a46cffaf7f3a6807e576b1131e2d2bd50683a14141a8b896370",
+          "rank_sha256": "0587e340864ed1b8040619f109e7418e9398fbafdb868d3c8356af4bd43d9811"
+        },
+        {
+          "id": "contract_nli:train:280:nda-20",
+          "prompt_sha256": "ee1a2208abc000021ded1d15b5ac95f83f0c83feb78a76229ee490c984efc1a1",
+          "rank_sha256": "059614f096ac071e9dc702ae47c86bd0bbb2feac26d3dbcf5258cc9c1d9c2274"
+        },
+        {
+          "id": "contract_nli:train:445:nda-2",
+          "prompt_sha256": "403e7c6e7defc2f1cf73b58b3038704005c6982fd9966b331e5c27b530a7e525",
+          "rank_sha256": "05b090e4862f7c137c31e8d736b0e6988172e3bbfa8670fba6e947189ed70c65"
+        },
+        {
+          "id": "contract_nli:train:490:nda-2",
+          "prompt_sha256": "d30f464ddcac0a14c913a07352714c44a2e2b0ec5b837e9cc583723d0ce6b3ad",
+          "rank_sha256": "05be1bb370271c5301fd1c79034b4666fe16550ba7ff76f17c663dbf703f2c80"
+        },
+        {
+          "id": "contract_nli:train:271:nda-3",
+          "prompt_sha256": "14330fdca70bd8d7ef56bb14b48254786c53088747a8570f292643205cd5a2ec",
+          "rank_sha256": "05cd2b45caa60467defa49b67d7f86ddbd9fe71ee3da6b65bf952f0ae0644b1b"
+        },
+        {
+          "id": "contract_nli:train:244:nda-19",
+          "prompt_sha256": "a830ac917ea67639f1f596a8fd62f391085aeef33a6c89c06420529a710381c9",
+          "rank_sha256": "05d10d16de4cc1bc2f2f1fecf0a96b7adef368f34467ce6b8865ed736ae663dc"
+        },
+        {
+          "id": "contract_nli:train:597:nda-1",
+          "prompt_sha256": "ffc6c0e26e3742d6ac09ba3b4cbc71be571f7e7a003e5eb47d9a138a7ef8229e",
+          "rank_sha256": "06002833ca14b9ecc731061af127771ca924db72b518ec1188a90bb59076b10a"
+        },
+        {
+          "id": "contract_nli:train:130:nda-2",
+          "prompt_sha256": "e3b3123f9c4b3e7e6bf3f4252369cd978ca3aed15ba24aaa319edc30d377b7e3",
+          "rank_sha256": "0611cd485eb4d66bfd050a842b8db481c04abd7dc67ced940516e8d6ac9f4ce7"
+        },
+        {
+          "id": "contract_nli:train:554:nda-18",
+          "prompt_sha256": "8124844ef949e6467f10545d54f505113e2c65570447b2078166f9523d5eb8d0",
+          "rank_sha256": "061265fad8b3b7bf836df46a927baf34de61f4a6f89f92dd8d1df7e3b36172f0"
+        },
+        {
+          "id": "contract_nli:train:214:nda-17",
+          "prompt_sha256": "56c6ed0f78efcfce1f13767c406038c0f4882580d39618034589f26121f04c9c",
+          "rank_sha256": "0612e52a3a1bff794d0d40856f777eb482a880bade4c1e8e5c8aa0ed7e67f777"
+        },
+        {
+          "id": "contract_nli:train:200:nda-10",
+          "prompt_sha256": "3e974f3dd2f42aa5d597d4dabeaa0a8f8b3703584909557851ce9a6b028cb89a",
+          "rank_sha256": "0616b154fc98843ca829951663daa8326651d52dedb74b843063f008624d4711"
+        },
+        {
+          "id": "contract_nli:train:204:nda-2",
+          "prompt_sha256": "787b83875bb150b518f1d0cd16ba2df5fdeb3218080f641d58800666dfe273f0",
+          "rank_sha256": "0625a3c0378f4b5c7bc1bee6b344fd7760bb302d590d063adafebfac52cba58f"
+        },
+        {
+          "id": "contract_nli:train:267:nda-4",
+          "prompt_sha256": "5c35452937b8f5844d6145589b5950a77302d006c15e9981994d092d6fb43a2c",
+          "rank_sha256": "062d008ceeac40baddae40c9f3c3f00f1b35f4d349862ee76ce3436a018a5423"
+        },
+        {
+          "id": "contract_nli:train:513:nda-3",
+          "prompt_sha256": "bb7b044060a410b10ebc6f2e937be15824df364da8d2026a215fa049891635f1",
+          "rank_sha256": "062d3ca110d839467ed24e61485ec07be9d5b9fb96c5a7e391b6852590208c56"
+        },
+        {
+          "id": "contract_nli:train:502:nda-10",
+          "prompt_sha256": "d5717cc25b555efed3f291e5a815d1ce5377d619f2c29ec4fd5bcdd3d5018c70",
+          "rank_sha256": "062da4b0d96094dd4381aa1ab1ec1c8312c7908e9028fe65f81deea3a924ad17"
+        },
+        {
+          "id": "contract_nli:train:371:nda-3",
+          "prompt_sha256": "0863462a32d1d3fcb5bff906d6d8497e5e878486cc546cfaadeffaf532f38dae",
+          "rank_sha256": "063003654c86509aa3d90890922bc72daf0fa8161b65c561776d8f803e8711a7"
+        },
+        {
+          "id": "contract_nli:train:454:nda-11",
+          "prompt_sha256": "a1d05d28b06c000761b35d61efd119cd32c5dc6576386f515e7270ee8c4c46cb",
+          "rank_sha256": "0632f39e32791b5131afe1d1829b086a22cc9a43cee12f5a4d71fb5267dc0cee"
+        },
+        {
+          "id": "contract_nli:train:545:nda-11",
+          "prompt_sha256": "c96bc1ede3703f2be1e3fecb46cfecda1801f5410e8148d0e841969a2ae6b9b5",
+          "rank_sha256": "06378f67666842be1a9c59182ecfb26fdb5cecaf173915197c9e4da14b8ec657"
+        },
+        {
+          "id": "contract_nli:train:251:nda-16",
+          "prompt_sha256": "b4b06ba0ba09bb9824022626a67b7079db7908316657b0c756cf84d6d75f679e",
+          "rank_sha256": "063da8ea52780be83434ad55dd47c67e63d6769415389a21915d0aeb3c9be173"
+        },
+        {
+          "id": "contract_nli:train:274:nda-17",
+          "prompt_sha256": "3135737f2e5ca3787dd44c17ce129fec2334bee21411d8e6b52551f747e5ed6a",
+          "rank_sha256": "066db63e804501d2c135426c4627f2b94e55f3fb7715fe7e8a801df558bd9f76"
+        },
+        {
+          "id": "contract_nli:train:568:nda-3",
+          "prompt_sha256": "590595eea2f889259c4991e396a3d55f6788970aabee68e38a553ba06703b153",
+          "rank_sha256": "067280f764e62dbdd2beb5f1ef0fc33e344426656daff08cc77684814678b9b7"
+        },
+        {
+          "id": "contract_nli:train:199:nda-16",
+          "prompt_sha256": "35a22591370cfb1d7de930490ff45e26c6192f38ba991b7c1e39d4aed8cf232d",
+          "rank_sha256": "068a412e71c2be71d83efeae29ca11e88fd60c12a95d14aeda2e083b35de2541"
+        },
+        {
+          "id": "contract_nli:train:373:nda-20",
+          "prompt_sha256": "8748117e9c5636d59c753c7cf3890a1b580a846c4ea3a8a58488c8b2bea9d842",
+          "rank_sha256": "06e1be6510e92ef74452e50a2fec63b9e0be46c2f24a5f0d427f1376a638c4df"
+        },
+        {
+          "id": "contract_nli:train:122:nda-7",
+          "prompt_sha256": "498bd625ef895e7cd4fc0f7a2be112ad6ed9f58868e92fc42c04ec1467e933ad",
+          "rank_sha256": "0712f57150f68980b43fb742ac1ed96888cd3f82667c4013287f920a37fe80dc"
+        },
+        {
+          "id": "contract_nli:train:335:nda-7",
+          "prompt_sha256": "b96a488e5d1f4d5ff9f107968f9c5623221ba391d18a319126ca7c3f46e228b4",
+          "rank_sha256": "07d971aa7a8565b40701d6406a2f3e2a13ddfbfa64088dd125aaebf19d2c9ef2"
+        },
+        {
+          "id": "contract_nli:train:517:nda-20",
+          "prompt_sha256": "d27160b2045346baddbf56a368e0cbdb07cbf494015d50a37556272a581881bc",
+          "rank_sha256": "0863edff3d537117d42384aec9ce73cd179bc6408a735d714a8297ad503ab576"
+        },
+        {
+          "id": "contract_nli:train:356:nda-7",
+          "prompt_sha256": "8117c06a8f912f53b6316efa379ee89eaad0c255540b8bee31e94a363e9c5fd9",
+          "rank_sha256": "08eccf814eb21be1cbcee1b4e8bb79f0edc1ce032f0a9a02edee96eeb45595c8"
+        },
+        {
+          "id": "contract_nli:train:468:nda-2",
+          "prompt_sha256": "2c5620f0557a325793e71f71fbe769902b16be136258cbea49e406541f29e492",
+          "rank_sha256": "091256c07d3716cf1fa3b7c81b64c657cd9d083dfad04c1d1bf806aeb9729963"
+        },
+        {
+          "id": "contract_nli:train:462:nda-2",
+          "prompt_sha256": "9959458b5fc831a4dff095a8a871c0587eab6b91cb7532fc00425c8756f02360",
+          "rank_sha256": "092380a4f0c19bb1d47a9692f2a0c151add3e6108e49c197d794374d6e3dd5dd"
+        },
+        {
+          "id": "contract_nli:train:366:nda-20",
+          "prompt_sha256": "20ee9a9655777995a416e89a1526fdebdcc5b624fc4853bea8ba30e0ac10fcac",
+          "rank_sha256": "0b13e9dd7b7d6c161756a17d452d817fee56140ce994da5157f7471629f1b565"
+        },
+        {
+          "id": "contract_nli:train:183:nda-7",
+          "prompt_sha256": "b8dbfb18877463ae860fe4221447cbbd088f22ee45f37de049934a76f2ebad1c",
+          "rank_sha256": "0b196b9d714956d813b8875d4880c79c1d533092119b7171646dd494368fd914"
+        },
+        {
+          "id": "contract_nli:train:167:nda-20",
+          "prompt_sha256": "2a687136343a3679c929afbee6636dea245d56c50cbeb5168709f13218c7be0b",
+          "rank_sha256": "0b219c3ae6711ef2fd3320151f60c1ed087aaa4a6cfa92e272bfaa976e1e70a4"
+        },
+        {
+          "id": "contract_nli:train:607:nda-2",
+          "prompt_sha256": "81b99c1f8469fe7aedda2e299a6c332a68e58a99c9cfc9f5d47fe5e3e4c61d76",
+          "rank_sha256": "0bcf68576afc88032ff6fd01664e41fe1e7428d152e818a266224a785036b0f0"
+        },
+        {
+          "id": "contract_nli:train:139:nda-2",
+          "prompt_sha256": "3d160799b2011c6c7f5fe8710dba554b995982cd5ad875d6911a2d38804c2ffc",
+          "rank_sha256": "0c1394e8a935bc1f32ee035f55fa55d143728a42c28519faefe1428a5d129fd0"
+        },
+        {
+          "id": "contract_nli:train:448:nda-20",
+          "prompt_sha256": "aa4ec18b9ebcbc63fa5e600c79cc0ba06b3e4928b6aa406bc6090bec4e8b738e",
+          "rank_sha256": "0c3da9081602e9d2c045e945be20304218195a70d8f317d9075a0c9fa7e07a49"
+        },
+        {
+          "id": "contract_nli:train:281:nda-1",
+          "prompt_sha256": "185251c15f30554f03f57b7436b38a9aa4c4fe16b063911fcf9366018563f5c1",
+          "rank_sha256": "0c4f14739ea180bc8d6c0cea79064cafbb05ba7ce20b6f6ced15675c2fb4b4b8"
+        },
+        {
+          "id": "contract_nli:train:149:nda-2",
+          "prompt_sha256": "e1c713865f796d63b2b9c6258fe14e1e0fef2f204919a765e37053ac11f44cd8",
+          "rank_sha256": "0c54ccf6b7acbacc7c85a8dd5ddf9182a9b6503cc6b5e1e1c607caac84c91cd9"
+        },
+        {
+          "id": "contract_nli:train:492:nda-2",
+          "prompt_sha256": "cfcae8b6005abc23130840d89a78fa5383345fdb1ccf9791354c3e033a8c2968",
+          "rank_sha256": "0ca7bf75d9373eb4d7e5dd34425b3cc1a0ec3d45a37f1b8af302adbf62aa1ce5"
+        },
+        {
+          "id": "contract_nli:train:133:nda-7",
+          "prompt_sha256": "1dd6f47a01cab054bcf9115bc54dd29d2e4f1bba6cb89393b1ea52656e81bab8",
+          "rank_sha256": "0d0508555796e5492b038d719257e420ed1ef39cb8f28ca660760a63527cbefb"
+        },
+        {
+          "id": "contract_nli:train:416:nda-20",
+          "prompt_sha256": "323951cd032a387e5fca775c82261f02ce71dccfb347dd4b4556bb32a14eb2a0",
+          "rank_sha256": "0d6b1141d385e2f9a582f10eaf684d2e5306d2b267731786d7330a1a86f0fcf3"
+        },
+        {
+          "id": "contract_nli:train:580:nda-1",
+          "prompt_sha256": "f4e4d26624d3b49cfb71f5c9d97a0b79ee1703d3035cbaf62ee71008e78b41eb",
+          "rank_sha256": "0e0dc8e9373b9e90d1e4bd3ec0366d60835075361e59dd86748264ed0898dd3e"
+        },
+        {
+          "id": "contract_nli:train:109:nda-2",
+          "prompt_sha256": "e311074ec57f8c893777328e707ef60a238cf2ee109e957e5df1215c764aad00",
+          "rank_sha256": "0e117d158b39a0943ac567afa5ee88edaacf919cf36ecf12f861fdb7fd950f65"
+        },
+        {
+          "id": "contract_nli:train:422:nda-20",
+          "prompt_sha256": "a34c78f6d6f6e224589797ec509618e455c242776efc1927a28f4782ea1a13c4",
+          "rank_sha256": "0e91b07061bdeee5027340bca2f42bee12f36ae0b3c20acdd3993d252caf9596"
+        },
+        {
+          "id": "contract_nli:train:277:nda-20",
+          "prompt_sha256": "f5546e68d20ff79095ee419fb1951eb71881bc27c0363dd0637016ec0aafe043",
+          "rank_sha256": "0e97ed1416d2f500c72af6738367954bf4dee845168c0dae0c2a9fda700f93a8"
+        },
+        {
+          "id": "contract_nli:train:248:nda-20",
+          "prompt_sha256": "ca6666912e2c8157b98332465c963281d88ca4b0b0f9ffab60eb5b2c7de29b20",
+          "rank_sha256": "0ee4b4b9fb01af88dcd4c5c8900c64f7fc5f3aa06f3d27a2c3e46b342aaddeb4"
+        },
+        {
+          "id": "contract_nli:train:320:nda-7",
+          "prompt_sha256": "67705ee3cc169eaeab1f1e2d3deb584dd6a4955d3461c23f69893eab81df1ae2",
+          "rank_sha256": "0ee6d6ba0d424d7b6938daae9fb84baa10cf5985ac63e0b7d20fac89c596cd3c"
+        },
+        {
+          "id": "contract_nli:train:219:nda-16",
+          "prompt_sha256": "524d5316cea3db77d74ec4144d316bcb2b6b3c5431715844051015cbe0f8fc8b",
+          "rank_sha256": "0f49a1099dc5541215d4b4e58059e791ba7ecbc91400463691d765de31a9b130"
+        },
+        {
+          "id": "contract_nli:train:182:nda-2",
+          "prompt_sha256": "e5b8c561d00d502c8146696c03010a56d791199da087a8541e3644cab3a116f6",
+          "rank_sha256": "0fca8c132e99442fddefec4809ce26e6d15072286ba6b37d4ae97d7261aed2c3"
+        },
+        {
+          "id": "contract_nli:train:329:nda-2",
+          "prompt_sha256": "a28426763b55b76597d9913a09057002f0ff0c1de373bd117e88f30ce90eb847",
+          "rank_sha256": "1011a6631b96be0d671a308ffeba9978c0ee51146fbe5870cacae62240f26b24"
+        },
+        {
+          "id": "contract_nli:train:383:nda-1",
+          "prompt_sha256": "45220c92633ffe006d5036eab4408141ec8fe23707b9360ae947437c775c4240",
+          "rank_sha256": "102695c0b3fa34b67f82805bcc893e0f46ee893e2f4314434b4969be35245cf3"
+        },
+        {
+          "id": "contract_nli:train:402:nda-7",
+          "prompt_sha256": "e2a1d0b08dff0c437e5775adb65363c3c5ec1529d24b3f921c854a5b8c28b5f8",
+          "rank_sha256": "10a8147606913d991856004223bc1c814b1a77d4419c92a5a24446e203e0e437"
+        },
+        {
+          "id": "contract_nli:train:259:nda-17",
+          "prompt_sha256": "c0f13c94511b4235ceec68ca3c32c25c70823ccf1d6c4de4e6ba6295ce3f49d5",
+          "rank_sha256": "10c63ad670c40e7377896dc23d99afef644a81c2b903c1ded0a69d85ee02e4ef"
+        },
+        {
+          "id": "contract_nli:train:572:nda-1",
+          "prompt_sha256": "4f4f0d10680ef5e774895cbbccc8ddcce1465e561c90526b2e3f583378772069",
+          "rank_sha256": "10d3f435425dd4ddba247eb250243fe49430a53b27170dc34434931122fb208a"
+        },
+        {
+          "id": "contract_nli:train:267:nda-2",
+          "prompt_sha256": "1b06fff202f7ab5df3e79d8066f36bb89474bebb72fe642616d3a2a5ea374be1",
+          "rank_sha256": "1101f06fd7cf94156aab1d4f6e9c8829cdb2591efd9096d38d23c3233c467026"
+        },
+        {
+          "id": "contract_nli:train:461:nda-2",
+          "prompt_sha256": "6b21c905695651e1855704666f3f790dd8dd0f1b9b507af603ea0321e2761658",
+          "rank_sha256": "112bfb1cad6f22578d192b12f92c7c63fec86a501eb12a56eb971e5652aee186"
+        },
+        {
+          "id": "contract_nli:train:235:nda-2",
+          "prompt_sha256": "0996d101ac507cb0323e2c0230db865a152628c32d04232677bf1c2d1ee396cc",
+          "rank_sha256": "1166679ce5ee0557e85e0ab8536e1206cc9a81634d8a3c4a58f0cc5e4c766c67"
+        },
+        {
+          "id": "contract_nli:train:424:nda-2",
+          "prompt_sha256": "4aacda7b7322a091912b802f9cd7d1d0b53f251abc1ebf97db681abec8f20e8c",
+          "rank_sha256": "12592f94e96fe684411734baba3f9edc6c955c4b00b33f6c48004f6553293dd4"
+        },
+        {
+          "id": "contract_nli:train:316:nda-17",
+          "prompt_sha256": "1e17eadf602a358d10dc08e3a04ddbccfb6a67b384cd343cec65a964028a6d9d",
+          "rank_sha256": "125fa12ea7876d827a5363e5fa3bdce0aad016fc418233c32cd949599408549f"
+        },
+        {
+          "id": "contract_nli:train:247:nda-17",
+          "prompt_sha256": "98c16d7c390327865a577496ceb0c1d67f85f09ec44fb067ca95600b38bd34dd",
+          "rank_sha256": "12c2b228d9fb66eeefdb6727676301ecfcd96370c41949a16f9adbd47ee3f87d"
+        },
+        {
+          "id": "contract_nli:train:328:nda-7",
+          "prompt_sha256": "b4c1e23b59661529aea46a83736c0319e218807ed4eb61292e2d18b1ed1fa40d",
+          "rank_sha256": "12c3814528118c62b7f8ed42e573773c1cdd9a3e9d8d8ffc48828f6a4f2c37ff"
+        },
+        {
+          "id": "contract_nli:train:458:nda-2",
+          "prompt_sha256": "a53781ac85b43d31c014738aab2bfcaa9f38656608a9bad36f407b34e9b7322d",
+          "rank_sha256": "12f2dadcfad4d23dbbfe103dac0a9d007108a8241b58d9b34b93066aae983a54"
+        },
+        {
+          "id": "contract_nli:train:314:nda-2",
+          "prompt_sha256": "f722b7a918a00e54b4564825d81a182027d7f87313bd54cd3116c2dd1897bf95",
+          "rank_sha256": "133097bc13f7cb75ef05060236b1c9d45b995c6ddde96d5ecb83ca3dbd552b26"
+        }
+      ],
+      "sha256": "21373e080a593c6865ece5801ef92efb17a590c6cc4ea8fbf8c90df6a025d641"
+    }
+  },
+  "task": "contract_nli",
+  "token_counting": "full user chat template, add_generation_prompt=True, enable_thinking=False; no truncation",
+  "tokenizer": {
+    "files_sha256": {
+      "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+      "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101"
+    },
+    "model": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+  }
+}

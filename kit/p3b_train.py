@@ -112,6 +112,7 @@ def job(a, recovery=False):
     else:
         require(a.route != 'finqa' or '+replay' in a.recipe, 'tier-1 new stages use replay')
         name = f'{a.route}-{a.recipe}-s{a.seed}'; recipe = a.recipe[0]; steps, batch = 40, 32
+        if getattr(a, 'slot_map', None): name = f'v4-{a.slot_map}-s{a.seed}'
     require(a.standin or len(set(a.gpu.split(',')))==8, 'v4 training uses eight distinct GPUs')
     run = a.out / 'runs' / name; data = a.out / 'data' / name
     if a.standin: incoming = dict(technical_synthetic=True)
@@ -126,7 +127,7 @@ def job(a, recovery=False):
         if a.incoming_receipt and not base_start:
             origin=json.loads(a.incoming_receipt.read_text()).get('model_dir','')
             if recovery or a.route=='sequence':
-                arm=a.arm if recovery else a.recipe
+                arm=a.arm if recovery else getattr(a, 'start_recipe', a.recipe)
                 slot=f'{arm}-finqa-alone-s{a.seed}' if arm in ('D','F') else f'finqa-{arm}-s{a.seed}'
                 require(slot in Path(origin).parts and Path(origin).name=='hf-step40','receipt is not the matched original FinQA final')
             elif a.route=='reset':
@@ -161,7 +162,13 @@ def job(a, recovery=False):
         if '+replay' in a.recipe:
             freeze = frozen_files(a.out / 'replay'); require(freeze['technical_synthetic'] == a.standin, 'synthetic replay mismatch')
             replay = [dict(r, p3b_replay=True) for r in t.read_jsonl(a.out / 'replay/replay.jsonl')]
-            if a.recipe == 'D+replay' and not a.standin:
+            if getattr(a, 'slot_map', None):
+                from kit.next_slots import compose
+                if recipe == 'D' and not a.standin:
+                    from transformers import AutoTokenizer
+                    tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
+                rows, replay_selection = compose(rows, replay, a.pool_root, a.slot_map, a.seed, tokenizer)
+            elif a.recipe == 'D+replay' and not a.standin:
                 from transformers import AutoTokenizer
                 tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
                 rows, replay_selection = d_replay_rows(rows, replay, a.seed, tokenizer)

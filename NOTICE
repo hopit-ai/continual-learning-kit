@@ -12,5 +12,17 @@ only question ids and hashes. kit/beds/gsm8k.py reads, and does not include, GSM
 
 kit/beds/finqa.py reads, and does not include, FinQA (Chen et al., 2021; github.com/czyssrs/FinQA), MIT License.
 
+kit/resources/c/contract_nli/ contains pairs selected from ContractNLI (Koreeda and Manning, 2021;
+Hitachi America, Ltd.; https://stanfordnlp.github.io/contract-nli/), CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Changes: pairs selected and grouped, prompts and
+metadata added; original text reproduced unchanged.
+
+kit/resources/math-hard-teacher/ contains Level-5 problems from the MATH dataset (Hendrycks et al., 2021),
+MIT License, and the frozen Qwen3-8B's responses to them.
+
+kit/resources/next/sec/ contains questions, answers and the filing excerpts they are asked on, from
+public SEC EDGAR filings (U.S. Securities and Exchange Commission, https://www.sec.gov/edgar).
+kit/resources/a4/ holds only identifiers and hashes of a further SEC slice, not its text.
+
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.

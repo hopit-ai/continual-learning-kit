@@ -1,0 +1,19 @@
+{
+  "files": {
+    "contract_nli/manifest.json": "d96af70f161428b9299843b170dc97f9b31566cc39750ad41e8c163e97f5964e",
+    "contract_nli/panel.jsonl": "f7e074914a8ea1257e6dfc91a8c1a1c4098b41d785203ea3ccceca705975e170",
+    "contract_nli/test.jsonl": "582413faf8dbe5c0048d7bd82567a75006c8befdcdaa06c8e70dd6fd957e7254",
+    "contract_nli/train.jsonl": "21373e080a593c6865ece5801ef92efb17a590c6cc4ea8fbf8c90df6a025d641",
+    "legal_headroom.py": "a70a8e1c95f1e1064b63b5519e9f9c0f977db084c8abac48a02e03f0a4b80c54"
+  },
+  "frontier_test": 82,
+  "goal1_threshold": 69.7,
+  "registration_sha256": "ea9eddefe70efe715fa443c7410a54ad7a9b47b4b5492bff15648df11f4b789b",
+  "upstream_legal_headroom_sha256": "c32f117f986101b6e068730ed95366f02429c046f26050696826360518d48fb0",
+  "jsonl_framing_fix": "Only JSONL record framing changes from splitlines() to split(newline). Parsers and prompts are byte-identical to upstream.",
+  "frozen_function_sha256": {
+    "prompt_for": "e93a099a3694e0476487759ca66aa977c3bbb55546f7e597f10865abff2363c8",
+    "parse_answer": "18668ee795856140f303b161e916540e1a7b868fcda550c84cb7b44e6e6e9c9b",
+    "parse_answer_tolerant": "a2865667724201253a3f080a205828561368a9092cf5b85d8913d70d8ee37e79"
+  }
+}
