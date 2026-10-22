@@ -129,6 +129,87 @@ def test_real_blend_sharding_hashes_endpoints_and_cleanup_on_scoring_failure(tmp
 def test_hellaswag_frozen_strict_label(text,expected):assert hs.strict_label(text)==expected
 
 
+def hellaswag_fixture(n=120):
+    return [dict(ind=i,source_id=f'activitynet~fixture-{i}',ctx=f'context {i}',
+                 endings=['a','b','c','d'],label=i%4) for i in range(n)]
+
+
+def test_hellaswag_activitynet_population_and_duplicate_check():
+    import hashlib
+    raw=hellaswag_fixture()
+    # Real validation has cross-population ind collisions; filter before checking IDs.
+    mixed=raw+[dict(r,source_id=f'wikihow~fixture-{r["ind"]}',ctx='excluded') for r in raw]
+    panel=hs.panel_rows(mixed)
+    expected=sorted(raw,key=lambda r:(hashlib.sha256(('next-v4-holdout-v1|'+str(r['ind'])).encode()).hexdigest(),str(r['ind'])))[:100]
+    assert len(panel)==100 and len({r['id'] for r in panel})==100
+    assert [r['id'] for r in panel]==['hellaswag-val-'+str(r['ind']) for r in expected]
+    assert all(r['prompt']==source['ctx']+'\nA. a\nB. b\nC. c\nD. d\nEnd with Answer: <letter>'
+               and r['gold']=='ABCD'[source['label']] and r['licence_notice']==hs.NOTICE
+               for r,source in zip(panel,expected))
+    with pytest.raises(c.CorrectnessStop,match='duplicate HellaSwag source IDs'):
+        hs.panel_rows(raw+[raw[0]])
+
+
+def test_hellaswag_wikihow_row_cannot_fill_panel_stops_exit_2(tmp_path):
+    raw=hellaswag_fixture(100);raw[0]['source_id']='wikihow~excluded'
+    rows=tmp_path/'rows.jsonl';c.write_rows(rows,raw)
+    result=subprocess.run([sys.executable,str(c.KIT/'next_hellaswag.py'),'--out',str(tmp_path/'out'),
+                           '--standin','--action','prepare','--rows',str(rows)],capture_output=True,text=True)
+    assert result.returncode==2,result.stdout+result.stderr
+    assert 'STOP: correctness: HellaSwag panel requires 100 ActivityNet items' in result.stdout
+    assert not (tmp_path/'out/hellaswag/manifest.json').exists()
+    with pytest.raises(c.CorrectnessStop,match='100 ActivityNet items'):
+        hs.panel_rows([dict(raw[0])])
+
+
+def test_hellaswag_wrong_parquet_hash_stops_exit_2(tmp_path,monkeypatch,capfd):
+    import huggingface_hub
+    import pyarrow.parquet as pq
+    cache=tmp_path/'cache';path=cache/next(iter(hs.VALIDATION_FILES))
+    path.parent.mkdir(parents=True);path.write_bytes(b'wrong parquet hash')
+    monkeypatch.setattr(huggingface_hub,'snapshot_download',lambda *a,**kw:str(cache))
+    monkeypatch.setattr(pq,'read_table',lambda *a,**kw:pytest.fail('hash must be checked before reading parquet'))
+    out=tmp_path/'out'
+    monkeypatch.setattr(sys,'argv',['next_hellaswag.py','--out',str(out),'--action','prepare'])
+    assert hs.entry(hs.job,hs.configure,'next-hellaswag-{action}')==2
+    assert 'STOP: correctness: pinned HellaSwag validation parquet files/SHA256 mismatch' in capfd.readouterr().out
+    assert not (out/'hellaswag/manifest.json').exists()
+
+
+def test_hellaswag_local_parquet_panel_and_freeze(tmp_path,monkeypatch,record_property):
+    parquet=Path(os.environ.get('HELLASWAG_VALIDATION_PARQUET',''))
+    if not os.environ.get('HELLASWAG_VALIDATION_PARQUET') or not parquet.is_file():pytest.skip('set HELLASWAG_VALIDATION_PARQUET to a staged validation parquet')
+    import huggingface_hub
+    import pyarrow.parquet as pq
+    # A cache-shaped symlink exercises the real download/hash/prepare path without copying data.
+    cache=tmp_path/'cache';path=cache/next(iter(hs.VALIDATION_FILES))
+    path.parent.mkdir(parents=True);path.symlink_to(parquet)
+    def snapshot(repo,**kw):
+        assert repo=='Rowan/hellaswag'
+        assert kw==dict(repo_type='dataset',revision='218ec52e09a7e7462a5400043bb9a69a41d06b76',local_files_only=True)
+        return str(cache)
+    monkeypatch.setattr(huggingface_hub,'snapshot_download',snapshot)
+    raw=pq.read_table(parquet).to_pylist()
+    panel=hs.panel_rows(raw)
+    assert len(raw)==10042 and sum(r['source_id'].startswith('activitynet~') for r in raw)==3243
+    activitynet={f'hellaswag-val-{r["ind"]}':r for r in raw if r['source_id'].startswith('activitynet~')}
+    assert len(panel)==100 and len({r['id'] for r in panel})==100
+    assert all(activitynet[r['id']]['source_id'].startswith('activitynet~') for r in panel)
+    out=tmp_path/'out';args=NS(out=out,standin=False,rows=None)
+    hs.prepare(args)
+    root=out/'hellaswag';manifest=c.frozen_files(root)
+    assert c.t.read_jsonl(root/'panel.jsonl')==panel
+    assert manifest['technical_synthetic'] is False and manifest['notice']==hs.NOTICE
+    assert json.loads((root/'inputs.json').read_text())['source_files']==hs.VALIDATION_FILES
+    digest=c.s.file_hash(root/'panel.jsonl')
+    assert manifest['panel_sha256']==digest
+    record_property('hellaswag_panel_sha256',digest)
+    print('Real parquet frozen HellaSwag-100 panel SHA256:',digest)
+    before={p.name:p.read_bytes() for p in root.iterdir()}
+    hs.prepare(args)
+    assert before=={p.name:p.read_bytes() for p in root.iterdir()}
+
+
 def test_pool_prompts_namespaces_order_checker_and_chat_dedup():
     rows=pools.candidates([dict(question='What is 2 plus 2?',answer='work #### 4')],[dict(id='id',question='Question?',choices=dict(label=['1','2','3','4'],text=['a','b','c','d']),answerKey='2')])
     assert rows[0]['id']=='gsm8k-train-0' and rows[1]['id']=='arc-c-train-id'
@@ -199,7 +280,7 @@ def test_full_runbook_standin(tmp_path):
 def test_hellaswag_real_scorer_path_with_fixture_vllm(tmp_path,monkeypatch):
     """Execute eval_bed generation+grade plumbing with synthetic engine outputs, no GPU/network."""
     import types
-    rows=hs.panel_rows([dict(ind=i,ctx=f'context {i}',endings=['a','b','c','d'],label=i%4) for i in range(100)])
+    rows=hs.panel_rows([dict(ind=i,source_id=f'activitynet~fixture-{i}',ctx=f'context {i}',endings=['a','b','c','d'],label=i%4) for i in range(100)])
     c.write_rows(tmp_path/'hellaswag/panel.jsonl',rows)
     c.freeze(tmp_path/'hellaswag',['panel.jsonl'],False,panel_sha256=c.s.file_hash(tmp_path/'hellaswag/panel.jsonl'))
     model=tmp_path/'model';model.mkdir();c.atomic(model/'config.json',{})
@@ -436,3 +517,21 @@ def test_shared_endpoint_cache_accepts_identical_export_copies(tmp_path):
     assert len(calls)==1
     aliases=[json.loads(p.read_text()) for p in (out/'score-aliases').glob('*.json')]
     assert len(aliases)==2 and len({a['source'] for a in aliases})==1
+
+
+def test_registration_retains_original_pin_and_appends_owner_amendment():
+    mirror = c.N/'registration.md'
+    text = mirror.read_text()
+    original_line = text.splitlines()[44]
+    assert '90242dd8c0c481249d6e24cbe6c6f2cefaf7444d' in original_line
+    assert hs.REVISION not in original_line
+    heading = '## Amendment, 22 October (owner: "Yes, ActivityNet-only fix is OK."; before any HellaSwag output)'
+    amendment = text.split(heading)[1]
+    assert hs.REVISION in amendment
+    assert next(iter(hs.VALIDATION_FILES.values())) in amendment
+    assert '433' in amendment and '3,243' in amendment
+    assert '2b0fc85c6e80854bb47982d35a18d15bc83a5655de6202634547071eccbe487d' in amendment
+    assert "partner's agent at row M2" in amendment
+    original = c.KIT.parent/'docs/phase3/next-message-registration-20261020.md'
+    if original.exists():
+        assert mirror.read_bytes() == original.read_bytes()

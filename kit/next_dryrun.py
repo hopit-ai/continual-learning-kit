@@ -60,7 +60,7 @@ def fixture(root):
     write_rows(root/'finqa-panel.jsonl',[dict(data_source='finqa',extra_info=dict(index='finqa-eval',split='test'),prompt=[dict(role='user',content='A different heldout FinQA financial table')])])
     write_rows(root/'gsm.jsonl',[dict(question=f'Zebra {i} has {i+1} marbles and buys {i+3} marbles. How many are there?',answer='solution #### '+str(2*i+4),fake_response='Answer: '+str(2*i+4)) for i in range(3)])
     write_rows(root/'arc.jsonl',[dict(id=f'ARC-{i}',question=f'Which specimen in experiment {i} is a conductor?',choices=dict(label=['A','B','C','D'],text=['copper','paper','wood','air']),answerKey='A',fake_response='Answer: A') for i in range(3)])
-    write_rows(root/'hellaswag.jsonl',[dict(ind=i,ctx=f'Activity video {i}. Someone carefully starts a unique action sequence {i}.',endings=['They finish.','They vanish.','A fish speaks.','It snows.'],label=i%4) for i in range(120)])
+    write_rows(root/'hellaswag.jsonl',[dict(ind=i,source_id=f'activitynet~fixture-{i}',ctx=f'Activity video {i}. Someone carefully starts a unique action sequence {i}.',endings=['They finish.','They vanish.','A fish speaks.','It snows.'],label=i%4) for i in range(120)])
     # Complete B evidence including stage-1s and all unreset curves; no recovered/reset rows.
     from kit.p3b_score import write_csv
     score_rows=[]

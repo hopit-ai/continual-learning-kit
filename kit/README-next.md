@@ -61,12 +61,26 @@ or newlines. `inputs.json` contains hashes and the W decision, not a path-only l
 
 N3. **Local pinned cache required** (pinned HellaSwag download). Freeze the untouched panel and strict final-line parser **before any new model
 output**. The only HellaSwag split read is validation; no split supplies replay.
-Select first 100 by `sha256("next-v4-holdout-v1|"+ind)`, tie by ind. Preserve original
+Use only rows with `source_id` starting with `activitynet~` (ActivityNet-derived
+items; no WikiHow items). Check duplicate `ind` values within that population.
+Select first 100 by `sha256("next-v4-holdout-v1|"+str(ind))`, tie by ind. Preserve original
 context/endings labelled A–D, suffix `End with Answer: <letter>`. The score requires
 an exact final line `Answer: A`, B, C or D (case-sensitive, no punctuation). It is
 frozen before seeing answers, never relaxed. Its manifest carries the panel hash.
 
+Before the offline job, stage this exact parquet revision into the Hugging Face
+cache that the job will use (preserve the same `HF_HOME`/`HF_HUB_CACHE`):
+
 ```bash
+huggingface-cli download Rowan/hellaswag --repo-type dataset --revision 218ec52e09a7e7462a5400043bb9a69a41d06b76 --include 'data/validation-*.parquet' --cache-dir "$HF_HOME/hub"
+```
+
+`data/validation-00000-of-00001.parquet` must have SHA256
+`899813071e1e95efafec90f856e1987d2150fa4d020fc005df6962c259f660cd`;
+a missing file, unexpected validation file or wrong hash STOPs (exit 2).
+
+```bash
+export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1
 "$TRAINER_PY" "$KIT/next_hellaswag.py" --out "$NEXT" --action prepare || exit $?
 ```
 
@@ -117,7 +131,7 @@ sources (parquet files staged from these exact Git commits, file hashes retained
 |---|---|---|---|
 | [openai/gsm8k](https://huggingface.co/api/datasets/openai/gsm8k) | main/train | `740312add88f781978c0658806c59bc2815b9866` | Cobbe et al., MIT |
 | [allenai/ai2_arc](https://huggingface.co/datasets/allenai/ai2_arc/commit/210d026faf9955653af8916fad021475a3f00453) | ARC-Challenge/train | `210d026faf9955653af8916fad021475a3f00453` | Clark et al., CC-BY-SA-4.0, attribution/link/changes |
-| [Rowan/hellaswag](https://huggingface.co/datasets/Rowan/hellaswag/blob/90242dd8c0c481249d6e24cbe6c6f2cefaf7444d/README.md) | validation only | `90242dd8c0c481249d6e24cbe6c6f2cefaf7444d` | Zellers et al., MIT |
+| [Rowan/hellaswag](https://huggingface.co/datasets/Rowan/hellaswag/blob/218ec52e09a7e7462a5400043bb9a69a41d06b76/README.md) | validation, ActivityNet-derived items only | `218ec52e09a7e7462a5400043bb9a69a41d06b76` | Zellers et al., MIT |
 
 GSM prompt is exactly the general-v1 maths instruction from
 `beds/gsm8k.py:PANEL_PROMPT_SUFFIX`; checker is `scorers.extract_number` (the

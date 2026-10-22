@@ -101,3 +101,24 @@ VERDICT: DONE
   - Pools, checkers, the untouched HellaSwag-100 panel, the contamination disclosure and the admission rules are unchanged, except that MATH is replaced by ContractNLI as the acquisition endpoint (C's test-reserve tolerant score and gain).
 - The FinQA → MATH probe is dropped from the next message.
 - v0+ and the v3 interpolation screen are unchanged.
+
+## Amendment, 22 October (owner: "Yes, ActivityNet-only fix is OK."; before any HellaSwag output)
+
+The `90242dd8c0c481249d6e24cbe6c6f2cefaf7444d` pin could not be staged:
+it is a loader-only revision, and its GitHub source has been DMCA-blocked since
+2026-09-14. `ind` is not unique across sources: 433 values are shared by
+ActivityNet and WikiHow rows. The panel is re-pinned to
+`218ec52e09a7e7462a5400043bb9a69a41d06b76`, with validation parquet
+`data/validation-00000-of-00001.parquet` SHA-256
+`899813071e1e95efafec90f856e1987d2150fa4d020fc005df6962c259f660cd`.
+The population is ActivityNet rows only (`source_id` starts with `activitynet~`):
+3,243 rows with unique `ind`. Selection, prompt, labels and strict parser are
+unchanged. The frozen panel SHA-256 is
+`2b0fc85c6e80854bb47982d35a18d15bc83a5655de6202634547071eccbe487d`.
+Found by the partner's agent at row M2; the owner approved the ActivityNet-only
+fix on 22 October, before any HellaSwag output.
+
+Before a tag for this amendment, the manager must run
+`python3 scripts/check_pinned_inputs.py --contract-source "$CONTRACT_SOURCE" --receipt pinned-inputs.json`
+on a network-enabled CPU host and retain an all-inputs-passing receipt alongside
+the export review. Stand-in/export tests alone do not establish stageable pins.

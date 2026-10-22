@@ -8,8 +8,9 @@ from kit.p3b_score import write_csv
 import re
 import time
 
-REVISION='90242dd8c0c481249d6e24cbe6c6f2cefaf7444d'
-NOTICE='HellaSwag (Zellers et al., 2019), Rowan/hellaswag; MIT License; https://github.com/rowanz/hellaswag'
+REVISION='218ec52e09a7e7462a5400043bb9a69a41d06b76'
+VALIDATION_FILES={'data/validation-00000-of-00001.parquet':'899813071e1e95efafec90f856e1987d2150fa4d020fc005df6962c259f660cd'}
+NOTICE='HellaSwag (Zellers et al., 2019), Rowan/hellaswag; MIT License; ActivityNet-derived items only; https://huggingface.co/datasets/Rowan/hellaswag'
 
 
 def strict_label(text, labels='ABCD'):
@@ -19,20 +20,26 @@ def strict_label(text, labels='ABCD'):
     return match[1] if match else None
 
 
-def download(repo, revision, fragment):
-    from huggingface_hub import snapshot_download
+def download(repo, revision, fragment, expected_files=None, *, root=None):
     import pyarrow.parquet as pq
-    root = Path(snapshot_download(repo, repo_type='dataset', revision=revision, local_files_only=True))
+    if root is None:
+        from huggingface_hub import snapshot_download
+        root = snapshot_download(repo, repo_type='dataset', revision=revision, local_files_only=True)
+    root = Path(root)
     paths = sorted(p for p in root.rglob('*.parquet') if fragment in str(p.relative_to(root)))
     require(bool(paths), 'pinned parquet split must be staged in the local cache: '+repo+' '+revision)
-    rows=[]; hashes={}
-    for path in paths:
-        hashes[str(path.relative_to(root))]=s.file_hash(path);rows+=pq.read_table(path).to_pylist()
+    hashes={str(path.relative_to(root)):s.file_hash(path) for path in paths}
+    if expected_files is not None:
+        require(hashes==expected_files,'pinned HellaSwag validation parquet files/SHA256 mismatch')
+    rows=[]
+    for path in paths:rows+=pq.read_table(path).to_pylist()
     return rows,hashes
 
 
 def panel_rows(raw):
+    raw=[r for r in raw if r['source_id'].startswith('activitynet~')]
     require(len({str(r['ind']) for r in raw})==len(raw),'duplicate HellaSwag source IDs')
+    require(len(raw)>=100,'HellaSwag panel requires 100 ActivityNet items')
     chosen=sorted(raw,key=lambda r:(t.sha('next-v4-holdout-v1|'+str(r['ind'])),str(r['ind'])))[:100]
     return [dict(id='hellaswag-val-'+str(r['ind']),prompt=r['ctx']+'\n'+
         '\n'.join(f'{label}. {ending}' for label,ending in zip('ABCD',r['endings']))+
@@ -47,7 +54,7 @@ def prepare(a):
         raw=t.read_jsonl(a.rows);provenance['source_sha256']=s.file_hash(a.rows)
     else:
         require(a.rows is None,'real HellaSwag uses pinned validation source')
-        raw,provenance['source_files']=download('Rowan/hellaswag',REVISION,'validation')
+        raw,provenance['source_files']=download('Rowan/hellaswag',REVISION,'validation',VALIDATION_FILES)
     rows=panel_rows(raw);require(len(rows)==100,'HellaSwag panel requires 100 items')
     bind(root/'inputs.json',provenance)
     if (root/'manifest.json').exists(): frozen_files(root); print('SKIP HellaSwag freeze');return

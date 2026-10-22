@@ -7,6 +7,198 @@ probe-before-C order: replay breadth now runs on C's FinQA→ContractNLI route.
 B tier 2 is read as forgetting/recipe comparison only, limited by MATH headroom
 (base 89/100). Complete unreset B selects W; recovery/reset evidence never does.
 
+## Stage before job 1
+
+Stage on a network-enabled CPU host into the **same HF cache used by the
+partner's offline environment**, before reserving GPUs. The commands below
+are staging instructions, not job commands. Set `HF_HOME` to the durable cache;
+`--cache-dir "$HF_HOME/hub"` keeps the snapshots visible to the kit's
+`local_files_only=True` loaders. Preserve snapshot revision directories and
+symlinks when moving a cache. If using `hf download` instead of
+`huggingface-cli download`, keep the same arguments. Disable offline flags only
+on the staging host:
+
+```bash
+export HF_HOME=/absolute/durable/huggingface
+export HF_HUB_CACHE="$HF_HOME/hub" HUGGINGFACE_HUB_CACHE="$HF_HOME/hub"
+export HF_HUB_OFFLINE=0 HF_DATASETS_OFFLINE=0 TRANSFORMERS_OFFLINE=0
+```
+
+This inventory follows `next_hellaswag.download/panel_rows`,
+`next_pools.job/candidates/earlier_rows`, `c_targets.source_rows`,
+`a4_bind`/`a4_train`, and `math_hard_teacher.frozen` and their inherited
+`second_task_screen.MODELS` / `p3b_common.identity` pins. The partner **reported**
+ContractNLI, GSM8K and ARC staged and verified; that report is not an independent
+verification here. Require the manager receipt below before a tag.
+
+| Input | Repository and immutable revision | Files read / rows needing it |
+|---|---|---|
+| HellaSwag | `Rowan/hellaswag` @ `218ec52e09a7e7462a5400043bb9a69a41d06b76` | `data/validation-00000-of-00001.parquet`; M2 freezes 100 ActivityNet rows from 3,243 unique `ind` (10,042 total source rows); M3/M6/M7 scoring and M5 exclusions reuse it. No train/test or WikiHow replay. |
+| GSM8K | `openai/gsm8k` @ `740312add88f781978c0658806c59bc2815b9866` | `main/train-*.parquet`, 7,473 rows; M5 broad replay, used in M7. No kit-pinned file hash; record observed SHA-256. |
+| ARC-Challenge | `allenai/ai2_arc` @ `210d026faf9955653af8916fad021475a3f00453` | `ARC-Challenge/train-*.parquet`, 1,119 rows; M5 broad replay, used in M7. No kit-pinned file hash; record observed SHA-256. |
+| MATH mirror (source provenance check) | `EleutherAI/hendrycks_math` @ `21a5633873b6a120296cce3e2df9d5550074f4a3` | Seven subjects' `train-*.parquet` and `test-*.parquet`, 14 files, 7,500/5,000 rows. M3/M5/M6/M7 read Package A/B's already-frozen MATH panel/schedules; M3b reads the bundled 200 Level-5 rows. These rows do not fetch the mirror again. The manager check validates this source pin too; do not replace the frozen inputs. |
+| Teacher, as named by the kit | `Qwen/Qwen3.6-27B` @ `6a9e13bd6fc8f0983b9b99948120bc37f49c13e9` | Full snapshot: 15 `model-*-of-00015.safetensors` shards, index, configuration, tokenizer, template and preprocessing files (exact pinned names/hashes below). M3b teacher coverage and M4 C targets. 4A uses the current collector, not new 27B targets. |
+| Student, as named by the kit | `Qwen/Qwen3-8B` @ `b968826d9c46dd6066d109eabc6255188de91218` | Full snapshot: five `model-*-of-00005.safetensors` shards, index/configuration/tokenizer files (below). M2 base identity, M3 base scoring/blends, M3b student tokenizer, M4 tokenizer/base, M5 base answers/target checks, M6/M7 base/standalone starts, and M10/M11 4A base/retention/tokenization. Trained checkpoints use their own original receipts. |
+
+Exact cache downloads (models are intentionally complete snapshots for offline
+inference; the manager checker never downloads model files):
+
+```bash
+huggingface-cli download Rowan/hellaswag --repo-type dataset --revision 218ec52e09a7e7462a5400043bb9a69a41d06b76 --include 'data/validation-*.parquet' --cache-dir "$HF_HOME/hub"
+huggingface-cli download openai/gsm8k --repo-type dataset --revision 740312add88f781978c0658806c59bc2815b9866 --include 'main/train-*.parquet' --cache-dir "$HF_HOME/hub"
+huggingface-cli download allenai/ai2_arc --repo-type dataset --revision 210d026faf9955653af8916fad021475a3f00453 --include 'ARC-Challenge/train-*.parquet' --cache-dir "$HF_HOME/hub"
+huggingface-cli download EleutherAI/hendrycks_math --repo-type dataset --revision 21a5633873b6a120296cce3e2df9d5550074f4a3 --include '*/*.parquet' --cache-dir "$HF_HOME/hub"
+huggingface-cli download Qwen/Qwen3.6-27B --revision 6a9e13bd6fc8f0983b9b99948120bc37f49c13e9 --cache-dir "$HF_HOME/hub"
+huggingface-cli download Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --cache-dir "$HF_HOME/hub"
+```
+
+The HellaSwag validation file must have SHA-256
+`899813071e1e95efafec90f856e1987d2150fa4d020fc005df6962c259f660cd`.
+The resulting frozen panel must have SHA-256
+`2b0fc85c6e80854bb47982d35a18d15bc83a5655de6202634547071eccbe487d`.
+The superseded `90242dd8` loader-only revision cannot satisfy staging; see the
+22 October amendment in [registration.md](resources/next/registration.md).
+
+Other external inputs (preserve original bytes and receipts):
+
+- **ContractNLI**, non-HF original release from
+  [Hitachi America / Stanford ContractNLI](https://stanfordnlp.github.io/contract-nli/),
+  CC BY 4.0. M4 reads `CONTRACT_SOURCE/{train,dev,test}.json` (17 hypotheses;
+  7,191/1,037/2,091 pairs). The kit pins bytes, not an HF repository/revision or
+  immutable download URL. Obtain the original archive through that project or
+  the partner's existing staged copy; archive SHA-256
+  `e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b`.
+  The exact split hashes are below. M6/M7 use the bundled frozen legal panels
+  and M4's targets, not a different HF adaptation.
+- **SDPO**, `lasgroup/SDPO` source tree at
+  `7c457fc1b1f636ae794eb0362ba37d4743b06fbc`, checked by
+  `git -C "$SDPO" rev-parse HEAD`; M6/M7 and 4A training require it and the
+  existing trainer/inference environments. Preserve the working local checkout.
+- **Prior Package A**, the frozen `3c/report-inputs/` tree, including
+  `prepared/math_screen/heldout.jsonl` (100 rows) and manifests; M3/M5/M6/M7
+  need those evaluation rows; Package A input manifest SHA-256
+  `c75c3d5a2fcd140f434316fb768f6d590a056e51a3e410d56abb433ef9c64d37`
+  is enforced by `p3a_common.frozen`. **Prior Package B**, completed unreset evidence,
+  scores/reading, `targets/`, generic `replay/`, and original checkpoint export
+  receipts; M2 binds/copies them, M3 scores/blends them, M5 re-verifies B's unique
+  27B FinQA training targets, M6/M7 start from exact v4 D/F finals, and 4A binds
+  W/replay. Preserve all 20 tier-1 FinQA finals and available tier-2 finals with
+  their incoming identities. These are local experiment outputs, not HF pins.
+- **FinQA**, original `czyssrs/FinQA` data in the preserved v4 dataset root,
+  plus the frozen 1,147-row test exclusion panel and original manifests.
+  M3/M5/M6/M7 and 4A diagnostic retention read it; hashes are bound by the
+  existing v4/B manifests/receipts, rather than a new upstream revision.
+- **SEC EDGAR**, non-HF public filings. M3 uses the already-shipped 193-question
+  July–September slice in `resources/next/sec/`, manifest SHA-256
+  `3e98419636a327c004464cb31b921db54acf78a06cc2e92f873c6a5e83b13782`;
+  all shipped file hashes are in `resources/next/SHA256SUMS`. No live SEC fetch
+  occurs. Optional M10/M11 require the separately delivered audited January–June
+  4A slice, all 15 files in `resources/a4/slice.json`, manifest SHA-256
+  `ed5a8b17357e3e9679f12b653e7a782dfab5af7ac9ddf14452183f26ae4cbcad`.
+  Do not rebuild either slice. Source/audit/text bindings travel with it.
+- **Bundled evaluation resources**, already part of this checkout:
+  `panels/general-v1.jsonl`, `resources/c/contract_nli/`, and
+  `resources/math-hard-teacher/` (including the frozen student responses).
+  M3/M3b/M5/M6/M7/4A reuse these original rows. Their resource manifests,
+  `freeze.json` and `SHA256SUMS` are authoritative; no new MMLU, IFEval, legal,
+  or MATH download is needed for the offline rows.
+
+Pinned external-file SHA-256 values follow. These are copied from
+`resources/c/contract_nli/manifest.json`,
+`resources/math-hard-teacher/data-manifest.json` and
+`resources/p3b/model-hashes.json`; the checker reads those same sources.
+Model hashes are enforced by the kit against staged local bytes; the manager's
+metadata-only check confirms their filenames exist, without claiming byte
+verification of models.
+
+ContractNLI:
+
+```text
+310af7d661d2ab50ee3700169cef524c75f39fb296bbf5a515c229eb0f42e68e  dev.json
+460267b56052a2dc5aead98eb35eadef9e6734d5723d37b4a9790e410f812387  test.json
+dbceb356cd6203b35b27be94a5fa85e499a81c34c42c89ad53060b39f0257ba5  train.json
+```
+
+MATH mirror:
+
+```text
+0e04a850dac9cfc758eac0c80afd2d0cc65e29ea72f916c8ac1045b12af937f5  algebra/test-00000-of-00001.parquet
+73347f5b55869f21ff094361025dbd12d291e971aa4d72142eacee10438e449f  algebra/train-00000-of-00001.parquet
+c324818949c75a6227c0328a8499d58023cbbf6757cfc1736f5ab24cc8d87966  counting_and_probability/test-00000-of-00001.parquet
+d37ae017930df41678edee50dcde18c17fb06afaff9eb505c1b95f1002bfcb31  counting_and_probability/train-00000-of-00001.parquet
+98720f3a8134ad9784fd8951195245264495df03ffc5c9485a9a54ff5ae2431a  geometry/test-00000-of-00001.parquet
+9dbf5e5b55499e696e0ba72da9d85d4f0be3acbf7eaa6cb014b0fc78bb63784f  geometry/train-00000-of-00001.parquet
+e859f72486c951c2017da880541ca729940eaa986b0364eb23e238983df9bfeb  intermediate_algebra/test-00000-of-00001.parquet
+0c87f3798ebdfb915b1f9b6fc13c1a8d064c3cb91631ccbe85b83ed5d71150f6  intermediate_algebra/train-00000-of-00001.parquet
+ba156c9c9fa2040836ba12135fd964e6e67d6bccd8c469ec4a3ad941f8f6fbe9  number_theory/test-00000-of-00001.parquet
+81c08649149b39811f2d1d7ddf5dfccf6c4c8044a2e169cfb24db09160c941f4  number_theory/train-00000-of-00001.parquet
+301e5d8ade5c7b5038032532e498bdc9dca799e7f1061a63f2e7d980803240cc  prealgebra/test-00000-of-00001.parquet
+765b526fb5c0b8385cb7be2c16bf4f6f28cf71f2bc15c826abfbb5fa7f8616cc  prealgebra/train-00000-of-00001.parquet
+da37474ba3761ae5727af3844a7ba963a735bd6a14c65e6137593669a4fe3b9c  precalculus/test-00000-of-00001.parquet
+28bb1ff95525c8d32521509bef91de76339659f5467a381e6e8deea204538f0e  precalculus/train-00000-of-00001.parquet
+```
+
+Qwen3.6-27B:
+
+```text
+e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259  chat_template.jinja
+69db4eb7196bc8190813231b3018ca05d8c2e3abc7b1af19d55c157af44a9d9c  config.json
+2d4464e2ead06bc9bc718c781309ad1e7baded626d66e8dcdc8b469ba185faf0  configuration.json
+e70c136c1b78ddc1fb0905bac8e733a4dc448d4f852a5dd75143fffc70be550e  generation_config.json
+5f21d4e349aef6c74bedef7b3835dc8c11a16dd5ce72f4437e2284f1e83736e9  model-00001-of-00015.safetensors
+03de44dc7e933025498d72f8d7ea32d5cde16eb7a85b35ff1fa49a737f4b2242  model-00002-of-00015.safetensors
+5c3a68304dabeaa5a0eb70a5e383d2b8134997ef6d5c1e8afdcd236091c847f2  model-00003-of-00015.safetensors
+ba8b0849cb4c4c97e674709bfe56a9c008d7563a68ac57120ceb2855a73a9944  model-00004-of-00015.safetensors
+a5abc1d5e9583409193e2cd58a671a4ed98467a6eaf883cd4377e3cc02021c22  model-00005-of-00015.safetensors
+160d914e2e4704a401a3eab9e9eec3380e5723a35981c9169bedfb82ea32e6d6  model-00006-of-00015.safetensors
+0bcd0ce28c7d2cc6f5ab2c21902cd032fec0cc5f29e0897e3bb0967add388e47  model-00007-of-00015.safetensors
+584a0ed8018d3b19ce8e533d08a460454650027901be6323b50b591da143dca6  model-00008-of-00015.safetensors
+e7e3e1a17a2673340eb6bba95c3c6f07b12e7746ee738dde56551cbde27656f5  model-00009-of-00015.safetensors
+e8934789f4742c11da88f937da84bdbb8764c8a7f7ebe9e7b056bcbd41b14285  model-00010-of-00015.safetensors
+44e8fe06d2d609bf20b16b1d2f42348ca2dc99179721f76035ff50db678f9a8a  model-00011-of-00015.safetensors
+33c5d7d18e1b3f661334dff736fc7d00561f1f1bb9d2970c669b40d2e582974e  model-00012-of-00015.safetensors
+68db2ebb03231238c2a114f3642df967a970a1d96b029adc427838cb5cf7f27a  model-00013-of-00015.safetensors
+26c114fb6d5d4131ab227552d489d7a97c8c958a9ed94f6d3d1584f6cfe4b9fb  model-00014-of-00015.safetensors
+b84b5b1315e865c9a19a444045d422a73e3e2e31ce3766797cffd3507c68c9c9  model-00015-of-00015.safetensors
+a8ad2c26fb707ff8c245806315b03e3b4b74595528492423af5dae0ce39b4d9b  model.safetensors.index.json
+27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516  preprocessor_config.json
+5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42  tokenizer.json
+5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b  tokenizer_config.json
+7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13  video_preprocessor_config.json
+ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003  vocab.json
+```
+
+Qwen3-8B:
+
+```text
+f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30  config.json
+2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2  generation_config.json
+31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f  model-00001-of-00005.safetensors
+5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282  model-00002-of-00005.safetensors
+c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836  model-00003-of-00005.safetensors
+b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a  model-00004-of-00005.safetensors
+20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff  model-00005-of-00005.safetensors
+f9fdbcb91c23971c13ec5d5f2573d2349e8f61f2f049371ec699281748fdb1bc  model.safetensors.index.json
+aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4  tokenizer.json
+d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101  tokenizer_config.json
+ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910  vocab.json
+```
+
+**Before a tag:** from the manager checkout, with network enabled, run:
+
+```bash
+python3 scripts/check_pinned_inputs.py --contract-source "$CONTRACT_SOURCE" --receipt /absolute/receipts/pinned-inputs.json
+```
+
+Require exit 0 and an `ok: true` row for all seven inputs. This resolves every
+HF revision, checks file listings, downloads only the required small dataset
+parquets, verifies pinned hashes, and runs the kit's own row loaders/count/ID
+checks. ContractNLI is checked from the supplied local originals. Models receive
+revision/listing checks only. Keep the receipt with the export/tag review;
+stand-ins alone do not satisfy this gate. The checker is manager-side and is
+not shipped inside the public `kit/` export. Return to
+`HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1` for GPU jobs.
+
 Use [README-next.md](README-next.md) for v0+/v3 and frozen pools, and
 [README-c.md](README-c.md) for C plus its probe. Every script is resumable:
 identical completed rows print SKIP, identity mismatches stop, partial training
@@ -49,6 +241,7 @@ export INFERENCE_PY=/venvs/inference/bin/python
 export SCORE_GPU=0
 export RETURN="$OUT/next-return-1.tar.gz"
 export RUN_4A=0
+export HF_HOME=/absolute/durable/huggingface   # the same cache used for staging below
 export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 ```
 
