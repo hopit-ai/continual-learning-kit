@@ -32,7 +32,7 @@ BAR = 0.80
 MIN_DAMAGE = 5
 NAME = re.compile(r"^(?P<subject>.+)-(?P<stage>original|before|after\d+|control\d+)-a(?P<attempt>\d+)$")
 CAMPAIGN = Path(__file__).resolve().parents[1] / "campaigns" / "k2-recovery-test.yaml"
-# Found by Shivam Chourasia on the first K2 run, 26 September 2026: the join dropped every subject whose
+# Found on the first K2 run, 26 September 2026: the join dropped every subject whose
 # original is scored under its model's name, so only the pilot was reported. A damage-check row names both.
 PAIR = re.compile(r"/(?P<model>[\w.]+)-original-a\*.*?/(?P<subject>[\w.]+)-before-a\*")
 
