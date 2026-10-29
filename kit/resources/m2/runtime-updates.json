@@ -1,0 +1,225 @@
+{
+  "files": {
+    "kit/a4_nll.py": {
+      "original_sha256": "af7ec998e6d26efd7309efc5ee008cb5bda647051f114bae31a0349422ed2fd3",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "810b811a5e6547b804b056676a999bb178fd5a295a8ed328eb955b6fc555cbcb"
+    },
+    "kit/addon_dryrun.py": {
+      "original_sha256": "05b62496878a5941cc18ca00a88cf3847e6073ab472210345530899081de9f26",
+      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
+      "v2_sha256": "f073586b7d9cf1c6c6078af45506b04d95b5995c961bb2bb562ff06841bbba80"
+    },
+    "kit/arc_prompt_acceptance.py": {
+      "original_sha256": "ce1b4f88309ee90d4d35fa3e1efe4eac1ccd4accc83c73883ac7b8b2178db6c3",
+      "reason": "Manager ruling 29 October 2026: restore exact reviewed 7220ef82 receipt-bound validation bytes; machine-written JSONL; no paid re-validation for IO-only edit. Original science/data pins retained.",
+      "v2_sha256": "d2dde7c5478905244c3dab27f2b5ead380e92188d78bfffaa345ea6d045870c8"
+    },
+    "kit/c_score.py": {
+      "original_sha256": "650794f2432b07a70c0f3d21a31054d3299c7013e5976808c0053f93ced796d3",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "ca716c05fb0d690660c9c50cc6df5a4d187ebac991c08dfde8d0f82dbda784ec"
+    },
+    "kit/eval_bed.py": {
+      "original_sha256": "95dd5a44fe299f25359b50ec267ecec494c5bd1153e8aff8f8f612562c0879ef",
+      "reason": "Inference teardown and verified local snapshot path resolution only; frozen datasets, grading and decoding unchanged",
+      "v2_sha256": "f9b66ccbb0ff15028d4fcdaab744f8680af6f55185426cb34de7a6a784cc109d"
+    },
+    "kit/hellaswag_prompt_check.py": {
+      "original_sha256": "b53ddef54a9d5ab922a63524aff8f16eb6af428a4e74dda503277d285a09cfff",
+      "reason": "Manager ruling 29 October 2026: restore exact reviewed 7220ef82 receipt-bound validation bytes; machine-written JSONL; no paid re-validation for IO-only edit. Original science/data pins retained.",
+      "v2_sha256": "03b98cbec77ae0e7ef972b97fdd301cad5e588eaa530dc83fc44c32c42a26b06"
+    },
+    "kit/hellaswag_reference.py": {
+      "original_sha256": "9892a516f957a86169face53769e8dfb77497257fa3b1b60904694395e09a999",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "2e18acd1f79ee96b9cdbfd551a31bf1175df52904c15442c6938249d3e7fa45a"
+    },
+    "kit/inference_lifecycle.py": {
+      "original_sha256": "dd6dd4401aaf8270969d43061a58ba520afd99f35b7ca8fccde41239ecdb9470",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "9502f4110f08ee92baf2b69e26a5613799a8ac187a33bf366698f356bb9367a6"
+    },
+    "kit/m2_admit.py": {
+      "original_sha256": "b87c98924ce7bbc3fd205b9b0c01dd6e3badaaf1dba804a39adc63eba945f5cb",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "c9bc0acb44e68e9d9aa31336e5551e845a551d7deeb3656b18a6610713711244"
+    },
+    "kit/m2_assignment.py": {
+      "original_sha256": "7770d7993bafda47b056f91994198d4d9d61d1b54363e51b29bb43be81498ed5",
+      "reason": "Manager ruling 29 October 2026: restore exact reviewed 7220ef82 receipt-bound validation bytes; machine-written JSONL; no paid re-validation for IO-only edit. Original science/data pins retained.",
+      "v2_sha256": "8ed028a4bc829bda0622256094e05c6b52ae0904bde255b6696dbce439dd88c2"
+    },
+    "kit/m2_bind.py": {
+      "original_sha256": "b0efdd8f7700a33acca6f3cb8303810a1a09c3fc35d262082c0d03f0fde7dfa9",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "21309aca5cd2b568e793a5f4de50f1bc5e10e108de36ef21087d3986fb1cdcd7"
+    },
+    "kit/m2_format.py": {
+      "original_sha256": "a63f23c7bf5b175dbf3d7367244f73a5758f8c1c058409a2ca2f8f5a9da77f27",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "e86c7bf1306af60a191dc1a3885c73f5bad555c9f0881163a2baedd566987d24"
+    },
+    "kit/m2_gpu.py": {
+      "original_sha256": "c541b0482a224d76ed5716e7beb7a87ff6383491047f958fda2059f30be20b0a",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "3611cff14db4e338e683909e1759f31d21478ac73ecd9aaee0c2029d93a7e7f9"
+    },
+    "kit/m2_manifest.py": {
+      "original_sha256": "7775130e1a65291341959000d902d1652b7e1a39eedc892cf65d2792174aa93b",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "1273046d83f9d30c6b07e30f365ad25097b83d5583784d88071ecc5164be6ada"
+    },
+    "kit/m2_node.py": {
+      "original_sha256": "82c7bc3bab6dedb42916a86be12c4bea934dee08bf71b0ee08084fece5b677fb",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "81e226fd23c80614a96e1ddf5533e9d60fea45b511da2cdc0b19ca5b31ff9902"
+    },
+    "kit/m2_node_preflight.py": {
+      "original_sha256": "cf8e9ceb919ac1c04ba4ca3649c7205fb42a0e36e08566220e5fd396d0e70dc7",
+      "reason": "Pre-tag dependency drift: fail-closed trainer dataset imports before node hardware checks; science unchanged",
+      "v2_sha256": "5116f3f36a8b1e2c16ef84d95ea58a44d6149f4f7d07443f3f82d73fb295d5f8"
+    },
+    "kit/m2_paths.py": {
+      "original_sha256": "51ac20fa816c934ca4659dae689ca64655540be028d97f86509640ec526a9566",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "87cf5bf4c4bfec02b08761485be649c615e45a6ed28e50e388fd158f871494aa"
+    },
+    "kit/m2_prepare.py": {
+      "original_sha256": "b7e732b47f6d4567d3d3c0ab4dbd54667e2c18cb17caa52f115de101cf95ec4e",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "a134187c0429f8750ef8a39dcbb0bd4e96e12c96e240e159bdc7ea1c43987e1c"
+    },
+    "kit/m2_privacy.py": {
+      "original_sha256": "edd4c4ad8e641d385c095c40eacb51f866dbffb7158946d4f7a83f1327ab1636",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged; combined publisher Unicode-safe JSON-line IO/public export correction; scientific rules unchanged; whole-export privacy with normalized token digests, private paths and email checks",
+      "v2_sha256": "0457531c37ed9b0eabe4280f6f95a61d695d51f12081290f9f20fa04f48db17e"
+    },
+    "kit/m2_reprobe.py": {
+      "original_sha256": "5bdc759dc023c4e1397da8637999d2486125c4f1130ad541ae7618be83e81d87",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "740d37b9625b9163c0e14e802263e84af36b7687b4d2395a56f76c9e18f7f210"
+    },
+    "kit/m2_rescore.py": {
+      "original_sha256": "58f365ac8a8a493c5b1241e21931ac3edd902dcff7ec65f9f363b372f0b7c77f",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "70735f08dedfc522fa3c1d3be5e9af48ded0b486c3941afa998285293bde81e0"
+    },
+    "kit/m2_return1.py": {
+      "original_sha256": "81894d6fb64f9e36049696785c0530b4b01d3d13a147f2156c79b5c90841e53d",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "a0d3e90eace9266884981d6907e1110ffab411bfed04f34cddad9b660bed33d1"
+    },
+    "kit/m2_score.py": {
+      "original_sha256": "4925ec6dc68f46aa0f2ff82c1a4db6f33c5a37ef623961fed98d2ca31ef29c2d",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "097371b99568dc8a8c22ef51c45ea0fdd3383bf55cc3a47056578618b3acbc1e"
+    },
+    "kit/m2_snapshot.py": {
+      "original_sha256": "7b57f1531a7ce1510d0f18f0f7f8adcb67f241d23eb9c1e3ffc0ecd2276468b0",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "8273053ed32a0320fccace59fb85fe9a96797a0166fa037d3226a4a8c4dc9e8c"
+    },
+    "kit/m2_v2_dryrun.py": {
+      "original_sha256": "d144cffaa867542bbc3afef827755cc8b5415091fc99f81104304440f444f98a",
+      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
+      "v2_sha256": "9ced6ec94a2d01d30fe72d5c68a778aa3d660920afe90e082b8461e86f328a9f"
+    },
+    "kit/next_blend.py": {
+      "original_sha256": "428251a560465cae31e222e34688aa4cc0ea5ff959ae8c76a4b452b63aee08c9",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "0a2c302b3eb663af5c54f43f802dfaa4053c1aab971b536c8bcf1ccad61b9621"
+    },
+    "kit/next_common.py": {
+      "original_sha256": "a73066d5fd703be1d97254c6205ca8d62823a513059be723bb9f97d41872d0a2",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "4bfaa27b07c38cf9c0bcb004c4b7b00df1d8a1db0bc9456341171714f5a4c43d"
+    },
+    "kit/next_hellaswag.py": {
+      "original_sha256": "8b3178f7bfc985e718ff61b12365ac590ad268c19cdc0834a89cddd87c9c3994",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "817d96013488667f2e11d0b4de41c90bbda3048a696efef17fa36b17fa6d1a1e"
+    },
+    "kit/next_pools.py": {
+      "original_sha256": "59b3ff18d0658b20824385292fef469454c881d596364cf2ac7a5e0c2c157acd",
+      "reason": "Reviewed message-2 fixed ARC prompt, CPU candidate freeze or PCIe NVMe infrastructure amendment; scientific endpoints/doses unchanged",
+      "v2_sha256": "1bce91ac28fdcf4e458c3e72a62e99848e2e433164fedacad9b54c90674e5e11"
+    },
+    "kit/p3a_common.py": {
+      "original_sha256": "29c204aa9be2e05a00e54ffc5481cf2d227a84b81fa5810ad590ec0169408f81",
+      "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
+      "v2_sha256": "c8b58a4b9ae27c93767e4da97a9d0a2d27c23b53542e394526636cf7a2c9d698"
+    },
+    "kit/p3b_common.py": {
+      "original_sha256": "79f473f1ef6c42df444468bf0a93123250973baecd58d284a1e48070e2bd1c5e",
+      "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
+      "v2_sha256": "23b0f2933b6a1ddee2fb043bc2b2fcdfde5301839028615ef097030a0efe1fe7"
+    },
+    "kit/p3b_replay_data.py": {
+      "original_sha256": "a9ca1721dcc40213fdbb8d422d726c677593cb5aeec7eb95096870808ab5906f",
+      "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
+      "v2_sha256": "0b3354cbe0a4622f68c16c53719696cf4dc10152ae8f5466515bbd003fe3fd5e"
+    },
+    "kit/p3b_score.py": {
+      "original_sha256": "41578941d174d31ecc7a2809077fdb28f14582e7a76ef327b4ade777355c6309",
+      "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
+      "v2_sha256": "7545626e476a592f2755949c63ca4314e280b8496f2ad0ee3e79708c21cc205d"
+    },
+    "kit/resources/next/registration.md": {
+      "original_sha256": "15b66f3c8fcd047ce3fb030c417010f774ec916776e69a358dfc9105a4718806",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "be8d21c0a2f646847fb6fe9ad935c933c224fad530a85d734af7ad0c93282b2d"
+    },
+    "kit/resources/p3b/registration.md": {
+      "original_sha256": "d24301ba1aaabee9c3599700a77545a34ac0fd283594764b59f3bb73c69caf3c",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "b8eeee00175aa4359d3beee4fd5bb1918886745b549955d956d6d15796fef1ea"
+    },
+    "kit/s_bind.py": {
+      "original_sha256": "d8db85d418b2deee778b27168102f1428846988952bfb1ae73bf0f1967a755c2",
+      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
+      "v2_sha256": "da454b5463813780f7f3dd4d0b9095fd249ddfe32b2118a1d7292cf790c011f4"
+    },
+    "kit/s_collect.py": {
+      "original_sha256": "e63998d5f03ace64f63e0994d4d532f18de82cb2f310cccbe7734160fa315350",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged; owner-approved 29 October Screen S three-seed cohort",
+      "v2_sha256": "0cef16f1dfd65091db37618f745f3e6393b5298515927df10fbfd8e415b8dfaa"
+    },
+    "kit/second_task_screen.py": {
+      "original_sha256": "9edc1dace8ae1226007366f4b14ebd9d01a1dfe6d47499ad733dcfa52051df5f",
+      "reason": "Inference teardown and verified local snapshot path resolution only; frozen datasets, grading and decoding unchanged",
+      "v2_sha256": "57aaa3c3b8b363baa5ffc31b22738c529c06b3271590f7d5261a62f525a8b9b3"
+    },
+    "kit/simulate_v4_finqa_host.py": {
+      "original_sha256": "dd09bb5e6e891c5a0aa11ed8ccad15629620cbafc23fe4928c2d58d0eddb42d5",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "e8401160a54a06a816d6b02c0bd6d1b391feea699648d34c226f60c03ac441fb"
+    },
+    "kit/v4_slurm_capture.py": {
+      "original_sha256": "688c3db154ec2ece6b1ebf454ebde3085dbfb7af77225271eb42c983a67c84f7",
+      "reason": "Prospective reviewed MESSAGE 2 format-validity, infrastructure or public redaction amendment; objectives/doses/endpoints unchanged",
+      "v2_sha256": "8efeb6a871453ddaa760565f5dc09cd7d411756ad94ecc714745642586bca5d3"
+    },
+    "kit/v4_teacher.py": {
+      "original_sha256": "930f3c497b9921ef52ffb10f77256b442a82f887d49dca8ed74aa3ce45c0300b",
+      "reason": "Inference teardown and verified local snapshot path resolution only; frozen datasets, grading and decoding unchanged",
+      "v2_sha256": "518a7f633d6810755e62c4096c243a75af3568fb1d45f7dff401d8dbab3aad5f"
+    },
+    "kit/x_collect.py": {
+      "original_sha256": "a8cd06ecbf5f99bfc2757923b3bbc3153b6a2a8ce00bfa7f860057ec7aae0176",
+      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
+      "v2_sha256": "5e8a5dd8e1a90056fd09e79fae8b6a3f96dac38e5ae53d48b3a04ed8a58e3e5d"
+    },
+    "kit/x_signal.py": {
+      "original_sha256": "8a62310d181d261d475f43b1f17b338cc4733de86c9da418405fba06d9d0edbb",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "0d26654e095cf8465e8392a3caca56dfb5afc7bc0ef6559069f533f7649f6fd6"
+    },
+    "kit/x_tier2_run.py": {
+      "original_sha256": "f5e558a453c1d95ef4175f17a0d596f8b8e1122e79982f1e88b72aa25f5087d6",
+      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
+      "v2_sha256": "907dc1bb7c7b2fc342e301c817589b883a3d668edbf84754c83985b1b4e62fb4"
+    }
+  },
+  "schema": "message2-runtime-updates.v2"
+}

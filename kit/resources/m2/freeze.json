@@ -1,0 +1,14 @@
+{
+  "files": {
+    "arc-prompt-FROZEN.json": "6ce5528c1f4cd2d75fca3f98aaadcb6f6f188dd21cfd8a912886d36e65ef8989",
+    "arc-prompt-attempt2.json": "5512e14a95371c8864973b5a4a7b25686c1b8e2694421b5f2824fae36cb59138",
+    "eval.jsonl": "0bee96d6576a5144a0150d26170b08b6a04644bffcdc31db7e1f7e58f2c21b98",
+    "format-validity.json": "0d1363f133e4ae6e2a9ee8a5171f79c2ad8d0b2278e75352a1d8c9fbb667d946",
+    "hellaswag-validation-items.json": "202f480cc2c1c1910a20a5cdecbe1706a6fddbc0d5ab3441f2af3da283bc9c17",
+    "manager-format-launcher.txt": "3aa92751061504afb59200b0dc5b6194415a8234959be8c8b7de08290edc0d51",
+    "manifest.json": "ee2417d5b1b772e994b80b70ea8866b5f49e79e70d241559e96145c55e1a0b8f",
+    "registration.md": "6c337c7a58bd9e3e928b14ed8273ce63391b84f91b863cf4cab222325ae4499d",
+    "return1-decisions.json": "472774171ca234fe6f69eee9ca8a1ce6d8f99eb2adf416c4c8b256bf15f4a62e",
+    "train_pool.jsonl": "a35cecee96920a6a657b526477fbffc75cc09ba221f108919ed10bbca6ae830d"
+  }
+}

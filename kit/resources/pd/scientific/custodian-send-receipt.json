@@ -1,0 +1,32 @@
+{
+  "candidate_count": 5952,
+  "candidate_ids_sha256": "5bd45a5e3e0202f538a331f1df4cfc390888a472e2420118798989ebf7e241b0",
+  "candidate_sha256": "d3d4cfc378c734fa8e3f197eaaaa71673cbdcf83c12a9033f6fe033bd2f0a9a6",
+  "comparison_performed": false,
+  "confirmation_months": [
+    "2026-10",
+    "2026-11"
+  ],
+  "disjoint_by_construction": true,
+  "future_recheck_required": true,
+  "identity_sha256": "5e86c73c37af273a6f8380c140703cf13b3f4fac7ffd11417bbc5c4842d2efdc",
+  "node_policy_sha256": "56d56fcefe99ae281008fcc3127313ee1f009bbca2d9aff5d219b69c66e121d8",
+  "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+  "preparation_sha256": "d3ad575f52b1203e210098c37584cb4a80db4f3a44508a5babd52fd121a1a7fa",
+  "recheck_status": "PENDING_SLICE_BUILD",
+  "reserved_outcomes_accessed": false,
+  "ruling_sha256": "359ca24b49b9ff9313f2d26dcb8f3b9d5cb06733b1bf2b7209993a53da7d3af9",
+  "schema": "pd-custodian-send-receipt-v2",
+  "slice_build_window": {
+    "end": "2026-12-31",
+    "start": "2026-12-15"
+  },
+  "slice_exists_at_send": false,
+  "statement": "no confirmation slice exists at send time; TREC (public question-type classification data) is disjoint from the SEC-filing/legal/maths confirmation sources by construction; the custodian re-checks PD prompts against the slice when it is built",
+  "status": "SEND_TIME_RULING_BOUND",
+  "thresholds": {
+    "edit_similarity": 0.9,
+    "token5_jaccard": 0.8
+  },
+  "verification_only": true
+}

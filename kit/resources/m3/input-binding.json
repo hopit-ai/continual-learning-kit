@@ -1,0 +1,19 @@
+{
+ "schema": "m3-input-binding.v1",
+ "rule": "Package roots are read in place, never copied or vendored. mode=assets binds exactly as message-2 core binds the same B inputs (kit/m2_prepare.py for replay/, kit/next_pools.earlier_rows for FinQA target folders): the directory's native manifest and file hashes are checked (FinQA: kit-v4-sft-data.v1, train_sha256 and val_sha256; replay: files map) and its manifest.json sha256 is recorded write-once in <m3_out>/inputs/bound.json and re-checked before every use. An archive entry additionally requires the root's manifest.json to equal that member of a returned archive fingerprinted by kit/resources/m2/return1-decisions.json. Hard-MATH targets are not listed here: they come from core's committed M5 snapshot (read-only copy) or the identical protocol in M3 (m3_pools.py --action math-targets).",
+ "inputs": {
+  "contract_targets": {
+   "archive": "package-c-return.tar.gz",
+   "member": "targets/manifest.json",
+   "note": "C's 27B ContractNLI training journal (kit/c_targets.py root), also the stage-2 1,280-row task schedules; the same directory message 2 binds as assets c_targets"
+  },
+  "replay": {
+   "mode": "assets",
+   "note": "B's checked RLVR-IFeval replay/ (accepted, refresher-64, replay + manifest), the directory message 2 passes as prepare.replay"
+  },
+  "finqa_targets_*": {
+   "mode": "assets",
+   "note": "B's verified 27B FinQA training-target folders (kit-v4-sft-data.v1), the directories message 2 passes as pools.finqa_targets; M3 preserves each seed's native 1,280-row stage-1 task schedule without re-shuffling; every seed 101-103 must be present; only earlier replay uses the unique union"
+  }
+ }
+}

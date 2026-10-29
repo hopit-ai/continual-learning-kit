@@ -1,0 +1,17 @@
+[
+  {
+    "id": "development:0",
+    "label": "HUM:ind",
+    "text": "Which person wrote a short poem about a blue bicycle?"
+  },
+  {
+    "id": "development:1",
+    "label": "LOC:city",
+    "text": "In which city does a fictional lantern festival take place?"
+  },
+  {
+    "id": "development:2",
+    "label": "NUM:count",
+    "text": "How many wooden buttons are inside the invented puzzle box?"
+  }
+]

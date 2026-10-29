@@ -41,7 +41,8 @@ def generate(rows,record,gpu,standin,arm,kind):
     os.environ.update(CUDA_VISIBLE_DEVICES=gpu,KIT_DETERMINISTIC='1',VLLM_BATCH_INVARIANT='1',VLLM_ATTENTION_BACKEND='FLASH_ATTN')
     from kit import score_forgetting as general
     from transformers import AutoTokenizer
-    from vllm import LLM, SamplingParams
+    from vllm import SamplingParams
+    from kit.inference_lifecycle import create_llm as LLM
     tok=AutoTokenizer.from_pretrained(record['model'],local_files_only=True)
     prompts=render_prompts(tok,rows)
     require(all(len(tok.encode(p,add_special_tokens=False))<=10240 for p in prompts),'scoring prompt over cap')

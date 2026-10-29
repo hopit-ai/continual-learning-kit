@@ -1,0 +1,1808 @@
+{
+  "revision": "218ec52e09a7e7462a5400043bb9a69a41d06b76",
+  "rows": [
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "An eight year old girl is playing a harmonica on a stage. the camera",
+      "ctx_a": "An eight year old girl is playing a harmonica on a stage.",
+      "ctx_b": "the camera",
+      "endings": [
+        "pans to show a group of children in a rough and tumble forest area.",
+        "zooms in on the girl as the girl begins to play harder and harder, taking deeper and deeper breaths.",
+        "turns and people around the stage can be seen talking to the camera.",
+        "zooms in to show her any number of different notes."
+      ],
+      "id": "hellaswag-val-10150",
+      "ind": 10150,
+      "label": "1",
+      "source_id": "activitynet~v_-v-Zail6TNw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "A man is seated on a couch, playing a harmonica. he",
+      "ctx_a": "A man is seated on a couch, playing a harmonica.",
+      "ctx_b": "he",
+      "endings": [
+        "lowers it from his mouth when he is done.",
+        "is playing the acoustic guitar with his eyes closed.",
+        "cuts his fingers and plays intensely as he plays on the harmonica.",
+        "switches sides quickly, continuing to play the instrument."
+      ],
+      "id": "hellaswag-val-10338",
+      "ind": 10338,
+      "label": "0",
+      "source_id": "activitynet~v_2Ot4ZPYpNwI",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Mooping floor",
+      "ctx": "The man puts the mop into the blue mop bucket first and then he starts mopping. First he mops near the stove and the counter. then he",
+      "ctx_a": "The man puts the mop into the blue mop bucket first and then he starts mopping. First he mops near the stove and the counter.",
+      "ctx_b": "then he",
+      "endings": [
+        "moves around the counter the floor sweep the points near the stove.",
+        "starts to cut the cake mix with knife and sharpener.",
+        "comes back and starts mopping in the kitchen.",
+        "mops on the floor that between the refrigerator and another counter."
+      ],
+      "id": "hellaswag-val-10638",
+      "ind": 10638,
+      "label": "3",
+      "source_id": "activitynet~v_6QImnhUemH0",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Ice fishing",
+      "ctx": "The two men are sitting in their make shift tent, fishing through a hole in the frozen lake. They are patiently sitting with their fishing rods till they fish out mid size fish from the holes. they",
+      "ctx_a": "The two men are sitting in their make shift tent, fishing through a hole in the frozen lake. They are patiently sitting with their fishing rods till they fish out mid size fish from the holes.",
+      "ctx_b": "they",
+      "endings": [
+        "then fish larger fish out because it is easier with big fish.",
+        "then run out the holes in the ice to get them out of the water.",
+        "then sit for a little while and wait to get caught.",
+        "show the kind of fish they have found as they lay it out on the frozen ground."
+      ],
+      "id": "hellaswag-val-10668",
+      "ind": 10668,
+      "label": "3",
+      "source_id": "activitynet~v_6k5m4u5AchQ",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Ice fishing",
+      "ctx": "They show the kind of fish they have found as they lay it out on the frozen ground. one of the men",
+      "ctx_a": "They show the kind of fish they have found as they lay it out on the frozen ground.",
+      "ctx_b": "one of the men",
+      "endings": [
+        "then grabs a rowan semi paintbrush and begins drying the ice.",
+        "takes a shining knife, then cut the fish's legs off into the ice.",
+        "takes a potato and feeds it to an e-tag fish lying on their ice.",
+        "cleans the fish scales."
+      ],
+      "id": "hellaswag-val-10669",
+      "ind": 10669,
+      "label": "3",
+      "source_id": "activitynet~v_6k5m4u5AchQ",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Calf roping",
+      "ctx": "The view changes to show a group of men with their horses and they're each holding onto their ropes and doing various things with them like tying and swinging them. the focus",
+      "ctx_a": "The view changes to show a group of men with their horses and they're each holding onto their ropes and doing various things with them like tying and swinging them.",
+      "ctx_b": "the focus",
+      "endings": [
+        "switches to a man talking whose name is trevor brazile and it flashes from him talking and then to clips of him riding his horse in different arenas as he is also wrangling a small calf.",
+        "turns back to the horse standing in the warm weather and he is commentating on what he's doing.",
+        "is now back on the contestants and they are green with sweat and a lot of other people are doing the same thing.",
+        "changes back to the men on the sides of the ring to try to coach the horses on what to do."
+      ],
+      "id": "hellaswag-val-10739",
+      "ind": 10739,
+      "label": "0",
+      "source_id": "activitynet~v_7c5vvEn3uLk",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Having an ice cream",
+      "ctx": ". a bald man and a woman wearing handkerchief in her hair",
+      "ctx_a": ".",
+      "ctx_b": "a bald man and a woman wearing handkerchief in her hair",
+      "endings": [
+        "are practicing blow drying her hair.",
+        "are outside of an aerobics class.",
+        "stand and wave next to a customized bus.",
+        "are sitting in front of a woman doing a tutorial on stain removal techniques."
+      ],
+      "id": "hellaswag-val-11177",
+      "ind": 11177,
+      "label": "2",
+      "source_id": "activitynet~v_D9eo9NfFhkg",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Disc dog",
+      "ctx": "A man is outside with two dogs on leashes. he",
+      "ctx_a": "A man is outside with two dogs on leashes.",
+      "ctx_b": "he",
+      "endings": [
+        "seems to be talking to the camera when suddenly the dogs start fighting and punching each other.",
+        "puts on a show with the trained dogs.",
+        "is brushing the dogs legs with the leashes.",
+        "is using frisbees from an assortment for the dogs."
+      ],
+      "id": "hellaswag-val-11342",
+      "ind": 11342,
+      "label": "1",
+      "source_id": "activitynet~v_FNX7CeuIvIQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "A man is outside in a field of grass pushing a lawn mower back and forth. once he",
+      "ctx_a": "A man is outside in a field of grass pushing a lawn mower back and forth.",
+      "ctx_b": "once he",
+      "endings": [
+        "is done, the man takes off so fast the lawn mower resumes mowing again before stopping and holding out his hand and ending the video.",
+        "is done he turns around and starts in on another bull.",
+        "makes it to the other side of the strip, the person with the camera walks closer to him and starts to talk to them.",
+        "is finished, a smaller blue mower comes out and it is pushed away from the lawn."
+      ],
+      "id": "hellaswag-val-11348",
+      "ind": 11348,
+      "label": "2",
+      "source_id": "activitynet~v_FRzN9ApCxW8",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "High jump",
+      "ctx": "The boy lifts his body above the height of a pole. The boy lands on his back on to a red mat. the boy",
+      "ctx_a": "The boy lifts his body above the height of a pole. The boy lands on his back on to a red mat.",
+      "ctx_b": "the boy",
+      "endings": [
+        "turns his body around on the mat.",
+        "gets up from the mat.",
+        "continues to lift his body over the pole.",
+        "wiggles out of the mat."
+      ],
+      "id": "hellaswag-val-116",
+      "ind": 116,
+      "label": "1",
+      "source_id": "activitynet~v_-zHX3Gdx6I4",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Mixing drinks",
+      "ctx": "First she fills her shaker up halfway with ice and then she adds vodka and chambord and she puts one ounce of both of them and then she adds a little bit of pineapple juice and cranberry juice. next she",
+      "ctx_a": "First she fills her shaker up halfway with ice and then she adds vodka and chambord and she puts one ounce of both of them and then she adds a little bit of pineapple juice and cranberry juice.",
+      "ctx_b": "next she",
+      "endings": [
+        "puts a lot of acetone from a bottle into her shaker.",
+        "shakes everything up and strains the drink into the cocktail cup.",
+        "adds a quarter ounce of jack daniels and she shakes it and then she pours a garnish into the shaker, then she adds a drop of jack from the shaker to it and glides it right on to the opposite rim.",
+        "adds a liquid solution and a cherry in the solution and she gargles about three times and she puts the loaded shaker in the kitchen sink."
+      ],
+      "id": "hellaswag-val-11784",
+      "ind": 11784,
+      "label": "1",
+      "source_id": "activitynet~v_LNlGgtg70uQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Elliptical trainer",
+      "ctx": "Then a demonstration of how the legs must move on the elliptical is shown. The woman in red further explains benefits of the workout with an elliptical. the woman on the machine",
+      "ctx_a": "Then a demonstration of how the legs must move on the elliptical is shown. The woman in red further explains benefits of the workout with an elliptical.",
+      "ctx_b": "the woman on the machine",
+      "endings": [
+        "moves back and fourth while the machine explains how to removed the elliptical section.",
+        "continues to show the viewers the correct way to exercising on the elliptical.",
+        "continues to talk about the difference between using the exercise machine and using a friend.",
+        "now begins to communicate with others and then still more women are shown engaging in female workout."
+      ],
+      "id": "hellaswag-val-11861",
+      "ind": 11861,
+      "label": "1",
+      "source_id": "activitynet~v_MEbEcvzdytY",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "There's an open land area with greenery around and grassy surface area. there",
+      "ctx_a": "There's an open land area with greenery around and grassy surface area.",
+      "ctx_b": "there",
+      "endings": [
+        "is a tennis court and a tennis court on the side.",
+        "is a man wearing white shirt and jungle gym shorts exercising on the green surface.",
+        "'s a lawn trimmer lying on the ground near some over grown patches of grass.",
+        "are no trees, but there is a large green grassy area."
+      ],
+      "id": "hellaswag-val-12441",
+      "ind": 12441,
+      "label": "2",
+      "source_id": "activitynet~v_SIX51vtOOek",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing pool",
+      "ctx": "A boy and a man take turns playing billiards while a crowd watches. The man wipes his face with a towel. the boy",
+      "ctx_a": "A boy and a man take turns playing billiards while a crowd watches. The man wipes his face with a towel.",
+      "ctx_b": "the boy",
+      "endings": [
+        "pushes the billiard stick through the dirt and speaks to the man.",
+        "wins and the crowd cheers.",
+        "and man reload their guns and take more turns.",
+        "picks up the ball briefly."
+      ],
+      "id": "hellaswag-val-12512",
+      "ind": 12512,
+      "label": "1",
+      "source_id": "activitynet~v_SnBTp7iV2kE",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Clean and jerk",
+      "ctx": "A man is in the gym in tight he bends over picks up a weight over his head and drops it back down. he",
+      "ctx_a": "A man is in the gym in tight he bends over picks up a weight over his head and drops it back down.",
+      "ctx_b": "he",
+      "endings": [
+        "lifts his legs and pulls the bar up on his body and lifts the weight above his head.",
+        "lifts it again lifts it over his head and drops it this time and he loosens his way to the top and grabs it again.",
+        "raises the bar over his head followed by another.",
+        "walks back and loosens up before walking back up and doing it again adding more weight."
+      ],
+      "id": "hellaswag-val-1321",
+      "ind": 1321,
+      "label": "3",
+      "source_id": "activitynet~v_ErEr4Sxdprw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "An elderly woman lays on down against a brown pillow. She holds a harmonica to her mouth and plays it. The light in the room brightens. she",
+      "ctx_a": "An elderly woman lays on down against a brown pillow. She holds a harmonica to her mouth and plays it. The light in the room brightens.",
+      "ctx_b": "she",
+      "endings": [
+        "continues playing the harmonica and ends by laying down, laying in the bed with her eyes closed and resting her head on a pillow.",
+        "finishes playing and laughs.",
+        "begins to play the harmonica more.",
+        "continues playing and exhales a lot of smoke while turning the harmonica off."
+      ],
+      "id": "hellaswag-val-13911",
+      "ind": 13911,
+      "label": "1",
+      "source_id": "activitynet~v_iyGv338SnrQ",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Hitting a pinata",
+      "ctx": "The man rotate the little girl and then let walk a little and the girl hit the pinata. a young man",
+      "ctx_a": "The man rotate the little girl and then let walk a little and the girl hit the pinata.",
+      "ctx_b": "a young man",
+      "endings": [
+        "from the end walked to that side to womb with the little girl, and he hit the pinata, then he grabs a stick from the gate and push the girl.",
+        "shake as the girl hit the pinata.",
+        "spins the little girl and get pattern move ability.",
+        "hit the pinata ad the kids are lined up to take their turns to hit the pinata."
+      ],
+      "id": "hellaswag-val-14553",
+      "ind": 14553,
+      "label": "3",
+      "source_id": "activitynet~v_rC24UspQv14",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Using the pommel horse",
+      "ctx": "A gymnast is patiently waiting to start his performance. He jumps on to the board and starts spinning really fast before he jumps off and walks around. he",
+      "ctx_a": "A gymnast is patiently waiting to start his performance. He jumps on to the board and starts spinning really fast before he jumps off and walks around.",
+      "ctx_b": "he",
+      "endings": [
+        "take a breath and the audience claps for him before he jumps back on it and starts spinning again.",
+        "goes back and forth for some time and then takes off again.",
+        "goes to different places and comes back and does the same thing for three more times.",
+        "spins around to one side to catch his balance as he takes his time to prepare."
+      ],
+      "id": "hellaswag-val-15054",
+      "ind": 15054,
+      "label": "0",
+      "source_id": "activitynet~v_xwSeXFkTNlE",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "A young child is seem looking to the camera. he",
+      "ctx_a": "A young child is seem looking to the camera.",
+      "ctx_b": "he",
+      "endings": [
+        "puts his hands under a sink with running water.",
+        "moves their legs of the fence.",
+        "is winding a stick on the handle on the playground.",
+        "is now standing in front of an upside down mirror and he is running his fingers through his hair while brushing his teeth."
+      ],
+      "id": "hellaswag-val-15277",
+      "ind": 15277,
+      "label": "0",
+      "source_id": "activitynet~v_-n0F3QTuxug",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Cleaning windows",
+      "ctx": "A man is seen speaking to the camera while holding a rag. He bends down and uses the rag all over a window. he",
+      "ctx_a": "A man is seen speaking to the camera while holding a rag. He bends down and uses the rag all over a window.",
+      "ctx_b": "he",
+      "endings": [
+        "continues smoothing out the damage, wiping down the window.",
+        "shows it off and pulls it back when done.",
+        "continues cleaning off the window while speaking to the camera.",
+        "continues wiping down the side and wiping down the roof."
+      ],
+      "id": "hellaswag-val-15781",
+      "ind": 15781,
+      "label": "2",
+      "source_id": "activitynet~v_Dk3DiAp2yAU",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": "A man is standing holding a knife over a table. the man",
+      "ctx_a": "A man is standing holding a knife over a table.",
+      "ctx_b": "the man",
+      "endings": [
+        "proceeds to place wax on a piece of paper.",
+        "demonstrates other techniques for wounding a patient.",
+        "points to several parts of the knife.",
+        "then takes a sharpener and cuts two slices of lemon."
+      ],
+      "id": "hellaswag-val-16265",
+      "ind": 16265,
+      "label": "2",
+      "source_id": "activitynet~v_RjBXzs2XvbY",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Clean and jerk",
+      "ctx": "An asian athlete practices clean and jerk lifts in a weight gym. The asian girl resets and practices a new set of clean and jerk lifts. the asian girl",
+      "ctx_a": "An asian athlete practices clean and jerk lifts in a weight gym. The asian girl resets and practices a new set of clean and jerk lifts.",
+      "ctx_b": "the asian girl",
+      "endings": [
+        "does the lift backwards and approaches the mat.",
+        "practices a third lift with the man.",
+        "rests between lifts and returns for another set of lifts.",
+        "takes various sets of steps helped by a friend to practice an original weight lift."
+      ],
+      "id": "hellaswag-val-16931",
+      "ind": 16931,
+      "label": "2",
+      "source_id": "activitynet~v_j9QPrMZuegY",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing piano",
+      "ctx": "A man sits a piano with his hands placed on the keys. the man",
+      "ctx_a": "A man sits a piano with his hands placed on the keys.",
+      "ctx_b": "the man",
+      "endings": [
+        "begins playing the piano.",
+        "hits the keys with a mallet.",
+        "beats the piano in a rhythmic beat.",
+        "increases the volume for playing."
+      ],
+      "id": "hellaswag-val-17042",
+      "ind": 17042,
+      "label": "0",
+      "source_id": "activitynet~v_mDaZqz7lB0o",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Cheerleading",
+      "ctx": "Two girls are standing in a yard wearing cheerleading outfits. a girl",
+      "ctx_a": "Two girls are standing in a yard wearing cheerleading outfits.",
+      "ctx_b": "a girl",
+      "endings": [
+        "aims and shoots at a pinata.",
+        "talks, before doing some karate moves.",
+        "is seen performing various kicks and flips on a wooden floor.",
+        "raises her hands over her head and does a jump."
+      ],
+      "id": "hellaswag-val-17762",
+      "ind": 17762,
+      "label": "3",
+      "source_id": "activitynet~v_3cQg4XOkC5Y",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": "Then he takes a piece of bark and rubs the powered stone pieces onto it. The stone particles stick to the wet piece of wood. he",
+      "ctx_a": "Then he takes a piece of bark and rubs the powered stone pieces onto it. The stone particles stick to the wet piece of wood.",
+      "ctx_b": "he",
+      "endings": [
+        "uses a small brush to polish one of the stone pieces.",
+        "then uses a strip of sealing tape to seal the board and then smooths the bottom of the board.",
+        "walks towards the camera.",
+        "then takes the knife and sharpens it against the wood piece."
+      ],
+      "id": "hellaswag-val-185",
+      "ind": 185,
+      "label": "3",
+      "source_id": "activitynet~v_0bosp4-pyTM",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Running a marathon",
+      "ctx": "Runners are running down a track with crowds on both sides and one of the runners stumbles. Another runner is shown and a man is shown talking to the camera. a runner",
+      "ctx_a": "Runners are running down a track with crowds on both sides and one of the runners stumbles. Another runner is shown and a man is shown talking to the camera.",
+      "ctx_b": "a runner",
+      "endings": [
+        "is crawling across a finish line while other runners are running through the finish line.",
+        "is walking through a huge forest and ends up climbing up the aplus over a fence and crashing into other person who subsequently falls too.",
+        "triumphant throws up his arms and walks off alone.",
+        "is shown again multiple times."
+      ],
+      "id": "hellaswag-val-1858",
+      "ind": 1858,
+      "label": "0",
+      "source_id": "activitynet~v_LKf1eTzmK14",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "Girls stand in their swimsuits next to a sink. Girls dunk the faces into the water. The people pretend to drink from the water. the girls",
+      "ctx_a": "Girls stand in their swimsuits next to a sink. Girls dunk the faces into the water. The people pretend to drink from the water.",
+      "ctx_b": "the girls",
+      "endings": [
+        "throw the heads into the water.",
+        "fill the sink with a spray nozzle.",
+        "bend over holding their heads up.",
+        "walk off the pool."
+      ],
+      "id": "hellaswag-val-18945",
+      "ind": 18945,
+      "label": "1",
+      "source_id": "activitynet~v_XyQSmMYbP6o",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "River tubing",
+      "ctx": "A group of people, float in a line, down a narrow stream of water in donut shaped, black inflatable rafts. one woman",
+      "ctx_a": "A group of people, float in a line, down a narrow stream of water in donut shaped, black inflatable rafts.",
+      "ctx_b": "one woman",
+      "endings": [
+        "rides in the front of the people in the back and stays afloat.",
+        "is held by two few others.",
+        "is pulled in behind the team, as other female floats on walking tubes behind.",
+        "gets stuck on a rock in the raft and shimmies herself loose."
+      ],
+      "id": "hellaswag-val-20432",
+      "ind": 20432,
+      "label": "3",
+      "source_id": "activitynet~v_36K1e9WgEpU",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Skiing",
+      "ctx": "People are standing on a hill of snow. People are snowboarding down a hill of snow. people",
+      "ctx_a": "People are standing on a hill of snow. People are snowboarding down a hill of snow.",
+      "ctx_b": "people",
+      "endings": [
+        "are pouring snowballs into tubes as they go down the hill.",
+        "are skiing down a roof of a house.",
+        "are skiing down a hill.",
+        "are standing on a hill holding stick."
+      ],
+      "id": "hellaswag-val-2060",
+      "ind": 2060,
+      "label": "2",
+      "source_id": "activitynet~v_Nkcc9kLDQz8",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Carving jack-o-lanterns",
+      "ctx": "A carved pumpking with a light in it glows on a counter. Supplies for carving are then shown. a woman",
+      "ctx_a": "A carved pumpking with a light in it glows on a counter. Supplies for carving are then shown.",
+      "ctx_b": "a woman",
+      "endings": [
+        "uses a saw on a doll.",
+        "pours glue onto a wooden stick.",
+        "washes her trowel with water.",
+        "cuts the top off the pumpkin, emptying the seeds."
+      ],
+      "id": "hellaswag-val-20925",
+      "ind": 20925,
+      "label": "3",
+      "source_id": "activitynet~v_8LI3rnG6kMA",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "River tubing",
+      "ctx": "Three people go tubing down a rapid. they",
+      "ctx_a": "Three people go tubing down a rapid.",
+      "ctx_b": "they",
+      "endings": [
+        "check their phones and hand-held watch.",
+        "get stuck on the rocks, then push off and continue floating.",
+        "get out of the tubes, and wait for their turn.",
+        "go down the hills and into the river."
+      ],
+      "id": "hellaswag-val-21356",
+      "ind": 21356,
+      "label": "1",
+      "source_id": "activitynet~v_DK271OQnNRA",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Zumba",
+      "ctx": "Kids in colorful clothes walk on a stage and get in place. The kids perform zumba on a stage. the girl second from left",
+      "ctx_a": "Kids in colorful clothes walk on a stage and get in place. The kids perform zumba on a stage.",
+      "ctx_b": "the girl second from left",
+      "endings": [
+        "goes the wrong direction and almost runs into another girl.",
+        "flips.",
+        "carry a yellow pole and enter the stage.",
+        "plays violin and take off the blindfold."
+      ],
+      "id": "hellaswag-val-22156",
+      "ind": 22156,
+      "label": "0",
+      "source_id": "activitynet~v_N-6-MdxRg50",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Baking cookies",
+      "ctx": "We see a man in a room in front of a bookshelf with a cookie. the cookie",
+      "ctx_a": "We see a man in a room in front of a bookshelf with a cookie.",
+      "ctx_b": "the cookie",
+      "endings": [
+        "is drenched in melted butter.",
+        "dough is now baking, and the man is in the room cutting out the dough.",
+        "goes into a pot in the corner and a jar on a table.",
+        "is snatched from the man."
+      ],
+      "id": "hellaswag-val-22602",
+      "ind": 22602,
+      "label": "3",
+      "source_id": "activitynet~v_TDWbRqIEcts",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Mowing the lawn",
+      "ctx": "A man is standing outside in his front lawn with his mower. he",
+      "ctx_a": "A man is standing outside in his front lawn with his mower.",
+      "ctx_b": "he",
+      "endings": [
+        "talks about different lengths of grass for a while and then bends down to his mower.",
+        "takes the leaf blower out of the back of his van before beginning to mow the lawn.",
+        "goes to start it up and maneuvers it around so the back is pointing.",
+        "spins the mower all around trying to stay afloat."
+      ],
+      "id": "hellaswag-val-22616",
+      "ind": 22616,
+      "label": "0",
+      "source_id": "activitynet~v_TLQFjTXZ58E",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "People are rowing down a body of water. a guy",
+      "ctx_a": "People are rowing down a body of water.",
+      "ctx_b": "a guy",
+      "endings": [
+        "uses a big paddle to pull people that fall.",
+        "rinses his face with water from the body of water.",
+        "is standing on a rowing machine.",
+        "falls out of his back."
+      ],
+      "id": "hellaswag-val-2278",
+      "ind": 2278,
+      "label": "1",
+      "source_id": "activitynet~v_Quj1J31xQFM",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": "He picks up the sharpening tool and talks about what he will do next and begins to sharpen again. then he",
+      "ctx_a": "He picks up the sharpening tool and talks about what he will do next and begins to sharpen again.",
+      "ctx_b": "then he",
+      "endings": [
+        "gets down off the bed and the video ends.",
+        "gets in the car and drives off of the street.",
+        "swings the sharpener to sharpen the sharpening stone another time and then takes his knife and scrambles to sharpen another piece.",
+        "shows all of the pieces that come with the kit and talks about it all."
+      ],
+      "id": "hellaswag-val-22914",
+      "ind": 22914,
+      "label": "3",
+      "source_id": "activitynet~v_XxbuqeqOGaM",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "Three men are sitting on a couch with the man in the middle smiling, the man on the right playing a harmonica and the man on the far left holding his finger to his upper lip area and making a noise with his bottom lip by plucking it with his hand. The man on the right taps his foot as the two men play music. the",
+      "ctx_a": "Three men are sitting on a couch with the man in the middle smiling, the man on the right playing a harmonica and the man on the far left holding his finger to his upper lip area and making a noise with his bottom lip by plucking it with his hand. The man on the right taps his foot as the two men play music.",
+      "ctx_b": "the",
+      "endings": [
+        "man in the middle is really good at it but the man playing now is blocked as he is spinning is motion left and right.",
+        "camera pans to an onlooker standing on the side of the room watching and smiling.",
+        "man on the right removes his palm and uses the purple slide screen.",
+        "men continue to play as the man, the crooner on the left, with the voice down from the music might be able to hear him."
+      ],
+      "id": "hellaswag-val-23360",
+      "ind": 23360,
+      "label": "1",
+      "source_id": "activitynet~v_caoMescJ1J4",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "A woman stands over a sink and splashes water on her face. The woman then works up a lather with liquid soap she has poured onto her hands. the woman",
+      "ctx_a": "A woman stands over a sink and splashes water on her face. The woman then works up a lather with liquid soap she has poured onto her hands.",
+      "ctx_b": "the woman",
+      "endings": [
+        "rinses her hands, uses a towel to scrub off the soap and then dips it into a faucet and uses it to dry her hands.",
+        "then washes her face in circular motions the woman then used a towel to dry her face.",
+        "scrubs her hands and sits back down.",
+        "then does a rinse and rubs wet hands with the lather and towel she has given in her hand."
+      ],
+      "id": "hellaswag-val-23672",
+      "ind": 23672,
+      "label": "1",
+      "source_id": "activitynet~v_g4vyzwiJYWw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "A man in a denim shirt and black baseball cap plays the harmonica at the beach in front of a sandy shore, ocean water and a grass and flower covered knoll. the man",
+      "ctx_a": "A man in a denim shirt and black baseball cap plays the harmonica at the beach in front of a sandy shore, ocean water and a grass and flower covered knoll.",
+      "ctx_b": "the man",
+      "endings": [
+        "plays for some time while making sure that the harmonica is properly in putting on its proper place.",
+        "stops playing the harmonica and begins to talk while covered behind a scrim of foliage.",
+        "is standing at the top of a short wooden staircase, and, leaning against the railing the man begins to play the harmonica covering the entire instrument with both hands while playing.",
+        "continues to play the harmonica, then stops for a few seconds so he can read some of the harmonica lyrics."
+      ],
+      "id": "hellaswag-val-23927",
+      "ind": 23927,
+      "label": "2",
+      "source_id": "activitynet~v_ivivR6ZdgRM",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Clean and jerk",
+      "ctx": "A very slow playing video of a very strong man is shown as he picks up a barbell that has a lot of heavy weights on it, and he squats for a little bit with it at his chest. the man",
+      "ctx_a": "A very slow playing video of a very strong man is shown as he picks up a barbell that has a lot of heavy weights on it, and he squats for a little bit with it at his chest.",
+      "ctx_b": "the man",
+      "endings": [
+        "bends slightly as he stands, leans back, lowers his gather, lifts it to his upper chest, while holding the barbell just above his chest with his lower body, as he sits on the barbell, continues to measure and then sets it back down.",
+        "does long bends to lift the barbells up over his head, then sends them off in the distance, but only the heavy weights land on the top of the wall on the right side of the room.",
+        "then picks up a third barbell and for a little bit he starts pushing it back and forth towards his knees so the weight there can be knocked off.",
+        "then stands up and holds the barbell to his chest."
+      ],
+      "id": "hellaswag-val-24048",
+      "ind": 24048,
+      "label": "3",
+      "source_id": "activitynet~v_kI6maggAugg",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "River tubing",
+      "ctx": "A man is seen sitting in a tube speaking and leads into people walking around carrying tubes. shots of the water",
+      "ctx_a": "A man is seen sitting in a tube speaking and leads into people walking around carrying tubes.",
+      "ctx_b": "shots of the water",
+      "endings": [
+        "had the people walking along with water crashing into their tubes.",
+        "ride in a tube are shown around the tube.",
+        "is shown followed by people riding down a river on the tubes.",
+        "and people occasionally riding the tubes and getting ready to jump all around the world."
+      ],
+      "id": "hellaswag-val-24085",
+      "ind": 24085,
+      "label": "2",
+      "source_id": "activitynet~v_ksvIIhvmSRM",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Beach soccer",
+      "ctx": "The argentinians steal a pass halfway across the sand field and take it down for a goal in the tight corner. this",
+      "ctx_a": "The argentinians steal a pass halfway across the sand field and take it down for a goal in the tight corner.",
+      "ctx_b": "this",
+      "endings": [
+        "continues for a very long time.",
+        "time the little girl is wearing a green poncho and she is taking her time walking walking across the sand field.",
+        "is then repeated over and over again.",
+        "is immediately followed by another goal from argentina on a penalty kick."
+      ],
+      "id": "hellaswag-val-24338",
+      "ind": 24338,
+      "label": "3",
+      "source_id": "activitynet~v_nSR-JSqGoWQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": "A man talks to the camera from a kitchen. The man demonstrates sharpening a knife with several sharpening tools. The man talks to the camera again. the man",
+      "ctx_a": "A man talks to the camera from a kitchen. The man demonstrates sharpening a knife with several sharpening tools. The man talks to the camera again.",
+      "ctx_b": "the man",
+      "endings": [
+        "takes a sharpener and the sharpening stones, and cuts edges with it.",
+        "shows how to add the sharpening stone to the knife.",
+        "sharpens and then holds up a knife.",
+        "talks with the camera again."
+      ],
+      "id": "hellaswag-val-24353",
+      "ind": 24353,
+      "label": "2",
+      "source_id": "activitynet~v_nd50oUKdygI",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Hanging wallpaper",
+      "ctx": "A glue stick is shown on a table. a pair of scissors",
+      "ctx_a": "A glue stick is shown on a table.",
+      "ctx_b": "a pair of scissors",
+      "endings": [
+        "uses the smaller slivers of glue to cut the nails of a baby.",
+        "are a clip and a clip from a pack of cigarettes is pulled.",
+        "is on a table.",
+        "begin to trim the fingernails of a young girl."
+      ],
+      "id": "hellaswag-val-24823",
+      "ind": 24823,
+      "label": "2",
+      "source_id": "activitynet~v_tJcbG_HGZE8",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Having an ice cream",
+      "ctx": "A container of ice cream is shown. A bowl of the same ice cream is then shown. They are sitting on a stove top. a man",
+      "ctx_a": "A container of ice cream is shown. A bowl of the same ice cream is then shown. They are sitting on a stove top.",
+      "ctx_b": "a man",
+      "endings": [
+        "then eats the ice cream and talks to the camera.",
+        "goes with some sort of jeep, and then the kids have ice cream.",
+        "drizzles other ice cream on a bowl of ice cream.",
+        "adds vanilla scoops to a bowl and places it to a brown where it is blended with the chocolate chip ice cream."
+      ],
+      "id": "hellaswag-val-25669",
+      "ind": 25669,
+      "label": "0",
+      "source_id": "activitynet~v_7ghaFHKMUZ0",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Disc dog",
+      "ctx": "The man throws frisbees for the dog to catch. The man performs special tricks with the dog using the frisbee. the man",
+      "ctx_a": "The man throws frisbees for the dog to catch. The man performs special tricks with the dog using the frisbee.",
+      "ctx_b": "the man",
+      "endings": [
+        "spins the dog in his hands and catches the frisbees and throw with the dog.",
+        "jumps on the dog with the frisbee.",
+        "lifts the dog triumphantly over his head and carries him on his shoulder.",
+        "jumps on the dog on his back."
+      ],
+      "id": "hellaswag-val-26191",
+      "ind": 26191,
+      "label": "2",
+      "source_id": "activitynet~v_Mm-bwu8Q2IU",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Playing badminton",
+      "ctx": "Two people are seen playing badminton when one man speaks to the camera. The man moves his body around and demonstrates how to properly hit the birdie. he",
+      "ctx_a": "Two people are seen playing badminton when one man speaks to the camera. The man moves his body around and demonstrates how to properly hit the birdie.",
+      "ctx_b": "he",
+      "endings": [
+        "continues to speak and demonstrate on how to play.",
+        "throws the ball more and faster while playing.",
+        "moves it all the way to the bag and continues to hit until the ball is clear and then lets it go.",
+        "continues to speak and advance to volley, volley and volley while the other two try to hit the ball back."
+      ],
+      "id": "hellaswag-val-26589",
+      "ind": 26589,
+      "label": "0",
+      "source_id": "activitynet~v_WtWw-GNpr4E",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Vacuuming floor",
+      "ctx": "The man then takes out fries and dumps them on the floor and begins eating the fries off the ground. while he",
+      "ctx_a": "The man then takes out fries and dumps them on the floor and begins eating the fries off the ground.",
+      "ctx_b": "while he",
+      "endings": [
+        "'s eating he still twirls his stick around while talking.",
+        "'s doing this another man comes and grabs a chair and sits next to him who mouths off the food and continues eating.",
+        "is doing it, several people walking by stop to take pictures in amusement that he is eating off the ground.",
+        "'s eating, another kind of skinny and hairy woman walks into frame and begins to hold up movies she has made."
+      ],
+      "id": "hellaswag-val-28576",
+      "ind": 28576,
+      "label": "2",
+      "source_id": "activitynet~v_NHznDFD3V3k",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Chopping wood",
+      "ctx": "He walks to pick up and ax. A group of men stand on top of logs, chopping away. the chopping legend",
+      "ctx_a": "He walks to pick up and ax. A group of men stand on top of logs, chopping away.",
+      "ctx_b": "the chopping legend",
+      "endings": [
+        "struggles to get them off the logs.",
+        "speaks to the camera again.",
+        "of the first hunter is shown.",
+        "states that they are to knock down the logs and punch holes in them."
+      ],
+      "id": "hellaswag-val-28671",
+      "ind": 28671,
+      "label": "1",
+      "source_id": "activitynet~v_QMCHIR3nDLs",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Fixing the roof",
+      "ctx": "A person is seen laying plaster onto a roof and using a shovel to flatten it out. the person",
+      "ctx_a": "A person is seen laying plaster onto a roof and using a shovel to flatten it out.",
+      "ctx_b": "the person",
+      "endings": [
+        "places the plaster over the wall and uses a tool across the top to cover it.",
+        "then cuts down along the sides and finishes by laying a piece of carpet down.",
+        "peels back the plaster one piece at a time while the camera captures her movements.",
+        "continues laying plaster down while the camera pans around him from various sides."
+      ],
+      "id": "hellaswag-val-29144",
+      "ind": 29144,
+      "label": "3",
+      "source_id": "activitynet~v_aPzHheM0Egw",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "A person mows the lawn while a dog and a person play catch with a ball on the same lawn at the same time. A lawnmower begins mowing a small grass covered lawn while a dog walks around the perimeter. the dog",
+      "ctx_a": "A person mows the lawn while a dog and a person play catch with a ball on the same lawn at the same time. A lawnmower begins mowing a small grass covered lawn while a dog walks around the perimeter.",
+      "ctx_b": "the dog",
+      "endings": [
+        "and the person arrange the sword and frisbee switching and the dog in the middle.",
+        "begins throwing about windmills and flying in the air while people are around and the man in the house with a camera captures where the dog's movements are.",
+        "has a ball in its mouth, drops it in front of the lawn mower and a person off of the screen throws the ball to the dog, who runs after it.",
+        "joins the game and the person uses what the man is doing to mow the lawn."
+      ],
+      "id": "hellaswag-val-29813",
+      "ind": 29813,
+      "label": "2",
+      "source_id": "activitynet~v_rMWCaPh9UqE",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Gargling mouthwash",
+      "ctx": "A boy holds up a bottle of mouth wash. He drinks a cap full of the mouth wash. he",
+      "ctx_a": "A boy holds up a bottle of mouth wash. He drinks a cap full of the mouth wash.",
+      "ctx_b": "he",
+      "endings": [
+        "spits it out refills it.",
+        "gargles and spits it into a trash can.",
+        "spits out the bottle of mouth wash.",
+        "swishes it around in his mouth and spits it into a sink."
+      ],
+      "id": "hellaswag-val-29851",
+      "ind": 29851,
+      "label": "3",
+      "source_id": "activitynet~v_s9MNW35YCMw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": ". a person standing in a kitchen next to a cutting board on a kitchen counter",
+      "ctx_a": ".",
+      "ctx_b": "a person standing in a kitchen next to a cutting board on a kitchen counter",
+      "endings": [
+        "demonstrates how to sharpen a knife.",
+        "shows the washed products and then takes it and wash them in bottle.",
+        "begins cutting a potato with a large hook in the center of the table.",
+        "with their hands full of noodles, stirs them up and puts them in a pot on the stove."
+      ],
+      "id": "hellaswag-val-29958",
+      "ind": 29958,
+      "label": "0",
+      "source_id": "activitynet~v_upoS4Jct7kE",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "The lady towel dries her face. The lady puts spots of white lotion on her face and rubs it in. the lady",
+      "ctx_a": "The lady towel dries her face. The lady puts spots of white lotion on her face and rubs it in.",
+      "ctx_b": "the lady",
+      "endings": [
+        "applies a powder to her face and rubs and dries her face on the towel.",
+        "presents a small tube product.",
+        "blows dry her face with an electronic fan.",
+        "shows the phone logo on the computer screen."
+      ],
+      "id": "hellaswag-val-30616",
+      "ind": 30616,
+      "label": "1",
+      "source_id": "activitynet~v_55FFh89yqVw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "High jump",
+      "ctx": "The camera pans around an athletic woman standing ready and others watching her on the side. she",
+      "ctx_a": "The camera pans around an athletic woman standing ready and others watching her on the side.",
+      "ctx_b": "she",
+      "endings": [
+        "falls off into the sand pit.",
+        "is then seen warming up and throwing a shot put and the audience yelling and cheering.",
+        "stands ready demonstrating some gymnastics moves and stumbles into the pit.",
+        "jumps high over a pole and walks away as her jump is shown again in slow motion and another runner steps up."
+      ],
+      "id": "hellaswag-val-30858",
+      "ind": 30858,
+      "label": "3",
+      "source_id": "activitynet~v_8NcRuVMSQLs",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "A man is driving a riding lawn mower. he",
+      "ctx_a": "A man is driving a riding lawn mower.",
+      "ctx_b": "he",
+      "endings": [
+        "starts mowing the lawn on the lawn mower.",
+        "is mowing the lawn of a row neighborhood with his hands.",
+        "throws some leaves in a pile.",
+        "picks the lawn back up."
+      ],
+      "id": "hellaswag-val-31168",
+      "ind": 31168,
+      "label": "0",
+      "source_id": "activitynet~v_CE93IieQkAg",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Polishing shoes",
+      "ctx": "A middle eastern news caster is talking about a recent event in another language. the scene",
+      "ctx_a": "A middle eastern news caster is talking about a recent event in another language.",
+      "ctx_b": "the scene",
+      "endings": [
+        "transitions into several participants doing various activities outdoors.",
+        "switches to show group of people at an event of some kind.",
+        "then goes from black to white rapid as an audience watches.",
+        "fades to black and we see the screen then a person standing with his number and logo again."
+      ],
+      "id": "hellaswag-val-31335",
+      "ind": 31335,
+      "label": "1",
+      "source_id": "activitynet~v_EcQ7DcVefdw",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Tai chi",
+      "ctx": "A woman is standing outdoors in a pink martial arts outfit. she",
+      "ctx_a": "A woman is standing outdoors in a pink martial arts outfit.",
+      "ctx_b": "she",
+      "endings": [
+        "is carrying a sword, and a bow and arrows.",
+        "throws two darts at a board.",
+        "holds another girl behind her back and begins to begin dancing with her.",
+        "moves slowly, showing various martial arts moves."
+      ],
+      "id": "hellaswag-val-32269",
+      "ind": 32269,
+      "label": "3",
+      "source_id": "activitynet~v_P4Z4sQNQtJM",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "High jump",
+      "ctx": "Man in purple talks to the camera. man in purple",
+      "ctx_a": "Man in purple talks to the camera.",
+      "ctx_b": "man in purple",
+      "endings": [
+        "adds wax to the boot lid.",
+        "holds a bucket of pineapple and positioned it in the bathroom.",
+        "walks forward in slow steps.",
+        "grabs a vase and fresh roses and the man talks to the camera."
+      ],
+      "id": "hellaswag-val-32550",
+      "ind": 32550,
+      "label": "2",
+      "source_id": "activitynet~v_TIue1jR51j8",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "There's a girl with long brown hair playing the harmonica in a hospital elevator. The elevator door opens and several people enter the elevator. she",
+      "ctx_a": "There's a girl with long brown hair playing the harmonica in a hospital elevator. The elevator door opens and several people enter the elevator.",
+      "ctx_b": "she",
+      "endings": [
+        "briefly shows viewers how to get out the door and go back to her normal job in the mall.",
+        "continues playing her harmonica.",
+        "'s wearing a hoodie and a man is raising and lower his hands with the harmonica.",
+        "is playing the harmonica in the lobby below."
+      ],
+      "id": "hellaswag-val-33114",
+      "ind": 33114,
+      "label": "1",
+      "source_id": "activitynet~v_ZlHaPkhGr_g",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing pool",
+      "ctx": "A sports logo flashes on the screen. a woman",
+      "ctx_a": "A sports logo flashes on the screen.",
+      "ctx_b": "a woman",
+      "endings": [
+        "is parasailing on a water ski.",
+        "stands in a tangled whirlpool bathroom, then bends.",
+        "is demonstrating how to spin a stick.",
+        "talking into a microphone wearing a white shirt."
+      ],
+      "id": "hellaswag-val-33432",
+      "ind": 33432,
+      "label": "3",
+      "source_id": "activitynet~v_cGNkR-JvaJs",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Painting furniture",
+      "ctx": "We see a title in the upper left corner. a man",
+      "ctx_a": "We see a title in the upper left corner.",
+      "ctx_b": "a man",
+      "endings": [
+        "takes offense to the ear piercing techniques and tries to pull out the dart.",
+        "talks to the camera while sits in a kayak.",
+        "is shown demonstrating how to make a cup of hula hoops.",
+        "is talking to the camera."
+      ],
+      "id": "hellaswag-val-34029",
+      "ind": 34029,
+      "label": "3",
+      "source_id": "activitynet~v_jkWqhnD8hyQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Snow tubing",
+      "ctx": "People are sledding down a snowy hill on an inner tube. they",
+      "ctx_a": "People are sledding down a snowy hill on an inner tube.",
+      "ctx_b": "they",
+      "endings": [
+        "stop at the bottom of the hill.",
+        "are in the snow on their bellies moving fast.",
+        "get on the inner tubes and begin walking down the hill to the end.",
+        "pass several tunnels and platers."
+      ],
+      "id": "hellaswag-val-34871",
+      "ind": 34871,
+      "label": "0",
+      "source_id": "activitynet~v_suwVnxHZtI8",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Pole vault",
+      "ctx": "A man is running while holding a pole on a track. He uses the pole to vault through the air. he",
+      "ctx_a": "A man is running while holding a pole on a track. He uses the pole to vault through the air.",
+      "ctx_b": "he",
+      "endings": [
+        "lands in a sand pit surrounded by people and concrete props.",
+        "lands on a mat inside a gym.",
+        "vaults over a high bar onto a mat.",
+        "lands comfortably onto the mat several times."
+      ],
+      "id": "hellaswag-val-36124",
+      "ind": 36124,
+      "label": "2",
+      "source_id": "activitynet~v_FsS8cQbfKTQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Rock climbing",
+      "ctx": "A white wall is shown with pegs poking out and strips of tape hanging down and a girl begins cliff climbing the wall as a man in a blue shirt begins to talk. the young lady",
+      "ctx_a": "A white wall is shown with pegs poking out and strips of tape hanging down and a girl begins cliff climbing the wall as a man in a blue shirt begins to talk.",
+      "ctx_b": "the young lady",
+      "endings": [
+        "climbs along backwards on the rails and we see her jump straight off of the side of the chalk.",
+        "gets to the bottom and takes her turn but then falls on the ground and ends on her head.",
+        "continues progressing up the wall as the man continues to talk in a split screen.",
+        "continues her climb as the man holds up sticks and follows her down each way until she reaches the bottom."
+      ],
+      "id": "hellaswag-val-3623",
+      "ind": 3623,
+      "label": "2",
+      "source_id": "activitynet~v_fY2IeYSxY4U",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Throwing darts",
+      "ctx": "A woman is shown speaking to the camera while holding a dart. pictures of a man",
+      "ctx_a": "A woman is shown speaking to the camera while holding a dart.",
+      "ctx_b": "pictures of a man",
+      "endings": [
+        "'s arms are shown as well as this dart.",
+        "with a bowflex in one ear and a dart in her other ear next to a dart board in a room.",
+        "playing darts appear and he is shaking in distress before returning to talking to the camera.",
+        "are shown and leads into her throwing darts."
+      ],
+      "id": "hellaswag-val-36548",
+      "ind": 36548,
+      "label": "3",
+      "source_id": "activitynet~v_SGQQSH88isc",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Sharpening knives",
+      "ctx": "A \"trend routing technology\" logo appears on screen. \"knife sharpening using a diamond bench stone\" appears. two men",
+      "ctx_a": "A \"trend routing technology\" logo appears on screen. \"knife sharpening using a diamond bench stone\" appears.",
+      "ctx_b": "two men",
+      "endings": [
+        "are inside a gyre sitting on a bench sharpening knives while women wait outside in the stands ready and ready.",
+        "finely sharpen knives using a long sharpening knife.",
+        "discuss, and one appears with a white \" chinese slanting \" stone.",
+        "demonstrate sharpening a knife using a honing stone."
+      ],
+      "id": "hellaswag-val-37364",
+      "ind": 37364,
+      "label": "3",
+      "source_id": "activitynet~v_oA_uJ9gLvUQ",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "High jump",
+      "ctx": "A female track athlete stands on the tracks. she",
+      "ctx_a": "A female track athlete stands on the tracks.",
+      "ctx_b": "she",
+      "endings": [
+        "runs, running and jumping from side to side.",
+        "runs on the track.",
+        "gets into a position, then runs.",
+        "runs, then jumps into a cart shaped like a bowl."
+      ],
+      "id": "hellaswag-val-37685",
+      "ind": 37685,
+      "label": "2",
+      "source_id": "activitynet~v_wtoKUYBw9f4",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Hopscotch",
+      "ctx": "A young girl stands in the drive way. She starts backing up toward the street. She then runs forward toward the camera. she",
+      "ctx_a": "A young girl stands in the drive way. She starts backing up toward the street. She then runs forward toward the camera.",
+      "ctx_b": "she",
+      "endings": [
+        "then does hopscotch on the cement.",
+        "then jumps the balance beam.",
+        "then runs after a street metrorail parked in the drive way.",
+        "runs through a yellow light."
+      ],
+      "id": "hellaswag-val-37958",
+      "ind": 37958,
+      "label": "0",
+      "source_id": "activitynet~v_3L0MnbQkLWM",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Ballet",
+      "ctx": "We see an empty auditorium and a title on the screen. we",
+      "ctx_a": "We see an empty auditorium and a title on the screen.",
+      "ctx_b": "we",
+      "endings": [
+        "see ballerinas dancing on a stage cut with scenes of a lady being interviewed.",
+        "see a man talking in a venue.",
+        "see a cowboy walk into a arena and grab his hands.",
+        "see a lady speaking with the camera."
+      ],
+      "id": "hellaswag-val-39191",
+      "ind": 39191,
+      "label": "0",
+      "source_id": "activitynet~v_bBtzyRzk0UM",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Clipping cat claws",
+      "ctx": "The cat groomer grabs a cat nail clipper in her right hand. The cat groomer squeezes the cats paw and proceeds to clip the cats nails. the cat groomer",
+      "ctx_a": "The cat groomer grabs a cat nail clipper in her right hand. The cat groomer squeezes the cats paw and proceeds to clip the cats nails.",
+      "ctx_b": "the cat groomer",
+      "endings": [
+        "grabs a bottle of clippers and places the cat's nails on the floor and resumes clipping the nails off her paw.",
+        "then holds the cat close and adjust the camera.",
+        "performs dog tricks and jumps up on her lap to finish clipping the nails.",
+        "throws her left paw up then clips her nails."
+      ],
+      "id": "hellaswag-val-39913",
+      "ind": 39913,
+      "label": "1",
+      "source_id": "activitynet~v_tfPm9xAZ5z0",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Layup drill in basketball",
+      "ctx": "Three teens run and a boy throws the basketball to the basket, then the second teen grabs the ball and pass the ball to two teens disputing to have the ball. Then, three more boys run to practice the same steps. a young man",
+      "ctx_a": "Three teens run and a boy throws the basketball to the basket, then the second teen grabs the ball and pass the ball to two teens disputing to have the ball. Then, three more boys run to practice the same steps.",
+      "ctx_b": "a young man",
+      "endings": [
+        "wearing a yellow t-shirt practice basketball on the other basketball goal.",
+        "wearing black santa claus suit give the ball to one of the young teens who take it, while his mother pushes the round ball to the other direction.",
+        "practice on a gym floor, while three other boys practice in gym gym.",
+        "play basketball with a kid while facing backwards."
+      ],
+      "id": "hellaswag-val-4010",
+      "ind": 4010,
+      "label": "0",
+      "source_id": "activitynet~v_js9SDSngI7A",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Layup drill in basketball",
+      "ctx": "A group of children play and practice basketball throws and techniques in an interior gym in front of coaches and other children. a group of children",
+      "ctx_a": "A group of children play and practice basketball throws and techniques in an interior gym in front of coaches and other children.",
+      "ctx_b": "a group of children",
+      "endings": [
+        "take turns throwing orange and white balls in the net and running up to the net as well.",
+        "plays on beach with sand bag and ball.",
+        "practice on basketball practice tables in an indoor gym.",
+        "plays and dances on an inside court outside of a gym room."
+      ],
+      "id": "hellaswag-val-41093",
+      "ind": 41093,
+      "label": "0",
+      "source_id": "activitynet~v_B7Q1egUKmZg",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "He said he paid his dog 10 dollars to cut the grass and now he's gone. He finally finds the dog who is driving the riding lawn mower. according",
+      "ctx_a": "He said he paid his dog 10 dollars to cut the grass and now he's gone. He finally finds the dog who is driving the riding lawn mower.",
+      "ctx_b": "according",
+      "endings": [
+        "to the dog, the person picked up some seeds out of a wall and then trail a path into a hole.",
+        "to the website he cuts the grass and then there are links for other canine races.",
+        "to the website it's a veggie run special and you can buy it at any price you choose.",
+        "to the owner, the dog is asking for a raise."
+      ],
+      "id": "hellaswag-val-41806",
+      "ind": 41806,
+      "label": "3",
+      "source_id": "activitynet~v_KK7g7udEPuo",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Mixing drinks",
+      "ctx": "He places the ingredients of alcohol and juice on a table, added the ingredients, as well as grenadine to a tall glass with ice. he",
+      "ctx_a": "He places the ingredients of alcohol and juice on a table, added the ingredients, as well as grenadine to a tall glass with ice.",
+      "ctx_b": "he",
+      "endings": [
+        "pours the drink into the glass, adds lime and people take their turns to drink it.",
+        "then pours all the alcohol and juice in it at the same time and places a small amount of chocolate syrup along the sides of the salad.",
+        "then pours liquors into the glass and shakes it, then adds a fresh drink.",
+        "displays the beautiful drink on the table."
+      ],
+      "id": "hellaswag-val-42054",
+      "ind": 42054,
+      "label": "3",
+      "source_id": "activitynet~v_NVeTGvwk8y0",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Plataform diving",
+      "ctx": "A female swimmer is standing on a diving board in a black swim suit and she jumps off doing multiple flips. she",
+      "ctx_a": "A female swimmer is standing on a diving board in a black swim suit and she jumps off doing multiple flips.",
+      "ctx_b": "she",
+      "endings": [
+        "goes to the bottom of the pool and she does a flip up in the air, flips over and does a proper back flip.",
+        "is then shown on ground level talking and wiping her face with a towel.",
+        "waits for an instant and with incredible speed does a front flip on the diving board.",
+        "then moves backwards and forward swirling around to bring her chest up to the diving board."
+      ],
+      "id": "hellaswag-val-42142",
+      "ind": 42142,
+      "label": "1",
+      "source_id": "activitynet~v_OW_iCiS_U4Y",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Discus throw",
+      "ctx": "A black screen appears with red and white letters on it that say \"discus throw example of correction of a delivery problem for a beginner\". a young lady",
+      "ctx_a": "A black screen appears with red and white letters on it that say \"discus throw example of correction of a delivery problem for a beginner\".",
+      "ctx_b": "a young lady",
+      "endings": [
+        "takes her fist into the air and jumps to the right, fast, catching several discs in the air.",
+        "walks into a white room wearing a black jacket and reappears with an aluminum fork in her hand.",
+        "appears for the discus throw classroom at some point in between.",
+        "is now standing on a concrete circle and she begins swinging her red discus, then swings her body and then throws it."
+      ],
+      "id": "hellaswag-val-43250",
+      "ind": 43250,
+      "label": "3",
+      "source_id": "activitynet~v__sgg_QEjcEE",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Hand car wash",
+      "ctx": "A young child is seen standing before a car holding a rag and looking at the camera. the boy",
+      "ctx_a": "A young child is seen standing before a car holding a rag and looking at the camera.",
+      "ctx_b": "the boy",
+      "endings": [
+        "then walks up to the car and begins tearing it up with a stick and other objects.",
+        "then wipes down the car and climbs back in the car and starts driving out into the street.",
+        "uses the rag all over the car while the camera follows his movements.",
+        "then then pushes the rag down and begins pulling on a tire."
+      ],
+      "id": "hellaswag-val-43690",
+      "ind": 43690,
+      "label": "2",
+      "source_id": "activitynet~v_e5XATG2IK6Q",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Layup drill in basketball",
+      "ctx": "Two men are standing on the side of the court holding basketball. the men",
+      "ctx_a": "Two men are standing on the side of the court holding basketball.",
+      "ctx_b": "the men",
+      "endings": [
+        "begin basket roping with one another in the middle of the court.",
+        "are giving interview, talking to the camera, while one man is talking the other man is listening, then vice versa.",
+        "are practicing backflips on the court.",
+        "play ball into the basket and throw the ball."
+      ],
+      "id": "hellaswag-val-43727",
+      "ind": 43727,
+      "label": "1",
+      "source_id": "activitynet~v_eW5W8dVB_I4",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Capoeira",
+      "ctx": "We see the man do a handstand on one hand. The man finishes, grabs his shirt, and walks off. we",
+      "ctx_a": "We see the man do a handstand on one hand. The man finishes, grabs his shirt, and walks off.",
+      "ctx_b": "we",
+      "endings": [
+        "see video clips in the closing screen.",
+        "see the ending screen at.",
+        "see frle news clipping on the screen.",
+        "see a few names on the screen."
+      ],
+      "id": "hellaswag-val-43847",
+      "ind": 43847,
+      "label": "0",
+      "source_id": "activitynet~v_g2uL6H3fP1c",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "High jump",
+      "ctx": "A man is shown running down a track. he",
+      "ctx_a": "A man is shown running down a track.",
+      "ctx_b": "he",
+      "endings": [
+        "throws open his arms, spinning around on a dirt track.",
+        "does a series of back flips while going down the track.",
+        "pulls a stick as he runs.",
+        "then catapults into the air over a bar."
+      ],
+      "id": "hellaswag-val-46144",
+      "ind": 46144,
+      "label": "3",
+      "source_id": "activitynet~v_Hn3-SRXssY4",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Running a marathon",
+      "ctx": "A man in black stands in front of a line of people racing at the finish and puts a medal around the head of a 101 year old man. we",
+      "ctx_a": "A man in black stands in front of a line of people racing at the finish and puts a medal around the head of a 101 year old man.",
+      "ctx_b": "we",
+      "endings": [
+        "see a black title screen for a second and then a white screen and the white screen has a black parallel bar on it and we see a shut up screen.",
+        "then switch to people in the bleachers sprinting forward and their scores showing up on the screen.",
+        "see a paper with a head line and a cityscape.",
+        "see someone take a view."
+      ],
+      "id": "hellaswag-val-47369",
+      "ind": 47369,
+      "label": "2",
+      "source_id": "activitynet~v_oSoi5owiybU",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Snatch",
+      "ctx": "A man in black shirt lifted the barbel and started to carry it up and down for few times, while behind him, two men are removing the metal plates on another barbel. the man in black shirt",
+      "ctx_a": "A man in black shirt lifted the barbel and started to carry it up and down for few times, while behind him, two men are removing the metal plates on another barbel.",
+      "ctx_b": "the man in black shirt",
+      "endings": [
+        "removed the plate and raised the barbel, while people standing next to him held the barbel heads.",
+        "began to lift the barbel feet and lower them while the people that are standing at three barbel also lifted the barbel, and then lowered it.",
+        "lifted the barbel and something inside it flipped off and the other man stopped and get the stuff and hand it to the other man who tried to carry it up and handed it to him.",
+        "added more weight on the barbel by adding yellow plates on both side, then continue weight lifting."
+      ],
+      "id": "hellaswag-val-4744",
+      "ind": 4744,
+      "label": "3",
+      "source_id": "activitynet~v_sgPkVKPp1dU",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Having an ice cream",
+      "ctx": "Little kid is sitting in a babies eating chair. an adult person",
+      "ctx_a": "Little kid is sitting in a babies eating chair.",
+      "ctx_b": "an adult person",
+      "endings": [
+        "is holding an ice cream and is offering it to the baby.",
+        "is playing in the swing.",
+        "are sitting in the chair watching.",
+        "enters and check the baby things, then the baby gets cleaned."
+      ],
+      "id": "hellaswag-val-47576",
+      "ind": 47576,
+      "label": "0",
+      "source_id": "activitynet~v_tOCFOu8eOkU",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Washing face",
+      "ctx": "A small puppy is rubbing his face in someone's lap. he",
+      "ctx_a": "A small puppy is rubbing his face in someone's lap.",
+      "ctx_b": "he",
+      "endings": [
+        "chews and licks his paw as he cuddles.",
+        "looks up, and the person starts shaving the top of his ears with a clipper.",
+        "lifts up his face and smiles, looking on the camera.",
+        "looks up and smiles and then a woman is giving a news segment about him."
+      ],
+      "id": "hellaswag-val-48588",
+      "ind": 48588,
+      "label": "0",
+      "source_id": "activitynet~v_K5wPwCFVkhU",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Doing karate",
+      "ctx": "A woman in white kimono is doing a karate moves with is sempai, she is standing on the side of the carpeted room. the sempai",
+      "ctx_a": "A woman in white kimono is doing a karate moves with is sempai, she is standing on the side of the carpeted room.",
+      "ctx_b": "the sempai",
+      "endings": [
+        "go close to her to teach her the proper moves, and attack her lightly, she in return counter attack by moving forward while kicking.",
+        "'s watched as the girl slowly forms her arm's on the floor, getting ready to move to the one leg so she can hit the back of the body before the body hits the floor and disappear.",
+        "makes a karate move in the floor with her hands.",
+        "is moving around on the floor smoothly and has a rubin and a white wooden kick in his back, he then stops in waist height and hands that remain on the ground."
+      ],
+      "id": "hellaswag-val-48592",
+      "ind": 48592,
+      "label": "0",
+      "source_id": "activitynet~v_KBG7wrKsZAI",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Running a marathon",
+      "ctx": "The people are seen running the marathon. Two women participating in the marathon are interviewed. More people run the marathon. two ham radio operators",
+      "ctx_a": "The people are seen running the marathon. Two women participating in the marathon are interviewed. More people run the marathon.",
+      "ctx_b": "two ham radio operators",
+      "endings": [
+        "talk while playing music.",
+        "are interviewed along with two men who have seen the marathon.",
+        "talk into the radio.",
+        "are interviewed on a sidewalk."
+      ],
+      "id": "hellaswag-val-49263",
+      "ind": 49263,
+      "label": "2",
+      "source_id": "activitynet~v_dJ0kxnyVzFI",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Playing harmonica",
+      "ctx": "A man demonstrates, in a living room setting, how to play the harmonica. a man",
+      "ctx_a": "A man demonstrates, in a living room setting, how to play the harmonica.",
+      "ctx_b": "a man",
+      "endings": [
+        "plays a harmonica for the camera attached to a smoking guitar on television set.",
+        "plays the harmonica for the camera while another man plays to make music for the audience.",
+        "demonstrates, in slow motion, how to play the harmonica with an elliptical.",
+        "holds a harmonica up to the camera in a close up shot and then begins to play using both hands to cover the harmonica while he plays."
+      ],
+      "id": "hellaswag-val-49515",
+      "ind": 49515,
+      "label": "3",
+      "source_id": "activitynet~v_jVC3DZdphYM",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Raking leaves",
+      "ctx": "A man is raking leaves in a yard. he",
+      "ctx_a": "A man is raking leaves in a yard.",
+      "ctx_b": "he",
+      "endings": [
+        "raises it up to his face.",
+        "stands up and goes back to raking.",
+        "throws the leaves off into the distance.",
+        "is using a clear bag to package them up."
+      ],
+      "id": "hellaswag-val-5543",
+      "ind": 5543,
+      "label": "3",
+      "source_id": "activitynet~v_2Sev8z4P7pE",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Tumbling",
+      "ctx": "A man is inside of a gym. He starts doing flips inside the gym. He does many tricks as he jumps in the air. he",
+      "ctx_a": "A man is inside of a gym. He starts doing flips inside the gym. He does many tricks as he jumps in the air.",
+      "ctx_b": "he",
+      "endings": [
+        "lands on his feet after the tricks.",
+        "stops performing many tricks back and fourth.",
+        "continues to do the splits as he sports his body from various angles.",
+        "does more flips from the outside and on inside the gym."
+      ],
+      "id": "hellaswag-val-5814",
+      "ind": 5814,
+      "label": "0",
+      "source_id": "activitynet~v_AFtFitXAFks",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Doing kickboxing",
+      "ctx": "A small boy is seen punching and kicking a man on his knees wearing gloves. another boy",
+      "ctx_a": "A small boy is seen punching and kicking a man on his knees wearing gloves.",
+      "ctx_b": "another boy",
+      "endings": [
+        "steps up and hits the man holding him down while twisting and making several kicks with the man's help.",
+        "approaches while the mat is being rolled and jumps on the man to continue hitting.",
+        "punches and kicks the same man.",
+        "is seen punching and kicking a man standing up."
+      ],
+      "id": "hellaswag-val-6190",
+      "ind": 6190,
+      "label": "2",
+      "source_id": "activitynet~v_J_CJSmMFWlg",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Canoeing",
+      "ctx": "The men begin putting a boat on the back of a truck. The men tie the boat down. the men",
+      "ctx_a": "The men begin putting a boat on the back of a truck. The men tie the boat down.",
+      "ctx_b": "the men",
+      "endings": [
+        "take a ladder to board the boat on their backs.",
+        "climb across the rope.",
+        "drives to a lake and they all go fishing.",
+        "then jump down the side of a bridge."
+      ],
+      "id": "hellaswag-val-6501",
+      "ind": 6501,
+      "label": "2",
+      "source_id": "activitynet~v_T3bTwmccIEQ",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Beach soccer",
+      "ctx": "A man in a red shirt pours water over his head. Images and video clips of teams playing beach soccer in the sand. video clips",
+      "ctx_a": "A man in a red shirt pours water over his head. Images and video clips of teams playing beach soccer in the sand.",
+      "ctx_b": "video clips",
+      "endings": [
+        ", aerial shots of the team's actions, and the players parking their cars.",
+        "of different beach soccer teams taking shots at the goal.",
+        "of a man slapping his feet on the sand.",
+        "of players jumping from a boat into the sand are shown."
+      ],
+      "id": "hellaswag-val-6857",
+      "ind": 6857,
+      "label": "1",
+      "source_id": "activitynet~v_bfk3xsTt0XA",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Cutting the grass",
+      "ctx": "He walks throughout his backyard as he makes sure he covers the entire area as the rotating blades of the lawn mower cut the grass. after he",
+      "ctx_a": "He walks throughout his backyard as he makes sure he covers the entire area as the rotating blades of the lawn mower cut the grass.",
+      "ctx_b": "after he",
+      "endings": [
+        "finishes, the yard is shown and begins to gargle of the compost in his yard.",
+        "pulls in the last string, he makes sure he has a good bend seated inside the weeds, grabs a rake then slivers the top of the hedge.",
+        "is done, he stands on top of a mound of new green fluff and begins throwing the fluff to the ground as he takes his cigarette out of his smoke holder and lights it.",
+        "'s done mowing, he plays with his two black and white dogs in his backyard."
+      ],
+      "id": "hellaswag-val-6864",
+      "ind": 6864,
+      "label": "3",
+      "source_id": "activitynet~v_bpB0GiH6uDw",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Wakeboarding",
+      "ctx": "A person is wake boarding behind a boat. they",
+      "ctx_a": "A person is wake boarding behind a boat.",
+      "ctx_b": "they",
+      "endings": [
+        "go back and forth over the waves of the boat.",
+        "are at the watership, then they cables up into the system and rests.",
+        "are swimming behind a boat.",
+        "lower a hose into a cup."
+      ],
+      "id": "hellaswag-val-6887",
+      "ind": 6887,
+      "label": "0",
+      "source_id": "activitynet~v_cXfflEWa83E",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Making a cake",
+      "ctx": "The man is back at the large light gray counter and in a sped up motion the man is shown with various different supplies as he assembles a very large truck cake that was previously shown. when the cake",
+      "ctx_a": "The man is back at the large light gray counter and in a sped up motion the man is shown with various different supplies as he assembles a very large truck cake that was previously shown.",
+      "ctx_b": "when the cake",
+      "endings": [
+        "ready is ready the man takes a pain killer that it looks like is made of chocolate chips and the cals don't seem very happy as they collide into the other cakes that are going up and down the scale.",
+        "is complete the chef lays down a blue sheet over the cake area and lays out a foot long cake piece that looks like it has duct tape on it.",
+        "is done, the man begins wrapping and peeling the cake as the camera focuses on his movements some someone else is close to the kitchen counter which has a very pointed ceiling.",
+        "is all done the camera pans the whole cake so the details can be seen and once again we see the smaller scale cake and the toy."
+      ],
+      "id": "hellaswag-val-7431",
+      "ind": 7431,
+      "label": "3",
+      "source_id": "activitynet~v_sPSfixKrDc0",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Layup drill in basketball",
+      "ctx": "A man is seen speaking to the camera while holding a basketball. The man then begins performing several baskets. he",
+      "ctx_a": "A man is seen speaking to the camera while holding a basketball. The man then begins performing several baskets.",
+      "ctx_b": "he",
+      "endings": [
+        "straight across the basket with a forward momentum.",
+        "continues shooting hoops with the ball while speaking to the camera.",
+        "throws the ball back and fourth and ends by demonstrating how to tie his shoes.",
+        "begins throwing all of the sticks using the stick."
+      ],
+      "id": "hellaswag-val-7457",
+      "ind": 7457,
+      "label": "1",
+      "source_id": "activitynet~v_ssBiSN8XofA",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Ice fishing",
+      "ctx": "A couple of men are standing on an iced over lake. they",
+      "ctx_a": "A couple of men are standing on an iced over lake.",
+      "ctx_b": "they",
+      "endings": [
+        "are engaged in a game of volleyball.",
+        "jump off of a bridge onto a large rock.",
+        "put the tubing into the water, led by a boy.",
+        "have made holes through the ice."
+      ],
+      "id": "hellaswag-val-7480",
+      "ind": 7480,
+      "label": "3",
+      "source_id": "activitynet~v_tBGeBbO8gh0",
+      "split": "val",
+      "split_type": "zeroshot"
+    },
+    {
+      "activity_label": "Baking cookies",
+      "ctx": "The two girls hug each other. The two girls sit in front of the oven licking their mixing spoons. the two girls",
+      "ctx_a": "The two girls hug each other. The two girls sit in front of the oven licking their mixing spoons.",
+      "ctx_b": "the two girls",
+      "endings": [
+        "tear up and speak to each other as they continue to eat their lunches.",
+        "begin to scrape the top off the potatoes.",
+        "remove the baking sheet from the oven.",
+        "take a glass o milk then chug it."
+      ],
+      "id": "hellaswag-val-7652",
+      "ind": 7652,
+      "label": "2",
+      "source_id": "activitynet~v_xsdrqauYhJs",
+      "split": "val",
+      "split_type": "indomain"
+    },
+    {
+      "activity_label": "Raking leaves",
+      "ctx": "A person is seen raking a pile of leaves in the yard while speaking and pointing to the camera. the camera",
+      "ctx_a": "A person is seen raking a pile of leaves in the yard while speaking and pointing to the camera.",
+      "ctx_b": "the camera",
+      "endings": [
+        "pans all around to where the girl is pointing and walks back to zoom in on her face.",
+        "then captures several animals raking as well as a dog chasing a ball.",
+        "zooms out giving the person a view of the heavy rake.",
+        "pans the leaves over to another yard and catches him shoveling more and more leaves down."
+      ],
+      "id": "hellaswag-val-8742",
+      "ind": 8742,
+      "label": "0",
+      "source_id": "activitynet~v_POYg9zju63U",
+      "split": "val",
+      "split_type": "indomain"
+    }
+  ],
+  "source_files": {
+    "data/validation-00000-of-00001.parquet": "899813071e1e95efafec90f856e1987d2150fa4d020fc005df6962c259f660cd"
+  }
+}

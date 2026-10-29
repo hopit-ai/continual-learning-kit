@@ -1,0 +1,17 @@
+{
+ "schema": "message3-knowledge-likelihood.v1",
+ "panel": "kit/panels/general-v1.jsonl rows with panel == knowledge (100 MMLU items, four options each)",
+ "parsing": "question = prompt text before the first blank line followed by '(A) '; options = the consecutive lines '(<letter>) <text>' of that block, letters A, B, C, D in order; gold = index of the row's answer letter; the trailing generation instruction is not part of the context",
+ "context": "'Question: ' + question.strip() + '\\nAnswer:'",
+ "continuation": "context + ' ' + option text (option text stripped; no letter, no chat template, no special tokens)",
+ "boundary": "tokenize(context) must be a strict prefix of tokenize(context + ' ' + option); otherwise the item fails (never repaired)",
+ "eos": "no EOS token is appended or scored; only the option-text tokens after the context boundary are summed",
+ "normalisation": "sum of option-token log probabilities divided by Python len(option text), Unicode characters, excluding the separator space",
+ "scoring": "highest length-normalised conditional log likelihood",
+ "tie": "lowest original zero-based choice index",
+ "tokenizer_source": "frozen pinned base tokenizer for every checkpoint (kit/resources/m2/format-validity.json tokenizer_files)",
+ "production": "vLLM prompt_logprobs (temperature 0, max_tokens 1), one GPU, bf16, eager, seed 0",
+ "reference": "independent sequential HF bf16 forward with explicit token-by-token log-softmax reduction",
+ "validation": "per seed's scoring assignment, on the base checkpoint, before any outcome: complete 100x4 coverage, finite likelihoods, selected-choice agreement 100/100; otherwise PENDING (CR stays pending; no endpoint switch)",
+ "strict_letter": "generated-letter knowledge scores and format failures are diagnostic only"
+}

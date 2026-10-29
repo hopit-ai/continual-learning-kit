@@ -1,0 +1,113 @@
+{
+  "assumptions": {
+    "central_final_save_tail_seconds": 60,
+    "central_live_export_allowance_seconds": 120,
+    "credit_for_removed_intermediate_saves_seconds": 0,
+    "truncated_run": "1831.055 s includes startup, downloads, merges and an incomplete final save; no unobserved completion is claimed",
+    "upper_final_save_tail_seconds": 120,
+    "upper_live_export_allowance_seconds": 180,
+    "upper_observed_pipeline_slowdown": 1.2
+  },
+  "launched": false,
+  "measured_basis": {
+    "log_path": "tmp/review/part-p2-attempt3.log",
+    "log_sha256": "8e6b23f851a5d07e28ef1f089dc37bafa16a7da049c8a217fd1bd2512101b28d",
+    "parsed_stages": {
+      "control": {
+        "pid": 8888,
+        "progress_seconds": 401,
+        "updates": {
+          "1": {
+            "timing_s/step": 107.69310932400003,
+            "timing_s/update_actor": 69.70380916699992
+          },
+          "2": {
+            "timing_s/save_checkpoint": 9.935950497000022,
+            "timing_s/step": 91.98556991199996,
+            "timing_s/update_actor": 68.56760316300006
+          },
+          "3": {
+            "timing_s/step": 91.87401620399987,
+            "timing_s/update_actor": 69.36933903599993
+          },
+          "4": {
+            "timing_s/save_checkpoint": 9.763323837999906,
+            "timing_s/step": 89.86476789500011,
+            "timing_s/update_actor": 67.2146513350001
+          }
+        }
+      },
+      "measure": {
+        "pid": 5559,
+        "progress_seconds": 102,
+        "updates": {}
+      },
+      "p2": {
+        "pid": 12918,
+        "progress_seconds": 305,
+        "updates": {
+          "1": {
+            "timing_s/step": 109.26446073300008,
+            "timing_s/update_actor": 72.53951612900005
+          },
+          "2": {
+            "timing_s/save_checkpoint": 11.55113170300001,
+            "timing_s/step": 91.15728921799996,
+            "timing_s/update_actor": 68.892208256
+          },
+          "3": {
+            "timing_s/step": 92.47409948900008,
+            "timing_s/update_actor": 69.26114810600006
+          }
+        }
+      },
+      "preparation": {
+        "pid": 1343,
+        "progress_seconds": 426,
+        "updates": {
+          "1": {
+            "timing_s/step": 113.09516336899998,
+            "timing_s/update_actor": 73.85245518599999
+          },
+          "2": {
+            "timing_s/step": 94.970642107,
+            "timing_s/update_actor": 70.84171946200001
+          },
+          "3": {
+            "timing_s/step": 102.87825085200001,
+            "timing_s/update_actor": 71.25375933800001
+          },
+          "4": {
+            "timing_s/save_checkpoint": 11.132868698000038,
+            "timing_s/step": 103.706457608,
+            "timing_s/update_actor": 72.42707179499996
+          }
+        }
+      }
+    },
+    "path": "docs/phase2/evidence/x-integration-p2-smoke.attempt3.json",
+    "seconds": 1831.055079416954,
+    "sha256": "2f98dbdd25428bc777d810cce360e06588e21e9c91316dda1d1502a39a57ba80"
+  },
+  "parts": {
+    "p2": {
+      "checks": "all registered P2 gates; final-only preparation/control/P2 saves; X6 live fp32 export and complete verdict before native checkpoint",
+      "fp32_exports": 3,
+      "full_state_saves": 3,
+      "launches": 4,
+      "logical_actor_calls": 13,
+      "minutes": [
+        30.5176,
+        33.5176,
+        41.6211
+      ],
+      "model_only_live_exports": 1,
+      "seconds": {
+        "central": 2011.055079,
+        "lower_scenario": 1831.055079416954,
+        "upper_scenario": 2497.266095
+      }
+    }
+  },
+  "schema": "p2-attempt4-timing-forecast.v1"
+}

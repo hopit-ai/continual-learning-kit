@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def host(tmp_path,monkeypatch):
-    task=tmp_path/'lustre-storage/fsx_efa/user/partner_with_long_name/v4-finqa'
+    task=tmp_path/'partner-storage/partner-storage/operator/partner_with_long_name/v4-finqa'
     work=task/'work.ABCDEF';work.mkdir(parents=True)
     model=task/'hf-cache/model';model.mkdir(parents=True)
     (model/'config.json').write_text(json.dumps(CONFIG))

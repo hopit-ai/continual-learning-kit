@@ -1,0 +1,1358 @@
+{
+  "candidate_sha256": "d3d4cfc378c734fa8e3f197eaaaa71673cbdcf83c12a9033f6fe033bd2f0a9a6",
+  "identity_sha256": "4c10306c3789e2256cfd23ade415b2eee0191a2bc17c25caa5481bfc5941da93",
+  "items": [
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:8",
+      "label": "DESC:def",
+      "original_id": 8,
+      "split": "train",
+      "text": "What are liver enzymes ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:118",
+      "label": "ENTY:termeq",
+      "original_id": 118,
+      "split": "train",
+      "text": "What 's the common name for acetylsalicylic acid ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:134",
+      "label": "ENTY:substance",
+      "original_id": 134,
+      "split": "train",
+      "text": "What are the most common elements in the Earth 's crust ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:223",
+      "label": "DESC:desc",
+      "original_id": 223,
+      "split": "train",
+      "text": "What is the daily requirement of folic acid for an expectant mother ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:300",
+      "label": "ENTY:dismed",
+      "original_id": 300,
+      "split": "train",
+      "text": "What chemicals are used in lethal injection ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:338",
+      "label": "ENTY:substance",
+      "original_id": 338,
+      "split": "train",
+      "text": "What are the four elements ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:458",
+      "label": "LOC:other",
+      "original_id": 458,
+      "split": "train",
+      "text": "Where did Sarge Steel get his metal hand ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:512",
+      "label": "ENTY:substance",
+      "original_id": 512,
+      "split": "train",
+      "text": "What was the Bridge of San Luis Rey made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:578",
+      "label": "ENTY:substance",
+      "original_id": 578,
+      "split": "train",
+      "text": "What does ribavirin consist of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:606",
+      "label": "ENTY:substance",
+      "original_id": 606,
+      "split": "train",
+      "text": "What is a golf ball made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:625",
+      "label": "ENTY:substance",
+      "original_id": 625,
+      "split": "train",
+      "text": "What is the second hardest substance ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:708",
+      "label": "DESC:manner",
+      "original_id": 708,
+      "split": "train",
+      "text": "How is a hydrogen bomb different from a nuclear bomb ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:712",
+      "label": "ENTY:dismed",
+      "original_id": 712,
+      "split": "train",
+      "text": "What is the name of the chronic neurological autoimmune disease which attacks the protein sheath that surrounds nerve cells causing a gradual loss of movement in the body ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "train:935",
+      "label": "ENTY:substance",
+      "original_id": 935,
+      "split": "train",
+      "text": "What are the chemicals used in glowsticks ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:967",
+      "label": "ENTY:food",
+      "original_id": 967,
+      "split": "train",
+      "text": "What soft drink would provide me with the biggest intake of caffeine ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:1039",
+      "label": "NUM:other",
+      "original_id": 1039,
+      "split": "train",
+      "text": "What is the chemical reactivity of argon ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "train:1078",
+      "label": "ENTY:substance",
+      "original_id": 1078,
+      "split": "train",
+      "text": "What organic fuel do bog-dwellers use a `` slane '' to cut ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1093",
+      "label": "ENTY:substance",
+      "original_id": 1093,
+      "split": "train",
+      "text": "What is Jell-O made from ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "train:1199",
+      "label": "ENTY:substance",
+      "original_id": 1199,
+      "split": "train",
+      "text": "What explosive do you get by mixing charcoal , sulfur and saltpeter ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:1238",
+      "label": "NUM:count",
+      "original_id": 1238,
+      "split": "train",
+      "text": "How much energy is released when oxygen and hydrogen mix ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1276",
+      "label": "ENTY:substance",
+      "original_id": 1276,
+      "split": "train",
+      "text": "What is the only substance that gives food its `` taste '' when eaten ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1312",
+      "label": "ENTY:substance",
+      "original_id": 1312,
+      "split": "train",
+      "text": "What are the most common elements in seawater ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1318",
+      "label": "ENTY:substance",
+      "original_id": 1318,
+      "split": "train",
+      "text": "What 's the second-lightest element ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1433",
+      "label": "ENTY:substance",
+      "original_id": 1433,
+      "split": "train",
+      "text": "What 's the most abundant element in the sun ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:1466",
+      "label": "DESC:desc",
+      "original_id": 1466,
+      "split": "train",
+      "text": "What is the origin of the atom ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:1543",
+      "label": "DESC:desc",
+      "original_id": 1543,
+      "split": "train",
+      "text": "What will happen when sodium is put in water ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms",
+        "substance-answer-label"
+      ],
+      "id": "train:1574",
+      "label": "ENTY:substance",
+      "original_id": 1574,
+      "split": "train",
+      "text": "What molecules include fluorine , sodium and magnesium ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:1908",
+      "label": "ENTY:symbol",
+      "original_id": 1908,
+      "split": "train",
+      "text": "What is the chemical symbol for nitrogen ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1929",
+      "label": "ENTY:substance",
+      "original_id": 1929,
+      "split": "train",
+      "text": "What is glass made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:1966",
+      "label": "ENTY:substance",
+      "original_id": 1966,
+      "split": "train",
+      "text": "What was paper made of in the late 16th century ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:1992",
+      "label": "NUM:count",
+      "original_id": 1992,
+      "split": "train",
+      "text": "How much folic acid should an expectant mother get daily ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:1996",
+      "label": "NUM:count",
+      "original_id": 1996,
+      "split": "train",
+      "text": "How much caffeine is in a 16 oz cup of coffee ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:2041",
+      "label": "ENTY:food",
+      "original_id": 2041,
+      "split": "train",
+      "text": "What foods contain the most protein ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2092",
+      "label": "ENTY:substance",
+      "original_id": 2092,
+      "split": "train",
+      "text": "What 's the hardest substance in the human body ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2111",
+      "label": "ENTY:substance",
+      "original_id": 2111,
+      "split": "train",
+      "text": "What are fingernails made of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:2126",
+      "label": "DESC:manner",
+      "original_id": 2126,
+      "split": "train",
+      "text": "How does an ion drive work ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:2253",
+      "label": "LOC:other",
+      "original_id": 2253,
+      "split": "train",
+      "text": "Which area produces the least acidic coffee ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2266",
+      "label": "ENTY:substance",
+      "original_id": 2266,
+      "split": "train",
+      "text": "What fuel do airplanes use ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2280",
+      "label": "ENTY:substance",
+      "original_id": 2280,
+      "split": "train",
+      "text": "What is a camel hair brush actually made out of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2343",
+      "label": "ENTY:substance",
+      "original_id": 2343,
+      "split": "train",
+      "text": "What would you add to the clay mixture to produce bone china ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:2504",
+      "label": "NUM:other",
+      "original_id": 2504,
+      "split": "train",
+      "text": "What is the chemical reactivity of helium ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:2529",
+      "label": "DESC:def",
+      "original_id": 2529,
+      "split": "train",
+      "text": "What is a hydrogen bond ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:2539",
+      "label": "ENTY:other",
+      "original_id": 2539,
+      "split": "train",
+      "text": "What is the longest chemical name , consisting of 35 letters ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:2598",
+      "label": "ENTY:substance",
+      "original_id": 2598,
+      "split": "train",
+      "text": "What is the main ingredient of yogurt ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms",
+        "substance-answer-label"
+      ],
+      "id": "train:2606",
+      "label": "ENTY:substance",
+      "original_id": 2606,
+      "split": "train",
+      "text": "What is the chemical composition of a Barbie ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:2724",
+      "label": "ENTY:other",
+      "original_id": 2724,
+      "split": "train",
+      "text": "What is an example of a natural acid-base indicator ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:2782",
+      "label": "DESC:def",
+      "original_id": 2782,
+      "split": "train",
+      "text": "What is hydrogen ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "train:2908",
+      "label": "ENTY:substance",
+      "original_id": 2908,
+      "split": "train",
+      "text": "What harmful chemicals are in bug spray ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:2939",
+      "label": "ENTY:product",
+      "original_id": 2939,
+      "split": "train",
+      "text": "What is the brand name of the chemical daminozide ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:2947",
+      "label": "DESC:desc",
+      "original_id": 2947,
+      "split": "train",
+      "text": "What is the recommended daily requirement for folic acid for pregnant women ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3012",
+      "label": "ENTY:dismed",
+      "original_id": 3012,
+      "split": "train",
+      "text": "What chemical in red wine is good for the heart and what exactly does it do to your body ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3029",
+      "label": "ENTY:substance",
+      "original_id": 3029,
+      "split": "train",
+      "text": "What is money made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3087",
+      "label": "ENTY:substance",
+      "original_id": 3087,
+      "split": "train",
+      "text": "What are the stars made of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "train:3094",
+      "label": "ENTY:substance",
+      "original_id": 3094,
+      "split": "train",
+      "text": "What element , from the Periodic Table , is a gas or a solid , but never a liquid ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3118",
+      "label": "DESC:desc",
+      "original_id": 3118,
+      "split": "train",
+      "text": "What are some chemical properties of mendelevium ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3148",
+      "label": "NUM:count",
+      "original_id": 3148,
+      "split": "train",
+      "text": "How many chemical elements are there ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3156",
+      "label": "ENTY:product",
+      "original_id": 3156,
+      "split": "train",
+      "text": "What is the brand name of a chemical used to control ripening ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:3321",
+      "label": "NUM:count",
+      "original_id": 3321,
+      "split": "train",
+      "text": "How much folic acid should a pregnant woman get each day ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:3379",
+      "label": "LOC:other",
+      "original_id": 3379,
+      "split": "train",
+      "text": "Where on the Internet can I get chemicals importers ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3387",
+      "label": "DESC:desc",
+      "original_id": 3387,
+      "split": "train",
+      "text": "What is the main application of sodium hydrosulfite ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3419",
+      "label": "ENTY:substance",
+      "original_id": 3419,
+      "split": "train",
+      "text": "What substance did Joseph Priestley name for its ability to erase pencil marks ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3427",
+      "label": "DESC:manner",
+      "original_id": 3427,
+      "split": "train",
+      "text": "How do you calculate the change in enthalpy of a chemical reaction ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "train:3494",
+      "label": "NUM:other",
+      "original_id": 3494,
+      "split": "train",
+      "text": "What amount of folic acid should an expectant mother take daily ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:3662",
+      "label": "ENTY:food",
+      "original_id": 3662,
+      "split": "train",
+      "text": "To get the most caffeine , what soda should I drink ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:3814",
+      "label": "NUM:count",
+      "original_id": 3814,
+      "split": "train",
+      "text": "How much caffeine is in a 16 oz cup of coffee ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3865",
+      "label": "ENTY:substance",
+      "original_id": 3865,
+      "split": "train",
+      "text": "What is a softball made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3913",
+      "label": "ENTY:substance",
+      "original_id": 3913,
+      "split": "train",
+      "text": "What did the ancients call the four great elements ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3925",
+      "label": "ENTY:substance",
+      "original_id": 3925,
+      "split": "train",
+      "text": "What kind of crystals exist ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3929",
+      "label": "ENTY:substance",
+      "original_id": 3929,
+      "split": "train",
+      "text": "What is the Taj Majal made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:3937",
+      "label": "ENTY:substance",
+      "original_id": 3937,
+      "split": "train",
+      "text": "What does saliva consist of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:3949",
+      "label": "DESC:desc",
+      "original_id": 3949,
+      "split": "train",
+      "text": "What is the difference between molecules and compounds ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:4039",
+      "label": "ENTY:substance",
+      "original_id": 4039,
+      "split": "train",
+      "text": "What are super balls made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:4193",
+      "label": "ENTY:substance",
+      "original_id": 4193,
+      "split": "train",
+      "text": "What kind of substance is dextropropoxyphen napsylate ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:4252",
+      "label": "NUM:other",
+      "original_id": 4252,
+      "split": "train",
+      "text": "What is the chemical reactivity of neon ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:4302",
+      "label": "DESC:manner",
+      "original_id": 4302,
+      "split": "train",
+      "text": "How is carbon dioxide removed from natural gas ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:4372",
+      "label": "ENTY:other",
+      "original_id": 4372,
+      "split": "train",
+      "text": "What turns blue litmus paper red ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:4510",
+      "label": "ENTY:substance",
+      "original_id": 4510,
+      "split": "train",
+      "text": "What alloy do copper and tin form ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "train:4688",
+      "label": "ENTY:food",
+      "original_id": 4688,
+      "split": "train",
+      "text": "Which type of soda has the greatest amount of caffeine ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:4848",
+      "label": "NUM:other",
+      "original_id": 4848,
+      "split": "train",
+      "text": "What is the chemical reactivity of neon ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:4933",
+      "label": "NUM:count",
+      "original_id": 4933,
+      "split": "train",
+      "text": "How much stronger is the new vitreous carbon material invented by the Tokyo Institute of Technology compared with the material made from cellulose ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "train:4957",
+      "label": "ENTY:symbol",
+      "original_id": 4957,
+      "split": "train",
+      "text": "What is the chemical formula for napalm ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:4988",
+      "label": "ENTY:substance",
+      "original_id": 4988,
+      "split": "train",
+      "text": "What four elements make up 90 percent of the human body ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:5150",
+      "label": "ENTY:substance",
+      "original_id": 5150,
+      "split": "train",
+      "text": "What are the ingredients of Coca-Cola ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:5334",
+      "label": "ENTY:substance",
+      "original_id": 5334,
+      "split": "train",
+      "text": "What 's the world 's most common compound ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "train:5381",
+      "label": "ENTY:substance",
+      "original_id": 5381,
+      "split": "train",
+      "text": "What materials did the three little pigs use to build their houses ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:3",
+      "label": "DESC:def",
+      "original_id": 3,
+      "split": "test",
+      "text": "What is an atom ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "substance-answer-label"
+      ],
+      "id": "test:16",
+      "label": "ENTY:substance",
+      "original_id": 16,
+      "split": "test",
+      "text": "What metal has the highest melting point ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:24",
+      "label": "DESC:def",
+      "original_id": 24,
+      "split": "test",
+      "text": "What is cholesterol ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:26",
+      "label": "DESC:def",
+      "original_id": 26,
+      "split": "test",
+      "text": "What is caffeine ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:42",
+      "label": "DESC:def",
+      "original_id": 42,
+      "split": "test",
+      "text": "What is amitriptyline ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:47",
+      "label": "DESC:def",
+      "original_id": 47,
+      "split": "test",
+      "text": "What are triglycerides ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:75",
+      "label": "DESC:def",
+      "original_id": 75,
+      "split": "test",
+      "text": "What is the pH scale ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:86",
+      "label": "DESC:def",
+      "original_id": 86,
+      "split": "test",
+      "text": "What is amoxicillin ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:97",
+      "label": "DESC:def",
+      "original_id": 97,
+      "split": "test",
+      "text": "What is cryogenics ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:117",
+      "label": "ENTY:substance",
+      "original_id": 117,
+      "split": "test",
+      "text": "What mineral helps prevent osteoporosis ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:149",
+      "label": "DESC:def",
+      "original_id": 149,
+      "split": "test",
+      "text": "What is nicotine ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:151",
+      "label": "HUM:ind",
+      "original_id": 151,
+      "split": "test",
+      "text": "Who discovered radium ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:161",
+      "label": "DESC:def",
+      "original_id": 161,
+      "split": "test",
+      "text": "What are polymers ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:167",
+      "label": "DESC:def",
+      "original_id": 167,
+      "split": "test",
+      "text": "What is acetaminophen ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:184",
+      "label": "ENTY:substance",
+      "original_id": 184,
+      "split": "test",
+      "text": "What is natural gas composed of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:189",
+      "label": "ENTY:substance",
+      "original_id": 189,
+      "split": "test",
+      "text": "What is the birthstone for June ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:199",
+      "label": "ENTY:substance",
+      "original_id": 199,
+      "split": "test",
+      "text": "What is pastrami made of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:209",
+      "label": "DESC:desc",
+      "original_id": 209,
+      "split": "test",
+      "text": "What is the effect of acid rain ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:216",
+      "label": "DESC:def",
+      "original_id": 216,
+      "split": "test",
+      "text": "What is sodium chloride ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:225",
+      "label": "ENTY:substance",
+      "original_id": 225,
+      "split": "test",
+      "text": "What is plastic made of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:232",
+      "label": "DESC:def",
+      "original_id": 232,
+      "split": "test",
+      "text": "What is phenylalanine ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:237",
+      "label": "DESC:def",
+      "original_id": 237,
+      "split": "test",
+      "text": "What is phosphorus ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:253",
+      "label": "ENTY:substance",
+      "original_id": 253,
+      "split": "test",
+      "text": "What is the statue of liberty made of ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:279",
+      "label": "ENTY:substance",
+      "original_id": 279,
+      "split": "test",
+      "text": "What is a mirror made out of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:285",
+      "label": "DESC:def",
+      "original_id": 285,
+      "split": "test",
+      "text": "What are antacids ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:287",
+      "label": "DESC:def",
+      "original_id": 287,
+      "split": "test",
+      "text": "What are Quaaludes ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:288",
+      "label": "DESC:def",
+      "original_id": 288,
+      "split": "test",
+      "text": "What is naproxen ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:349",
+      "label": "DESC:def",
+      "original_id": 349,
+      "split": "test",
+      "text": "What is acid rain ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:354",
+      "label": "DESC:def",
+      "original_id": 354,
+      "split": "test",
+      "text": "What is quicksilver ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry"
+      ],
+      "id": "test:364",
+      "label": "DESC:def",
+      "original_id": 364,
+      "split": "test",
+      "text": "What is acetic acid ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:366",
+      "label": "ENTY:color",
+      "original_id": 366,
+      "split": "test",
+      "text": "What color does litmus paper turn when it comes into contact with a strong acid ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:370",
+      "label": "NUM:weight",
+      "original_id": 370,
+      "split": "test",
+      "text": "What is the atomic weight of silver ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:382",
+      "label": "ENTY:substance",
+      "original_id": 382,
+      "split": "test",
+      "text": "What birthstone is turquoise ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:388",
+      "label": "DESC:def",
+      "original_id": 388,
+      "split": "test",
+      "text": "What is propylene glycol ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:391",
+      "label": "DESC:def",
+      "original_id": 391,
+      "split": "test",
+      "text": "What is a carcinogen ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:401",
+      "label": "ENTY:substance",
+      "original_id": 401,
+      "split": "test",
+      "text": "What is the heaviest naturally occurring element ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:406",
+      "label": "DESC:def",
+      "original_id": 406,
+      "split": "test",
+      "text": "What is carbon dioxide ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:411",
+      "label": "ENTY:substance",
+      "original_id": 411,
+      "split": "test",
+      "text": "What are cigarettes made of ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:428",
+      "label": "DESC:def",
+      "original_id": 428,
+      "split": "test",
+      "text": "What are enzymes ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms"
+      ],
+      "id": "test:429",
+      "label": "HUM:ind",
+      "original_id": 429,
+      "split": "test",
+      "text": "Who discovered oxygen ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:441",
+      "label": "ENTY:substance",
+      "original_id": 441,
+      "split": "test",
+      "text": "What gasses are in the troposphere ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry_terms"
+      ],
+      "id": "test:474",
+      "label": "ENTY:other",
+      "original_id": 474,
+      "split": "test",
+      "text": "What type of polymer is used for bulletproof vests ?"
+    },
+    {
+      "automated_reasons": [
+        "chemistry",
+        "chemistry_terms",
+        "substance-answer-label"
+      ],
+      "id": "test:481",
+      "label": "ENTY:substance",
+      "original_id": 481,
+      "split": "test",
+      "text": "What precious stone is a form of pure carbon ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:482",
+      "label": "ENTY:substance",
+      "original_id": 482,
+      "split": "test",
+      "text": "What kind of gas is in a fluorescent bulb ?"
+    },
+    {
+      "automated_reasons": [
+        "substance-answer-label"
+      ],
+      "id": "test:498",
+      "label": "ENTY:substance",
+      "original_id": 498,
+      "split": "test",
+      "text": "What is the birthstone of October ?"
+    }
+  ],
+  "patterns": {
+    "chemistry": "\\b(?:chemistr\\w*|chemist\\w*|chemical\\w*|molecul\\w*|atom\\w*|isotop\\w*|acid\\w*|alkali\\w*|reactio\\w*|periodic|organic|inorganic|ions?|enzyme\\w*|protein\\w*|catalyst\\w*|hydrogen|oxygen|carbon|nitrogen|sulphur|sulfur|chlorine|sodium|potassium|electrons?|protons?|neutrons?|metals?)\\b",
+    "chemistry_terms": "\\b(?:atoms?|molecules?|atomic|chemistry|chemical|polymers?|chloride|sodium|phosphorus|nitrogen|oxygen|carbon|hydrogen|radium|quicksilver|cryogenics|litmus|electrolysis|caffeine|cholesterol|nicotine|triglycerides|phenylalanine|propylene|acetaminophen|amoxicillin|amitriptyline|naproxen|antacids|quaaludes|enzymes?|carcinogen|acid rain|ph scale)\\b"
+  },
+  "schema": "pd-scientific-topic-flags-v1",
+  "substance_label_rule": true,
+  "unflagged_policy": "Human approval explicitly accepts the complete automated screening, including unflagged rows."
+}

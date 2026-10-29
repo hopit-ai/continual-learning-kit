@@ -30,18 +30,9 @@ def near(pa, pb):
     # Normalised Levenshtein similarity: 1 - distance / max(lengths).
     limit = max(len(a),len(b)) // 10
     if abs(len(a)-len(b)) > limit: return False
-    try:
-        from rapidfuzz.distance import Levenshtein
-        return Levenshtein.distance(a,b,score_cutoff=limit) <= limit
-    except ImportError: pass
-    previous = {j:j for j in range(min(len(b),limit)+1)}
-    for i, char in enumerate(a,1):
-        current = {0:i} if i <= limit else {}
-        for j in range(max(1,i-limit),min(len(b),i+limit)+1):
-            current[j]=min(previous.get(j,limit+1)+1,current.get(j-1,limit+1)+1,previous.get(j-1,limit+1)+(char!=b[j-1]))
-        if min(current.values(),default=limit+1)>limit: return False
-        previous=current
-    return previous.get(len(b),limit+1)<=limit
+    # Required in both runtimes; never spend hours in the Python fallback.
+    from rapidfuzz.distance import Levenshtein
+    return Levenshtein.distance(a,b,score_cutoff=limit) <= limit
 
 
 def duplicate(a, b): return near(prepared(a), prepared(b))

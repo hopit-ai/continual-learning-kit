@@ -173,7 +173,8 @@ def cmd_generate(args) -> int:
         os.environ["VLLM_BATCH_INVARIANT"] = "1"
         os.environ.setdefault("VLLM_ATTENTION_BACKEND", "FLASH_ATTN")       # the mode refuses to start without a named backend
     from transformers import AutoTokenizer                                  # noqa: PLC0415
-    from vllm import LLM, SamplingParams                                    # noqa: PLC0415
+    from vllm import SamplingParams
+    from kit.inference_lifecycle import create_llm as LLM                                    # noqa: PLC0415
     import vllm                                                             # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, m["prompt"]) for m in members]

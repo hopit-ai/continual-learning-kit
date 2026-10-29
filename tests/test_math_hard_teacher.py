@@ -67,12 +67,26 @@ def test_kit_copies_are_the_repository_registration_and_amendment():
 
 
 def test_tampered_resources_stop_before_generation(tmp_path, monkeypatch):
+    """Relocation retains exact runtime-update pins; data/code tampering still fails."""
+    from kit import m2_runtime
     kit = tmp_path / 'kit'
     shutil.copytree(h.M, kit / 'resources/math-hard-teacher')
     for name in ('beds/math_screen.py', 'second_task_screen.py', 'v4_teacher.py'):
         (kit / name).parent.mkdir(parents=True, exist_ok=True); shutil.copy(h.KIT / name, kit / name)
+    # check() permits reviewed infrastructure updates only under its registered root.
+    # A partial copied kit previously omitted both that registry and its lookup anchor.
+    (kit / 'resources/m2').mkdir(parents=True)
+    shutil.copy(h.KIT / 'resources/m2/runtime-updates.json', kit / 'resources/m2/runtime-updates.json')
+    shutil.copy(Path(m2_runtime.__file__), kit / 'm2_runtime.py')
+    monkeypatch.setattr(m2_runtime, '__file__', str(kit / 'm2_runtime.py'))
     monkeypatch.setattr(h, 'KIT', kit); monkeypatch.setattr(h, 'M', kit / 'resources/math-hard-teacher')
     assert len(h.frozen()['panel']) == 200
+    implementation = kit / 'second_task_screen.py'
+    original = implementation.read_bytes()
+    implementation.write_bytes(original + b'\n# unregistered fixture mutation\n')
+    with pytest.raises(h.CorrectnessStop, match='input hash differs'):
+        h.frozen()
+    implementation.write_bytes(original)
     score = kit / 'resources/math-hard-teacher/student-bed-score.json'
     doc = json.loads(score.read_text()); first = next(iter(doc['per_item']))
     doc['per_item'][first] = 1 - doc['per_item'][first]

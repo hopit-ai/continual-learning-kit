@@ -1,0 +1,61 @@
+"""Manager only: one H100/container, no retries; never launched on import.
+
+modal run --detach scripts/hellaswag_format_check_modal.py --attempt 2
+"""
+from pathlib import Path
+import json,sys,time,math
+import modal
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from smoke_common_modal import ROOT,partner_image,write_record
+from kit.hellaswag_prompt_check import SCHEMA,declaration,LAUNCHER,sha
+
+app=modal.App('message2-presend-format-check')
+GPU,CPU_CORES,MEMORY_MIB,TIMEOUT_SECONDS='H100',8,204800,30*60
+RETRIES=0
+HOURLY_USD=3.95+CPU_CORES*.047+MEMORY_MIB/1024*.008
+TIMEOUT_COST_BOUND_USD=math.ceil((TIMEOUT_SECONDS/3600*HOURLY_USD*1.25+.05)*100)/100
+assert TIMEOUT_COST_BOUND_USD<=10
+STEM='hellaswag-format-check'
+image=partner_image({}).add_local_file(ROOT/'scripts/hellaswag_format_check_modal.py','/root/scripts/hellaswag_format_check_modal.py',copy=True)
+
+
+@app.local_entrypoint()
+def main(attempt: int=2):
+    destination=ROOT/'docs/phase2/evidence'/f'{STEM}.attempt{attempt}.json'
+    if attempt<1 or destination.exists():raise ValueError('fresh positive attempt required')
+    if sha(Path(__file__))!=sha(LAUNCHER):raise ValueError('manager launcher differs from frozen kit source')
+    declared=declaration()
+    print(json.dumps(dict(timeout_cost_bound_usd=TIMEOUT_COST_BOUND_USD,hourly_usd=HOURLY_USD,
+        timeout_seconds=TIMEOUT_SECONDS,gpu=GPU,cpu_cores=CPU_CORES,memory_mib=MEMORY_MIB,
+        max_containers=1,retries=0,declaration=declared),sort_keys=True),flush=True)
+    assert TIMEOUT_COST_BOUND_USD<=10
+    sandbox=None;record=None;exitcode=None
+    try:
+        sandbox=modal.Sandbox.create('python','-m','kit.hellaswag_prompt_check',app=app,image=image,
+            gpu=GPU,cpu=(CPU_CORES,CPU_CORES),memory=(MEMORY_MIB,MEMORY_MIB),timeout=TIMEOUT_SECONDS,
+            env=dict(PYTHONPATH='/root:/root/SDPO',CUDA_VISIBLE_DEVICES='0',OMP_NUM_THREADS='8',
+                WANDB_MODE='disabled',TOKENIZERS_PARALLELISM='false',V4_PHASE0_INFERENCE='0'))
+        for line in sandbox.stdout:
+            print(line,end='')
+            if line.startswith('[record] '):
+                if record is not None:raise ValueError('multiple container records')
+                record=json.loads(line[len('[record] '):])
+        sandbox.wait();exitcode=sandbox.returncode
+        if record is None:raise RuntimeError('no container record')
+        if record.get('passed') and (exitcode!=0 or record.get('schema')!=SCHEMA or record.get('declaration')!=declared):raise ValueError('container declaration/exit differs')
+    except Exception as error:
+        record=dict(passed=False,completed=False,error=type(error).__name__+': '+str(error),seconds_in_function=TIMEOUT_SECONDS,steps=[])
+    finally:
+        if sandbox is not None:
+            try:sandbox.terminate()
+            except Exception as error:record=dict(record or {},passed=False,completed=False,error='cleanup failed: '+str(error))
+    seconds=record.get('seconds_in_function')
+    if not isinstance(seconds,(int,float)) or not 0<=seconds<=TIMEOUT_SECONDS:record.update(passed=False,seconds_in_function=TIMEOUT_SECONDS)
+    record.setdefault('steps',[])
+    record.update(timeout_cost_bound_usd=TIMEOUT_COST_BOUND_USD,hourly_usd=HOURLY_USD,
+        timeout_seconds=TIMEOUT_SECONDS,gpu=GPU,cpu_cores=CPU_CORES,memory_mib=MEMORY_MIB,
+        max_containers=1,create_calls=1,retries=0,exitcode=exitcode)
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    write_record(record,STEM,hourly_usd=HOURLY_USD,attempt=attempt)
+    if not record['passed']:raise SystemExit(1)

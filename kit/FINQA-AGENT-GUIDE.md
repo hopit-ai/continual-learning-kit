@@ -1,7 +1,7 @@
 # Main FinQA: guide for the partner’s debugging agent
 
 Read [README-finqa.md](README-finqa.md). Owner direction is plan v4 sections
-15.21 and 15.22 (10 October). Phase 0 v7 passed on job 414790: 26/26 rows,
+15.21 and 15.22 (10 October). Phase 0 v7 passed on job <redacted>: 26/26 rows,
 12.06 allocation GPU-hours. Its exports are technical checks, never scientific
 initialisations.
 

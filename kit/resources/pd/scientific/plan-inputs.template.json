@@ -1,0 +1,12 @@
+{
+  "note": "Materialize APPROVED_PREPARATION_JSON on the node with pd_materialize.py; its identity must match finalization-pin.json. Merge into each source plan; keep existing checkpoints, exports, tokenizer and send_binding. Missing or mismatched pinned preparation/verification defers before GPU discovery.",
+  "preparation": "APPROVED_PREPARATION_JSON",
+  "scientific": {
+    "approval": "kit/resources/pd/scientific/topic-approval.json",
+    "custodian": "kit/resources/pd/scientific/custodian-send-receipt.json",
+    "inventories": "NODE_INVENTORIES_JSON",
+    "package": "kit/resources/pd/scientific",
+    "send_manifest": "kit/resources/pd/scientific/send-binding.json",
+    "verification": "NODE_VERIFY_JSON"
+  }
+}

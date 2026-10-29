@@ -8,6 +8,7 @@ from collections import Counter
 
 
 def measure(model,rows,standin):
+    if not standin:model=str(__import__('kit.m2_paths',fromlist=['local']).local(model))
     counts=Counter(s.digest(r) for r in rows);unique={s.digest(r):r for r in rows}
     if standin:
         from kit.c_sim import Tokenizer
@@ -24,6 +25,8 @@ def measure(model,rows,standin):
         encoded[key]=(pids,tids)
     if standin: return dict(sequence_mean=1.,token_mean=1.,exposures=len(rows),unique=len(unique),
         response_tokens=sum(counts[key]*len(ids[1]) for key,ids in encoded.items()))
+    from kit.m2_gpu import assert_current
+    assert_current()
     import torch
     from transformers import AutoModelForCausalLM
     net=AutoModelForCausalLM.from_pretrained(model,local_files_only=True,torch_dtype=torch.bfloat16).to('cuda').eval()

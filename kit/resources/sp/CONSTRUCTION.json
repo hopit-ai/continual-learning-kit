@@ -1,0 +1,33 @@
+{
+ "binding": {
+  "fixtures_sha256": "ffe533b29de89993158b7c696512ffbfe26b70625568907bc4d9f568133eda98",
+  "requests_sha256": "e0d61c2da7aba266f23685333c247da1217966ae834af4cdf8c673995905ce21",
+  "resources": {
+   "checker-edge-fixtures.json": "3ed51b4b8663e8d5db74e503bcb3539bdd2957e6be1aa470a5d31ba15267e30c",
+   "checkers.py": "3b90ca06d2d3140cb44aa3779ef2e5323101d3913f89fe04287034905d0ab40e",
+   "compatibility.json": "69a39e84410aecb468e57e44c83be19adb3a210e56825107eb146c9b7f6dfe5b",
+   "templates.json": "e081da1c4ac82c213d6cbcba79ecd8d30609e0d5a99be85a8969eb47f42d5c3f",
+   "templates.py": "cb4363e69ac9c2d2f59e9e11ac66a24937c5c58ff40568202f3af47d9fa9abe9"
+  }
+ },
+ "code": {
+  "sp_prepare.py": "67c20e6416b7f1e2dd000976b8d26123a9e72cb852274c1f45c7823634c2581c",
+  "sp_score.py": "c5404f2585eb780a05c972251ddc361846e0cc90efeeeb114001aa17408121f2"
+ },
+ "fixtures_sha256": "7df3f34c0c10e2d227be2382e07534837f4db094fb1148c68cad4fd592655f09",
+ "model_outputs_used": false,
+ "n_fixtures": 500,
+ "n_prompts": 400,
+ "n_requests": 200,
+ "raw_json_deviation": "One raw JSON value; no code-fence stripping; reject NaN/Infinity.",
+ "schema": "sp-construction-v2",
+ "source_files": {
+  "README.md": "6ddcd6bf44b7cdb30dab5c4a95d3f1c95057d3fea745e4a4abf811fdd8517b57",
+  "build_source.py": "e862a3db48315265404f001ae63f28dfd56c07380cb2510313fa823304c1d5ac",
+  "requests.jsonl": "90e7b4cf40874351a39f1cbf965261ba60efa7e1018d1e72a6503c0807dbeb5a",
+  "test_freeze.py": "29116866183ceb1a9b23d4bdff7e9673d3661af72d2521a3f18b4fbc5c0ea2e7",
+  "validate_source.py": "fc533e86c1f049a5bea00dc6377110365a748b81c992fd1b76ab3c4ba119279c"
+ },
+ "source_sha256": "90e7b4cf40874351a39f1cbf965261ba60efa7e1018d1e72a6503c0807dbeb5a",
+ "status": "AWAITING_INDEPENDENT_REVIEWS_AND_EXCLUSIONS"
+}

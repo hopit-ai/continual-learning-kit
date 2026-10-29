@@ -1,0 +1,33 @@
+{
+ "complete_inventory": null,
+ "pools": [
+  {
+   "candidate_superset_name": "broad",
+   "candidate_superset_sha256": null,
+   "name": "returned-broad",
+   "path": "returned-broad.jsonl",
+   "role": "broad",
+   "scope": "returned",
+   "sha256": null
+  },
+  {
+   "candidate_superset_name": "k",
+   "candidate_superset_sha256": null,
+   "name": "returned-k",
+   "path": "returned-k.jsonl",
+   "role": "k",
+   "scope": "returned",
+   "sha256": null
+  },
+  {
+   "candidate_superset_name": "cr",
+   "candidate_superset_sha256": null,
+   "name": "returned-cr",
+   "path": "returned-cr.jsonl",
+   "role": "cr",
+   "scope": "returned",
+   "sha256": null
+  }
+ ],
+ "schema": "sp-pools-v2"
+}

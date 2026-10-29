@@ -1,0 +1,10 @@
+{
+  "closed": false,
+  "months": [
+    "2026-10",
+    "2026-11"
+  ],
+  "note": "FUTURE CUSTODIAN RE-CHECK ONLY, after the 15-31 December slice build. Not required at send time. Custodian supplies complete id/text references without outcomes when the slice exists; independently bind its hash in the later re-check receipt.",
+  "rows": [],
+  "schema": "pd-confirmation-prompts-v1"
+}

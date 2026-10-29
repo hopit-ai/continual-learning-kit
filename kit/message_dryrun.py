@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.c_common import *
+from kit.m2_seed_policy import SEEDS as RETURN1_SEEDS
 from kit.next_dryrun import invoke
 from kit import next_dryrun, message_handoff, c_train
 from types import SimpleNamespace as NS
@@ -117,7 +118,7 @@ def job(a):
         require(all(s.file_hash(out/name)==sha for name,sha in snapshot.items()),'restored C bytes differ')
         for recipe in arms(doc):
             for route in ('standalone','sequence'):
-                for seed in SEEDS:
+                for seed in RETURN1_SEEDS:
                     arm=route+'-'+recipe
                     scores(arm,seed,(0,),('panel','test','finqa','general-v1'))
                     train(recipe,route,seed)
@@ -125,7 +126,7 @@ def job(a):
                     scores(arm,seed,(20,40),('finqa','general-v1'))
         # M7: all four legal probes. Shared generic calls must SKIP an existing W run.
         for probe in ('generic','broad','earlier','both'):
-            for seed in SEEDS:
+            for seed in RETURN1_SEEDS:
                 arm=probe_arm(doc,probe)
                 scores(arm,seed,(0,),('panel','test','finqa','general-v1','hellaswag'))
                 train('W','sequence',seed,probe)
@@ -180,7 +181,7 @@ def job(a):
         score_labels=[f'{route}-{recipe}' for recipe in arms(doc) for route in ('standalone','sequence')]
         score_labels+= [probe_arm(doc,p) for p in ('generic','broad','earlier','both')]
         for arm in dict.fromkeys(score_labels):
-            for seed in SEEDS:
+            for seed in RETURN1_SEEDS:
                 scores(arm,seed,(0,10,20,30,40),('panel','test'))
                 retention=('finqa','general-v1') + (('hellaswag',) if arm in [probe_arm(doc,p) for p in ('generic','broad','earlier','both')] else ())
                 scores(arm,seed,(0,20,40),retention)

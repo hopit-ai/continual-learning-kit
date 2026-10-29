@@ -1,0 +1,26 @@
+{
+  "approval_sha256": "a85576de0c20b0509d76f30601187b26532dfa2f60f5a7c5ef0dbeb14d172d96",
+  "byte_identical": true,
+  "date": "2026-10-29",
+  "finalization_pin_sha256": "095dcb02e5c757179772f42219cecabbb75e3e4884b20babda9d5d87d3f99669",
+  "identity_sha256": "bf9c1668266483cc16a54006df020eff9b60d561b9a0eb7e5f013c8464f147ad",
+  "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+  "runs": [
+    {
+      "bytes": 508919629,
+      "exit_code": 0,
+      "file_sha256": "a7e50f1c2ebc4ac918c7704748e0d777d74783002715d52ae58b9b4fac13463c",
+      "identity_sha256": "d3ad575f52b1203e210098c37584cb4a80db4f3a44508a5babd52fd121a1a7fa",
+      "run": 1
+    },
+    {
+      "bytes": 508919629,
+      "exit_code": 0,
+      "file_sha256": "a7e50f1c2ebc4ac918c7704748e0d777d74783002715d52ae58b9b4fac13463c",
+      "identity_sha256": "d3ad575f52b1203e210098c37584cb4a80db4f3a44508a5babd52fd121a1a7fa",
+      "run": 2
+    }
+  ],
+  "schema": "pd-finalization-determinism-v1",
+  "scope": "CPU_ONLY_NO_MODEL_INFERENCE"
+}

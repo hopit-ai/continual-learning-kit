@@ -82,10 +82,16 @@ def checkpoint(doc, out, arm, seed, step):
 
 
 def checked_model(record, standin, base=False):
-    if standin: return dict(technical_synthetic=True, model=record['model'])
+    if standin:
+        logical=record['model']
+        if record.get('receipt'):
+            from kit.m2_paths import local
+            path=local(record['receipt'])
+            if path.exists():logical=json.loads(path.read_text()).get('model',logical)
+        return dict(technical_synthetic=True, model=logical)
     if record.get('receipt_sha256'): check(record['receipt'], record['receipt_sha256'])
     observed = identity(record['model'], 'student' if base else None, record.get('receipt'))
-    if record.get('identity'): require(observed == record['identity'], 'bound checkpoint identity changed')
+    if record.get('identity'): require(__import__('kit.m2_paths',fromlist=['equivalent']).equivalent(observed,record['identity']), 'bound checkpoint identity changed')
     return observed
 
 

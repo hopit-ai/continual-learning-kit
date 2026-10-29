@@ -1,0 +1,133 @@
+{
+ "authority": "Manager ruling: scientific freeze against all locally available inputs; unavailable node-held inventories verified before scoring.",
+ "available_audit_sha256": "5af6d655387587bbd5ba218915487c1835758c98f02ac7025cd268939f54ffa8",
+ "available_inventory_complete": true,
+ "available_inventory_sha256": "e52e7f2d8925c74fd168727fec8bf4f9f01fd41ec418dfd1230c4e05c5ce2f73",
+ "available_pool_count": 23,
+ "available_row_count": 98273,
+ "deletion_allowed": false,
+ "global_inventory_complete": false,
+ "inspection_sha256": "2995a2ca504d37dd66cb5e804ed6ab6de6b15bce77004ef0a195be7d92d5b0c7",
+ "integration": {
+  "api": "sp_prepare.recheck",
+  "entrypoint": "node_verification.py",
+  "result_schema": "sp-recheck-v2",
+  "schema": "sp-node-inventories-v1"
+ },
+ "missing_or_invalid_inventory": "Block scoring; verification remains incomplete. Do not infer a clean result.",
+ "overlap_result": "Keep every pair and score once; mark only implicated request IDs UNVERIFIED, covering both wording arms.",
+ "pair_local_hits": true,
+ "panel_changed": false,
+ "required_before_scoring": true,
+ "rescoring_allowed": false,
+ "rules": {
+  "canonical_reuse": "intentional",
+  "clause_arms": [
+   "paraphrase"
+  ],
+  "content_arms": [
+   "canonical",
+   "paraphrase"
+  ],
+  "equality": true,
+  "jaccard": 0.8,
+  "normalization": "Unicode NFKC, casefold, whitespace collapse",
+  "normalized_edit": 0.9,
+  "token_shingle": 5,
+  "witness_exclusions": true
+ },
+ "schema": "sp-node-verification-policy-v1",
+ "source_sha256": "90e7b4cf40874351a39f1cbf965261ba60efa7e1018d1e72a6503c0807dbeb5a",
+ "unavailable_inventories": [
+  {
+   "description": "B frozen generic candidates file, unavailable locally.",
+   "format": "jsonl",
+   "inventory_id": "b-generic-candidates",
+   "role": "generic-candidates",
+   "sha256": "e7119dbfd2a0b68863285f7c38cb1dba7e892043214e244a84272e9389412cb6"
+  },
+  {
+   "description": "B frozen generic accepted file, unavailable locally.",
+   "format": "jsonl",
+   "inventory_id": "b-generic-accepted",
+   "role": "generic-accepted",
+   "sha256": "c88e4e1e5a45a23afcb022e0b341cf702337e1cd088692998d8a4a5cb97ba64c"
+  },
+  {
+   "description": "B frozen generic replay file, unavailable locally.",
+   "format": "jsonl",
+   "inventory_id": "b-generic-replay",
+   "role": "generic-accepted",
+   "sha256": "ca9d725f440145eed97ba469987a32febdd61fc5afe7a6da922631707f87d246"
+  },
+  {
+   "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-d6aec8c0ca29",
+   "producer_manifest_sha256": "162dc3e1f7f02482a7b892b6c22e27e73fa3386d044f55703dcf4849a7a805e0",
+   "role": "earlier",
+   "sha256": "d6aec8c0ca298d58eb69265f4be7363dc394749e9850845140c743df0891677c"
+  },
+  {
+   "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-854fefb90816",
+   "producer_manifest_sha256": "4b64f4b049d278555e728d6780f2aa44ffdc37b661b6dd41cdc9c3b2e8d5ae25",
+   "role": "earlier",
+   "sha256": "854fefb90816d7469f14f42d528626c93cd1dad0c1dd10fd9598ffb9157247f3"
+  },
+  {
+   "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-f232c0d2182a",
+   "producer_manifest_sha256": "5c85619781295c0d16c99387443d633e660edb53bef3d74561967163221b46b6",
+   "role": "earlier",
+   "sha256": "f232c0d2182a5066196844e2efd86215d9de3fe5d81991de29fa0cb8ee5fcffb"
+  },
+  {
+   "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-6747055e0c09",
+   "producer_manifest_sha256": "7d7b65d21a5e9eead5ca0c1f88c87ea4e42a022d93462217a75b7779b3cf51c8",
+   "role": "earlier",
+   "sha256": "6747055e0c099647435b4a4bd80cf10d2b5cb8d5abd69ecdd0dabb1ee0188528"
+  },
+  {
+   "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-dfe74f139343",
+   "producer_manifest_sha256": "a3895fc9140417d18e1f3a7820b5b0e25155930c75080780ede7e03cef4ef30d",
+   "role": "earlier",
+   "sha256": "dfe74f1393431049f50827180c86b98bcd8b6e3ee3a3bef0e870fe594cef53f8"
+  },
+  {
+   "description": "ContractNLI frozen prepared training rows.",
+   "format": "jsonl",
+   "inventory_id": "contract-prepared",
+   "role": "cr",
+   "sha256": "4163850b9bcc3d3fb26bce8d1c23ecd4e9a965f0df6309bf9b620d3bb645c1f6"
+  },
+  {
+   "description": "Complete ContractNLI teacher journal, including accepted and rejected attempts; read via frozen producer manifest.",
+   "format": "journal",
+   "inventory_id": "contract-journal",
+   "role": "cr",
+   "sha256": null
+  },
+  {
+   "description": "Complete node-held programme ancestry prompts and responses, including Package-A inputs and custodian exclusions.",
+   "format": "jsonl",
+   "inventory_id": "programme-ancestry",
+   "role": "ancestry",
+   "sha256": null
+  },
+  {
+   "description": "Complete node-held evaluation/heldout prompt inventory and exclusions; no new reserved outcome scoring.",
+   "format": "jsonl",
+   "inventory_id": "programme-panels",
+   "role": "panels",
+   "sha256": null
+  }
+ ],
+ "verification_only": true
+}

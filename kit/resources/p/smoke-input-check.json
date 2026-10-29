@@ -1,0 +1,2973 @@
+{
+ "all_128_training_rows_within_caps": true,
+ "all_256_utility_rows_eligible": true,
+ "all_32_prompts_within_caps": true,
+ "d_prompt_cap": 2048,
+ "max_comparison_prompt_tokens": 1660,
+ "max_training_prompt_tokens": 1786,
+ "model": "Qwen/Qwen3-8B",
+ "model_weights_loaded": false,
+ "pool": [
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MO/2017/page_10.pdf-4",
+   "prompt_tokens": 1660,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2014/page_41.pdf-1",
+   "prompt_tokens": 1170,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MAS/2018/page_73.pdf-2",
+   "prompt_tokens": 922,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2016/page_73.pdf-1",
+   "prompt_tokens": 665,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SNA/2013/page_56.pdf-1",
+   "prompt_tokens": 1426,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2005/page_67.pdf-1",
+   "prompt_tokens": 829,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LLY/2008/page_45.pdf-4",
+   "prompt_tokens": 1152,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CMCSA/2015/page_63.pdf-1",
+   "prompt_tokens": 1046,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SNPS/2012/page_61.pdf-3",
+   "prompt_tokens": 813,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAG/2007/page_42.pdf-1",
+   "prompt_tokens": 1220,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2011/page_37.pdf-1",
+   "prompt_tokens": 1373,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2014/page_18.pdf-4",
+   "prompt_tokens": 946,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2018/page_190.pdf-2",
+   "prompt_tokens": 846,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RSG/2014/page_73.pdf-1",
+   "prompt_tokens": 856,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2018/page_81.pdf-1",
+   "prompt_tokens": 1051,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2007/page_116.pdf-2",
+   "prompt_tokens": 1035,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2007/page_30.pdf-4",
+   "prompt_tokens": 1416,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2009/page_21.pdf-1",
+   "prompt_tokens": 824,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2013/page_52.pdf-4",
+   "prompt_tokens": 1122,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|APD/2015/page_100.pdf-2",
+   "prompt_tokens": 827,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_83.pdf-4",
+   "prompt_tokens": 1490,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2003/page_35.pdf-4",
+   "prompt_tokens": 819,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2018/page_74.pdf-4",
+   "prompt_tokens": 1601,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2017/page_176.pdf-2",
+   "prompt_tokens": 989,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MS/2017/page_57.pdf-2",
+   "prompt_tokens": 1393,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2017/page_143.pdf-2",
+   "prompt_tokens": 822,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2012/page_38.pdf-3",
+   "prompt_tokens": 1107,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2012/page_177.pdf-3",
+   "prompt_tokens": 1006,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2016/page_141.pdf-1",
+   "prompt_tokens": 1166,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKNG/2015/page_38.pdf-3",
+   "prompt_tokens": 388,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CME/2010/page_71.pdf-4",
+   "prompt_tokens": 1032,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLL/2010/page_58.pdf-1",
+   "prompt_tokens": 942,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PPG/2008/page_47.pdf-3",
+   "prompt_tokens": 1644,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_34.pdf-4",
+   "prompt_tokens": 1191,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2014/page_67.pdf-1",
+   "prompt_tokens": 972,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLL/2010/page_58.pdf-3",
+   "prompt_tokens": 965,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2017/page_145.pdf-2",
+   "prompt_tokens": 1138,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LLY/2018/page_75.pdf-1",
+   "prompt_tokens": 1330,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FIS/2016/page_64.pdf-2",
+   "prompt_tokens": 1102,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_18.pdf-3",
+   "prompt_tokens": 890,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2015/page_22.pdf-1",
+   "prompt_tokens": 1273,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2013/page_56.pdf-1",
+   "prompt_tokens": 1099,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SLG/2017/page_114.pdf-3",
+   "prompt_tokens": 1465,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2018/page_255.pdf-2",
+   "prompt_tokens": 1259,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2013/page_34.pdf-1",
+   "prompt_tokens": 598,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_324.pdf-1",
+   "prompt_tokens": 880,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MO/2014/page_11.pdf-3",
+   "prompt_tokens": 1637,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2012/page_152.pdf-1",
+   "prompt_tokens": 1036,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2013/page_93.pdf-2",
+   "prompt_tokens": 886,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_25.pdf-2",
+   "prompt_tokens": 1403,
+   "response_tokens_including_eos": 14,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PKG/2006/page_65.pdf-2",
+   "prompt_tokens": 767,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAG/2007/page_49.pdf-1",
+   "prompt_tokens": 906,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SLG/2010/page_90.pdf-2",
+   "prompt_tokens": 1201,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2010/page_115.pdf-2",
+   "prompt_tokens": 1373,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAP/2011/page_16.pdf-2",
+   "prompt_tokens": 1786,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2014/page_64.pdf-2",
+   "prompt_tokens": 876,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2005/page_67.pdf-2",
+   "prompt_tokens": 834,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|V/2008/page_149.pdf-1",
+   "prompt_tokens": 810,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2015/page_43.pdf-2",
+   "prompt_tokens": 1145,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|DISH/2015/page_142.pdf-1",
+   "prompt_tokens": 717,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2018/page_52.pdf-2",
+   "prompt_tokens": 1134,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2007/page_55.pdf-4",
+   "prompt_tokens": 1178,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2018/page_83.pdf-4",
+   "prompt_tokens": 1194,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2018/page_59.pdf-1",
+   "prompt_tokens": 1115,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|STT/2009/page_122.pdf-1",
+   "prompt_tokens": 1018,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2017/page_86.pdf-2",
+   "prompt_tokens": 860,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2015/page_42.pdf-3",
+   "prompt_tokens": 393,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TSCO/2018/page_31.pdf-2",
+   "prompt_tokens": 614,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2014/page_122.pdf-2",
+   "prompt_tokens": 932,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2008/page_144.pdf-3",
+   "prompt_tokens": 1187,
+   "response_tokens_including_eos": 15,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLK/2016/page_120.pdf-2",
+   "prompt_tokens": 1586,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2015/page_46.pdf-3",
+   "prompt_tokens": 1499,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VLO/2018/page_99.pdf-2",
+   "prompt_tokens": 850,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2016/page_80.pdf-2",
+   "prompt_tokens": 923,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IPG/2017/page_26.pdf-2",
+   "prompt_tokens": 821,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2015/page_110.pdf-1",
+   "prompt_tokens": 922,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2008/page_212.pdf-2",
+   "prompt_tokens": 942,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VTR/2007/page_48.pdf-4",
+   "prompt_tokens": 647,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2007/page_35.pdf-1",
+   "prompt_tokens": 806,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2015/page_18.pdf-3",
+   "prompt_tokens": 931,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2013/page_123.pdf-2",
+   "prompt_tokens": 878,
+   "response_tokens_including_eos": 14,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2018/page_79.pdf-2",
+   "prompt_tokens": 778,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETFC/2007/page_116.pdf-2",
+   "prompt_tokens": 876,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ADBE/2013/page_68.pdf-3",
+   "prompt_tokens": 787,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2009/page_85.pdf-2",
+   "prompt_tokens": 911,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2008/page_96.pdf-4",
+   "prompt_tokens": 963,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_342.pdf-1",
+   "prompt_tokens": 643,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HIG/2013/page_235.pdf-2",
+   "prompt_tokens": 1186,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AES/2010/page_133.pdf-1",
+   "prompt_tokens": 1189,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_38.pdf-4",
+   "prompt_tokens": 1312,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2017/page_76.pdf-4",
+   "prompt_tokens": 1194,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|NCLH/2016/page_84.pdf-3",
+   "prompt_tokens": 1635,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JKHY/2016/page_61.pdf-5",
+   "prompt_tokens": 1125,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2009/page_279.pdf-1",
+   "prompt_tokens": 424,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2014/page_89.pdf-4",
+   "prompt_tokens": 1118,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LKQ/2018/page_102.pdf-2",
+   "prompt_tokens": 1121,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2017/page_101.pdf-4",
+   "prompt_tokens": 1124,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2005/page_83.pdf-1",
+   "prompt_tokens": 1006,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2014/page_71.pdf-3",
+   "prompt_tokens": 886,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PM/2015/page_103.pdf-4",
+   "prompt_tokens": 762,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2009/page_107.pdf-3",
+   "prompt_tokens": 991,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2005/page_77.pdf-3",
+   "prompt_tokens": 1279,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RCL/2016/page_37.pdf-3",
+   "prompt_tokens": 464,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|KIM/2014/page_130.pdf-1",
+   "prompt_tokens": 1139,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2014/page_74.pdf-1",
+   "prompt_tokens": 1477,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|STT/2014/page_69.pdf-2",
+   "prompt_tokens": 1484,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2017/page_52.pdf-4",
+   "prompt_tokens": 1003,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LKQ/2012/page_25.pdf-1",
+   "prompt_tokens": 503,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2011/page_56.pdf-4",
+   "prompt_tokens": 985,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|OKE/2012/page_91.pdf-2",
+   "prompt_tokens": 1160,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2015/page_50.pdf-1",
+   "prompt_tokens": 1026,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2017/page_119.pdf-4",
+   "prompt_tokens": 1199,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CDNS/2007/page_30.pdf-1",
+   "prompt_tokens": 698,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2008/page_99.pdf-3",
+   "prompt_tokens": 904,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2010/page_212.pdf-1",
+   "prompt_tokens": 416,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2017/page_83.pdf-1",
+   "prompt_tokens": 1392,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2012/page_38.pdf-4",
+   "prompt_tokens": 1107,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2018/page_212.pdf-1",
+   "prompt_tokens": 1082,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VLO/2014/page_23.pdf-3",
+   "prompt_tokens": 568,
+   "response_tokens_including_eos": 16,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2017/page_123.pdf-2",
+   "prompt_tokens": 978,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2016/page_34.pdf-3",
+   "prompt_tokens": 602,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ADI/2012/page_65.pdf-3",
+   "prompt_tokens": 1408,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2016/page_186.pdf-4",
+   "prompt_tokens": 1131,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLK/2013/page_29.pdf-1",
+   "prompt_tokens": 1614,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2009/page_121.pdf-2",
+   "prompt_tokens": 1010,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FBHS/2017/page_48.pdf-1",
+   "prompt_tokens": 1263,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2015/page_183.pdf-2",
+   "prompt_tokens": 814,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2017/page_168.pdf-1",
+   "prompt_tokens": 1045,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2016/page_80.pdf-4",
+   "prompt_tokens": 918,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2016/page_88.pdf-1",
+   "prompt_tokens": 872,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MKTX/2014/page_39.pdf-1",
+   "prompt_tokens": 831,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2016/page_32.pdf-1",
+   "prompt_tokens": 786,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2012/page_39.pdf-2",
+   "prompt_tokens": 1326,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|APD/2016/page_117.pdf-1",
+   "prompt_tokens": 916,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2011/page_208.pdf-4",
+   "prompt_tokens": 1255,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2006/page_45.pdf-3",
+   "prompt_tokens": 1106,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2013/page_25.pdf-3",
+   "prompt_tokens": 1100,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2004/page_261.pdf-3",
+   "prompt_tokens": 812,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HIG/2004/page_81.pdf-2",
+   "prompt_tokens": 1186,
+   "response_tokens_including_eos": 14,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HWM/2017/page_77.pdf-2",
+   "prompt_tokens": 1169,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2014/page_88.pdf-2",
+   "prompt_tokens": 1443,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2017/page_145.pdf-2",
+   "prompt_tokens": 1034,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|DISCA/2016/page_30.pdf-4",
+   "prompt_tokens": 1660,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2015/page_106.pdf-3",
+   "prompt_tokens": 1221,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RSG/2018/page_47.pdf-2",
+   "prompt_tokens": 855,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ORLY/2016/page_29.pdf-3",
+   "prompt_tokens": 418,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2009/page_38.pdf-2",
+   "prompt_tokens": 1445,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ABMD/2006/page_62.pdf-2",
+   "prompt_tokens": 733,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RL/2015/page_9.pdf-1",
+   "prompt_tokens": 952,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HII/2014/page_133.pdf-4",
+   "prompt_tokens": 831,
+   "response_tokens_including_eos": 15,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2010/page_111.pdf-1",
+   "prompt_tokens": 850,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2016/page_88.pdf-2",
+   "prompt_tokens": 861,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2014/page_71.pdf-2",
+   "prompt_tokens": 1553,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AON/2014/page_45.pdf-4",
+   "prompt_tokens": 935,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HUM/2015/page_46.pdf-3",
+   "prompt_tokens": 594,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2013/page_93.pdf-1",
+   "prompt_tokens": 887,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VRTX/2006/page_112.pdf-2",
+   "prompt_tokens": 1089,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_424.pdf-2",
+   "prompt_tokens": 897,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2014/page_66.pdf-3",
+   "prompt_tokens": 1533,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2013/page_81.pdf-1",
+   "prompt_tokens": 1525,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLL/2007/page_75.pdf-4",
+   "prompt_tokens": 1017,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2009/page_183.pdf-5",
+   "prompt_tokens": 1443,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ADBE/2003/page_113.pdf-1",
+   "prompt_tokens": 1070,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2017/page_35.pdf-3",
+   "prompt_tokens": 1077,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HUM/2007/page_96.pdf-1",
+   "prompt_tokens": 696,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JKHY/2008/page_30.pdf-1",
+   "prompt_tokens": 1164,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FIS/2016/page_93.pdf-3",
+   "prompt_tokens": 1304,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HII/2013/page_127.pdf-4",
+   "prompt_tokens": 806,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ILMN/2007/page_84.pdf-2",
+   "prompt_tokens": 863,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2015/page_81.pdf-4",
+   "prompt_tokens": 1062,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ECL/2017/page_68.pdf-2",
+   "prompt_tokens": 1059,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2011/page_37.pdf-2",
+   "prompt_tokens": 1157,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IQV/2016/page_65.pdf-2",
+   "prompt_tokens": 943,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2018/page_13.pdf-4",
+   "prompt_tokens": 848,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VTR/2006/page_48.pdf-1",
+   "prompt_tokens": 1038,
+   "response_tokens_including_eos": 15,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2008/page_216.pdf-1",
+   "prompt_tokens": 1443,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2009/page_238.pdf-2",
+   "prompt_tokens": 1431,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETFC/2015/page_27.pdf-1",
+   "prompt_tokens": 398,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2017/page_19.pdf-4",
+   "prompt_tokens": 870,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2009/page_206.pdf-1",
+   "prompt_tokens": 1386,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2008/page_207.pdf-3",
+   "prompt_tokens": 831,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2009/page_48.pdf-2",
+   "prompt_tokens": 917,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FIS/2012/page_46.pdf-4",
+   "prompt_tokens": 1108,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LLY/2018/page_99.pdf-3",
+   "prompt_tokens": 632,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SNPS/2012/page_61.pdf-2",
+   "prompt_tokens": 823,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2005/page_70.pdf-2",
+   "prompt_tokens": 1684,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2016/page_207.pdf-3",
+   "prompt_tokens": 618,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JKHY/2009/page_28.pdf-1",
+   "prompt_tokens": 1397,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2014/page_18.pdf-1",
+   "prompt_tokens": 1175,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2008/page_59.pdf-1",
+   "prompt_tokens": 917,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAT/2017/page_103.pdf-4",
+   "prompt_tokens": 901,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|APTV/2015/page_47.pdf-1",
+   "prompt_tokens": 1067,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2008/page_213.pdf-2",
+   "prompt_tokens": 1459,
+   "response_tokens_including_eos": 16,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2012/page_30.pdf-2",
+   "prompt_tokens": 1172,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2007/page_103.pdf-3",
+   "prompt_tokens": 981,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2002/page_74.pdf-1",
+   "prompt_tokens": 1519,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CDW/2013/page_103.pdf-2",
+   "prompt_tokens": 852,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HII/2012/page_47.pdf-1",
+   "prompt_tokens": 1017,
+   "response_tokens_including_eos": 16,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2015/page_24.pdf-3",
+   "prompt_tokens": 587,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|STT/2008/page_112.pdf-2",
+   "prompt_tokens": 1097,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AES/2003/page_48.pdf-2",
+   "prompt_tokens": 624,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2012/page_39.pdf-3",
+   "prompt_tokens": 1337,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HII/2011/page_114.pdf-3",
+   "prompt_tokens": 896,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2002/page_88.pdf-1",
+   "prompt_tokens": 984,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2009/page_43.pdf-3",
+   "prompt_tokens": 1185,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLK/2016/page_35.pdf-3",
+   "prompt_tokens": 1496,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ANSS/2008/page_89.pdf-2",
+   "prompt_tokens": 945,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2009/page_35.pdf-2",
+   "prompt_tokens": 1141,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2006/page_50.pdf-2",
+   "prompt_tokens": 641,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2005/page_167.pdf-4",
+   "prompt_tokens": 913,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2018/page_21.pdf-4",
+   "prompt_tokens": 565,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2009/page_68.pdf-1",
+   "prompt_tokens": 660,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2010/page_75.pdf-2",
+   "prompt_tokens": 888,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2012/page_56.pdf-2",
+   "prompt_tokens": 1500,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|INTC/2015/page_122.pdf-2",
+   "prompt_tokens": 658,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_424.pdf-1",
+   "prompt_tokens": 899,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2012/page_186.pdf-3",
+   "prompt_tokens": 1152,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AON/2011/page_61.pdf-3",
+   "prompt_tokens": 846,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2013/page_47.pdf-4",
+   "prompt_tokens": 1224,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2005/page_77.pdf-4",
+   "prompt_tokens": 1284,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TSCO/2017/page_68.pdf-1",
+   "prompt_tokens": 976,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAG/2008/page_35.pdf-2",
+   "prompt_tokens": 1196,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2007/page_125.pdf-1",
+   "prompt_tokens": 1109,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|INTC/2017/page_46.pdf-2",
+   "prompt_tokens": 1390,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MMM/2013/page_48.pdf-2",
+   "prompt_tokens": 994,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2010/page_284.pdf-1",
+   "prompt_tokens": 1049,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HOLX/2003/page_41.pdf-1",
+   "prompt_tokens": 1188,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2007/page_34.pdf-1",
+   "prompt_tokens": 1205,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AON/2015/page_72.pdf-2",
+   "prompt_tokens": 1387,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2014/page_156.pdf-2",
+   "prompt_tokens": 1060,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2010/page_229.pdf-3",
+   "prompt_tokens": 1425,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2010/page_82.pdf-2",
+   "prompt_tokens": 1128,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2009/page_233.pdf-3",
+   "prompt_tokens": 411,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PPG/2018/page_60.pdf-2",
+   "prompt_tokens": 1216,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2014/page_30.pdf-4",
+   "prompt_tokens": 1104,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2009/page_149.pdf-1",
+   "prompt_tokens": 597,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MAS/2012/page_92.pdf-3",
+   "prompt_tokens": 819,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AON/2009/page_90.pdf-3",
+   "prompt_tokens": 687,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MA/2010/page_107.pdf-1",
+   "prompt_tokens": 889,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PPG/2012/page_47.pdf-3",
+   "prompt_tokens": 1532,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PPG/2015/page_40.pdf-4",
+   "prompt_tokens": 1216,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HFC/2011/page_88.pdf-1",
+   "prompt_tokens": 1090,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2012/page_38.pdf-2",
+   "prompt_tokens": 1131,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2007/page_32.pdf-2",
+   "prompt_tokens": 897,
+   "response_tokens_including_eos": 16,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2007/page_79.pdf-2",
+   "prompt_tokens": 1073,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2014/page_80.pdf-2",
+   "prompt_tokens": 1010,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2017/page_422.pdf-2",
+   "prompt_tokens": 1161,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2014/page_24.pdf-3",
+   "prompt_tokens": 879,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2012/page_20.pdf-1",
+   "prompt_tokens": 666,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|INTC/2018/page_48.pdf-2",
+   "prompt_tokens": 366,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2011/page_78.pdf-2",
+   "prompt_tokens": 1086,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|KIM/2014/page_131.pdf-2",
+   "prompt_tokens": 1090,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2009/page_68.pdf-2",
+   "prompt_tokens": 907,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2011/page_80.pdf-3",
+   "prompt_tokens": 1080,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2013/page_154.pdf-1",
+   "prompt_tokens": 1267,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IPG/2018/page_39.pdf-3",
+   "prompt_tokens": 1051,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  }
+ ],
+ "pool_sha256": "bad7a23b4def7e5140b39a26683cde9d891c0419d546a51002b28e4ce2601ffa",
+ "prompts": [
+  {
+   "d_prompt_eligible": true,
+   "id": "MO/2017/page_10.pdf-4",
+   "prompt_tokens": 1660,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "UNP/2014/page_41.pdf-1",
+   "prompt_tokens": 1170,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "MAS/2018/page_73.pdf-2",
+   "prompt_tokens": 922,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "JPM/2016/page_73.pdf-1",
+   "prompt_tokens": 665,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "SNA/2013/page_56.pdf-1",
+   "prompt_tokens": 1426,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "AAPL/2005/page_67.pdf-1",
+   "prompt_tokens": 829,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "LLY/2008/page_45.pdf-4",
+   "prompt_tokens": 1152,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "CMCSA/2015/page_63.pdf-1",
+   "prompt_tokens": 1046,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "SNPS/2012/page_61.pdf-3",
+   "prompt_tokens": 813,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "CAG/2007/page_42.pdf-1",
+   "prompt_tokens": 1220,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "MRO/2011/page_37.pdf-1",
+   "prompt_tokens": 1373,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "AAL/2014/page_18.pdf-4",
+   "prompt_tokens": 946,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "C/2018/page_190.pdf-2",
+   "prompt_tokens": 846,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "RSG/2014/page_73.pdf-1",
+   "prompt_tokens": 856,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "PNC/2018/page_81.pdf-1",
+   "prompt_tokens": 1051,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "AMT/2007/page_116.pdf-2",
+   "prompt_tokens": 1035,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "IP/2007/page_30.pdf-4",
+   "prompt_tokens": 1416,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "ETR/2009/page_21.pdf-1",
+   "prompt_tokens": 824,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "GS/2013/page_52.pdf-4",
+   "prompt_tokens": 1122,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "APD/2015/page_100.pdf-2",
+   "prompt_tokens": 827,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "IP/2009/page_83.pdf-4",
+   "prompt_tokens": 1490,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "JPM/2003/page_35.pdf-4",
+   "prompt_tokens": 819,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "TFX/2018/page_74.pdf-4",
+   "prompt_tokens": 1601,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "GS/2017/page_176.pdf-2",
+   "prompt_tokens": 989,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "MS/2017/page_57.pdf-2",
+   "prompt_tokens": 1393,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "AWK/2017/page_143.pdf-2",
+   "prompt_tokens": 822,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "AAPL/2012/page_38.pdf-3",
+   "prompt_tokens": 1107,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "GS/2012/page_177.pdf-3",
+   "prompt_tokens": 1006,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "RE/2016/page_141.pdf-1",
+   "prompt_tokens": 1166,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "BKNG/2015/page_38.pdf-3",
+   "prompt_tokens": 388,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "CME/2010/page_71.pdf-4",
+   "prompt_tokens": 1032,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "BLL/2010/page_58.pdf-1",
+   "prompt_tokens": 942,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  }
+ ],
+ "prompts_sha256": "b09d52b87973bff512591004f725690f05fd6ee2e6bc3aaf3fa7404c2ee013f2",
+ "response_cap": 2048,
+ "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+ "schema": "rung-p-local-input-check.v1",
+ "settings_sha256": "88da550afeeac77f95584301b4eb5b4165779e1b51ba4b46f6f3d79fa2f75285",
+ "tokenizer_files": {
+  "config.json": "f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30",
+  "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+  "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101"
+ },
+ "training": [
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MO/2017/page_10.pdf-4",
+   "prompt_tokens": 1660,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2014/page_41.pdf-1",
+   "prompt_tokens": 1170,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MAS/2018/page_73.pdf-2",
+   "prompt_tokens": 922,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2016/page_73.pdf-1",
+   "prompt_tokens": 665,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SNA/2013/page_56.pdf-1",
+   "prompt_tokens": 1426,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2005/page_67.pdf-1",
+   "prompt_tokens": 829,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LLY/2008/page_45.pdf-4",
+   "prompt_tokens": 1152,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CMCSA/2015/page_63.pdf-1",
+   "prompt_tokens": 1046,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SNPS/2012/page_61.pdf-3",
+   "prompt_tokens": 813,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAG/2007/page_42.pdf-1",
+   "prompt_tokens": 1220,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2011/page_37.pdf-1",
+   "prompt_tokens": 1373,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2014/page_18.pdf-4",
+   "prompt_tokens": 946,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2018/page_190.pdf-2",
+   "prompt_tokens": 846,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RSG/2014/page_73.pdf-1",
+   "prompt_tokens": 856,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2018/page_81.pdf-1",
+   "prompt_tokens": 1051,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2007/page_116.pdf-2",
+   "prompt_tokens": 1035,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2007/page_30.pdf-4",
+   "prompt_tokens": 1416,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2009/page_21.pdf-1",
+   "prompt_tokens": 824,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2013/page_52.pdf-4",
+   "prompt_tokens": 1122,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|APD/2015/page_100.pdf-2",
+   "prompt_tokens": 827,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_83.pdf-4",
+   "prompt_tokens": 1490,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JPM/2003/page_35.pdf-4",
+   "prompt_tokens": 819,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2018/page_74.pdf-4",
+   "prompt_tokens": 1601,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2017/page_176.pdf-2",
+   "prompt_tokens": 989,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MS/2017/page_57.pdf-2",
+   "prompt_tokens": 1393,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2017/page_143.pdf-2",
+   "prompt_tokens": 822,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2012/page_38.pdf-3",
+   "prompt_tokens": 1107,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2012/page_177.pdf-3",
+   "prompt_tokens": 1006,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2016/page_141.pdf-1",
+   "prompt_tokens": 1166,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKNG/2015/page_38.pdf-3",
+   "prompt_tokens": 388,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CME/2010/page_71.pdf-4",
+   "prompt_tokens": 1032,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLL/2010/page_58.pdf-1",
+   "prompt_tokens": 942,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PPG/2008/page_47.pdf-3",
+   "prompt_tokens": 1644,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_34.pdf-4",
+   "prompt_tokens": 1191,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2014/page_67.pdf-1",
+   "prompt_tokens": 972,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLL/2010/page_58.pdf-3",
+   "prompt_tokens": 965,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2017/page_145.pdf-2",
+   "prompt_tokens": 1138,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LLY/2018/page_75.pdf-1",
+   "prompt_tokens": 1330,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FIS/2016/page_64.pdf-2",
+   "prompt_tokens": 1102,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_18.pdf-3",
+   "prompt_tokens": 890,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2015/page_22.pdf-1",
+   "prompt_tokens": 1273,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2013/page_56.pdf-1",
+   "prompt_tokens": 1099,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SLG/2017/page_114.pdf-3",
+   "prompt_tokens": 1465,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2018/page_255.pdf-2",
+   "prompt_tokens": 1259,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2013/page_34.pdf-1",
+   "prompt_tokens": 598,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_324.pdf-1",
+   "prompt_tokens": 880,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MO/2014/page_11.pdf-3",
+   "prompt_tokens": 1637,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2012/page_152.pdf-1",
+   "prompt_tokens": 1036,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2013/page_93.pdf-2",
+   "prompt_tokens": 886,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_25.pdf-2",
+   "prompt_tokens": 1403,
+   "response_tokens_including_eos": 14,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PKG/2006/page_65.pdf-2",
+   "prompt_tokens": 767,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CAG/2007/page_49.pdf-1",
+   "prompt_tokens": 906,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|SLG/2010/page_90.pdf-2",
+   "prompt_tokens": 1201,
+   "response_tokens_including_eos": 13,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2010/page_115.pdf-2",
+   "prompt_tokens": 1373,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAP/2011/page_16.pdf-2",
+   "prompt_tokens": 1786,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2014/page_64.pdf-2",
+   "prompt_tokens": 876,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2005/page_67.pdf-2",
+   "prompt_tokens": 834,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|V/2008/page_149.pdf-1",
+   "prompt_tokens": 810,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|MRO/2015/page_43.pdf-2",
+   "prompt_tokens": 1145,
+   "response_tokens_including_eos": 4,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|DISH/2015/page_142.pdf-1",
+   "prompt_tokens": 717,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2018/page_52.pdf-2",
+   "prompt_tokens": 1134,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2007/page_55.pdf-4",
+   "prompt_tokens": 1178,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2018/page_83.pdf-4",
+   "prompt_tokens": 1194,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2018/page_59.pdf-1",
+   "prompt_tokens": 1115,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|STT/2009/page_122.pdf-1",
+   "prompt_tokens": 1018,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2017/page_86.pdf-2",
+   "prompt_tokens": 860,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2015/page_42.pdf-3",
+   "prompt_tokens": 393,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TSCO/2018/page_31.pdf-2",
+   "prompt_tokens": 614,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2014/page_122.pdf-2",
+   "prompt_tokens": 932,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2008/page_144.pdf-3",
+   "prompt_tokens": 1187,
+   "response_tokens_including_eos": 15,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLK/2016/page_120.pdf-2",
+   "prompt_tokens": 1586,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2015/page_46.pdf-3",
+   "prompt_tokens": 1499,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VLO/2018/page_99.pdf-2",
+   "prompt_tokens": 850,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2016/page_80.pdf-2",
+   "prompt_tokens": 923,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IPG/2017/page_26.pdf-2",
+   "prompt_tokens": 821,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RE/2015/page_110.pdf-1",
+   "prompt_tokens": 922,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2008/page_212.pdf-2",
+   "prompt_tokens": 942,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VTR/2007/page_48.pdf-4",
+   "prompt_tokens": 647,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2007/page_35.pdf-1",
+   "prompt_tokens": 806,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2015/page_18.pdf-3",
+   "prompt_tokens": 931,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AWK/2013/page_123.pdf-2",
+   "prompt_tokens": 878,
+   "response_tokens_including_eos": 14,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2018/page_79.pdf-2",
+   "prompt_tokens": 778,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETFC/2007/page_116.pdf-2",
+   "prompt_tokens": 876,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ADBE/2013/page_68.pdf-3",
+   "prompt_tokens": 787,
+   "response_tokens_including_eos": 12,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2009/page_85.pdf-2",
+   "prompt_tokens": 911,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2008/page_96.pdf-4",
+   "prompt_tokens": 963,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2016/page_342.pdf-1",
+   "prompt_tokens": 643,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|HIG/2013/page_235.pdf-2",
+   "prompt_tokens": 1186,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AES/2010/page_133.pdf-1",
+   "prompt_tokens": 1189,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|IP/2009/page_38.pdf-4",
+   "prompt_tokens": 1312,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2017/page_76.pdf-4",
+   "prompt_tokens": 1194,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|NCLH/2016/page_84.pdf-3",
+   "prompt_tokens": 1635,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|JKHY/2016/page_61.pdf-5",
+   "prompt_tokens": 1125,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2009/page_279.pdf-1",
+   "prompt_tokens": 424,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2014/page_89.pdf-4",
+   "prompt_tokens": 1118,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LKQ/2018/page_102.pdf-2",
+   "prompt_tokens": 1121,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2017/page_101.pdf-4",
+   "prompt_tokens": 1124,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2005/page_83.pdf-1",
+   "prompt_tokens": 1006,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2014/page_71.pdf-3",
+   "prompt_tokens": 886,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PM/2015/page_103.pdf-4",
+   "prompt_tokens": 762,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2009/page_107.pdf-3",
+   "prompt_tokens": 991,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AMT/2005/page_77.pdf-3",
+   "prompt_tokens": 1279,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|RCL/2016/page_37.pdf-3",
+   "prompt_tokens": 464,
+   "response_tokens_including_eos": 9,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|KIM/2014/page_130.pdf-1",
+   "prompt_tokens": 1139,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|TFX/2014/page_74.pdf-1",
+   "prompt_tokens": 1477,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|STT/2014/page_69.pdf-2",
+   "prompt_tokens": 1484,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UAA/2017/page_52.pdf-4",
+   "prompt_tokens": 1003,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LKQ/2012/page_25.pdf-1",
+   "prompt_tokens": 503,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UNP/2011/page_56.pdf-4",
+   "prompt_tokens": 985,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|OKE/2012/page_91.pdf-2",
+   "prompt_tokens": 1160,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ETR/2015/page_50.pdf-1",
+   "prompt_tokens": 1026,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|C/2017/page_119.pdf-4",
+   "prompt_tokens": 1199,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CDNS/2007/page_30.pdf-1",
+   "prompt_tokens": 698,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GPN/2008/page_99.pdf-3",
+   "prompt_tokens": 904,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CB/2010/page_212.pdf-1",
+   "prompt_tokens": 416,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|LMT/2017/page_83.pdf-1",
+   "prompt_tokens": 1392,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAPL/2012/page_38.pdf-4",
+   "prompt_tokens": 1107,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2018/page_212.pdf-1",
+   "prompt_tokens": 1082,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|VLO/2014/page_23.pdf-3",
+   "prompt_tokens": 568,
+   "response_tokens_including_eos": 16,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BKR/2017/page_123.pdf-2",
+   "prompt_tokens": 978,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|UPS/2016/page_34.pdf-3",
+   "prompt_tokens": 602,
+   "response_tokens_including_eos": 8,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|ADI/2012/page_65.pdf-3",
+   "prompt_tokens": 1408,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|GS/2016/page_186.pdf-4",
+   "prompt_tokens": 1131,
+   "response_tokens_including_eos": 7,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|BLK/2013/page_29.pdf-1",
+   "prompt_tokens": 1614,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|CE/2009/page_121.pdf-2",
+   "prompt_tokens": 1010,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|FBHS/2017/page_48.pdf-1",
+   "prompt_tokens": 1263,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|AAL/2015/page_183.pdf-2",
+   "prompt_tokens": 814,
+   "response_tokens_including_eos": 11,
+   "smoke_train_eligible": true
+  },
+  {
+   "d_prompt_eligible": true,
+   "id": "finqa|PNC/2017/page_168.pdf-1",
+   "prompt_tokens": 1045,
+   "response_tokens_including_eos": 10,
+   "smoke_train_eligible": true
+  }
+ ],
+ "v4_probe": {
+  "ids": [
+   "CDNS/2007/page_30.pdf-1",
+   "EMN/2016/page_104.pdf-2",
+   "IP/2012/page_56.pdf-4",
+   "SLG/2009/page_99.pdf-2",
+   "ETR/2013/page_93.pdf-2",
+   "MS/2013/page_277.pdf-2",
+   "SNPS/2012/page_61.pdf-3",
+   "AES/2016/page_98.pdf-4",
+   "GS/2018/page_70.pdf-1",
+   "AON/2011/page_38.pdf-1",
+   "LMT/2007/page_55.pdf-4",
+   "GS/2013/page_97.pdf-3",
+   "BDX/2019/page_86.pdf-4",
+   "AES/2016/page_45.pdf-1",
+   "HIG/2004/page_125.pdf-1",
+   "ETR/2013/page_93.pdf-1",
+   "JPM/2012/page_109.pdf-3",
+   "RSG/2014/page_73.pdf-1",
+   "AAPL/2018/page_23.pdf-3",
+   "JPM/2007/page_152.pdf-3"
+  ],
+  "manifest_sha256": "338eb92ac53f47e8e40871603bdb7c797f4871b246bafba762f84bf0ea774527",
+  "pool_overlap": [
+   "CDNS/2007/page_30.pdf-1",
+   "ETR/2013/page_93.pdf-1",
+   "ETR/2013/page_93.pdf-2",
+   "LMT/2007/page_55.pdf-4",
+   "RSG/2014/page_73.pdf-1",
+   "SNPS/2012/page_61.pdf-3"
+  ],
+  "selector": "kit.v4_finqa_data.prepare: sha(v4-fixed-probe|finqa|id), first 20"
+ }
+}

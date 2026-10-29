@@ -21,7 +21,7 @@ All registered recipes, schedules, targets, scoring and bars remain unchanged.
 Science: `resources/p3b/registration.md`, with the owner-approved 17/18 October
 [amendments](resources/p3b/amendments-20261018.md).
 One command is one job; supply your own sbatch. No campaign, runner, submission or automatic continuation. Keep one
-absolute OUT on node-local NVMe and copy the complete OUT to fsx_efa throughout
+absolute OUT on node-local NVMe and copy the complete OUT to shared-storage throughout
 and before releasing the node. Training data and checkpoints are written beneath
 OUT; there is no separate scratch argument.
 
@@ -33,9 +33,9 @@ export INFERENCE_PY=/absolute/inference-venv/bin/python
 export SDPO=/absolute/pinned-SDPO
 export BASE=/absolute/Qwen3-8B-snapshot TEACHER=/absolute/Qwen3.6-27B-snapshot
 export A=/absolute/package-A-OUT                     # the complete package-A OUT, not its archive
-# The retained FinQA evidence tree on fsx_efa: the directory holding v4/ and runs/.
-export V4_WORK=/absolute/fsx_efa/path/to/preserved-finqa-WORK
-export V4_EXPORTS=/absolute/fsx_efa/v4-finqa-keep/exports
+# The retained FinQA evidence tree on shared-storage: the directory holding v4/ and runs/.
+export V4_WORK=/absolute/shared-storage/path/to/preserved-finqa-WORK
+export V4_EXPORTS=/absolute/shared-storage/v4-finqa-keep/exports
 export ARCHIVE=/absolute/p3b-return.tar.gz
 export V4_FINQA_PANEL="$V4_WORK/v4/report-inputs/finqa-panel.jsonl"   # replay exclusions only
 export FINQA="$V4_WORK/v4/datasets/datasets/v4_finqa"                  # scoring: holds test.parquet

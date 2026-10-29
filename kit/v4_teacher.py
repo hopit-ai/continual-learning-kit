@@ -130,6 +130,8 @@ def write_jsonl(path, rows):
 
 
 def read_jsonl(path):
+    from kit.m2_paths import local
+    path=local(path)
     return [json.loads(line) for line in Path(path).read_text().split("\n") if line.strip()]
 
 
@@ -779,7 +781,8 @@ class VLLMGenerator:
         fallback_cause=os.environ.get('V4_BATCH_FALLBACK_CAUSE')
         os.environ['VLLM_BATCH_INVARIANT']='0' if fallback_cause else '1'
         os.environ['VLLM_ATTENTION_BACKEND']='FLASH_ATTN'
-        from vllm import LLM, SamplingParams
+        from vllm import SamplingParams
+        from kit.inference_lifecycle import create_llm as LLM
         self.params = SamplingParams
         self.max_new_tokens = max_new_tokens
         self.input_cap = input_cap

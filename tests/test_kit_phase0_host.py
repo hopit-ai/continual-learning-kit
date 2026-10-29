@@ -8,6 +8,16 @@ import subprocess
 import sys
 import pytest
 ROOT=Path(__file__).resolve().parents[1]
+_HOST_DISK_USAGE = shutil.disk_usage
+
+
+def require_host_build_space(path):
+    """The real venv-builder/subprocess needs its production 30 GiB host reserve."""
+    available = _HOST_DISK_USAGE(path).free
+    if available < 30 * 1024**3:
+        pytest.skip(f'host resource absent: phase-0 builder needs 30 GiB free; available {available/1024**3:.1f} GiB')
+
+
 VERSIONS={'torch':'2.9.0+cu128','vllm':'0.12.0','verl':'0.7.0.dev0','transformers':'4.57.1','flash_attn':'2.8.3+cu12torch2.9','ray':'2.53.0','numpy':'1.26.4'}
 
 
@@ -196,6 +206,7 @@ def test_cpu_endpoint_failure_is_bounded_readable_and_precedes_commands(tmp_path
 
 def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path,monkeypatch):
     """Actual command construction must constrain trainer pins, isolate inference, and keep HF offline."""
+    require_host_build_space(tmp_path)
     from kit import v4_phase0 as p,v4_phase0_site as s
     monkeypatch.delenv('SLURM_JOB_ID',raising=False);monkeypatch.setenv('SDPO_DIR',str(tmp_path/'source'))
     monkeypatch.setenv('TASK_ROOT',str(tmp_path/'task'));monkeypatch.setattr(s,'installed_versions',lambda:VERSIONS.copy())

@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.next_common import *
+from kit.m2_gpu import prepared_index
 from kit.p3b_score import write_csv
 import re
 import time
@@ -88,7 +89,7 @@ def score(a):
         bed.SPLITS['hellaswag']=('test',)
         bed.load_bed=lambda name:module if name=='hellaswag' else old(name)
         try:
-            os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu,KIT_DETERMINISTIC='1')
+            os.environ.update(CUDA_VISIBLE_DEVICES=prepared_index(a.gpu,a.standin),KIT_DETERMINISTIC='1')
             bed.cmd_generate(SimpleNamespace(bed='hellaswag',root='',split='test',model=a.model,max_new_tokens=2048,
                 max_model_len=12288,out=str(folder/'raw'),limit=None,heldout_n=None,allow_subset=False),frozen_items=[dict(id=r['id'],prompt=r['prompt'],ground_truth=r['gold']) for r in rows])
             raw=t.read_jsonl(folder/'raw/responses.jsonl')
@@ -102,7 +103,7 @@ def score(a):
         question_id=r['id'],correct=int(strict_label(r['response'])==byid[r['id']]['gold']),
         output_tokens=r['output_tokens'],finished=int(r['finish_reason'] in ('stop','eos'))) for r in raw]
     write_csv(folder/'scores.csv',scores)
-    atomic(folder/'identity.json',dict(model=observed,gpu_identity=gpu_identity,panel_sha256=manifest['panel_sha256'],technical_synthetic=a.standin))
+    atomic(folder/'identity.json',dict(model=observed,assignment=gpu_identity.get('assignment'),gpu_identity=gpu_identity,panel_sha256=manifest['panel_sha256'],technical_synthetic=a.standin))
     atomic(folder/'cost.json',dict(kind='HellaSwag_scoring',gpu_hours=0 if a.standin else (time.monotonic()-started)/3600,technical_synthetic=a.standin))
     freeze(folder,['scores.csv','identity.json','responses.jsonl','cost.json'],a.standin)
 

@@ -164,12 +164,25 @@ def test_k0_campaign_matches_the_partner_instructions(work, monkeypatch):
 def test_no_kit_tool_reads_json_lines_with_splitlines():
     """str.splitlines() also breaks on the Unicode line separators (code points 0x2028, 0x2029, 0x85), which a model can
     write INSIDE an answer; the kit writes answers with ensure_ascii=False. One such character would split a record in two
-    and crash the reader on the partner's machine. Found 20 September while reviewing the K3 beds."""
+    and crash the reader on the partner's machine. Found 20 September while reviewing the K3 beds.
+
+    Manager ruling, 29 October 2026 (receipt verification BLOCK): preserve exact
+    7220ef82 bytes for receipt-bound validation code consuming machine-written
+    JSONL; no paid re-validation for the splitlines->LF edit. See
+    docs/phase3/combined-receipt-ruling-20261029.md, "Receipt-bound restoration".
+    The allowlist is byte-pinned; all other readers still require literal LF.
+    """
     import re as _re
     record = json.dumps({"response": "one" + chr(0x2028) + "two" + chr(0x85) + "three"}, ensure_ascii=False) + "\n"
     assert len(record.splitlines()) > 1 and len([x for x in record.split("\n") if x]) == 1      # the hazard, and the fix
+    import hashlib
+    receipt_bound = {'kit/arc_prompt_acceptance.py': 'd2dde7c5478905244c3dab27f2b5ead380e92188d78bfffaa345ea6d045870c8', 'kit/arc_prompt_check.py': '4dfb9c082ce0974af198ae31f314d22a091f5a690385c7cffeb8e89aa7256514', 'kit/hellaswag_prompt_check.py': '03b98cbec77ae0e7ef972b97fdd301cad5e588eaa530dc83fc44c32c42a26b06', 'kit/m2_assignment.py': '8ed028a4bc829bda0622256094e05c6b52ae0904bde255b6696dbce439dd88c2', 'kit/p_smoke.py': '9941ee5004107b6de4ea4ffe5ba042523c86f96cda6c6fea5de72b3f08a087a4'}
     offenders = []
     for path in sorted((ROOT / "kit").rglob("*.py")):
+        name = str(path.relative_to(ROOT))
+        if name in receipt_bound:
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == receipt_bound[name], name
+            continue
         for number, line in enumerate(path.read_text().split("\n"), 1):
             if ".splitlines()" in line and _re.search(r"json\.loads|responses|\.jsonl", line):
                 offenders.append("%s:%d" % (path.relative_to(ROOT), number))

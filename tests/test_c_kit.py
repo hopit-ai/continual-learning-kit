@@ -11,6 +11,7 @@ from kit import c_common as c, c_bind, c_targets, c_train, c_score, c_read, c_co
 from kit.c_sim import Tokenizer, b_rows
 from kit.p3b_read import analyse as b_analyse
 from kit.p3b_score import write_csv
+from kit.m2_seed_policy import SEEDS as RETURN1_SEEDS
 
 
 def args(out, **kw): return NS(out=out,standin=True,**kw)
@@ -199,12 +200,18 @@ def test_context_adapter_and_training_command(tmp_path):
 
 @pytest.mark.parametrize('winner',c.RECIPES)
 def test_full_standin_every_core_row_and_roundtrip(tmp_path,winner):
+    """29 Oct decisions §registered amendment: return-1 rule §Statistics/Decision map (C), 101–103.
+
+    docs/phase3/three-seed-rule-return1-20261028.md, applied 29 Oct in
+    return1-three-seed-decisions-20261029.md §Three-seed registered decisions.
+    B selection retains all five original seeds; only C rows/counts change here.
+    """
     out=tmp_path/'out'; bind(out,tmp_path/'b-evidence',winner); targets(out)
     replay=replay_fixture(tmp_path/'replay'); doc=c.binding(out,True)
     for p in ('panel','test','finqa','general-v1'): score(out,'base',101,0,p)
     for recipe in c.arms(doc):
         for route in ('standalone','sequence'):
-            for seed in c.SEEDS:
+            for seed in RETURN1_SEEDS:
                 arm=route+'-'+recipe
                 for p in ('panel','test','finqa','general-v1'): score(out,arm,seed,0,p)
                 a=train(out,recipe,route,seed,replay); c_train.job(a)
@@ -212,13 +219,13 @@ def test_full_standin_every_core_row_and_roundtrip(tmp_path,winner):
                     for p in ('panel','test'): score(out,arm,seed,step,p)
                 for step in (20,40):
                     for p in ('finqa','general-v1'): score(out,arm,seed,step,p)
-    assert len(list((out/'runs').glob('*/complete.json')))==10*len(c.arms(doc))
+    assert len(list((out/'runs').glob('*/complete.json')))==6*len(c.arms(doc))
     read=tmp_path/'read'; c_read.job(args(read,source=out,bootstrap=20))
     result=json.loads((read/'reading.json').read_text())
     assert result['complete'] and result['goal1']['status']=='PASS'
-    assert len(result['seed_tables'])==40*len(c.arms(doc)) and len(result['retention'])==len(c.arms(doc))
+    assert len(result['seed_tables'])==24*len(c.arms(doc)) and len(result['retention'])==len(c.arms(doc))
     assert result['cost']['recorded_gpu_hours']==0
-    assert len(list((out/'scores').glob('*/manifest.json')))==160*len(c.arms(doc))+4
+    assert len(list((out/'scores').glob('*/manifest.json')))==96*len(c.arms(doc))+4
     # Copy manager summaries to the partner tree before collection.
     import shutil
     shutil.copytree(read,out/'reading')
@@ -231,7 +238,7 @@ def test_full_standin_every_core_row_and_roundtrip(tmp_path,winner):
         names=tar.getnames()
         assert any('bulk-evidence.json' in n for n in names)
         assert not any('/raw/' in n or '/data/' in n or 'schedule-' in n for n in names)
-    c.atomic(tmp_path/'dry-run-summary.json',dict(stages=10*len(c.arms(doc)),score_jobs=160*len(c.arms(doc))+4,seed_table_rows=40*len(c.arms(doc)),goal1='technical PASS',archive_bytes=archive.stat().st_size,gpu_hours=0))
+    c.atomic(tmp_path/'dry-run-summary.json',dict(stages=6*len(c.arms(doc)),score_jobs=96*len(c.arms(doc))+4,seed_table_rows=24*len(c.arms(doc)),goal1='technical PASS',archive_bytes=archive.stat().st_size,gpu_hours=0))
 
 
 def test_train_scoring_and_collection_failure_paths(tmp_path):
@@ -252,9 +259,10 @@ def test_train_scoring_and_collection_failure_paths(tmp_path):
 
 
 def test_goal_mean_alone_is_insufficient_and_question_pair_cluster(tmp_path):
+    """29 Oct return-1 amendment §Decision map/C Goal 1: same 69.7 bar, three-seed t bound."""
     out=tmp_path/'out'; bind(out,tmp_path/'b-evidence','F'); doc=c.binding(out,True)
     items=c.panels()['test']; rows=[]
-    for seed,final in zip(c.SEEDS,(60,75,80,85,90)):
+    for seed,final in zip(RETURN1_SEEDS,(60,80,94)):
         for step in (0,40):
             raw=[dict(id=r['id'],response='Answer: '+(r['gold'] if i<(42 if step==0 else final) else 'invalid'),output_tokens=10,finish_reason='stop') for i,r in enumerate(items)]
             rows+=c_score.legal_scores(items,raw,'standalone-F',seed,step,'test')
@@ -267,7 +275,7 @@ def test_goal_mean_alone_is_insufficient_and_question_pair_cluster(tmp_path):
     assert not result['complete']
     with pytest.raises(c.CorrectnessStop): c_read.analyse(rows+rows[:1],doc,20)
     assert c_read.status(dict(mean=70,lower=69.7,upper=72),69.7)=='PASS'
-    assert c_read.status(dict(mean=69,lower=65,upper=69.6),69.7)=='FAIL'
+    assert c_read.status(dict(mean=69,lower=65,upper=69.6),69.7)=='INCONCLUSIVE'
 
 
 def test_cli_failure_exit_codes_and_help(tmp_path):
@@ -337,16 +345,17 @@ def test_full_documents_longer_than_b_caps_are_trainable():
     assert compute_score('p3b_replay','anything','',dict(p3b_replay=True))['score']==0
 
 
-def test_goal_needs_four_positive_seeds_and_undefined_cost(tmp_path):
+def test_goal_needs_three_positive_seeds_and_undefined_cost(tmp_path):
+    """29 Oct return-1 amendment §Decision map/C Goal 1: 3/3 positive; undefined costs unchanged."""
     out=tmp_path/'out'; bind(out,tmp_path/'b','F'); doc=c.binding(out,True); items=c.panels()['test']
     rows=[]
-    for seed,start in zip(c.SEEDS,(42,42,42,95,95)):
+    for seed,start in zip(RETURN1_SEEDS,(42,42,95)):
         for step,num in ((0,start),(40,90)):
             raw=[dict(id=r['id'],response='Answer: '+(r['gold'] if i<num else 'invalid'),output_tokens=100,finish_reason='stop') for i,r in enumerate(items)]
             rows.extend(c_score.legal_scores(items,raw,'standalone-F',seed,step,'test'))
     result=c_read.analyse(rows,doc,10)
     assert result['goal1']['final_seed_bound']['lower']==90
-    assert result['goal1']['positive_seeds']==3 and result['goal1']['status']=='FAIL'
+    assert result['goal1']['positive_seeds']==2 and result['goal1']['status']=='INCONCLUSIVE'
     for r in rows: r['correct']=r['tolerant_correct']=r['strict_correct']=0
     result=c_read.analyse(rows,doc,10)
     assert all(r['tokens_per_correct'] is None and r['serving_status']=='UNDEFINED' for r in result['summaries'])
@@ -470,10 +479,11 @@ def test_probe_contractnli_final_and_gain_common_rule_document_pairs(monkeypatch
 
 
 def test_combined_message_full_standin_and_job_handoff(tmp_path):
+    """29 Oct return-1 amendment §C/probe and plan §Combined message 2+3: three C seeds, B unchanged."""
     from kit.message_dryrun import job
     job(NS(out=tmp_path/'message',standin=True))
     result=json.loads((tmp_path/'message/message-summary.json').read_text())
-    assert result['all_message_rows'] and result['core_and_probe_stages']==40
+    assert result['all_message_rows'] and result['core_and_probe_stages']==24
     assert result['screen']['probe_stages']==0
     assert result['resume_across_jobs'] and result['restored_hashes']>0
     assert result['mid_save_interruption']

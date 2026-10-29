@@ -1,0 +1,352 @@
+[
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "required_word"
+  },
+  "expected": true,
+  "text": "concatenate"
+ },
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "required_word"
+  },
+  "expected": true,
+  "text": "CAT"
+ },
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "required_word"
+  },
+  "expected": false,
+  "text": "dog"
+ },
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "forbidden_word"
+  },
+  "expected": false,
+  "text": "concatenate"
+ },
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "forbidden_word"
+  },
+  "expected": true,
+  "text": "dog"
+ },
+ {
+  "constraint": {
+   "args": {
+    "word": "cat"
+   },
+   "family": "forbidden_word"
+  },
+  "expected": true,
+  "text": ""
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 3,
+    "word": "cat"
+   },
+   "family": "word_frequency"
+  },
+  "expected": true,
+  "text": "cat-cat CAT"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 1,
+    "word": "cat"
+   },
+   "family": "word_frequency"
+  },
+  "expected": false,
+  "text": "cats"
+ },
+ {
+  "constraint": {
+   "args": {
+    "max": 4,
+    "min": 4
+   },
+   "family": "word_count_interval"
+  },
+  "expected": true,
+  "text": "- red\n- blue"
+ },
+ {
+  "constraint": {
+   "args": {
+    "max": 4,
+    "min": 3
+   },
+   "family": "word_count_interval"
+  },
+  "expected": false,
+  "text": "one two"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 2
+   },
+   "family": "sentence_count"
+  },
+  "expected": true,
+  "text": "One. Two."
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 2
+   },
+   "family": "sentence_count"
+  },
+  "expected": true,
+  "text": "One. "
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 1
+   },
+   "family": "sentence_count"
+  },
+  "expected": true,
+  "text": "Mr. Fox."
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 2
+   },
+   "family": "paragraph_count"
+  },
+  "expected": true,
+  "text": "one\n* * *\ntwo"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 2
+   },
+   "family": "paragraph_count"
+  },
+  "expected": false,
+  "text": "one\n\ntwo"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 2
+   },
+   "family": "paragraph_count"
+  },
+  "expected": false,
+  "text": "one\n* * *\n"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 3
+   },
+   "family": "bullet_count"
+  },
+  "expected": true,
+  "text": "- red\n*blue\n*"
+ },
+ {
+  "constraint": {
+   "args": {
+    "count": 1
+   },
+   "family": "bullet_count"
+  },
+  "expected": false,
+  "text": "• red"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "{}"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "[]"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "\"plain text\""
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "3"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "null"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": "true"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": true,
+  "text": " {\"a\": 2}\n"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "```json\n{}\n```"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "NaN"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "Infinity"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "{\"a\":NaN}"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "{} {}"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "json_only"
+  },
+  "expected": false,
+  "text": "Here: {}"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "lowercase_only"
+  },
+  "expected": true,
+  "text": "lower case"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "lowercase_only"
+  },
+  "expected": true,
+  "text": "123"
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "lowercase_only"
+  },
+  "expected": true,
+  "text": ""
+ },
+ {
+  "constraint": {
+   "args": {},
+   "family": "lowercase_only"
+  },
+  "expected": false,
+  "text": "Capital"
+ },
+ {
+  "constraint": {
+   "args": {
+    "suffix": "now."
+   },
+   "family": "required_suffix"
+  },
+  "expected": true,
+  "text": "done now."
+ },
+ {
+  "constraint": {
+   "args": {
+    "suffix": "now."
+   },
+   "family": "required_suffix"
+  },
+  "expected": false,
+  "text": "done now.\n"
+ },
+ {
+  "constraint": {
+   "args": {
+    "suffix": "now."
+   },
+   "family": "required_suffix"
+  },
+  "expected": false,
+  "text": "done NOW."
+ }
+]

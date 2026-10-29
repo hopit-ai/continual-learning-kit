@@ -1,0 +1,62 @@
+{
+ "ambiguities": [
+  "First updates means four (zero-LR plus three nonzero), matching Screen S; no extended recovery.",
+  "SHA256 seed maps first 8 bytes unsigned big-endian to CPU torch.Generator; gate then up fp32 normal draws cast to stored dtype.",
+  "Utility uses every actual input position, prompt plus response including final EOS, without a causal shift or task/replay loss mask; exactly kit.p_diag.activation_stats all_utility (V2).",
+  "Greedy comparison is bounded at 128 new tokens; token sequences including EOS compared exactly; truncation reported.",
+  "Logit comparison uses an fp32 head on the final hidden state at response prediction positions only (including EOS); fixed teacher-forced contexts; pooled entry quantiles use linear interpolation.",
+  "Timing uses median updates 2-4 to exclude first AdamW allocation; all individual times retained.",
+  "Mean response NLL is the EOS-inclusive sum of response-label NLL across the 32 prompts divided by their total response tokens; no task skip mask for damage measurement."
+ ],
+ "attempt": 2,
+ "batch": 32,
+ "ema_rate": 0.01,
+ "fraction": 0.0005,
+ "fraction_sweep_evidence": "docs/phase2/evidence/rung-p-fraction-sweep.attempt1.json",
+ "fraction_sweep_sha256": "4d9ebda766249d989aa7c98c547aaa670a170d3d9b4784828b8aebd26eeaebf3",
+ "gradient_clip": 1.0,
+ "gradient_norm_gate": "both directions within factor 2 at each of four updates, before clipping",
+ "greedy": {
+  "do_sample": false,
+  "max_new_tokens": 128,
+  "num_beams": 1,
+  "repetition_penalty": 1.0,
+  "use_cache": true
+ },
+ "greedy_reporting": "changed output count and exact token sequences reported only; no gate",
+ "learning_rates": [
+  0.0,
+  1e-06,
+  2e-06,
+  3e-06
+ ],
+ "limits": {
+  "max_gradient_ratio": 2.0,
+  "max_nll_rise_nats_per_token": 0.1,
+  "max_p99_9_logit_delta": 1.0,
+  "max_step_ratio": 1.1
+ },
+ "logits": "fp32 head on final normalised hidden state; full vocabulary at response prediction positions only; p99/p99.9/max reported; only p99.9 gated",
+ "model": "Qwen/Qwen3-8B",
+ "nll": "mean teacher-forced EOS-inclusive response NLL across 32 prompts, weighted equally per token; rise <=0.1 nats/token",
+ "pool_sha256": "bad7a23b4def7e5140b39a26683cde9d891c0419d546a51002b28e4ce2601ffa",
+ "prompt_count": 32,
+ "prompts_sha256": "b09d52b87973bff512591004f725690f05fd6ee2e6bc3aaf3fa7404c2ee013f2",
+ "reason": "m2_train/c_train require eight distinct GPUs; one H100 cannot hold fp32 masters, AdamW states, EMA, bf16 actor and rollout engine together",
+ "registration": "docs/programme-plan-v6-amendment-20261024.md, Rung P, Fraction sweep (pre-stated 25 October)",
+ "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+ "schema": "rung-p-smoke-freeze.v1",
+ "seed": 101,
+ "selection": "floor(fraction*layer units), lowest utility, ties by unit index",
+ "source": "FinQA train only; first 256 rung-p-v1 hashes from the frozen D 1,441-row pool; no admitted replay available locally",
+ "source_train_sha256": "49f237eb9779b569473b26b08048867d04635a7cc39ad6a7a5664c55bb428db6",
+ "targets": "technical smoke uses FinQA executed gold answers, not verified 27B demonstrations",
+ "timing_gate": "ratio of median wall step seconds for updates 2-4, including optimizer and EMA; exclude first state allocation equally",
+ "training": "minimal response-only EOS-inclusive CE, mean per item then batch mean; full weights, bf16 forward/gradients, CPU fp32 AdamW master/state and EMA; fresh copies per arm",
+ "updates": 4,
+ "utility_definition": "kit.p_diag.activation_stats all_utility (V2), unchanged",
+ "utility_eligibility": "kit.c_d_prompt.d_prompt_eligible, shared with c_train; exclude over-cap prompts before hash ordering",
+ "utility_mask": "every input position, prompt plus response including final EOS; equal token weight",
+ "utility_positions": "all",
+ "v4_manifest_sha256": "338eb92ac53f47e8e40871603bdb7c797f4871b246bafba762f84bf0ea774527"
+}

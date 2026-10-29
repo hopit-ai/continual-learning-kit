@@ -1,0 +1,82 @@
+{
+ "ancestry_closed": null,
+ "complete_inventory": null,
+ "frozen_sha256": "526c819fb8a50ca9e67d75c1ea63d8bb5e53646b8d92123a974b2e23b40bf5e1",
+ "inventories": [
+  {
+   "format": "jsonl",
+   "inventory_id": "b-generic-candidates",
+   "path": "SET_LOCALLY",
+   "sha256": "e7119dbfd2a0b68863285f7c38cb1dba7e892043214e244a84272e9389412cb6"
+  },
+  {
+   "format": "jsonl",
+   "inventory_id": "b-generic-accepted",
+   "path": "SET_LOCALLY",
+   "sha256": "c88e4e1e5a45a23afcb022e0b341cf702337e1cd088692998d8a4a5cb97ba64c"
+  },
+  {
+   "format": "jsonl",
+   "inventory_id": "b-generic-replay",
+   "path": "SET_LOCALLY",
+   "sha256": "ca9d725f440145eed97ba469987a32febdd61fc5afe7a6da922631707f87d246"
+  },
+  {
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-d6aec8c0ca29",
+   "path": "SET_LOCALLY",
+   "sha256": "d6aec8c0ca298d58eb69265f4be7363dc394749e9850845140c743df0891677c"
+  },
+  {
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-854fefb90816",
+   "path": "SET_LOCALLY",
+   "sha256": "854fefb90816d7469f14f42d528626c93cd1dad0c1dd10fd9598ffb9157247f3"
+  },
+  {
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-f232c0d2182a",
+   "path": "SET_LOCALLY",
+   "sha256": "f232c0d2182a5066196844e2efd86215d9de3fe5d81991de29fa0cb8ee5fcffb"
+  },
+  {
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-6747055e0c09",
+   "path": "SET_LOCALLY",
+   "sha256": "6747055e0c099647435b4a4bd80cf10d2b5cb8d5abd69ecdd0dabb1ee0188528"
+  },
+  {
+   "format": "parquet",
+   "inventory_id": "b-finqa-targets-dfe74f139343",
+   "path": "SET_LOCALLY",
+   "sha256": "dfe74f1393431049f50827180c86b98bcd8b6e3ee3a3bef0e870fe594cef53f8"
+  },
+  {
+   "format": "jsonl",
+   "inventory_id": "contract-prepared",
+   "path": "SET_LOCALLY",
+   "sha256": "4163850b9bcc3d3fb26bce8d1c23ecd4e9a965f0df6309bf9b620d3bb645c1f6"
+  },
+  {
+   "format": "journal",
+   "inventory_id": "contract-journal",
+   "path": "SET_LOCALLY",
+   "sha256": null
+  },
+  {
+   "format": "jsonl",
+   "inventory_id": "programme-ancestry",
+   "path": "SET_LOCALLY",
+   "sha256": null
+  },
+  {
+   "format": "jsonl",
+   "inventory_id": "programme-panels",
+   "path": "SET_LOCALLY",
+   "sha256": null
+  }
+ ],
+ "policy_sha256": "2abdacbab6ccdd54a220b1bc507cbc28e1c041a1ddd925c717e57f70b80c4eae",
+ "returned_pools_spec": null,
+ "schema": "sp-node-inventories-v1"
+}

@@ -1,0 +1,13 @@
+{
+ "approved_by": "owner",
+ "approved_on": "2026-10-29",
+ "candidate_sha256": "d3d4cfc378c734fa8e3f197eaaaa71673cbdcf83c12a9033f6fe033bd2f0a9a6",
+ "complete_automated_screen_reviewed": true,
+ "decision": "approve_automated_exclusions",
+ "overrides": {},
+ "owner_statement": "Approve all exclusions",
+ "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+ "schema": "pd-topic-approval-v1",
+ "status": "APPROVED",
+ "topic_flags_sha256": "4c10306c3789e2256cfd23ade415b2eee0191a2bc17c25caa5481bfc5941da93"
+}

@@ -4,9 +4,10 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.p3b_common import *
+from kit.m2_gpu import prepared_index
 import csv
 from types import SimpleNamespace
-COLUMNS = 'arm seed step task panel cap question_id correct output_tokens finished'.split()
+COLUMNS = 'arm seed step task panel cap question_id correct output_tokens finished incorrect_format'.split()
 
 
 def write_csv(path, rows, columns=COLUMNS):
@@ -35,6 +36,8 @@ def job(a):
         from kit.v4_contract import check_eval_items
         check_eval_items(items,'finqa','test')
         require(len(items)==1147,'FinQA scoring requires all 1147 questions')
+    from kit.m2_assignment import active
+    assignment=active(a.out,a.gpu,a.standin)
     receipt=a.checkpoint_receipt
     base_start=a.arm=='base' or (a.step==0 and a.arm.startswith('standalone-'))
     if not a.standin and not base_start:
@@ -44,10 +47,10 @@ def job(a):
             if guessed.exists(): receipt=guessed
         require(receipt is not None,'checkpoint scoring requires its original export receipt')
     observed=dict(technical_synthetic=True) if a.standin else identity(a.model,'student' if base_start else None,receipt)
-    bind(a.out / 'score-identities' / (root.name+'.json'), dict(model=observed,panel=s.digest(items),gpu=a.gpu,arm=a.arm,seed=a.seed,step=a.step))
+    bind(a.out / 'score-identities' / (root.name+'.json'), dict(model=observed,panel=s.digest(items),assignment=assignment,gpu=a.gpu,arm=a.arm,seed=a.seed,step=a.step))
     if (root / 'manifest.json').exists(): frozen_files(root); print('SKIP:', root.name); return
     retain_partial(root)
-    os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, KIT_DETERMINISTIC='1', V4_TELEMETRY='1', V4_PHASE0_INFERENCE='0')
+    os.environ.update(CUDA_VISIBLE_DEVICES=prepared_index(a.gpu,a.standin), KIT_DETERMINISTIC='1', V4_TELEMETRY='1', V4_PHASE0_INFERENCE='0')
     import time
     clock=time.monotonic()
     if a.standin:
@@ -64,13 +67,22 @@ def job(a):
         machine=doc['machine']['id']
         correct={(p,q):v for p,x in doc['panels'].items() for q,v in x['per_member'].items()} if a.panel_set=='general-v1' else {(a.panel_set,q):v for q,v in doc['per_item'].items()}
     require(len(raw)==len(items) and {(r.get('panel',a.panel_set),r['id']) for r in raw}==set(correct)=={(r.get('panel',a.panel_set),r['id']) for r in items},'broken scoring coverage')
-    bind(a.out / 'scoring-machine.json',dict(id=machine,gpu=a.gpu,technical_synthetic=a.standin))
+    if assignment is None:
+        bind(a.out / 'scoring-machine.json',dict(id=machine,gpu=a.gpu,technical_synthetic=a.standin))
     rows=[dict(arm=a.arm,seed=a.seed,step=a.step,task=a.panel_set,panel=r.get('panel',a.panel_set),cap=2048,question_id=r['id'],
         correct=int(correct[(r.get('panel',a.panel_set),r['id'])]),output_tokens=r['output_tokens'],finished=int(r['finish_reason'] in ('stop','eos'))) for r in raw]
+    from kit.scorers import extract_letter_strict
+    lookup={(r.get('panel',a.panel_set),r['id']):r for r in raw}
+    for row in rows:
+        if row['panel']=='knowledge':row['incorrect_format']=0 if a.standin else int(extract_letter_strict(lookup[(row['panel'],row['question_id'])]['response']) is None)
     write_csv(root / 'scores.csv',rows)
-    atomic(root / 'identity.json',dict(model=observed,machine=machine,panel_sha256=s.digest(items),technical_synthetic=a.standin))
+    atomic(root / 'identity.json',dict(model=observed,assignment=assignment,machine=machine,panel_sha256=s.digest(items),technical_synthetic=a.standin))
     atomic(root / 'cost.json',dict(kind='scoring',gpu_hours=0 if a.standin else (time.monotonic()-clock)/3600,technical_synthetic=a.standin))
-    atomic(root / 'manifest.json',files_manifest(root,['scores.csv','identity.json','cost.json']))
+    names=['scores.csv','identity.json','cost.json']
+    if assignment is not None:
+        atomic(root/'assignment-identity.json',dict(assignment=assignment,model=observed,panel_sha256=s.digest(items)))
+        names.append('assignment-identity.json')
+    atomic(root / 'manifest.json',files_manifest(root,names))
 
 
 def configure(p):

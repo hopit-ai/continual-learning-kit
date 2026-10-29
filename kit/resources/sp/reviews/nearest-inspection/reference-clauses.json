@@ -1,0 +1,790 @@
+{
+ "author_performed": true,
+ "clauses": {
+  "1": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Luka is exactly 2 years older than is Aubrey."
+  },
+  "10": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 10 bullet points."
+  },
+  "100": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "After 9 games, Reggie has 90 marbles."
+  },
+  "101": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "She eats one donut per 2 pages that she writes."
+  },
+  "102": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "For every white duck at the lake there are 5 fish."
+  },
+  "103": {
+   "author_judgment": "Same JSON requirement, expressed as rendering the whole reply rather than wrapping the entire output. Distinct wording after parameter normalization.",
+   "clause": "Entire output should be wrapped in JSON format. Write a sentence not in English."
+  },
+  "104": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with around 21 words Write a sentence not in English."
+  },
+  "105": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with at least 32 words A text is given in English."
+  },
+  "106": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "similar fish live in the ocean off the coasts of these continents."
+  },
+  "107": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The first character has eight more lines than the second character."
+  },
+  "108": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "we have guaranteed the payments on these debt instruments ."
+  },
+  "109": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Do not include keywords cacophonical, bantam, southlander in the response. IN: French:"
+  },
+  "11": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 24 bullet points."
+  },
+  "110": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "A boy cannot be asleep in his car if he is sleeping in the road.."
+  },
+  "111": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your job is to translate the Japanese sentence into English."
+  },
+  "112": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Write a sentence not in English."
+  },
+  "113": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords ethicality, demipauldron in your response. Write a sentence not in English."
+  },
+  "114": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Write please an essay about the concept of nothingness."
+  },
+  "115": {
+   "author_judgment": "The neighbor is a summarization/count instruction. The author constrains the complete response with different wording; no distinctive phrase reuse.",
+   "clause": "Stream of thoughts: Answer with at least 30 sentences."
+  },
+  "116": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The above sentence is correctly translated from Persian to English."
+  },
+  "117": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Explanation: The answer is present in the span of the fact."
+  },
+  "118": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Make sure that your answer is contained in the associated fact."
+  },
+  "119": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Bridge and Sarah have $3 between them."
+  },
+  "12": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 15 bullet points."
+  },
+  "120": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Marie has 4 notebooks with 20 stamps each."
+  },
+  "121": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "If the answer is 'no'; explain the reasoning: Your response should contain 12 paragraphs."
+  },
+  "122": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Today, he sells 14 pastries and 25 loaves of bread."
+  },
+  "123": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "However, they realized 40% of them were sour, and they had to separate those out."
+  },
+  "124": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "B. There are eight planets in the solar system."
+  },
+  "125": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Joy can read 8 pages of a book in 20 minutes."
+  },
+  "126": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "trends we expect mfc 2019s net sales for 2013 will be comparable with 2012 ."
+  },
+  "127": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "At the second stop, 17 people get on the bus and 10 get off."
+  },
+  "128": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The cheese costs $6 per kilogram, and the meat $8 per kilogram."
+  },
+  "129": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are eight planets in the solar system."
+  },
+  "13": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 1 bullet points."
+  },
+  "130": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 540 pairs that are blue."
+  },
+  "131": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Four tires and one battery together cost $224."
+  },
+  "132": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 50 children at the party."
+  },
+  "133": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Her dad decided to raise her reward by 20%."
+  },
+  "134": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "Paragraphs and only paragraphs are separated with each other by two line breaks."
+  },
+  "135": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The first one runs it in 21 minutes."
+  },
+  "136": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The second one runs it in 24 minutes."
+  },
+  "137": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The rest was sold in 5 kg bags and their sale brought in $408."
+  },
+  "138": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "Your response should contain 3 paragraphs. You separate paragraphs using the markdown divider: * * *"
+  },
+  "139": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "Your response should contain 5 paragraphs. You separate paragraphs using the markdown divider: * * *"
+  },
+  "14": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 1 bullet points. Use the markdown bullet points such as: * This is a point."
+  },
+  "140": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Let's solve it slowly: Friends can greet each other whether or not they haven't seen each other in years."
+  },
+  "141": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Reason slowly and give your answer."
+  },
+  "142": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "part i berths at the end of 2011 ."
+  },
+  "143": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The ball left her hand with a velocity of 12 m/s."
+  },
+  "144": {
+   "author_judgment": "The exact-phrase ending requirement is expected common meaning. The author uses a different closing construction; no near-copy of the replay sentence.",
+   "clause": "Finish your response with this exact phrase Oh no.."
+  },
+  "145": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Wade is the star player of the basketball team."
+  },
+  "146": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "trial in the first phase of this case began in april 2013 ."
+  },
+  "147": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "C. The sugar and the salt were unchanged."
+  },
+  "148": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "all but one of the measurements will be exactly the same"
+  },
+  "149": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "only two of the measurements will be exactly the same"
+  },
+  "15": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 29 bullet points. Use the markdown bullet points such as: * This is a point."
+  },
+  "150": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your response must have 14 sections."
+  },
+  "151": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your response must have 26 sections."
+  },
+  "152": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your response must have 15 sections."
+  },
+  "153": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your response must have 34 sections."
+  },
+  "154": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Your response must have 2 sections."
+  },
+  "155": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "(Give an answer between 0 and 42.)"
+  },
+  "156": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Together they earned $37."
+  },
+  "157": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Together they earned $85."
+  },
+  "158": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "B. One species preys on the other."
+  },
+  "159": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The second one is 10 feet by 7 feet."
+  },
+  "16": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "He spent a total of 28 dollars."
+  },
+  "160": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Emilio drank 9.5 pints of water yesterday."
+  },
+  "161": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "corporate and tax laws ."
+  },
+  "162": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "What is the sum of the odd integers from 11 through 39, inclusive?"
+  },
+  "163": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Express your answer as an integer from $0$ to $30$, inclusive."
+  },
+  "164": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Express your answer as an integer from $0$ to $27$, inclusive."
+  },
+  "165": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "his career spanned from 1993 through 2002 ."
+  },
+  "166": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The answer to this example can be: 1, 2."
+  },
+  "167": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with at least 14 words Part 1. Definition"
+  },
+  "168": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with at least 30 words Q: \"IN THE MATTER OF a transfer of the services authorized under Licence Nos. A.T.C. 922/58(H) and A.T.C. 458/72(H)(CF) from United Helicopters Ltd. to 125149 Canada Ltd. proposing to carry on business under the firm name and style of United Helicopters - Decision No.\" to French"
+  },
+  "169": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The current total of their ages right now is 17."
+  },
+  "17": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There is a total of 4000 trees in the forest."
+  },
+  "170": {
+   "author_judgment": "The neighbor is a summarization/count instruction. The author constrains the complete response with different wording; no distinctive phrase reuse.",
+   "clause": "Answer with at most 10 sentences. Edit the following snippet of code to make the program print 'Hello World!'"
+  },
+  "171": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The lioness is 12 years old."
+  },
+  "172": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The tallest tree is 150 feet tall."
+  },
+  "173": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "In all, the paper had 536 sentences by the end of today."
+  },
+  "174": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Janice can type 6 sentences per minute."
+  },
+  "175": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "It takes John 13 seconds to run 100 meters."
+  },
+  "176": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The area of square A is 25."
+  },
+  "177": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "| tcja reserve on revenue | 36 | 2014 |"
+  },
+  "178": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The stairs have 30 steps across each floor."
+  },
+  "179": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The Sun is at the center of the solar system."
+  },
+  "18": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are a total of 5 groups."
+  },
+  "180": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The mom had 1 eye and the dad had 3."
+  },
+  "181": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Billy weighs 9 pounds more than Brad."
+  },
+  "182": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Brad weighs 5 pounds more than Carl."
+  },
+  "183": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "(Give an answer between 0 and 96, inclusive.)"
+  },
+  "184": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "| due between one and two years | 564.2 |"
+  },
+  "185": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "| due between two and three years | 282.2 |"
+  },
+  "186": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Write an outline for a two topic essay."
+  },
+  "187": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "### Response: Answer with at most 4 words"
+  },
+  "188": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "What is the probability that the committee has at least 1 boy and at least 1 girl?"
+  },
+  "189": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Response: Answer with at most 22 words"
+  },
+  "19": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The number of units in the building is 100."
+  },
+  "190": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "In four weeks, she sold $120 worth of eggs."
+  },
+  "191": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Micah can type 20 words per minute and Isaiah can type 40 words per minute."
+  },
+  "192": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "He wrote 450 words on Saturday and 650 words on Sunday."
+  },
+  "193": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Before they start, Sydney has 837 rocks and Conner has 723."
+  },
+  "194": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Susan ran second and she took 10 seconds longer than Jen."
+  },
+  "195": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with at least 24 words Consider the question. Can we conclude from \"A band is playing music in a park.\" that \"A band is performing in a theatre.\"?"
+  },
+  "196": {
+   "author_judgment": "At least/at most and numeric-range terms are ordinary bounds vocabulary. The author expresses both bounds in a different sentence; no near-duplicate clause.",
+   "clause": "Answer with at least 6 words Paraphrase the following sentence: \"I bought a new car last week\"."
+  },
+  "2": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Stacie staples 3 dozen reports on her desk."
+  },
+  "20": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Please give rationale first, then the answer."
+  },
+  "21": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Leo had 400 marbles in a jar."
+  },
+  "22": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 32 tables in a hall."
+  },
+  "23": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Every five games, she loses a ball."
+  },
+  "24": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 28 garden gnomes in a yard."
+  },
+  "25": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 24 marbles in a jar."
+  },
+  "26": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "a monthly review of the portfolio is performed for reasonableness ."
+  },
+  "27": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Emery looks through the drawer where her mom keeps the cookie cutters."
+  },
+  "28": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 12 boys and 16 girls in the choir."
+  },
+  "29": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 6 dogs and 2 ducks in the garden."
+  },
+  "3": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords seedtime, typonym in your response."
+  },
+  "30": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 9 bicycles and 16 cars in the garage."
+  },
+  "31": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Madeline has 5 boxes with 24 crayons in each."
+  },
+  "32": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "They put 2 of each color crayon in each box."
+  },
+  "33": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Tim has 16 + 8 = 24 cans in the end."
+  },
+  "34": {
+   "author_judgment": "The replay frequency sentence also contains unrelated task text. The author clause uses a different count construction; no copied distinctive wording.",
+   "clause": "In your response, the word coque should appear 4 times. How is \"It can also help us to ground theoretical information into practical use.\" said in German?"
+  },
+  "35": {
+   "author_judgment": "The replay frequency sentence also contains unrelated task text. The author clause uses a different count construction; no copied distinctive wording.",
+   "clause": "In your response, the word intimidity should appear 21 times. Generate a context and a hypothesis."
+  },
+  "36": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There were 10 apples and 5 oranges in the basket."
+  },
+  "37": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 12 males & 17 females in the choir."
+  },
+  "38": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 160 toys altogether."
+  },
+  "39": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "There are 92 students altogether."
+  },
+  "4": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords metrostenosis, archaeologic in your response."
+  },
+  "40": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The ladies all walk 3 miles together."
+  },
+  "41": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "The answer is: Include keywords nonmucilaginous, derm in your response."
+  },
+  "42": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "The answer is: Include keywords syrma, ruffianhood in your response."
+  },
+  "43": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The total number of children in the family is 180."
+  },
+  "44": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The total number of marbles we have together is 63."
+  },
+  "45": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "refer to page 25 of this annual report for additional details ."
+  },
+  "46": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "He had 16 red balls and two times more blue balls."
+  },
+  "47": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "He also manages to score 2 point conversions 6 times during the season."
+  },
+  "48": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "[A]: Your response should contain 9 paragraphs."
+  },
+  "49": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "A:  Your response should contain 38 paragraphs."
+  },
+  "5": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords sonoric, alimentative in your response."
+  },
+  "50": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "Yes: Your response should contain 37 paragraphs."
+  },
+  "51": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "Me: Your response should contain 4 paragraphs."
+  },
+  "52": {
+   "author_judgment": "Paragraph/count language expresses the same constraint family, but the author sentence construction differs. The required divider is fixed syntax, not evidence of copied prose.",
+   "clause": "A: Your response should contain 27 paragraphs."
+  },
+  "53": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Leaves grow out of a stem."
+  },
+  "54": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "We were so proud of our son."
+  },
+  "55": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "David found $12 on the street."
+  },
+  "56": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "and one in the u.k ."
+  },
+  "57": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "She gives 1/4 of that to a friend."
+  },
+  "58": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "He eats 80% of what isn't burned."
+  },
+  "59": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The second statue weighed 18."
+  },
+  "6": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords alcantarines, takitumu in your response."
+  },
+  "60": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The cost for supplies to make the cake was $54."
+  },
+  "61": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Definition of “Improper Disclosure”."
+  },
+  "62": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Choose your answer from: 1."
+  },
+  "63": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Her house is currently worth $400,000."
+  },
+  "64": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "She left with €55."
+  },
+  "65": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Erin put 16 curlers in her hair."
+  },
+  "66": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Q: Erin put 16 curlers in her hair."
+  },
+  "67": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Give two different responses."
+  },
+  "68": {
+   "author_judgment": "The neighbor is a summarization/count instruction. The author constrains the complete response with different wording; no distinctive phrase reuse.",
+   "clause": "Summarize the content of the following text in 5 sentences."
+  },
+  "69": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The theater collected a total of $6,000."
+  },
+  "7": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Include keywords dismembrate, domn in your response."
+  },
+  "70": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "They spent a total of $94."
+  },
+  "71": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Tapanga and Corey have 66 candies together."
+  },
+  "72": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The number of students this year is 960."
+  },
+  "73": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The number of arbitrators is three."
+  },
+  "74": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Please answer and provide answer explanation."
+  },
+  "75": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "less than the force of the ball."
+  },
+  "76": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Use Latex to format your answer."
+  },
+  "77": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The soil was completely gone."
+  },
+  "78": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The answer is no."
+  },
+  "79": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "So the answer is 49."
+  },
+  "8": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Use the markdown bullet points such as: * This is a point."
+  },
+  "80": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "So the answer is 650."
+  },
+  "81": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "explain everything Your response must have 1 sections."
+  },
+  "82": {
+   "author_judgment": "The exact-phrase ending requirement is expected common meaning. The author uses a different closing construction; no near-copy of the replay sentence.",
+   "clause": "explain everything Finish your response with this exact phrase That's it.."
+  },
+  "83": {
+   "author_judgment": "Same JSON requirement, expressed as rendering the whole reply rather than wrapping the entire output. Distinct wording after parameter normalization.",
+   "clause": "Entire output should be wrapped in JSON format."
+  },
+  "84": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Please enter the answer in the format XX."
+  },
+  "85": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Use reliable sources to support your analysis."
+  },
+  "86": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Provide a title that gets people's attention."
+  },
+  "87": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Sasha can complete 15 questions an hour."
+  },
+  "88": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "You need to complete the following task:"
+  },
+  "89": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "The answer is: Do not include keywords seatsman, developmentary, sliverproof in the response."
+  },
+  "9": {
+   "author_judgment": "The common terms Markdown and bullet points name the required format. The author wording differs from the replay count template and its illustrative bullet sentence.",
+   "clause": "Your answer must contain exactly 14 bullet points."
+  },
+  "90": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "The answer is: Do not include keywords procrastinatively, slobber, fandangle in the response."
+  },
+  "91": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "The answer is: Do not include keywords dulosis, porodine, leptid in the response."
+  },
+  "92": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "First place gets 80% of the money."
+  },
+  "93": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Do not include keywords adenocystoma, unimboldened, dubitancy in the response."
+  },
+  "94": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "Do not include keywords pterocera, suku, anacusia in the response."
+  },
+  "95": {
+   "author_judgment": "Shared keyword requirement vocabulary; the author clause changes the imperative and sentence construction. No copied distinctive phrase after parameter removal.",
+   "clause": "} Include keywords malicho, staggerbush in your response."
+  },
+  "96": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Section 2.4 Document Disposition."
+  },
+  "97": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "She gave 3 to her sister."
+  },
+  "98": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "The second set contains 60."
+  },
+  "99": {
+   "author_judgment": "The neighbors are unrelated task content or a different instruction. Similarity comes from ordinary short words or normalized numbers, not copied constraint wording.",
+   "clause": "Nature of Relationship."
+  }
+ },
+ "inspector": "m3sp-author"
+}

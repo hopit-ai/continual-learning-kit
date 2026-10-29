@@ -1,0 +1,45 @@
+{
+  "finalization_pin_sha256": "095dcb02e5c757179772f42219cecabbb75e3e4884b20babda9d5d87d3f99669",
+  "identity_sha256": "a03a65178de513a992859ec07465958c61a9a26997ae2ee4b6de5c9dc8fd3820",
+  "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+  "preparation_sha256": "d3ad575f52b1203e210098c37584cb4a80db4f3a44508a5babd52fd121a1a7fa",
+  "rows": [
+    {
+      "id": "PD-101",
+      "phase": "after core-submitted + PF-tier on node",
+      "requires": [
+        "node-finalized preparation matches finalization-pin.json",
+        "owner topic approval",
+        "node inventories/custodian verify-only receipt",
+        "send-bound original plain-D starts"
+      ],
+      "seed": 101,
+      "status": "DEFERRED"
+    },
+    {
+      "id": "PD-102",
+      "phase": "after core-submitted + PF-tier on node",
+      "requires": [
+        "node-finalized preparation matches finalization-pin.json",
+        "owner topic approval",
+        "node inventories/custodian verify-only receipt",
+        "send-bound original plain-D starts"
+      ],
+      "seed": 102,
+      "status": "DEFERRED"
+    },
+    {
+      "id": "PD-103",
+      "phase": "after core-submitted + PF-tier on node",
+      "requires": [
+        "node-finalized preparation matches finalization-pin.json",
+        "owner topic approval",
+        "node inventories/custodian verify-only receipt",
+        "send-bound original plain-D starts"
+      ],
+      "seed": 103,
+      "status": "DEFERRED"
+    }
+  ],
+  "schema": "pd-scientific-rows-v1"
+}

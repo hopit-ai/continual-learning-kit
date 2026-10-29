@@ -1,0 +1,17 @@
+{
+  "custodian_decisions": "PENDING",
+  "duplicate_thresholds": {
+    "edit_similarity": 0.9,
+    "token5_jaccard": 0.8
+  },
+  "human_topic_review": "PENDING",
+  "no_replenishment": true,
+  "programme_exclusions": "PENDING",
+  "schema": "pd-smoke-automated-exclusions-v1",
+  "scope": "SMOKE-SCOPE",
+  "sequence_cap": 1024,
+  "topic_flag_action": "exclude-before-hash-partition",
+  "topic_patterns": {
+    "chemistry": "\\b(?:chemistr\\w*|chemist\\w*|chemical\\w*|molecul\\w*|atom\\w*|isotop\\w*|acid\\w*|alkali\\w*|reactio\\w*|periodic|organic|inorganic|ions?|enzyme\\w*|protein\\w*|catalyst\\w*|hydrogen|oxygen|carbon|nitrogen|sulphur|sulfur|chlorine|sodium|potassium|electrons?|protons?|neutrons?|metals?)\\b"
+  }
+}

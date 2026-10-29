@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.c_common import *
+from kit.m2_seed_policy import SEEDS
 from kit.p3b_read import load
 from kit.next_read import analyse
 

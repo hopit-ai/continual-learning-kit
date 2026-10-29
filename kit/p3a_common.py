@@ -3,6 +3,7 @@ import argparse
 from contextlib import contextmanager
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -32,6 +33,11 @@ def atomic(path, value):
 
 
 def check(path, expected):
+    from kit.m2_paths import local
+    path=local(path)
+    if Path(path).is_file() and s.file_hash(path) != expected:
+        from kit.m2_runtime import allowed_update
+        if allowed_update(path,expected,s.file_hash(path)):return
     if not Path(path).is_file() or s.file_hash(path) != expected:
         raise CorrectnessStop('input hash differs or missing: ' + str(path))
 
@@ -114,13 +120,22 @@ def retain_partial(path):
 
 @contextmanager
 def logging(out, name):
+    from kit.inference_lifecycle import marker, shutdown_since
+    engine_mark = marker()
     logs = out / 'logs'; logs.mkdir(parents=True, exist_ok=True)
     saved = [os.dup(fd) for fd in (1, 2)]
     tee = subprocess.Popen(['tee', '-a', str(logs / (name + '.log'))], stdin=subprocess.PIPE, stdout=saved[0], stderr=saved[1])
     try:
         sys.stdout.flush(); sys.stderr.flush()
         for fd in (1, 2): os.dup2(tee.stdin.fileno(), fd)
-        yield
+        try:
+            yield
+        finally:
+            active_error = sys.exc_info()[0] is not None
+            try: shutdown_since(engine_mark)
+            except Exception as shutdown_error:
+                if not active_error: raise
+                print('inference shutdown also failed:', shutdown_error, file=sys.stderr, flush=True)
     finally:
         sys.stdout.flush(); sys.stderr.flush()
         for fd, old in zip((1, 2), saved): os.dup2(old, fd); os.close(old)
@@ -138,6 +153,18 @@ def logging(out, name):
             tee.kill(); tee.wait()
 
 
+def kit_child(command):
+    if not isinstance(command,(list,tuple)) or len(command)<2:return False
+    # A kit filename passed as rsync's source is not execution of kit code.
+    if not re.fullmatch(r'(?:python|pypy)(?:\d+(?:\.\d+)*)?',Path(str(command[0])).name):return False
+    if command[1]=='-m' and len(command)>2:
+        module=command[2]
+        return bool(re.fullmatch(r'kit(?:\.[A-Za-z_]\w*)+',module) and
+                    (KIT.parent/Path(*module.split('.'))).with_suffix('.py').is_file())
+    path=Path(command[1]).resolve()
+    return path.suffix=='.py' and path.parent==KIT.resolve()
+
+
 def entry(job, configure, name):
     p = argparse.ArgumentParser(description=job.__doc__)
     p.add_argument('--out', type=Path, default=os.environ.get('OUT'), required=not os.environ.get('OUT'))
@@ -150,5 +177,9 @@ def entry(job, configure, name):
         try: job(a)
         except PolicyStop as exc: print("STOP: correctness:", exc); return 2
         except NotReady as exc: print('NOT READY:', exc); return 3
+        except subprocess.CalledProcessError as exc:
+            print('CHILD EXIT:',exc.returncode,'command:',repr(exc.cmd),flush=True)
+            if kit_child(exc.cmd) and exc.returncode in (2,3):return exc.returncode
+            raise
         # Any other error propagates with its traceback and a non-zero exit.
     return 0

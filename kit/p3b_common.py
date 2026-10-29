@@ -14,19 +14,25 @@ def require(ok, message):
 
 
 def bind(path, value):
-    if path.exists(): require(json.loads(path.read_text()) == value, 'input identity changed: ' + str(path))
+    if path.exists(): require(__import__('kit.m2_paths',fromlist=['equivalent']).equivalent(json.loads(path.read_text()),value), 'input identity changed: ' + str(path))
     else: atomic(path, value)
 
 
 def identity(path, role=None, receipt=None):
+    from kit.m2_paths import local
+    path=local(path);receipt=local(receipt)
     observed = t.local_identity(model_path(path), s.MODELS[role][0] if role else 'Qwen/Qwen3-8B')
     if role:
-        require(observed['model_revision'] == s.MODELS[role][1], 'wrong/unknown pinned ' + role + ' revision')
         expected=json.loads((R / 'model-hashes.json').read_text())[role]['files']
         require(all(observed['model_file_hashes'].get(k)==v for k,v in expected.items()),'pinned '+role+' files differ from v4 model registration')
+        if observed['model_revision'] != s.MODELS[role][1]:
+            mapping=[target for _,target in __import__('kit.m2_paths',fromlist=['mappings']).mappings('M2_PATH_MAP')]
+            require(any(Path(target)==path or Path(target) in path.parents for target in mapping),'wrong/unknown pinned '+role+' revision')
+            observed.update(model_revision=s.MODELS[role][1],immutable_revision_known=True)
     if receipt:
         expected = json.loads(Path(receipt).read_text())
         require(observed['model_file_hashes'] == expected['model_file_hashes'], 'checkpoint differs from export receipt')
+        if expected.get('model_dir'):observed['model_dir']=expected['model_dir']
     return observed
 
 
@@ -35,6 +41,8 @@ def files_manifest(root, names, **extra):
 
 
 def frozen_files(root):
+    from kit.m2_paths import local
+    root=local(root)
     if not (root / 'manifest.json').exists(): raise NotReady('missing freeze: ' + str(root))
     doc = json.loads((root / 'manifest.json').read_text())
     for name, expected in doc['files'].items(): check(root / name, expected)

@@ -98,13 +98,37 @@ def recreate(a, folder, slot):
     print('RECREATED and verified',a.recreate)
 
 
-def local_nvme(root, standin):
+def local_nvme(root, standin, *, sysfs=Path('/sys')):
+    """Resolve the filesystem device through sysfs, including bind mounts and md RAID.
+
+    st_dev describes the mounted filesystem even when findmnt prints /dev/md0[/tmp]
+    or the container has no corresponding /dev node. All backing leaves must be NVMe.
+    """
     require(root.is_dir(), 'NVMe root does not exist')
     if standin: return
-    source=subprocess.check_output(['findmnt','-n','-o','SOURCE','-T',str(root)],text=True).strip()
-    require(source.startswith('/dev/'), 'blend root must be local block storage')
-    ancestors=subprocess.check_output(['lsblk','-s','-n','-o','NAME',source],text=True)
-    require('nvme' in ancestors, 'blend root must be node-local NVMe')
+    device = root.stat().st_dev
+    node = sysfs/'dev/block'/f'{os.major(device)}:{os.minor(device)}'
+    require(node.exists(), 'blend root must be local block storage (sysfs device missing)')
+    seen = set();leaves=[]
+    def nvme(path):
+        path = path.resolve()
+        require(path not in seen, 'cyclic sysfs block ancestry')
+        seen.add(path)
+        slaves = sorted((path/'slaves').iterdir()) if (path/'slaves').is_dir() else []
+        try:
+            if slaves:return all(nvme(child) for child in slaves)
+            if (path/'partition').exists():return nvme(path.parent)
+            transport=next(((parent/'transport').read_text().strip() for parent in (path/'device',path,*path.parents)
+                if parent.is_relative_to(sysfs) and (parent/'transport').is_file()),None)
+            transports=[transport] if transport is not None else []
+            if not transports:
+                for controller in (path/'device',path/'device/subsys',path/'device/subsystem'):
+                    transports.extend(p.read_text().strip() for p in controller.glob('nvme*/transport'))
+            leaves.append(dict(device=path.name,transports=sorted(transports)))
+            return path.name.startswith('nvme') and (path/'dev').is_file() and bool(transports) and all(t=='pcie' for t in transports)
+        finally:seen.remove(path)
+    require(nvme(node), 'blend root must be node-local NVMe throughout its sysfs ancestry')
+    return dict(filesystem_device=f'{os.major(device)}:{os.minor(device)}',leaves=leaves,all_transports_pcie=True)
 
 
 def job(a):

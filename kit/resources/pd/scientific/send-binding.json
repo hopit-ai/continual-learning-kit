@@ -1,0 +1,236 @@
+{
+  "evidence": {
+    "archive": "package-c-return.tar.gz",
+    "archive_sha256": "cad18fee21b94b609c88be8ce74eb41134b6c3a1e4602b79a6b3b96d822770c9",
+    "binding_member": "return/binding.json",
+    "binding_sha256": "1b1ebb9fd90ebf2d7e7bc66221a835e47527d4591a6c4978d1fb9f0b9f651cf3",
+    "starts": {
+      "101": {
+        "base": {
+          "live_tensors_verified": false,
+          "receipt": "kit/resources/p3b/model-hashes.json",
+          "receipt_evidence": "shipped pinned model registration; base has no training export"
+        },
+        "stage1": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "recorded original export-identity-step40.json byte SHA256; original receipt and tensors must resolve on node",
+          "source": "return/binding.json#starts/D:101"
+        },
+        "stage2": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "original receipt bytes verified against returned run manifest; tensors recorded only",
+          "run_manifest_sha256": "5d57a9b92c45fcfd4c4a81ce4520b4ad4a85dbf6c3881c32a835b05516d6147d",
+          "source": "return/runs/sequence-D-s101/export-40.json",
+          "summary_sha256": "30499868b081eb3f996b5540d33ddd80445ca66b4ce2f88b741678e8c2956d6a"
+        }
+      },
+      "102": {
+        "base": {
+          "live_tensors_verified": false,
+          "receipt": "kit/resources/p3b/model-hashes.json",
+          "receipt_evidence": "shipped pinned model registration; base has no training export"
+        },
+        "stage1": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "recorded original export-identity-step40.json byte SHA256; original receipt and tensors must resolve on node",
+          "source": "return/binding.json#starts/D:102"
+        },
+        "stage2": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "original receipt bytes verified against returned run manifest; tensors recorded only",
+          "run_manifest_sha256": "1f201c2d916d1d06f8756c83b49e3296400c97ac1b29ecf31c28a096ce9c7eee",
+          "source": "return/runs/sequence-D-s102/export-40.json",
+          "summary_sha256": "e564b1cc6adf00ba8f55e607777e8e494ef4b3e152e88d044c774f8ee5dd3b24"
+        }
+      },
+      "103": {
+        "base": {
+          "live_tensors_verified": false,
+          "receipt": "kit/resources/p3b/model-hashes.json",
+          "receipt_evidence": "shipped pinned model registration; base has no training export"
+        },
+        "stage1": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "recorded original export-identity-step40.json byte SHA256; original receipt and tensors must resolve on node",
+          "source": "return/binding.json#starts/D:103"
+        },
+        "stage2": {
+          "live_tensors_verified": false,
+          "receipt_evidence": "original receipt bytes verified against returned run manifest; tensors recorded only",
+          "run_manifest_sha256": "25b4bd0963495e29ecbc8d3b6a9a1edfc1f5a04c35fb8bfb00123d4173746e49",
+          "source": "return/runs/sequence-D-s103/export-40.json",
+          "summary_sha256": "b3e30fe8166539e1795d431d645cba0c18de340eeb1bb890cc8430248d9669d8"
+        }
+      }
+    }
+  },
+  "identity_sha256": "a15fd56e94f7600814ca455180219791c36d7e35841587e8d9af378748017d43",
+  "note": "Checkpoint IDs are portable logical aliases for the evidenced source roles. Tensor inventories and original receipt hashes are commitments, not live verification. Use the pinned base tokenizer for every start. Nodes must verify all live tensors and exact original receipt bytes before any scientific launch.",
+  "pd_chain_sources_sha256": "f3722972657694445e85256a3b3332c8ce83ed04f6a32e1753adef335b94cfd4",
+  "pd_custodian_receipt_sha256": "5e86c73c37af273a6f8380c140703cf13b3f4fac7ffd11417bbc5c4842d2efdc",
+  "pd_starts": {
+    "101": {
+      "base": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "pinned-Qwen3-8B@seed101",
+        "export_receipt_sha256": "3eb1a34f6e843969c136cfe59135505e98061c11a5c7929a39302ac76df866fa",
+        "parent_id": null,
+        "recipe": "base",
+        "step": 0,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "487f524450b772b14a102d3311f0b48096f8c97067198c571cb85c18d00947bb"
+      },
+      "stage1": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/final@seed101",
+        "export_receipt_sha256": "a2fdde39129544622f0e6a36b1ae366b769a93b9bebaaa6e1604b170ba866514",
+        "parent_id": "pinned-Qwen3-8B@seed101",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "2327ce51dd2bcadfcbd6a9759b1e0591155d73e2fbc03444f4e9d904cf9aff91"
+      },
+      "stage2": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/ContractNLI/final@seed101",
+        "export_receipt_sha256": "2dcbc5ba66beaea3fd29c3a27e81f1bbd8d5d9738992552e2d517aaff42bf0ae",
+        "parent_id": "core/plain-D/FinQA/final@seed101",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "0fd61fa3164b9408c7ff7c00f829c4eab4140c26e8e0d168dbaa1c87c81a3fcf"
+      }
+    },
+    "102": {
+      "base": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "pinned-Qwen3-8B@seed102",
+        "export_receipt_sha256": "3eb1a34f6e843969c136cfe59135505e98061c11a5c7929a39302ac76df866fa",
+        "parent_id": null,
+        "recipe": "base",
+        "step": 0,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "487f524450b772b14a102d3311f0b48096f8c97067198c571cb85c18d00947bb"
+      },
+      "stage1": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/final@seed102",
+        "export_receipt_sha256": "399a57ea187ee9b1c6302181f83ce6cbc08599fc009cdf688a2f913e69a838b9",
+        "parent_id": "pinned-Qwen3-8B@seed102",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "79cf5d9b62271a3c486a7e75d7b216b95419f5758b5d563f491527b25abab7da"
+      },
+      "stage2": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/ContractNLI/final@seed102",
+        "export_receipt_sha256": "2255e6f123fd6a2b8dac7710df02001c820bb68776b1b6687f32ea12dfa02983",
+        "parent_id": "core/plain-D/FinQA/final@seed102",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "fdc5c3b445b74115e106bfd1ac24e1e926ffecdcd488e77c0bbae00d7ddaeb9d"
+      }
+    },
+    "103": {
+      "base": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "pinned-Qwen3-8B@seed103",
+        "export_receipt_sha256": "3eb1a34f6e843969c136cfe59135505e98061c11a5c7929a39302ac76df866fa",
+        "parent_id": null,
+        "recipe": "base",
+        "step": 0,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "487f524450b772b14a102d3311f0b48096f8c97067198c571cb85c18d00947bb"
+      },
+      "stage1": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/final@seed103",
+        "export_receipt_sha256": "792d2bd95f877fef969c0c09ba6080fe878e46a6235bce68fd347c86da4007de",
+        "parent_id": "pinned-Qwen3-8B@seed103",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "5595d30d8a5c8afd59632af3c316db5beced950f6bc0056c0a7ae92a015cbd91"
+      },
+      "stage2": {
+        "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+        "checkpoint_id": "core/plain-D/FinQA/ContractNLI/final@seed103",
+        "export_receipt_sha256": "22aab1885526733f89fce9b47429cecc8da0db50a1c7811ebed17056c058b1f3",
+        "parent_id": "core/plain-D/FinQA/final@seed103",
+        "recipe": "plain-D",
+        "step": 40,
+        "tokenizer_sha256": "12725eff31eb00cbcf476cc9285d7b339aa018b6aec199eb66d4373c32a1dc17",
+        "weights_sha256": "e7eb4da464fb0d11343fec8f578fc9e239b0523b1b07fc9b0f9ea588410bbbe7"
+      }
+    }
+  },
+  "schema": "pd-scientific-send-binding-v1",
+  "status": "SEALED",
+  "tensor_files": {
+    "101": {
+      "base": {
+        "model-00001-of-00005.safetensors": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f",
+        "model-00002-of-00005.safetensors": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282",
+        "model-00003-of-00005.safetensors": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836",
+        "model-00004-of-00005.safetensors": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a",
+        "model-00005-of-00005.safetensors": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff"
+      },
+      "stage1": {
+        "model-00001-of-00004.safetensors": "8e1789d4f3f1c8fecf402614eb860fb969c74faddc4e6d6c9d420dc2e26ffe82",
+        "model-00002-of-00004.safetensors": "e5423ef0149462373895d8cbd4d259cc02917438b8091dfcd8575b5f7156c83a",
+        "model-00003-of-00004.safetensors": "8d6052ee5000b5e44396db8eadf2c3d567d2ad3b98d31afaf96df990980c798e",
+        "model-00004-of-00004.safetensors": "2941c9d24213adb3d92223da7243df942aa4a658ad474a4558604fa16d06a4a7"
+      },
+      "stage2": {
+        "model-00001-of-00004.safetensors": "f163e8354c33b3614a77e2c2d21994a414d2a08a8b24cfd530913ac42dc2cac3",
+        "model-00002-of-00004.safetensors": "7e33b34492daf2c1c0f65efa93ad20304f4e11b78a29dcdde514d57c62aa8e48",
+        "model-00003-of-00004.safetensors": "a7e4bb3a6cc0869b4a780b6c668c4d7359b90313321a9f79ed523e742dec3063",
+        "model-00004-of-00004.safetensors": "3d0cba60cd046d892d86036860a1c2f3e26bf986fbfb742f2da0c946e476f1d5"
+      }
+    },
+    "102": {
+      "base": {
+        "model-00001-of-00005.safetensors": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f",
+        "model-00002-of-00005.safetensors": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282",
+        "model-00003-of-00005.safetensors": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836",
+        "model-00004-of-00005.safetensors": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a",
+        "model-00005-of-00005.safetensors": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff"
+      },
+      "stage1": {
+        "model-00001-of-00004.safetensors": "631e38641357f4eb357f38e0fa4b2123ebbaa1d59512867cc75832cf3e511716",
+        "model-00002-of-00004.safetensors": "6c88845b75c90b884a4bdef9862d6c18ab78601edd8c58fb30e55f5b5d2530b1",
+        "model-00003-of-00004.safetensors": "a8b5d4ef5d3b6e1a34f8e518a04374fd8511e6e4426a4e2c1db932c6aa8d6a2b",
+        "model-00004-of-00004.safetensors": "0615220285beee68053765045f7233a51c97196b055b5b85198543963797c5ec"
+      },
+      "stage2": {
+        "model-00001-of-00004.safetensors": "0fe4402db517b1a88521cbb4e87e04bdf2569de223a137221ff9635c5e2d4d30",
+        "model-00002-of-00004.safetensors": "1187c7c8bddc11d8eda80f4f9dfec37a07f60fe2be59251d446a9bf3d58cf4e6",
+        "model-00003-of-00004.safetensors": "d42c623af493b5a648f2b9dc313d823cda64009a5f15bd848839019130cb1cd3",
+        "model-00004-of-00004.safetensors": "f8a04947e097ebb8a44e0562a9bdd59e0f1553c5f2b827820920cfe8400c241a"
+      }
+    },
+    "103": {
+      "base": {
+        "model-00001-of-00005.safetensors": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f",
+        "model-00002-of-00005.safetensors": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282",
+        "model-00003-of-00005.safetensors": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836",
+        "model-00004-of-00005.safetensors": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a",
+        "model-00005-of-00005.safetensors": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff"
+      },
+      "stage1": {
+        "model-00001-of-00004.safetensors": "42dbc47cc5538f3749b6601e5ad28c83ab7f4b608b486787b7fc651d823f8f8c",
+        "model-00002-of-00004.safetensors": "002bc009d9601105e59a70056db2a546adf92686900382abc3ee974a24f0b007",
+        "model-00003-of-00004.safetensors": "5ceb50d083dcb348de04f9471b6adea660381aefe3594276baeff05e4ebe1db4",
+        "model-00004-of-00004.safetensors": "ead872ba5d1b7c642e52026d1975a3fe31b65b3b1b85142953e57dd48a222c00"
+      },
+      "stage2": {
+        "model-00001-of-00004.safetensors": "224ac626c8a62dc5bd40a8578ed2bfed66f85bd5d6378d9c31cd16d7944f0042",
+        "model-00002-of-00004.safetensors": "a242dd0ac68783f7fd4f6a12cd15a5f55bc9e84d868f08c1bb223008eb8fad8d",
+        "model-00003-of-00004.safetensors": "71936577ba6f89e9659dd7b5e622d286333534c9397862d98a6edc7cd1d3aa4a",
+        "model-00004-of-00004.safetensors": "70edc7a27e3255a6938aac5d238e029c87d581009b993b83ebddd3eb2df09069"
+      }
+    }
+  }
+}

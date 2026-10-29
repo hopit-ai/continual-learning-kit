@@ -1,0 +1,27 @@
+{
+ "arc": {
+  "files": {
+   "ARC-Challenge/train-00000-of-00001.parquet": "e488c1587ffdcfc8443f916c53488a95cd471c5790e0746c6bfe4cecf20962cb"
+  },
+  "repository": "allenai/ai2_arc",
+  "revision": "210d026faf9955653af8916fad021475a3f00453"
+ },
+ "finqa": {
+  "repository": "czyssrs/FinQA",
+  "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+  "sha256": "49f237eb9779b569473b26b08048867d04635a7cc39ad6a7a5664c55bb428db6"
+ },
+ "gsm8k": {
+  "files": {
+   "main/train-00000-of-00001.parquet": "ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d"
+  },
+  "repository": "openai/gsm8k",
+  "revision": "740312add88f781978c0658806c59bc2815b9866"
+ },
+ "instruction": {
+  "repository": "allenai/RLVR-IFeval",
+  "revision": "47c03c73621c4aab2b824b7818681117d662770e",
+  "sha256": "75f1b1f63039044034fe75d22f51f77f257a79291d0084262bb43695d4aac971"
+ },
+ "schema": "m3-candidate-sources.v1"
+}

@@ -1,0 +1,111 @@
+{
+  "schema": "sp-canonical-templates-v2",
+  "source_revision": "11826255077617a46919ce75cadf1f3d53f30dac",
+  "source_url": "https://github.com/allenai/open-instruct/blob/11826255077617a46919ce75cadf1f3d53f30dac/open_instruct/if_functions.py",
+  "source_sha256": "afea345e3bc100e6d5588ca14e7269141e8810e1489e60ad64a59cd57360201c",
+  "source_license": "Apache-2.0",
+  "replay_dataset": "allenai/RLVR-IFeval",
+  "replay_revision": "47c03c73621c4aab2b824b7818681117d662770e",
+  "templates": {
+    "required_word": {
+      "template_id": "open-instruct:verify_keywords:comment",
+      "function": "verify_keywords",
+      "template": "Include keywords {keyword1}, {keyword2} in your response",
+      "source_lines": [
+        12,
+        12
+      ],
+      "source_comment": "# include keywords: Include keywords {keyword1}, {keyword2} in your response"
+    },
+    "forbidden_word": {
+      "template_id": "open-instruct:validate_forbidden_words:comment",
+      "function": "validate_forbidden_words",
+      "template": "Do not include keywords {forbidden words} in the response.",
+      "source_lines": [
+        60,
+        60
+      ],
+      "source_comment": "# Forbidden Words: Do not include keywords {forbidden words} in the response."
+    },
+    "word_frequency": {
+      "template_id": "open-instruct:verify_keyword_frequency:comment",
+      "function": "verify_keyword_frequency",
+      "template": "In your response, the word {word} should appear {N} times.",
+      "source_lines": [
+        31,
+        31
+      ],
+      "source_comment": "# Keyword Frequency: In your response, the word {word} should appear {N} times."
+    },
+    "word_count_interval": {
+      "template_id": "open-instruct:validate_word_constraint:comment",
+      "function": "validate_word_constraint",
+      "template": "Answer with at least / around / at most {N} words",
+      "source_lines": [
+        185,
+        185
+      ],
+      "source_comment": "# Number Words: Answer with at least / around / at most {N} words"
+    },
+    "sentence_count": {
+      "template_id": "open-instruct:verify_sentence_constraint:comment",
+      "function": "verify_sentence_constraint",
+      "template": "Answer with at least / around / at most {N} sentences.",
+      "source_lines": [
+        220,
+        220
+      ],
+      "source_comment": "# Number Sentences: Answer with at least / around / at most {N} sentences."
+    },
+    "paragraph_count": {
+      "template_id": "open-instruct:verify_paragraph_count:comment",
+      "function": "verify_paragraph_count",
+      "template": "Your response should contain {N} paragraphs. You separate paragraphs using the markdown divider:\n* * *",
+      "source_lines": [
+        144,
+        145
+      ],
+      "source_comment": "# Number Paragraphs: Your response should contain {N} paragraphs. You separate paragraphs using the markdown divider:\n# * * *"
+    },
+    "bullet_count": {
+      "template_id": "open-instruct:verify_bullet_points:comment",
+      "function": "verify_bullet_points",
+      "template": "Your answer must contain exactly {N} bullet points. Use the markdown bullet points such as: * This is a point.",
+      "source_lines": [
+        329,
+        330
+      ],
+      "source_comment": "# Number Bullets: Your answer must contain exactly {N} bullet points. Use the markdown bullet points such as: * This\n# is a point."
+    },
+    "json_only": {
+      "template_id": "open-instruct:validate_json_format:comment",
+      "function": "validate_json_format",
+      "template": "Entire output should be wrapped in JSON format.",
+      "source_lines": [
+        385,
+        385
+      ],
+      "source_comment": "# JSON Format : Entire output should be wrapped in JSON format."
+    },
+    "lowercase_only": {
+      "template_id": "open-instruct:validate_lowercase:comment",
+      "function": "validate_lowercase",
+      "template": "Your entire response should be in English, and in all lowercase letters. No capital letters are allowed.",
+      "source_lines": [
+        418,
+        419
+      ],
+      "source_comment": "# All Lowercase: Your entire response should be in English, and in all lowercase letters. No capital letters are\n# allowed."
+    },
+    "required_suffix": {
+      "template_id": "open-instruct:validate_end:comment",
+      "function": "validate_end",
+      "template": "Finish your response with this exact phrase {end phrase}. No other words should follow this phrase.",
+      "source_lines": [
+        439,
+        439
+      ],
+      "source_comment": "# End Checker: Finish your response with this exact phrase {end phrase}. No other words should follow this phrase."
+    }
+  }
+}

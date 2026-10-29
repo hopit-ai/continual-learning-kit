@@ -1,0 +1,22 @@
+{
+  "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "binding": "send.pd_starts and send.pd_chain_sources_sha256; verify bind_chain and live tensor/receipt hashes on node",
+  "identity_sha256": "f3722972657694445e85256a3b3332c8ce83ed04f6a32e1753adef335b94cfd4",
+  "recipe": "plain-D",
+  "roles": {
+    "base": "pinned-Qwen3-8B",
+    "stage1": "core/plain-D/FinQA/final",
+    "stage2": "core/plain-D/FinQA/ContractNLI/final"
+  },
+  "schema": "pd-send-chain-sources-v1",
+  "seeds": [
+    101,
+    102,
+    103
+  ],
+  "stage_steps": {
+    "base": 0,
+    "stage1": 40,
+    "stage2": 40
+  }
+}

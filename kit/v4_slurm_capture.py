@@ -133,7 +133,7 @@ def capture(work,partition,qos,account):
     binding=file_receipt(paste.iterdir());write_durably(folder/'paste-files.json',binding)
     receipt=seal({'schema':SCHEMA,'ok':doc['ok'],'before_allocation':True,'synthetic':False,
         'site':{'partition':partition,'qos':qos,'account':account},'site_minutes':site_minutes,
-        'masking':'named user/node/host/IP values only; versions, paths, safety and assignment values retained',
+        'masking':'named operator/node/host/IP values only; versions, paths, safety and assignment values retained',
         'observations':observations,'presend_sha256':digest(folder/'containment-presend.json'),
         'files':{name:digest(paste/name) for name in NAMES}})
     write_durably(folder/'capture.json',receipt)

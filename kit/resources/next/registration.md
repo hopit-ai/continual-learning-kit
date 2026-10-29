@@ -122,3 +122,13 @@ Before a tag for this amendment, the manager must run
 `python3 scripts/check_pinned_inputs.py --contract-source "$CONTRACT_SOURCE" --receipt pinned-inputs.json`
 on a network-enabled CPU host and retain an all-inputs-passing receipt alongside
 the export review. Stand-in/export tests alone do not establish stageable pins.
+
+
+### Prospective message-2 ARC prompt amendment (29 October)
+
+The replay-candidate mapper now requests `Do not use Markdown (no bold, italics or headings) anywhere in your reply. End with a final line that is exactly: Answer: X (where X is the correct choice label).` The strict final-line
+parser/verifier remains unchanged. The frozen pre-send format-validity policy
+requires >=127/128 completed strict parses and >=80 fully accepted answers on
+exactly the first 128 frozen candidates after registered exclusions; no
+replenishment, verifier relaxation or threshold reduction. This changes replay
+prompt formatting only, not evaluation membership, endpoints, doses or guards.

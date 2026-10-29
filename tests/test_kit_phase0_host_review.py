@@ -7,6 +7,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import pytest
+from test_kit_phase0_host import require_host_build_space
 ROOT=Path(__file__).resolve().parents[1]
 
 
@@ -48,6 +49,7 @@ def test_real_metadata_inventory_has_versions_locations_and_editable_source(tmp_
 @pytest.mark.parametrize('pip_check_failure',[False,True])
 def test_build_checks_shadowing_and_pip_check_before_inference(tmp_path,monkeypatch,pip_check_failure):
     """The actual builder must audit the trainer and stop on dependency conflicts before inference installs."""
+    require_host_build_space(tmp_path)
     from kit import v4_phase0 as p,v4_phase0_site as s
     from test_kit_phase0_host import VERSIONS
     monkeypatch.delenv('SLURM_JOB_ID',raising=False);monkeypatch.setenv('SDPO_DIR',str(tmp_path/'SDPO'))
@@ -236,6 +238,7 @@ def test_real_trainer_audit_rejects_own_dist_info_shadow(tmp_path):
 
 def test_blocked_wheels_leave_returnable_setup_blocker(tmp_path,monkeypatch):
     """A blocked login wheel endpoint must retain its cause instead of suggesting prepare inside Slurm."""
+    require_host_build_space(tmp_path)
     from kit import v4_phase0 as p,v4_phase0_site as s
     from test_kit_phase0_host import VERSIONS
     monkeypatch.delenv('SLURM_JOB_ID',raising=False)

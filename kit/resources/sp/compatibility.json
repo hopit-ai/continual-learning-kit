@@ -1,0 +1,147 @@
+{
+ "families": [
+  "required_word",
+  "forbidden_word",
+  "word_frequency",
+  "word_count_interval",
+  "sentence_count",
+  "paragraph_count",
+  "bullet_count",
+  "json_only",
+  "lowercase_only",
+  "required_suffix"
+ ],
+ "matrix": {
+  "bullet_count": {
+   "bullet_count": "forbidden",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "forbidden",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "forbidden",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "forbidden_word": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "forbidden",
+   "json_only": "parameter-conditional",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "json_only": {
+   "bullet_count": "forbidden",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "forbidden",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "forbidden",
+   "required_suffix": "forbidden",
+   "required_word": "parameter-conditional",
+   "sentence_count": "forbidden",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "lowercase_only": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "parameter-conditional",
+   "lowercase_only": "forbidden",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "paragraph_count": {
+   "bullet_count": "forbidden",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "forbidden",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "forbidden",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "required_suffix": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "forbidden",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "forbidden",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "required_word": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "parameter-conditional",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "forbidden",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "sentence_count": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "forbidden",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "forbidden",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "parameter-conditional"
+  },
+  "word_count_interval": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "parameter-conditional",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "forbidden",
+   "word_frequency": "parameter-conditional"
+  },
+  "word_frequency": {
+   "bullet_count": "parameter-conditional",
+   "forbidden_word": "parameter-conditional",
+   "json_only": "parameter-conditional",
+   "lowercase_only": "parameter-conditional",
+   "paragraph_count": "parameter-conditional",
+   "required_suffix": "parameter-conditional",
+   "required_word": "parameter-conditional",
+   "sentence_count": "parameter-conditional",
+   "word_count_interval": "parameter-conditional",
+   "word_frequency": "forbidden"
+  }
+ },
+ "parameter_rules": [
+  "No repeated family.",
+  "No two word constraints on the same lowercased argument.",
+  "Lowercase requires lowercase word/suffix arguments as a conservative authoring restriction.",
+  "A passing witness and one single-constraint failure per constraint are mandatory."
+ ],
+ "reasons": {
+  "divider-bullets": "Replay paragraph dividers also count as bullet lines.",
+  "json-format": "JSON cannot pair with prose suffix, bullets, paragraphs or sentence counts."
+ },
+ "schema": "sp-compatibility-v2"
+}

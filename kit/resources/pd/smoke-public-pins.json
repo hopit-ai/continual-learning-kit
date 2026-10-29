@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "metadata_contract_sha256": "8cfb07c0c12c534656e5c8cdd6d5ed77f9b3b9220cfbb45b0131753a43ee43fc",
+    "repository": "CogComp/trec",
+    "revision": "1f97567bdd2adedefe8abdaa9bd6ee0e6725b458",
+    "train": {
+      "bytes": 335858,
+      "name": "train_5500.label",
+      "rows": 5452,
+      "sha256": "9e4c8bdcaffb96ed61041bd64b564183d52793a8e91d84fc3a8646885f466ec3"
+    }
+  },
+  "hash_provenance": "Existing frozen base-model return hashes; registered CogComp metadata pins",
+  "identity_sha256": "e9d597ce546698fb3aa4ea752628ebf2b97e051665790f501cdc4b5454484361",
+  "model": {
+    "files": {
+      "config.json": "f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30",
+      "generation_config.json": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+      "model-00001-of-00005.safetensors": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f",
+      "model-00002-of-00005.safetensors": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282",
+      "model-00003-of-00005.safetensors": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836",
+      "model-00004-of-00005.safetensors": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a",
+      "model-00005-of-00005.safetensors": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff",
+      "model.safetensors.index.json": "f9fdbcb91c23971c13ec5d5f2573d2349e8f61f2f049371ec699281748fdb1bc",
+      "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+      "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+      "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+    },
+    "repository": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+  },
+  "schema": "pd-smoke-public-pins-v1",
+  "test_download": false
+}

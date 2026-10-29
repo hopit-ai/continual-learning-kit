@@ -1,6 +1,7 @@
 # continual-learning-kit
 
-The current runbook is [PHASE-0](kit/README-phase0.md).
+The current combined message 2+3 entry point is [COMBINED SEND](kit/README-combined.md).
+Message-3 joins only on Opus SEND by 2 November; tier failures never block core.
 
 Small, dependency-light tools for running continual-learning experiments on any GPU machine and sending
 back a report. Open source under Apache 2.0. Maintained by Hopit AI as the public half of a research

@@ -1,0 +1,92 @@
+{
+  "ancestry_closed": false,
+  "complete_inventory": false,
+  "coverage": [],
+  "inventories": [
+    {
+      "format": "jsonl",
+      "inventory_id": "b-generic-candidates",
+      "path": null,
+      "sha256": "e7119dbfd2a0b68863285f7c38cb1dba7e892043214e244a84272e9389412cb6"
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "b-generic-accepted",
+      "path": null,
+      "sha256": "c88e4e1e5a45a23afcb022e0b341cf702337e1cd088692998d8a4a5cb97ba64c"
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "b-generic-replay",
+      "path": null,
+      "sha256": "ca9d725f440145eed97ba469987a32febdd61fc5afe7a6da922631707f87d246"
+    },
+    {
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-d6aec8c0ca29",
+      "path": null,
+      "producer_manifest": null,
+      "sha256": "d6aec8c0ca298d58eb69265f4be7363dc394749e9850845140c743df0891677c"
+    },
+    {
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-854fefb90816",
+      "path": null,
+      "producer_manifest": null,
+      "sha256": "854fefb90816d7469f14f42d528626c93cd1dad0c1dd10fd9598ffb9157247f3"
+    },
+    {
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-f232c0d2182a",
+      "path": null,
+      "producer_manifest": null,
+      "sha256": "f232c0d2182a5066196844e2efd86215d9de3fe5d81991de29fa0cb8ee5fcffb"
+    },
+    {
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-6747055e0c09",
+      "path": null,
+      "producer_manifest": null,
+      "sha256": "6747055e0c099647435b4a4bd80cf10d2b5cb8d5abd69ecdd0dabb1ee0188528"
+    },
+    {
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-dfe74f139343",
+      "path": null,
+      "producer_manifest": null,
+      "sha256": "dfe74f1393431049f50827180c86b98bcd8b6e3ee3a3bef0e870fe594cef53f8"
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "contract-prepared",
+      "path": null,
+      "sha256": "4163850b9bcc3d3fb26bce8d1c23ecd4e9a965f0df6309bf9b620d3bb645c1f6"
+    },
+    {
+      "format": "journal",
+      "inventory_id": "contract-journal",
+      "path": null,
+      "sha256": null
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "programme-ancestry",
+      "path": null,
+      "sha256": null
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "programme-panels",
+      "path": null,
+      "sha256": null
+    },
+    {
+      "format": "jsonl",
+      "inventory_id": "chemistry-goal1",
+      "path": null,
+      "sha256": null
+    }
+  ],
+  "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+  "schema": "pd-node-inventories-v1"
+}

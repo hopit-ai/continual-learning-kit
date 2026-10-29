@@ -7,7 +7,7 @@ One allocation may run up to **24 hours on eight GPUs**, with **--no-requeue**, 
 
 **your route: host venv (confirmed 8 Oct)**. Your pilot runs directly as the batch step on the host with `export PATH=/home/<USER>/envs/train/bin:$PATH`, without an enclosing srun or container. Use that same existing native base on the login node and preserve that exact environment line in the copied pilot wrapper. No containerisation or new route question is required.
 
-**Storage: set TASK_ROOT on large shared storage visible from login and compute nodes**, such as `/lustre-storage/fsx_efa/user/$USER/v4-phase0`, and create WORK beneath it. WORK's filesystem needs **at least 869 GiB free** (about 869 GiB under the registered checkpoint/cache policy, increasing for larger model snapshots). CPU **prepare refuses** below that requirement before environment builds or any GPU job; the planner checks it again before submission. Choose your assigned large filesystem, rather than home storage with a smaller quota.
+**Storage: set TASK_ROOT on large shared storage visible from login and compute nodes**, such as `/partner-storage/shared-storage/operator/$USER/v4-phase0`, and create WORK beneath it. WORK's filesystem needs **at least 869 GiB free** (about 869 GiB under the registered checkpoint/cache policy, increasing for larger model snapshots). CPU **prepare refuses** below that requirement before environment builds or any GPU job; the planner checks it again before submission. Choose your assigned large filesystem, rather than home storage with a smaller quota.
 Confirm your quota on WORK's filesystem is at least **869 GiB** (`quota -s`, `lfs quota -u $USER`, or `mmlsquota`); the admission check measures filesystem free space, not your quota.
 
 Send this package after the owner's phase-scoped G5, G6 and G7 checks. The owner's
@@ -52,7 +52,7 @@ person. Discover the latter using `sacctmgr` and your site assignment; do not co
 
 ```sh
 export PATH="$HOME/envs/train/bin:$PATH"
-export TASK_ROOT="/lustre-storage/fsx_efa/user/$USER/v4-phase0"
+export TASK_ROOT="/partner-storage/shared-storage/operator/$USER/v4-phase0"
 # Example: your assigned large shared storage, visible on login and compute nodes.
 mkdir -p "$TASK_ROOT/bootstrap/tmp" "$TASK_ROOT/bootstrap/pip" "$TASK_ROOT/bootstrap/xdg" "$TASK_ROOT/hf-cache"
 export TMPDIR="$TASK_ROOT/bootstrap/tmp" PIP_CACHE_DIR="$TASK_ROOT/bootstrap/pip" XDG_CACHE_HOME="$TASK_ROOT/bootstrap/xdg"

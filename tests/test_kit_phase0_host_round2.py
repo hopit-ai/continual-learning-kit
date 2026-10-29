@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 import pytest
+from test_kit_phase0_host import require_host_build_space
 from test_kit_phase0_host import VERSIONS
 
 BASE_ERROR='opencv-python requires numpy>=2, but you have numpy 1.26.4.'
@@ -46,6 +47,7 @@ def test_base_pip_check_records_existing_failures_without_refusal(builder):
 @pytest.mark.parametrize('state',['unchanged','repaired','new'])
 def test_real_builder_refuses_only_new_pip_check_lines(builder,state):
     """Trainer pip check may preserve or repair known base conflicts, but must refuse a new conflict."""
+    require_host_build_space(builder[0].parent)
     work,s,p,outputs,calls=builder
     if state=='repaired':outputs['trainer']='No broken requirements found.\n'
     if state=='new':outputs['trainer']+=NEW_ERROR+'\n'

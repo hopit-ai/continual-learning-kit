@@ -1,0 +1,12 @@
+{
+ "source": "docs/phase3/evidence/arc-prompt/FROZEN.json on main (git blob acd375ea8a30410b8944dbb0a601cd2e395a015b); shipped byte-identical as kit/resources/m2/arc-prompt-FROZEN.json",
+ "git_blob": "acd375ea8a30410b8944dbb0a601cd2e395a015b",
+ "frozen_sha256": "6ce5528c1f4cd2d75fca3f98aaadcb6f6f188dd21cfd8a912886d36e65ef8989",
+ "frozen_arc_prompt": "\nDo not use Markdown (no bold, italics or headings) anywhere in your reply. End with a final line that is exactly: Answer: X (where X is the correct choice label).",
+ "pool_protocol": "message2-v2-strict-arc-prompt",
+ "acceptance_n": 128,
+ "min_parse": 127,
+ "min_accepted": 80,
+ "candidate_order_key": "next-v4-broad-v1|<source>|<order_id>",
+ "namespace": "m3-cr-v1"
+}

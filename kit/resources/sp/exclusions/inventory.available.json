@@ -1,0 +1,352 @@
+{
+ "archive_provenance": {
+  "archives": [
+   {
+    "name": "exploratory-finqa-rehearsal-s101.tar.gz",
+    "sha256": "4b0b69fa9597c747c2cad74dabcc84e4e4c0c30a86c636fad0ff025bfb1fb06a"
+   },
+   {
+    "name": "math-hard-teacher-return.tar.gz",
+    "sha256": "c408eea08fe6fc567d94b35a46d5cfad986e555b4aa58cbd6fbb4d72d0123db7"
+   },
+   {
+    "name": "next-return-1.tar.gz",
+    "sha256": "262263e7a6ceb8afd74c7e3fb3a450195f2efbe4bca6ee1f4204e4dfecac1827"
+   },
+   {
+    "name": "package-c-return.tar.gz",
+    "sha256": "cad18fee21b94b609c88be8ce74eb41134b6c3a1e4602b79a6b3b96d822770c9"
+   }
+  ],
+  "outer_sha256": "6e0ad6ee971f3fb47627f29c77ac74f93f260d63e22fd0d6bda84b7bde98cff9"
+ },
+ "blockers": [
+  "Returned generic replay manifest lists files absent from the archive: candidates.jsonl, accepted.jsonl, replay.jsonl",
+  "Exact frozen B FinQA training prompts and accepted teacher responses are absent; full public FinQA content does not close this binding.",
+  "Complete programme ancestry and heldout/panel inventory (including Package-A inputs and custodian exclusions) is not available.",
+  "Returned ContractNLI prepared rows and accepted teacher journal are absent; the pinned full public prompt superset does not substitute for accepted responses."
+ ],
+ "download_attempt": {
+  "fallback": "Used existing local pinned source bytes; every public source SHA256 verified.",
+  "status": "DNS_UNAVAILABLE"
+ },
+ "inventory_complete": false,
+ "isolation": "Archive data parsed under python -I; no archive code executed.",
+ "missing_finqa_target_bindings": [
+  {
+   "manifest_sha256": "162dc3e1f7f02482a7b892b6c22e27e73fa3386d044f55703dcf4849a7a805e0",
+   "train_sha256": "d6aec8c0ca298d58eb69265f4be7363dc394749e9850845140c743df0891677c"
+  },
+  {
+   "manifest_sha256": "4b64f4b049d278555e728d6780f2aa44ffdc37b661b6dd41cdc9c3b2e8d5ae25",
+   "train_sha256": "854fefb90816d7469f14f42d528626c93cd1dad0c1dd10fd9598ffb9157247f3"
+  },
+  {
+   "manifest_sha256": "5c85619781295c0d16c99387443d633e660edb53bef3d74561967163221b46b6",
+   "train_sha256": "f232c0d2182a5066196844e2efd86215d9de3fe5d81991de29fa0cb8ee5fcffb"
+  },
+  {
+   "manifest_sha256": "7d7b65d21a5e9eead5ca0c1f88c87ea4e42a022d93462217a75b7779b3cf51c8",
+   "train_sha256": "6747055e0c099647435b4a4bd80cf10d2b5cb8d5abd69ecdd0dabb1ee0188528"
+  },
+  {
+   "manifest_sha256": "a3895fc9140417d18e1f3a7820b5b0e25155930c75080780ede7e03cef4ef30d",
+   "train_sha256": "dfe74f1393431049f50827180c86b98bcd8b6e3ee3a3bef0e870fe594cef53f8"
+  }
+ ],
+ "missing_replay_files": [
+  {
+   "expected_sha256": "e7119dbfd2a0b68863285f7c38cb1dba7e892043214e244a84272e9389412cb6",
+   "name": "candidates.jsonl"
+  },
+  {
+   "expected_sha256": "c88e4e1e5a45a23afcb022e0b341cf702337e1cd088692998d8a4a5cb97ba64c",
+   "name": "accepted.jsonl"
+  },
+  {
+   "expected_sha256": "ca9d725f440145eed97ba469987a32febdd61fc5afe7a6da922631707f87d246",
+   "name": "replay.jsonl"
+  }
+ ],
+ "model_inference": false,
+ "pools": [
+  {
+   "complete": true,
+   "name": "rlvr-candidates",
+   "origin": "Pinned entire RLVR-IFeval training split, before any acceptance or exclusion.",
+   "role": "generic-candidates",
+   "rows": 14973,
+   "sha256": "16b9ecf3562a249ced6e5696d27c16c68117654cea380b44e4a9ec0e5206c6ab"
+  },
+  {
+   "complete": true,
+   "name": "broad-candidates",
+   "origin": "Entire pinned GSM8K and ARC-Challenge training splits under current strict prompts.",
+   "role": "broad",
+   "rows": 8592,
+   "sha256": "d34eee8eed9d1167a76fac5c735f76b1c689f0f5bf66cba5eb148cdf763d0216"
+  },
+  {
+   "complete": true,
+   "name": "contract-candidates",
+   "origin": "Entire pinned ContractNLI training split rendered by c_targets.source_rows; no acceptance filter.",
+   "role": "cr",
+   "rows": 7191,
+   "sha256": "6a494b0073537e25388bc0f5a93ba39afaa801ee6f77efb01997fb4abc4e34e4"
+  },
+  {
+   "complete": true,
+   "name": "k-instruction-candidates",
+   "origin": "Same full instruction source superset as generic replay.",
+   "role": "k",
+   "rows": 14973,
+   "sha256": "16b9ecf3562a249ced6e5696d27c16c68117654cea380b44e4a9ec0e5206c6ab"
+  },
+  {
+   "complete": true,
+   "name": "k-broad-candidates",
+   "origin": "Same full broad source superset; future returned prompts must verify containment.",
+   "role": "k",
+   "rows": 8592,
+   "sha256": "d34eee8eed9d1167a76fac5c735f76b1c689f0f5bf66cba5eb148cdf763d0216"
+  },
+  {
+   "complete": true,
+   "name": "cr-instruction-candidates",
+   "origin": "CR instruction component: entire source superset.",
+   "role": "cr",
+   "rows": 14973,
+   "sha256": "16b9ecf3562a249ced6e5696d27c16c68117654cea380b44e4a9ec0e5206c6ab"
+  },
+  {
+   "complete": true,
+   "name": "cr-broad-candidates",
+   "origin": "CR broad component: entire source superset.",
+   "role": "cr",
+   "rows": 8592,
+   "sha256": "d34eee8eed9d1167a76fac5c735f76b1c689f0f5bf66cba5eb148cdf763d0216"
+  },
+  {
+   "complete": false,
+   "name": "finqa-source-reference",
+   "origin": "All source FinQA train content, rendered by the bed; exact B trainer/teacher artifacts missing.",
+   "role": "earlier",
+   "rows": 6251,
+   "sha256": "2a75f57df84ad02927ac49cd058cddba8a7ece17f5c7bfa0477e4c7b268a6437"
+  },
+  {
+   "complete": false,
+   "name": "cr-finqa-source-reference",
+   "origin": "Conservative content reference only; exact frozen B training prompts still required.",
+   "role": "cr",
+   "rows": 6251,
+   "sha256": "2a75f57df84ad02927ac49cd058cddba8a7ece17f5c7bfa0477e4c7b268a6437"
+  },
+  {
+   "complete": false,
+   "name": "finqa-dev",
+   "origin": "Full source FinQA dev content; exact programme trainer render still requires binding.",
+   "role": "panels",
+   "rows": 883,
+   "sha256": "79e57fbe0006c2486cd54270b5b5a31b8a6f02e1c4204d4d09f5e646d1e4e3bb"
+  },
+  {
+   "complete": false,
+   "name": "finqa-test",
+   "origin": "Full source FinQA test content; exact programme trainer render still requires binding.",
+   "role": "panels",
+   "rows": 1147,
+   "sha256": "b2ab59e370bbfa27f3dcfd329d54554f6f7f30627f421a65021f01683b237070"
+  },
+  {
+   "complete": true,
+   "name": "general-v1",
+   "origin": "Versioned local panel; bytes bound in this receipt.",
+   "role": "panels",
+   "rows": 300,
+   "sha256": "bd53a986bba83e183dfa13b4da7671081a00c478a1807a895539e847cb82c0ee"
+  },
+  {
+   "complete": true,
+   "name": "legal-panel",
+   "origin": "Versioned local panel; bytes bound in this receipt.",
+   "role": "panels",
+   "rows": 100,
+   "sha256": "5dc516e9ea072ac77c77f95c93cef8edeaced1e2c9658eded698aae523daa3d9"
+  },
+  {
+   "complete": true,
+   "name": "legal-test",
+   "origin": "Versioned local panel; bytes bound in this receipt.",
+   "role": "panels",
+   "rows": 100,
+   "sha256": "9b2311114d22c63291336afa4ce42081fb0fbf6c42b6809bfebc7e5835080531"
+  },
+  {
+   "complete": true,
+   "name": "hard-math-eval",
+   "origin": "Versioned local panel; bytes bound in this receipt.",
+   "role": "panels",
+   "rows": 100,
+   "sha256": "22ae853a7c140190c862e14d35ce70ebe58aeac779590ba5f424982232d0abe6"
+  },
+  {
+   "complete": true,
+   "name": "math-screen",
+   "origin": "Versioned local panel; bytes bound in this receipt.",
+   "role": "panels",
+   "rows": 200,
+   "sha256": "85dab1f87ec8e9d386b6d4774dd9dc21917d4a77d287cb84a4e46cc44cae9ad8"
+  },
+  {
+   "complete": true,
+   "name": "hard-math-candidates",
+   "origin": "Versioned complete 500-row hard-MATH training pool; only one component of ancestry.",
+   "role": "ancestry",
+   "rows": 500,
+   "sha256": "4a2f1258ce538730e00cd1bedd98fd566cb1e31325e7ce0a527802a9e6242f56"
+  },
+  {
+   "complete": true,
+   "name": "return-broad-candidates",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "broad",
+   "rows": 2048,
+   "sha256": "765374da64122892b7e1e7afa3a57c720f09b8ba774d9aef077cf420f7703206"
+  },
+  {
+   "complete": true,
+   "name": "return-gsm-accepted",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "broad",
+   "rows": 979,
+   "sha256": "d7cba19250c379e09db0f896d01fdb722d6811d1057616cb710f806f083391ec"
+  },
+  {
+   "complete": true,
+   "name": "return-arc-accepted",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "broad",
+   "rows": 904,
+   "sha256": "163a80c2a9a183f377f7c072924cfbd4ad5d1d2780d7bd692323ac3a47f12a40"
+  },
+  {
+   "complete": false,
+   "name": "return-refresher",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "generic-accepted",
+   "rows": 64,
+   "sha256": "92c16fc99d3fbb8ca5b6fb2ff8946b86505cad9488053a8b6b29996a23f4db66"
+  },
+  {
+   "complete": true,
+   "name": "return-math-targets",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "ancestry",
+   "rows": 460,
+   "sha256": "95d7496e3eb907df0a7dca7c63b20bed4804735e8928ede679c0b8056750b477"
+  },
+  {
+   "complete": true,
+   "name": "hellaswag",
+   "origin": "Safely extracted return data, verified against accompanying manifest.",
+   "role": "panels",
+   "rows": 100,
+   "sha256": "41dcdb1d38ada450601d91eb77fdf07fa2b3742e8f2f47dff5bf68b0a6858819"
+  }
+ ],
+ "public_sources": [
+  {
+   "name": "rlvr",
+   "repository": "allenai/RLVR-IFeval",
+   "revision": "47c03c73621c4aab2b824b7818681117d662770e",
+   "rows": 14973,
+   "sha256": "75f1b1f63039044034fe75d22f51f77f257a79291d0084262bb43695d4aac971"
+  },
+  {
+   "name": "gsm",
+   "repository": "openai/gsm8k",
+   "revision": "740312add88f781978c0658806c59bc2815b9866",
+   "rows": 7473,
+   "sha256": "ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d"
+  },
+  {
+   "name": "arc",
+   "repository": "allenai/ai2_arc",
+   "revision": "210d026faf9955653af8916fad021475a3f00453",
+   "rows": 1119,
+   "sha256": "e488c1587ffdcfc8443f916c53488a95cd471c5790e0746c6bfe4cecf20962cb"
+  },
+  {
+   "archive_sha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+   "name": "contract-dev",
+   "repository": "ContractNLI",
+   "sha256": "310af7d661d2ab50ee3700169cef524c75f39fb296bbf5a515c229eb0f42e68e"
+  },
+  {
+   "archive_sha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+   "name": "contract-test",
+   "repository": "ContractNLI",
+   "sha256": "460267b56052a2dc5aead98eb35eadef9e6734d5723d37b4a9790e410f812387"
+  },
+  {
+   "archive_sha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+   "name": "contract-train",
+   "repository": "ContractNLI",
+   "sha256": "dbceb356cd6203b35b27be94a5fa85e499a81c34c42c89ad53060b39f0257ba5"
+  },
+  {
+   "name": "finqa-train",
+   "repository": "czyssrs/FinQA",
+   "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+   "sha256": "49f237eb9779b569473b26b08048867d04635a7cc39ad6a7a5664c55bb428db6"
+  },
+  {
+   "name": "finqa-dev",
+   "repository": "czyssrs/FinQA",
+   "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+   "sha256": "a847fb7e0d61a3125a1e2909852df6b89f1ee64d2c5ff1bf689e332214deee51"
+  },
+  {
+   "name": "finqa-test",
+   "repository": "czyssrs/FinQA",
+   "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+   "sha256": "831dbfb2e785dbc227f895ce3f24046433467aec67b09db2bd6ac7692a8a30dc"
+  }
+ ],
+ "returned_files": [
+  {
+   "manifest_sha256": "b175ae4bba9b9580daf38ff6a9ec257d1d23fd74ced8ad6cbce33b6a4949f847",
+   "name": "return-broad-candidates",
+   "sha256": "be010bda8296ec48b69fef37cf2f8aaf9b8a366164e4466e3d7b97185c45350f"
+  },
+  {
+   "manifest_sha256": "b175ae4bba9b9580daf38ff6a9ec257d1d23fd74ced8ad6cbce33b6a4949f847",
+   "name": "return-gsm-accepted",
+   "sha256": "825be13c02aa5e107be9d7c2b472378597bfa410b6e68783baf69cac09c4eda1"
+  },
+  {
+   "manifest_sha256": "b175ae4bba9b9580daf38ff6a9ec257d1d23fd74ced8ad6cbce33b6a4949f847",
+   "name": "return-arc-accepted",
+   "sha256": "abb3de0f553b9d12c9c95520d4e05c5b2a7624721b8e819470a74a187c9d75b1"
+  },
+  {
+   "manifest_sha256": "d629ecf335f6a855c99a70302211ca0729e950156fb2438f69f5990b03f7ac85",
+   "name": "return-refresher",
+   "sha256": "7816421325be342af58c537c3d6bfbbada9b04aec9864b8af646b2d072a10a2d"
+  },
+  {
+   "manifest_sha256": "0a02ecad439c5c7f9cfd3824decf9526b44408d9b9427800a00e442e2956bf14",
+   "name": "return-math-targets",
+   "sha256": "c59d7d12c324259e3ffe71daa676a40e5a9458bdfde51a7da744a8f7e8d3be9b"
+  },
+  {
+   "manifest_sha256": "4f6f954e2bab1f9e0720b5e9e46f4dde6d90f4fae9d7bcf758e792c05e6d601e",
+   "name": "hellaswag",
+   "sha256": "2b0fc85c6e80854bb47982d35a18d15bc83a5655de6202634547071eccbe487d"
+  }
+ ],
+ "schema": "sp-real-pool-inventory-v1",
+ "source_mutation": false,
+ "status": "PENDING"
+}

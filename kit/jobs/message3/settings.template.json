@@ -1,0 +1,32 @@
+{
+ "trainer_python": "<TRAINER_PY>",
+ "inference_python": "<INFERENCE_PY>",
+ "gpus": "0,1,2,3,4,5,6,7",
+ "host_reservation_bytes": 0,
+ "nodes": ["<M3_NODE_LABEL_1>", "<M3_NODE_LABEL_2>"],
+ "message2_nodes": ["<EVERY_MESSAGE2_CORE_NODE_LABEL>"],
+ "message2_roots": ["<MESSAGE2_OUT>", "<MESSAGE2_DURABLE>"],
+ "technical_synthetic": false,
+ "inputs": {
+  "base": "<LOCAL_QWEN3_8B_DIR>",
+  "base_receipt": null,
+  "tokenizer": "<LOCAL_QWEN3_8B_DIR>",
+  "sdpo": "<SDPO_CHECKOUT_AT_7c457fc1>",
+  "inventory": "<M3_OUT_PARENT>/m3-inventory.json",
+  "return1": "<DIRECTORY_WITH_ORIGINAL_RETURN1_ARCHIVES>",
+  "contract_targets": "<SAME_AS_MESSAGE2_prepare.c_targets>",
+  "contract_source": "<CONTRACT_NLI_SOURCE_DIR>",
+  "replay": "<SAME_AS_MESSAGE2_prepare.replay>",
+  "finqa_targets": ["<B_COMMON_SCHEDULED_FINQA_S101>", "<B_COMMON_SCHEDULED_FINQA_S102>", "<B_COMMON_SCHEDULED_FINQA_S103>"],
+  "core_durable": "<MESSAGE2_DURABLE>",
+  "teacher": "<LOCAL_QWEN3.6_27B_DIR (fallback only)>",
+  "teacher_gpus": "0,1",
+  "finqa_panel": "<FINQA_PANEL_ROOT>",
+  "panels": {"finqa": "<FINQA_PANEL_JSONL>", "general-v1": "<KIT>/panels/general-v1.jsonl", "hellaswag": "{m3_out}/hellaswag/panel.jsonl",
+             "math_hard": "<KIT>/resources/m2/eval.jsonl", "legal-panel": "<KIT>/resources/c/contract_nli/panel.jsonl", "legal-test": "<KIT>/resources/c/contract_nli/test.jsonl"},
+  "holdouts": {"pd": "<FROZEN_PD_CANDIDATE_SUPERSET_JSONL>", "sp": "<FROZEN_SP_CANDIDATE_SUPERSET_JSONL>"}
+ },
+ "notes": "B's replay/, B's FinQA target folders (native seed-specific COMMON scheduled inputs; include seeds 101-103) and C's targets are the same directories message 2 uses, read in place and bound by M3-bind-inputs (manifest sha256, write-once). core_durable is read only by M3-math-targets (read-only copy of core's committed M5 targets-math); no other input may lie under message2_roots (isolation proof). HellaSwag-100 is frozen by the tier itself.",
+ "inventory_format": {"nodes": [{"node": "<M3_NODE_LABEL_1>", "gpus": [{"uuid": "<GPU-UUID>", "environment": "<python -m kit.m2_assignment --gpu N>"}]}],
+                      "message2_nodes": ["<EVERY_MESSAGE2_CORE_NODE_LABEL>"], "message2_assignment": "<CORE_SCORING_ASSIGNMENT_JSON>"}
+}

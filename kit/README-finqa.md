@@ -1,7 +1,6 @@
 # FinQA main campaign: self-monitored host run
 
-Plan v4 sections **15.21–15.22** control this package. Phase 0 v7 passed on job
-414790 (26/26 rows; 12.06 allocation GPU-hours). Qualification still runs first,
+Plan v4 sections **15.21–15.22** control this package. Phase 0 v7 passed on job <redacted> (26/26 rows; 12.06 allocation GPU-hours). Qualification still runs first,
 including the **full 1,441-question teacher corpus and rewrites** and initial
 measurements. Main then starts automatically: **no PAUSE, proceed receipt or new
 main-tag transition**. Read [FINQA-AGENT-GUIDE.md](FINQA-AGENT-GUIDE.md).

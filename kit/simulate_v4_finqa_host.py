@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def rehearse(out):
     out=Path(out).resolve();out.mkdir(parents=True,exist_ok=False)
-    work=out/'lustre-storage/fsx_efa/user/partner/v4-finqa/work.ABCDEF';work.mkdir(parents=True)
+    work=out/'shared-storage/shared-storage/operator/partner/v4-finqa/work.ABCDEF';work.mkdir(parents=True)
     shim=out/'cpu-adapter-kit';(shim/'campaigns').mkdir(parents=True)
     ledger=work/'k8b4/containment/allocation-ledger.json';ledger.parent.mkdir(parents=True)
     import time

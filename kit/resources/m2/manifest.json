@@ -1,0 +1,395 @@
+{
+  "schema": "math-hard-screen.v1",
+  "preregistration_sha256": "91bf4f3d1632a55efcb9234e0144242dc80771e956a7fb820e0a98910e3dd7d4",
+  "source": {
+    "dataset": "EleutherAI/hendrycks_math",
+    "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+    "ids": "<split>/<subject>/<row index> at that revision (scripts/materialise_math_mirror.py)",
+    "licence": "MIT (dataset card); rights-holder takedown of the original release disclosed in 3C",
+    "tree_files": 12500,
+    "tree_sha256_3c": "a8a4b43646c2c96c6f69c65af253eef839d78066c73c5d3387983d667ee810b5",
+    "parquet_sha256": {
+      "algebra/test-00000-of-00001.parquet": "0e04a850dac9cfc758eac0c80afd2d0cc65e29ea72f916c8ac1045b12af937f5",
+      "algebra/train-00000-of-00001.parquet": "73347f5b55869f21ff094361025dbd12d291e971aa4d72142eacee10438e449f",
+      "counting_and_probability/test-00000-of-00001.parquet": "c324818949c75a6227c0328a8499d58023cbbf6757cfc1736f5ab24cc8d87966",
+      "counting_and_probability/train-00000-of-00001.parquet": "d37ae017930df41678edee50dcde18c17fb06afaff9eb505c1b95f1002bfcb31",
+      "geometry/test-00000-of-00001.parquet": "98720f3a8134ad9784fd8951195245264495df03ffc5c9485a9a54ff5ae2431a",
+      "geometry/train-00000-of-00001.parquet": "9dbf5e5b55499e696e0ba72da9d85d4f0be3acbf7eaa6cb014b0fc78bb63784f",
+      "intermediate_algebra/test-00000-of-00001.parquet": "e859f72486c951c2017da880541ca729940eaa986b0364eb23e238983df9bfeb",
+      "intermediate_algebra/train-00000-of-00001.parquet": "0c87f3798ebdfb915b1f9b6fc13c1a8d064c3cb91631ccbe85b83ed5d71150f6",
+      "number_theory/test-00000-of-00001.parquet": "ba156c9c9fa2040836ba12135fd964e6e67d6bccd8c469ec4a3ad941f8f6fbe9",
+      "number_theory/train-00000-of-00001.parquet": "81c08649149b39811f2d1d7ddf5dfccf6c4c8044a2e169cfb24db09160c941f4",
+      "prealgebra/test-00000-of-00001.parquet": "301e5d8ade5c7b5038032532e498bdc9dca799e7f1061a63f2e7d980803240cc",
+      "prealgebra/train-00000-of-00001.parquet": "765b526fb5c0b8385cb7be2c16bf4f6f28cf71f2bc15c826abfbb5fa7f8616cc",
+      "precalculus/test-00000-of-00001.parquet": "da37474ba3761ae5727af3844a7ba963a735bd6a14c65e6137593669a4fe3b9c",
+      "precalculus/train-00000-of-00001.parquet": "28bb1ff95525c8d32521509bef91de76339659f5467a381e6e8deea204538f0e"
+    }
+  },
+  "old_subset_excluded": {
+    "annex_sha256": "ebeb50a67f4a016fbe128c3ff6b350782b4a1369dd67f79b6c7aaa88f679d966",
+    "source_sha256": "a8a4b43646c2c96c6f69c65af253eef839d78066c73c5d3387983d667ee810b5",
+    "pool_ids_sha256": "5fa0f5fb0576a73a6c4c5284c19ce4784f9ffa1a93fa9f014414864a973b7d8a",
+    "panel_ids_sha256": "c3184b116d9afdbdc5ba366ab5745698d103a74e6acddcbe9035259ce180922b",
+    "n": 600
+  },
+  "general_v1_sha256": "ce5743ef03f59f57b18231ccd88aee66f0350c8fe3fce8a4abaeb816dd00a1e6",
+  "near_duplicate_rule": "kit.p3b_replay_data.near via clean",
+  "levels": [
+    "5"
+  ],
+  "level_fallback_used": false,
+  "level_attempts": [
+    {
+      "levels": [
+        "5"
+      ],
+      "shortfall": null,
+      "stages": {
+        "heldout": {
+          "after_old_subset": 910,
+          "after_near_duplicates": 896
+        },
+        "train": {
+          "after_old_subset": 1514,
+          "after_near_duplicates": 1457
+        }
+      }
+    }
+  ],
+  "stratum": "subject",
+  "salts": {
+    "dedup": "hmath-v1-dedup",
+    "screen": "hmath-v1-screen",
+    "eval": "hmath-v1-eval",
+    "pool": "hmath-v1-pool"
+  },
+  "sizes": {
+    "screen": 200,
+    "eval": 100,
+    "pool": 500
+  },
+  "quotas": {
+    "screen": {
+      "Algebra": 48,
+      "Counting & Probability": 25,
+      "Geometry": 11,
+      "Intermediate Algebra": 42,
+      "Number Theory": 32,
+      "Prealgebra": 28,
+      "Precalculus": 14
+    },
+    "eval": {
+      "Algebra": 24,
+      "Counting & Probability": 13,
+      "Geometry": 5,
+      "Intermediate Algebra": 21,
+      "Number Theory": 16,
+      "Prealgebra": 14,
+      "Precalculus": 7
+    },
+    "pool": {
+      "Algebra": 89,
+      "Counting & Probability": 81,
+      "Geometry": 70,
+      "Intermediate Algebra": 96,
+      "Number Theory": 92,
+      "Prealgebra": 50,
+      "Precalculus": 22
+    }
+  },
+  "counts": {
+    "source_by_split_level": {
+      "heldout|Level 1": 437,
+      "heldout|Level 2": 894,
+      "heldout|Level 3": 1131,
+      "heldout|Level 4": 1214,
+      "heldout|Level 5": 1324,
+      "train|Level 1": 564,
+      "train|Level 2": 1348,
+      "train|Level 3": 1592,
+      "train|Level 4": 1690,
+      "train|Level 5": 2304,
+      "train|Level ?": 2
+    },
+    "source_by_split_level_type": {
+      "heldout|Level 1|Algebra": 135,
+      "heldout|Level 1|Counting & Probability": 39,
+      "heldout|Level 1|Geometry": 38,
+      "heldout|Level 1|Intermediate Algebra": 52,
+      "heldout|Level 1|Number Theory": 30,
+      "heldout|Level 1|Prealgebra": 86,
+      "heldout|Level 1|Precalculus": 57,
+      "heldout|Level 2|Algebra": 201,
+      "heldout|Level 2|Counting & Probability": 101,
+      "heldout|Level 2|Geometry": 82,
+      "heldout|Level 2|Intermediate Algebra": 128,
+      "heldout|Level 2|Number Theory": 92,
+      "heldout|Level 2|Prealgebra": 177,
+      "heldout|Level 2|Precalculus": 113,
+      "heldout|Level 3|Algebra": 261,
+      "heldout|Level 3|Counting & Probability": 100,
+      "heldout|Level 3|Geometry": 102,
+      "heldout|Level 3|Intermediate Algebra": 195,
+      "heldout|Level 3|Number Theory": 122,
+      "heldout|Level 3|Prealgebra": 224,
+      "heldout|Level 3|Precalculus": 127,
+      "heldout|Level 4|Algebra": 283,
+      "heldout|Level 4|Counting & Probability": 111,
+      "heldout|Level 4|Geometry": 125,
+      "heldout|Level 4|Intermediate Algebra": 248,
+      "heldout|Level 4|Number Theory": 142,
+      "heldout|Level 4|Prealgebra": 191,
+      "heldout|Level 4|Precalculus": 114,
+      "heldout|Level 5|Algebra": 307,
+      "heldout|Level 5|Counting & Probability": 123,
+      "heldout|Level 5|Geometry": 132,
+      "heldout|Level 5|Intermediate Algebra": 280,
+      "heldout|Level 5|Number Theory": 154,
+      "heldout|Level 5|Prealgebra": 193,
+      "heldout|Level 5|Precalculus": 135,
+      "train|Level 1|Algebra": 178,
+      "train|Level 1|Counting & Probability": 50,
+      "train|Level 1|Geometry": 41,
+      "train|Level 1|Intermediate Algebra": 58,
+      "train|Level 1|Number Theory": 47,
+      "train|Level 1|Prealgebra": 126,
+      "train|Level 1|Precalculus": 64,
+      "train|Level 2|Algebra": 340,
+      "train|Level 2|Counting & Probability": 119,
+      "train|Level 2|Geometry": 100,
+      "train|Level 2|Intermediate Algebra": 167,
+      "train|Level 2|Number Theory": 131,
+      "train|Level 2|Prealgebra": 329,
+      "train|Level 2|Precalculus": 162,
+      "train|Level 3|Algebra": 392,
+      "train|Level 3|Counting & Probability": 160,
+      "train|Level 3|Geometry": 129,
+      "train|Level 3|Intermediate Algebra": 301,
+      "train|Level 3|Number Theory": 191,
+      "train|Level 3|Prealgebra": 251,
+      "train|Level 3|Precalculus": 168,
+      "train|Level 4|Algebra": 398,
+      "train|Level 4|Counting & Probability": 166,
+      "train|Level 4|Geometry": 177,
+      "train|Level 4|Intermediate Algebra": 340,
+      "train|Level 4|Number Theory": 187,
+      "train|Level 4|Prealgebra": 247,
+      "train|Level 4|Precalculus": 175,
+      "train|Level 5|Algebra": 436,
+      "train|Level 5|Counting & Probability": 276,
+      "train|Level 5|Geometry": 421,
+      "train|Level 5|Intermediate Algebra": 429,
+      "train|Level 5|Number Theory": 313,
+      "train|Level 5|Prealgebra": 252,
+      "train|Level 5|Precalculus": 177,
+      "train|Level ?|Geometry": 2
+    },
+    "eligible_3c_by_split_level_type": {
+      "heldout|Level 1|Algebra": 128,
+      "heldout|Level 1|Counting & Probability": 35,
+      "heldout|Level 1|Geometry": 15,
+      "heldout|Level 1|Intermediate Algebra": 32,
+      "heldout|Level 1|Number Theory": 30,
+      "heldout|Level 1|Prealgebra": 71,
+      "heldout|Level 1|Precalculus": 28,
+      "heldout|Level 2|Algebra": 171,
+      "heldout|Level 2|Counting & Probability": 88,
+      "heldout|Level 2|Geometry": 32,
+      "heldout|Level 2|Intermediate Algebra": 79,
+      "heldout|Level 2|Number Theory": 82,
+      "heldout|Level 2|Prealgebra": 152,
+      "heldout|Level 2|Precalculus": 45,
+      "heldout|Level 3|Algebra": 218,
+      "heldout|Level 3|Counting & Probability": 80,
+      "heldout|Level 3|Geometry": 43,
+      "heldout|Level 3|Intermediate Algebra": 133,
+      "heldout|Level 3|Number Theory": 107,
+      "heldout|Level 3|Prealgebra": 185,
+      "heldout|Level 3|Precalculus": 54,
+      "heldout|Level 4|Algebra": 239,
+      "heldout|Level 4|Counting & Probability": 94,
+      "heldout|Level 4|Geometry": 39,
+      "heldout|Level 4|Intermediate Algebra": 168,
+      "heldout|Level 4|Number Theory": 128,
+      "heldout|Level 4|Prealgebra": 140,
+      "heldout|Level 4|Precalculus": 45,
+      "heldout|Level 5|Algebra": 229,
+      "heldout|Level 5|Counting & Probability": 113,
+      "heldout|Level 5|Geometry": 50,
+      "heldout|Level 5|Intermediate Algebra": 196,
+      "heldout|Level 5|Number Theory": 149,
+      "heldout|Level 5|Prealgebra": 131,
+      "heldout|Level 5|Precalculus": 62,
+      "train|Level 1|Algebra": 159,
+      "train|Level 1|Counting & Probability": 49,
+      "train|Level 1|Geometry": 22,
+      "train|Level 1|Intermediate Algebra": 39,
+      "train|Level 1|Number Theory": 44,
+      "train|Level 1|Prealgebra": 106,
+      "train|Level 1|Precalculus": 28,
+      "train|Level 2|Algebra": 297,
+      "train|Level 2|Counting & Probability": 102,
+      "train|Level 2|Geometry": 37,
+      "train|Level 2|Intermediate Algebra": 113,
+      "train|Level 2|Number Theory": 126,
+      "train|Level 2|Prealgebra": 261,
+      "train|Level 2|Precalculus": 68,
+      "train|Level 3|Algebra": 318,
+      "train|Level 3|Counting & Probability": 141,
+      "train|Level 3|Geometry": 45,
+      "train|Level 3|Intermediate Algebra": 194,
+      "train|Level 3|Number Theory": 166,
+      "train|Level 3|Prealgebra": 194,
+      "train|Level 3|Precalculus": 72,
+      "train|Level 4|Algebra": 323,
+      "train|Level 4|Counting & Probability": 149,
+      "train|Level 4|Geometry": 66,
+      "train|Level 4|Intermediate Algebra": 223,
+      "train|Level 4|Number Theory": 166,
+      "train|Level 4|Prealgebra": 190,
+      "train|Level 4|Precalculus": 68,
+      "train|Level 5|Algebra": 312,
+      "train|Level 5|Counting & Probability": 254,
+      "train|Level 5|Geometry": 224,
+      "train|Level 5|Intermediate Algebra": 300,
+      "train|Level 5|Number Theory": 300,
+      "train|Level 5|Prealgebra": 154,
+      "train|Level 5|Precalculus": 70
+    },
+    "hard_level_3c_exclusions_by_reason": {
+      "diagram": 383,
+      "duplicate_question": 1,
+      "non_rational_gold": 699,
+      "test_question_overlap": 1
+    },
+    "hard_exclusions_by_reason": {
+      "diagram": 383,
+      "duplicate_question": 1,
+      "near_duplicate": 71,
+      "non_rational_gold": 699,
+      "old_3c_subset": 120,
+      "test_question_overlap": 1
+    },
+    "kept_by_split_level_type": {
+      "heldout": {
+        "5|Algebra": 215,
+        "5|Counting & Probability": 112,
+        "5|Geometry": 48,
+        "5|Intermediate Algebra": 189,
+        "5|Number Theory": 145,
+        "5|Prealgebra": 127,
+        "5|Precalculus": 60
+      },
+      "train": {
+        "5|Algebra": 260,
+        "5|Counting & Probability": 235,
+        "5|Geometry": 205,
+        "5|Intermediate Algebra": 280,
+        "5|Number Theory": 267,
+        "5|Prealgebra": 146,
+        "5|Precalculus": 64
+      }
+    }
+  },
+  "sets": {
+    "screen": {
+      "file": "screen_panel.jsonl",
+      "n": 200,
+      "ids_sha256": "776336de397d2fe8d554579c28a1ab4ad0c9ed8a55966f0c175b65607e55e55f",
+      "sha256": "7235a1bd0fd1c24c7d8ec4d65ddd10a9e43bf82bb46e5e3878ce5e4188c239b6",
+      "by_type": {
+        "Algebra": 48,
+        "Counting & Probability": 25,
+        "Geometry": 11,
+        "Intermediate Algebra": 42,
+        "Number Theory": 32,
+        "Prealgebra": 28,
+        "Precalculus": 14
+      },
+      "by_level": {
+        "5": 200
+      },
+      "split": [
+        "heldout"
+      ]
+    },
+    "eval": {
+      "file": "eval.jsonl",
+      "n": 100,
+      "ids_sha256": "57762dd44d4e1327f79e2f6704ebe652cb5ddab552f28f888d5cb60cd6e7bfa0",
+      "sha256": "7acdf72cff3bd70f5dd58b0eb167dbfce325c2ba2d20c4e9682c2de88ca7fbdc",
+      "by_type": {
+        "Algebra": 24,
+        "Counting & Probability": 13,
+        "Geometry": 5,
+        "Intermediate Algebra": 21,
+        "Number Theory": 16,
+        "Prealgebra": 14,
+        "Precalculus": 7
+      },
+      "by_level": {
+        "5": 100
+      },
+      "split": [
+        "heldout"
+      ]
+    },
+    "pool": {
+      "file": "train_pool.jsonl",
+      "n": 500,
+      "ids_sha256": "51e92101cf2f3b8e694156dceeb817d3371f2ee07d6c79aefb46e91581229fce",
+      "sha256": "9bfa1730bf53e07df4df3faaae438a7f66e1ad3e3c1a53b23bdadb055b08729a",
+      "by_type": {
+        "Algebra": 89,
+        "Counting & Probability": 81,
+        "Geometry": 70,
+        "Intermediate Algebra": 96,
+        "Number Theory": 92,
+        "Prealgebra": 50,
+        "Precalculus": 22
+      },
+      "by_level": {
+        "5": 500
+      },
+      "split": [
+        "train"
+      ]
+    }
+  },
+  "generation": {
+    "model": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "adapters": null,
+    "thinking": false,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 0,
+    "max_new_tokens": 2048,
+    "max_model_len": 12288,
+    "deterministic": true,
+    "scorer": "kit/eval_bed.py generate --bed math_screen"
+  },
+  "decision_rule": {
+    "set": "screen",
+    "qualifies_if": "30% <= correct/200 <= 70% (60-140 of 200, inclusive)",
+    "interval": "Wilson 95%, reported, not part of the decision",
+    "per_type": "descriptive"
+  },
+  "scorer": {
+    "kit/beds/math_screen.py": "3869623fa53dddaa4c5ca64c282955442b1a50d689ae9ed5b3bae4411a17da95",
+    "kit/eval_bed.py": "95dd5a44fe299f25359b50ec267ecec494c5bd1153e8aff8f8f612562c0879ef",
+    "kit/tokens_io.py": "bf0e787a0e5746a452b0abd386343cffd8b654e308492fea437d28027ecb408b"
+  },
+  "selection_implementation": {
+    "kit/math_hard_screen.py": "9506b43c1893abee70ae2a1140230d55990453c23619d00c12d7eb7c20be86f8",
+    "kit/second_task_screen.py": "9edc1dace8ae1226007366f4b14ebd9d01a1dfe6d47499ad733dcfa52051df5f",
+    "kit/p3b_replay_data.py": "a9ca1721dcc40213fdbb8d422d726c677593cb5aeec7eb95096870808ab5906f"
+  },
+  "files": {
+    "eval.jsonl": "0bee96d6576a5144a0150d26170b08b6a04644bffcdc31db7e1f7e58f2c21b98",
+    "exclusions.jsonl": "2b986bad24c8f5c8568268bb7f1370688848bf39fcf317646683155b9f2bb844",
+    "scoring-audit.json": "bfeceead113649d96590ebb3d8def55ed986edffd7563296cd541c3c91d82008",
+    "screen_panel.jsonl": "12ca425e047d2eb613128ba3413e01222224433112e98e088519ec9131733ceb",
+    "train_pool.jsonl": "a35cecee96920a6a657b526477fbffc75cc09ba221f108919ed10bbca6ae830d"
+  }
+}

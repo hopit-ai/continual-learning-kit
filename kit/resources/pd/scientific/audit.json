@@ -1,0 +1,15 @@
+{
+  "candidate_sha256": "d3d4cfc378c734fa8e3f197eaaaa71673cbdcf83c12a9033f6fe033bd2f0a9a6",
+  "global_inventory_complete": false,
+  "hits": [],
+  "identity_sha256": "d05d5b6f678edae880f1bfc3d3235a204454cc4b6aabb635a675624261296ffd",
+  "indexed_unique_references": 14183,
+  "schema": "pd-available-exclusions-v1",
+  "scope": "ALL_AVAILABLE_PROGRAMME_INPUTS",
+  "source_count": 40,
+  "source_rows": 154180,
+  "thresholds": {
+    "edit_similarity": 0.9,
+    "token5_jaccard": 0.8
+  }
+}

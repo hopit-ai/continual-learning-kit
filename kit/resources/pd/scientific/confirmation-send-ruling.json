@@ -1,0 +1,29 @@
+{
+  "authority": "manager",
+  "comparison_performed": false,
+  "confirmation_months": [
+    "2026-10",
+    "2026-11"
+  ],
+  "date": "2026-10-29",
+  "deletion_allowed": false,
+  "disjoint_by_construction": true,
+  "future_recheck_required": true,
+  "identity_sha256": "359ca24b49b9ff9313f2d26dcb8f3b9d5cb06733b1bf2b7209993a53da7d3af9",
+  "recheck_scope": "All frozen PD candidate prompts; custodian compares against the slice when built; no reserved outcomes accessed.",
+  "recheck_status": "PENDING_SLICE_BUILD",
+  "rescoring_allowed": false,
+  "reserved_outcomes_accessed": false,
+  "schema": "pd-confirmation-send-ruling-v1",
+  "slice_build_window": {
+    "end": "2026-12-31",
+    "start": "2026-12-15"
+  },
+  "slice_exists_at_send": false,
+  "statement": "no confirmation slice exists at send time; TREC (public question-type classification data) is disjoint from the SEC-filing/legal/maths confirmation sources by construction; the custodian re-checks PD prompts against the slice when it is built",
+  "thresholds": {
+    "edit_similarity": 0.9,
+    "token5_jaccard": 0.8
+  },
+  "verification_only": true
+}

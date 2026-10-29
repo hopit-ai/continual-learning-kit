@@ -1,0 +1,50 @@
+{
+ "available_audit": {
+  "author_performed": true,
+  "hits": 0,
+  "inventory_complete": false,
+  "paraphrases": 200,
+  "pools": 23,
+  "ranked_inspections": 1000,
+  "rows": 98273
+ },
+ "blockers": [
+  "Returned generic replay manifest lists files absent from the archive: candidates.jsonl, accepted.jsonl, replay.jsonl",
+  "Exact frozen B FinQA training prompts and accepted teacher responses are absent; full public FinQA content does not close this binding.",
+  "Complete programme ancestry and heldout/panel inventory (including Package-A inputs and custodian exclusions) is not available.",
+  "Returned ContractNLI prepared rows and accepted teacher journal are absent; the pinned full public prompt superset does not substitute for accepted responses."
+ ],
+ "code": {
+  "sp_prepare.py": "e4e91c06597056b65a698327812c90783dcaf44781b8a67f5f0ef4b032b57b84",
+  "sp_score.py": "c5404f2585eb780a05c972251ddc361846e0cc90efeeeb114001aa17408121f2"
+ },
+ "frozen": true,
+ "hashes": {
+  "authored-fixtures.jsonl": "7df3f34c0c10e2d227be2382e07534837f4db094fb1148c68cad4fd592655f09",
+  "exclusions/audit.available.json.gz": "5af6d655387587bbd5ba218915487c1835758c98f02ac7025cd268939f54ffa8",
+  "exclusions/inventory.available.json": "e52e7f2d8925c74fd168727fec8bf4f9f01fd41ec418dfd1230c4e05c5ce2f73",
+  "reviews/nearest-inspection/inspection.jsonl": "2995a2ca504d37dd66cb5e804ed6ab6de6b15bce77004ef0a195be7d92d5b0c7",
+  "reviews/reviewer-1.round3.json": "4519aa0fa7f86b50ae0a5d5323bbacec3c8fd8ab5468fd63e0538a24297bb056",
+  "reviews/reviewer-2.round3.json": "0eb91bc516bd5ff93331cbf809dd44e8541db354d5ab9dbd194ee37c03e874a1",
+  "source/requests.jsonl": "90e7b4cf40874351a39f1cbf965261ba60efa7e1018d1e72a6503c0807dbeb5a"
+ },
+ "model_inference": false,
+ "panel_modified": false,
+ "reason": "Complete real-pool exclusions and final nearest-inspection binding are not yet possible.",
+ "resolution": "Manager authorized the complete available set; unavailable inventories are bound to mandatory node-side VERIFY-ONLY checks before scoring.",
+ "resources": {
+  "checker-edge-fixtures.json": "3ed51b4b8663e8d5db74e503bcb3539bdd2957e6be1aa470a5d31ba15267e30c",
+  "checkers.py": "3b90ca06d2d3140cb44aa3779ef2e5323101d3913f89fe04287034905d0ab40e",
+  "compatibility.json": "69a39e84410aecb468e57e44c83be19adb3a210e56825107eb146c9b7f6dfe5b",
+  "templates.json": "e081da1c4ac82c213d6cbcba79ecd8d30609e0d5a99be85a8969eb47f42d5c3f",
+  "templates.py": "cb4363e69ac9c2d2f59e9e11ac66a24937c5c58ff40568202f3af47d9fa9abe9"
+ },
+ "schema": "sp-scientific-freeze-status-v1",
+ "scientific_seeds": [
+  101,
+  102,
+  103
+ ],
+ "status": "SUPERSEDED_BY_FROZEN",
+ "superseded_by_sha256": "526c819fb8a50ca9e67d75c1ea63d8bb5e53646b8d92123a974b2e23b40bf5e1"
+}

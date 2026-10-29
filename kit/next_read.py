@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit.next_common import *
+from kit.m2_seed_policy import SEEDS
 from kit.p3b_read import load,paired,curve,accuracy,question_bootstrap
 from collections import defaultdict
 import csv
@@ -11,7 +12,7 @@ import math
 import statistics
 
 
-def interval(values,n=5):
+def interval(values,n=3):
     if len(values)!=n or any(v is None for v in values):return dict(n=len(values),mean=None,lower=None,upper=None)
     avg=statistics.mean(values)
     critical={5:2.7764451052,3:4.3026527297}.get(n)
@@ -127,7 +128,7 @@ def analyse(rows,repeats=10000,acquisition='math_screen'):
                     from kit.c_read import curve_question_intervals
                     c['question_intervals']=curve_question_intervals([groups[('v4-'+arm,seed,k,acquisition)] for k in (0,10,20,30,40)],'correct',repeats)
                 curves.append(dict(arm=arm,seed=seed,**c))
-            base=groups.get(('base',0,0,'finqa'));start=groups.get(('v4-'+arm,seed,0,'finqa'));end=groups.get(('v4-'+arm,seed,40,'finqa'))
+            base=groups.get(('base',seed,0,'finqa')) or groups.get(('base',0,0,'finqa'));start=groups.get(('v4-'+arm,seed,0,'finqa'));end=groups.get(('v4-'+arm,seed,40,'finqa'))
             if base and start and end:
                 require(set(base)==set(start)==set(end),'FinQA coverage differs')
                 ids=[q for q in start if not int(base[q]['correct']) and int(start[q]['correct'])]

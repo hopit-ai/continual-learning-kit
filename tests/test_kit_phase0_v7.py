@@ -95,7 +95,7 @@ def test_distributed_deadlines_are_tenfold():
 
 
 def test_training_gpu_check_skips_rows_without_scheduler_uuids():
-    """Partner's v7 run (job 414790): training rows record raw SLURM_* indices, not UUIDs; only park() writes
+    """Partner's v7 run (job OPERATOR_REDACTED): training rows record raw SLURM_* indices, not UUIDs; only park() writes
     gpu_uuids. The comparison runs only when the scheduler side was recorded (his local fix, folded in)."""
     source=(KIT/'v4_phase0.py').read_text()
     assert 'if physical:' in source and "'training memory physical GPU assignment differs'" in source

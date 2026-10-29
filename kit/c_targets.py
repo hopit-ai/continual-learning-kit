@@ -88,7 +88,8 @@ class Teacher(t.VLLMGenerator):
         os.environ.setdefault('VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS', '3000')
         import vllm
         require(vllm.__version__ == '0.18.0', 'teacher requires inference vLLM 0.18.0')
-        from vllm import LLM, SamplingParams
+        from vllm import SamplingParams
+        from kit.inference_lifecycle import create_llm as LLM
         self.params = SamplingParams; self.input_cap = 13824; self.max_new_tokens = 2560
         started = time.monotonic()
         self.engine = LLM(model=str(model), tokenizer=str(model), tensor_parallel_size=2,
@@ -119,7 +120,7 @@ def evaluation_items(a):
         from kit import eval_bed as bed
         from kit.v4_contract import check_eval_items
         from types import SimpleNamespace
-        finqa = bed.items_of(bed.load_bed('finqa'), SimpleNamespace(root=str(finqa_root),split='test',limit=None,heldout_n=None,allow_subset=False))
+        finqa = bed.items_of(bed.load_bed('finqa'), SimpleNamespace(bed='finqa',root=str(finqa_root),split='test',limit=None,heldout_n=None,allow_subset=False))
         check_eval_items(finqa,'finqa','test')
         require(len(finqa)==1147, 'FinQA overlap panel must contain all 1147 questions')
         evaluation += finqa

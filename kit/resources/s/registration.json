@@ -1,0 +1,243 @@
+{
+  "amendment": "Owner 29 October 2026: Cut screen S to 3 seeds, go ahead; programme plan Combined message 2+3 and the three-seed maximum",
+  "analysis": {
+    "bootstrap": "resample three whole seed chains with replacement; empirical inverse CDF rank250 for .025 lower bound; strictly positive",
+    "bootstrap_draws": 10000,
+    "bootstrap_redundancy": "With the frozen RNG and three whole seed chains, rank250 selects the minimum seed mean: the positive lower-bound condition is redundant with 3/3 positivity. Retain all 10000 registered draws and rank250; never resample domains/checkpoints.",
+    "bootstrap_seed": 20261025,
+    "decision": "drift passes association AND forward; plasticity passes cross-task prediction; drift first if both qualify; no combined signal",
+    "difficulty": "stage-start token_mean NLL; drift association and forward means must strictly exceed corresponding difficulty tau",
+    "informative": "tier1 all three domains; tier2 at least three of four, >=64 frozen monitoring and defined loss; probes also 128 train",
+    "mean_min": 0.5,
+    "missing": "undefined tau/bounds or missing primary support is inconclusive; if any tier1 forward cell is missing, drop all tier1 forward cells from the test and report available cells descriptively; require tier2 both recipes x all three seeds",
+    "positive_seeds_min": 3,
+    "seeds": [
+      101,
+      102,
+      103
+    ],
+    "statistic": "within-cell raw-signal Kendall tau-b; exact numeric ties; constants undefined; equal cells within seed then equal seeds"
+  },
+  "baseline": "exact stage start",
+  "code": {
+    "kit/a4_nll.py": "810b811a5e6547b804b056676a999bb178fd5a295a8ed328eb955b6fc555cbcb",
+    "kit/beds/finqa.py": "105fedf007555ebccc70de6527e6da8d07882a4efde75304bb66bfc46796468d",
+    "kit/c_bind.py": "311d1a980337cbec2b83871998829d1b4884ddab5278602d4aa139b978289c34",
+    "kit/inference_lifecycle.py": "9502f4110f08ee92baf2b69e26a5613799a8ac187a33bf366698f356bb9367a6",
+    "kit/inference_subprocess.py": "630995061d6539f947074234d841e83a6655aaa82c4c9a33fed5527190bf25ce",
+    "kit/m2_assignment.py": "8ed028a4bc829bda0622256094e05c6b52ae0904bde255b6696dbce439dd88c2",
+    "kit/m2_gpu.py": "3611cff14db4e338e683909e1759f31d21478ac73ecd9aaee0c2029d93a7e7f9",
+    "kit/m2_handoff.py": "726ebd42efbce64a28d92ca67ec64262f714233eb3e5178f5f47a9102952e151",
+    "kit/m2_manifest.py": "1273046d83f9d30c6b07e30f365ad25097b83d5583784d88071ecc5164be6ada",
+    "kit/m2_node_preflight.py": "5116f3f36a8b1e2c16ef84d95ea58a44d6149f4f7d07443f3f82d73fb295d5f8",
+    "kit/m2_paths.py": "87cf5bf4c4bfec02b08761485be649c615e45a6ed28e50e388fd158f871494aa",
+    "kit/m2_privacy.py": "0457531c37ed9b0eabe4280f6f95a61d695d51f12081290f9f20fa04f48db17e",
+    "kit/m2_runtime.py": "3af337a7d74195a31f6d74039402bfb6848f842e08ea8c8bdd2732ed7f4fbdf8",
+    "kit/m2_select.py": "004a8a56a2339d6b95e9475688b1b4c89d0c9e4e9418fa4a96d71a6bb10052be",
+    "kit/m2_snapshot.py": "8273053ed32a0320fccace59fb85fe9a96797a0166fa037d3226a4a8c4dc9e8c",
+    "kit/message_handoff.py": "6e4c1ba1b98ed25dea078ebc6d659e0e302af69d14da6acc33dab48017d149cb",
+    "kit/next_hellaswag.py": "817d96013488667f2e11d0b4de41c90bbda3048a696efef17fa36b17fa6d1a1e",
+    "kit/next_pools.py": "1bce91ac28fdcf4e458c3e72a62e99848e2e433164fedacad9b54c90674e5e11",
+    "kit/p3b_common.py": "23b0f2933b6a1ddee2fb043bc2b2fcdfde5301839028615ef097030a0efe1fe7",
+    "kit/p3b_replay_data.py": "0b3354cbe0a4622f68c16c53719696cf4dc10152ae8f5466515bbd003fe3fd5e",
+    "kit/p3b_score.py": "7545626e476a592f2755949c63ca4314e280b8496f2ad0ee3e79708c21cc205d",
+    "kit/resources/m2/runtime-updates.json": "141013ac02c5a18cfa9287056f3e4b34a81827a8df9a77b6ba9a772a28688131",
+    "kit/resources/p3b/if_functions.py": "afea345e3bc100e6d5588ca14e7269141e8810e1489e60ad64a59cd57360201c",
+    "kit/s_audit.py": "1712006950e060fde93c5001ad5aa9c50cb1ee16a0e8d9713bf22129678f4004",
+    "kit/s_bind.py": "da454b5463813780f7f3dd4d0b9095fd249ddfe32b2118a1d7292cf790c011f4",
+    "kit/s_collect.py": "0cef16f1dfd65091db37618f745f3e6393b5298515927df10fbfd8e415b8dfaa",
+    "kit/s_common.py": "c93b9b210279d58b126de5df42f1418d150dddf1488cbbe7437a959d9ae7b3a9",
+    "kit/s_drift.py": "3ad56ad6db0192e088b2e7fd7976c5f5d7a885481db1d2fdac38680ebef717e0",
+    "kit/s_freeze.py": "aec8a3f7810ff39cf878415a95fbda0ea45d10e0e346c6b6e929a871434dc4eb",
+    "kit/s_generate.py": "ce8fc3acd524fc6597c45fda68e779f3366b146a57f1d6c0323d21c767e1b7a3",
+    "kit/s_inputs.py": "6cb0c4432c5125e1547a59c8c61b9d83b5b5c69231e7a401a62e1e72f9a03ed4",
+    "kit/s_inventory.py": "68db1d15b724591abdc5e8928f937f08a9397f712d87ac440124407e8c37721c",
+    "kit/s_nll.py": "ea883562ee4db9137356b2f81dec5c291be742f95d6a0813a4b141ce60d1b55b",
+    "kit/s_price.py": "bd2d82ff6fe5ee2ad924927f047c9522acc1c613e910ad6fbd94d190271d45eb",
+    "kit/s_probe.py": "9cb9c3d753e761576ef7d5af024a64c92e9d0a60e73dba26f5edffe15bd84dbe",
+    "kit/s_probe_train.py": "3ddb7a6ddf0829344ba53f7138b36bc9235fde7dcf38c402583effb1dbedba63",
+    "kit/s_run.py": "f3c563e24cc176b3e552b2e4c6dc5e5ed96520492876dfaab47600a312d5e666",
+    "kit/s_score.py": "654ee7d3edce86bce49c586e84fafad8b875e62e3627d7cc6588576737f11367",
+    "kit/score_forgetting.py": "30c8d1f44cff85da90248e91e629016261c46071f9341be1b0246fb25d65aec5",
+    "kit/screen_s_dryrun.py": "52687aa32a55b223d21963eaf31cb4e855700b8e201625c3ee49327fcfa5c96d",
+    "kit/v4_campaign.py": "576257da8fbd4a21e1171d1c185a3b02aacc567b5cd78e8df2a330190b7814a9",
+    "kit/v4_sft.py": "9fc86d658b0e0e6b86914ffb0d8678716a4bf282292418e8253550f0073242ab",
+    "kit/v4_teacher.py": "518a7f633d6810755e62c4096c243a75af3568fb1d45f7dff401d8dbab3aad5f",
+    "kit/x_qualify.py": "f466552d4944f8af0b8fa2b336c772e16a2b13481ea5d757efb144694c5a7c46",
+    "scripts/check_pinned_inputs.py": "a588383ab94ad173c21d4b64a45148523173e713aac08b2084e0e5d0a1d9390c",
+    "scripts/screen_s_analysis.py": "1b7549c16565dd81bd9af13acd649433498559adea240767ab9dc0da16bdefa5"
+  },
+  "cohort": "v4 plain D/F base-to-FinQA and B tier-2 unreset sequence D/F, seeds 101-103, steps 20/40",
+  "domains": {
+    "arc": "knowledge",
+    "finqa": "finqa",
+    "gsm8k": "math",
+    "ifeval": "ifeval"
+  },
+  "drift_steps": [
+    0,
+    10,
+    20,
+    40
+  ],
+  "feasibility": {
+    "arc": {
+      "ancestry_pools_assumed": 0,
+      "projection_only": true,
+      "projections": [
+        {
+          "assumed_verified_correct_accuracy": 0.6,
+          "either_shortfall_probability": 0.9720345845221462,
+          "expected_verified_monitoring": 59.4,
+          "expected_verified_training": 120.0,
+          "monitoring_candidates": 99,
+          "monitoring_shortfall_probability": 0.799239757164108,
+          "training_candidates": 200,
+          "training_shortfall_probability": 0.8607024225373462
+        },
+        {
+          "assumed_verified_correct_accuracy": 0.65,
+          "either_shortfall_probability": 0.628030226210096,
+          "expected_verified_monitoring": 64.35000000000001,
+          "expected_verified_training": 130.0,
+          "monitoring_candidates": 99,
+          "monitoring_shortfall_probability": 0.42497195138130345,
+          "training_candidates": 200,
+          "training_shortfall_probability": 0.35312760015197325
+        },
+        {
+          "assumed_verified_correct_accuracy": 0.7,
+          "either_shortfall_probability": 0.12855070783801548,
+          "expected_verified_monitoring": 69.3,
+          "expected_verified_training": 140.0,
+          "monitoring_candidates": 99,
+          "monitoring_shortfall_probability": 0.10304712307793996,
+          "training_candidates": 200,
+          "training_shortfall_probability": 0.028433583765952557
+        },
+        {
+          "assumed_verified_correct_accuracy": 0.75,
+          "either_shortfall_probability": 0.008086069433939747,
+          "expected_verified_monitoring": 74.25,
+          "expected_verified_training": 150.0,
+          "monitoring_candidates": 99,
+          "monitoring_shortfall_probability": 0.007886014735470447,
+          "training_candidates": 200,
+          "training_shortfall_probability": 0.00020164487290838686
+        }
+      ],
+      "rows": 299
+    },
+    "before_model_measurement": true,
+    "date": "2026-10-25",
+    "decision": {
+      "basis": "Only premeasurement FinQA kept count",
+      "branch": "current-rule",
+      "cutoff": 230,
+      "rule": "kept < 230: expected-uninformative, descriptive only; tier2 requires IFEval, GSM8K and ARC, all three. Otherwise retain tier2 at least three of four and record 70% per-checkpoint shortfall risk."
+    },
+    "finqa": {
+      "excluded": 604,
+      "kept": 279,
+      "projection_at_70_percent": {
+        "assumed_verified_correct_accuracy": 0.7,
+        "either_shortfall_probability": 0.5669444714220288,
+        "expected_verified_monitoring": 65.1,
+        "expected_verified_training": 130.2,
+        "monitoring_candidates": 93,
+        "monitoring_shortfall_probability": 0.35386611174424804,
+        "training_candidates": 186,
+        "training_shortfall_probability": 0.3297743138856079
+      },
+      "registered_rule": "Current rule retained: tier1 all three IFEval/GSM8K/ARC; tier2 at least three of four domains. Missing FinQA requires all three others.",
+      "scope": "Nine real panels plus all pinned train rows, a superset of v4 FinQA training; other ancestry not staged; not a completed S5 exposure proof.",
+      "source_rows": 883,
+      "train_rows": 6251
+    },
+    "projection_model": "Exact binomial CDF P(X<128) for train and P(Y<64) for monitor; either=1-(1-Ptrain)*(1-Pmonitor), assuming independent rows/partitions with common verified-correct probability. Assumptions, not measured model accuracy; checkpoint risks are not assumed independent.",
+    "receipt": "docs/phase3/evidence/screen-s/finqa-arc-feasibility-20261025.json",
+    "receipt_sha256": "53c699dfdb2a35bea7da4ab96492b63b2f599e3624fde820297978cc0b9c7fac"
+  },
+  "finqa_dev_exposure": "Invalidate the whole FinQA domain only for a declared v4-finqa-dev pool or an exact ID or exact normalized-prompt match in any ancestry pool. Near-duplicates and panel-only overlaps only exclude rows under the unchanged B rule.",
+  "forward": "step-10 drift against step20-to40 loss",
+  "monitoring": 64,
+  "n_min": 64,
+  "own_responses": "incoming greedy once, first verified rows per frozen partition; no replacement pool or replenishment; EOS inclusive",
+  "panel_counts": {
+    "contract-nli-diagnostic": 100,
+    "contract-nli-test": 100,
+    "finqa-test": 1147,
+    "general-v1": 300,
+    "hard-math-eval": 100,
+    "hard-math-screen": 200,
+    "hellaswag": 100,
+    "package-a-code": 51,
+    "package-a-math": 100
+  },
+  "panel_inventory": [
+    "general-v1",
+    "finqa-test",
+    "contract-nli-test",
+    "contract-nli-diagnostic",
+    "hard-math-eval",
+    "hard-math-screen",
+    "package-a-code",
+    "package-a-math",
+    "hellaswag"
+  ],
+  "panels_note": "ARC validation is a knowledge proxy. C is descriptive only.",
+  "partition": "one-indexed every third audited hash-ordered row monitors; all others probe-train",
+  "probe_training": 128,
+  "probes": {
+    "batch": 32,
+    "buffer_dtype": "fp32",
+    "compute_dtype": "bf16",
+    "count": 27,
+    "export_dtype": "bf16",
+    "forks": "independent from incoming, shared base reused; no chaining",
+    "incoming": 7,
+    "lrs": [
+      0,
+      1e-06,
+      2e-06,
+      3e-06
+    ],
+    "master_dtype": "fp32",
+    "reduce_dtype": "fp32",
+    "reduction": "equal response token means, EOS inclusive",
+    "seed": 101,
+    "updates": 4
+  },
+  "salt": "screen-s-v1",
+  "schema": "screen-s-v1",
+  "sources": {
+    "arc": {
+      "count": 299,
+      "repo": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "sha256": "395a5c88d1580d69855fbaee9450270578df1ad5af6259771cd0a42c20e99f05",
+      "split": "validation"
+    },
+    "finqa": {
+      "count": 883,
+      "repo": "czyssrs/FinQA",
+      "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+      "sha256": "a847fb7e0d61a3125a1e2909852df6b89f1ee64d2c5ff1bf689e332214deee51",
+      "split": "dev"
+    },
+    "gsm8k": {
+      "count": 7473,
+      "repo": "openai/gsm8k",
+      "revision": "740312add88f781978c0658806c59bc2815b9866",
+      "sha256": "ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d",
+      "split": "train"
+    },
+    "ifeval": {
+      "count": 14973,
+      "repo": "allenai/RLVR-IFeval",
+      "revision": "47c03c73621c4aab2b824b7818681117d662770e",
+      "sha256": "75f1b1f63039044034fe75d22f51f77f257a79291d0084262bb43695d4aac971",
+      "split": "train"
+    }
+  }
+}

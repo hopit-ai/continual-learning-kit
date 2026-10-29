@@ -1,0 +1,24 @@
+{
+ "audit_inventory_sha256": "1756bb5e996cf138a458e2c75044adf19ea0416e816cf88847b496cadc213c4c",
+ "author_performed": true,
+ "distinct_source_clause_texts": 196,
+ "distinct_verdicts": 200,
+ "independent_review": false,
+ "inspection_sha256": "2995a2ca504d37dd66cb5e804ed6ab6de6b15bce77004ef0a195be7d92d5b0c7",
+ "limitation": "All 200 available-inventory lists inspected; final complete-inventory inspection remains pending. No independent reviewer receipt modified.",
+ "maximum_nearest_similarity": 0.7,
+ "ranked_entries": 1000,
+ "request_binding": {
+  "fixtures_sha256": "ffe533b29de89993158b7c696512ffbfe26b70625568907bc4d9f568133eda98",
+  "requests_sha256": "e0d61c2da7aba266f23685333c247da1217966ae834af4cdf8c673995905ce21",
+  "resources": {
+   "checker-edge-fixtures.json": "3ed51b4b8663e8d5db74e503bcb3539bdd2957e6be1aa470a5d31ba15267e30c",
+   "checkers.py": "3b90ca06d2d3140cb44aa3779ef2e5323101d3913f89fe04287034905d0ab40e",
+   "compatibility.json": "69a39e84410aecb468e57e44c83be19adb3a210e56825107eb146c9b7f6dfe5b",
+   "templates.json": "e081da1c4ac82c213d6cbcba79ecd8d30609e0d5a99be85a8969eb47f42d5c3f",
+   "templates.py": "cb4363e69ac9c2d2f59e9e11ac66a24937c5c58ff40568202f3af47d9fa9abe9"
+  }
+ },
+ "requests": 200,
+ "status": "PENDING_FINAL_INVENTORY"
+}

@@ -1,0 +1,29 @@
+{
+  "basis": [
+    {
+      "path": "docs/phase2/evidence/partner-kl-direction/return/runs/DRK2-SWITCHREV-finqa-alone-s101/metrics.jsonl",
+      "sha256": "a12967faefd6ed4964147e47b42c9ae1bc8eedb3a531eb23e8154635973e3966"
+    },
+    {
+      "path": "docs/phase2/evidence/partner-kl-direction/return/runs/DRK2-NOSKIPFWD-finqa-alone-s101/metrics.jsonl",
+      "sha256": "88a1835aa160e6eb80eac9e732062fdb656ab9983af5e0d87413d0b936bf72ad"
+    }
+  ],
+  "disposable_updates": 40,
+  "gpu_max_allocated_gib": 72,
+  "gpu_min_free_fraction": 0.02,
+  "gpu_min_free_gib": 1.5,
+  "gpu_min_total_gib": 79,
+  "gpu_reserved_headroom_gib": 2.5,
+  "host_max_peak_gib": 448,
+  "host_measure": "sampled anon+shmem+kernel; old-kernel current-minus-file; else labelled /proc RSS sum; raw peak/current retained, oom_kill must be zero",
+  "host_min_free_fraction": 0.125,
+  "host_min_free_gib": 64,
+  "host_min_limit_gib": 512,
+  "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "rationale": "D psutil.used basis 293.207 GiB excludes Linux buffers/cache. Same non-cache planning basis + 30.55 GiB total fp32 anchor + 91.65 GiB serialization allowance for student and Adam moments = 415.407 GiB; round up to 448 GiB (~32.6 GiB margin), require >=512 GiB effective ancestor limit and >=64 GiB / 12.5% host headroom. GPU: 61.778 allocated / 70.045 reserved plus ~3.83 GiB/rank anchor; freeze allocated <=72 GiB, reserved <=actual total-2.5 GiB, device free >=max(1.5 GiB,2%). Actual 40-update disposable pass, not an 1.7B extrapolation, must demonstrate fit.",
+  "required_dtype": "torch.float32",
+  "required_strategy": "fsdp2",
+  "schema": "rung-p2-node-limits.v1",
+  "world_size": 8
+}

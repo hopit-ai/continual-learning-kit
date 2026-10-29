@@ -1,0 +1,1818 @@
+{
+ "binding": {
+  "fixtures_sha256": "b398ce837fee2a31d0da63abe9af5a9b455898a3fd08c3eb53e9809a43477b16",
+  "requests_sha256": "dccb537b8a58670ffd7d615ff48c0ea42e0941696b37b93878cf17ebc77432cf",
+  "resources": {
+   "checker-edge-fixtures.json": "3ed51b4b8663e8d5db74e503bcb3539bdd2957e6be1aa470a5d31ba15267e30c",
+   "checkers.py": "3b90ca06d2d3140cb44aa3779ef2e5323101d3913f89fe04287034905d0ab40e",
+   "compatibility.json": "69a39e84410aecb468e57e44c83be19adb3a210e56825107eb146c9b7f6dfe5b",
+   "templates.json": "e081da1c4ac82c213d6cbcba79ecd8d30609e0d5a99be85a8969eb47f42d5c3f",
+   "templates.py": "cb4363e69ac9c2d2f59e9e11ac66a24937c5c58ff40568202f3af47d9fa9abe9"
+  }
+ },
+ "independent_of_author_and_other_reviewer": true,
+ "items": [
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-001",
+   "request_sha256": "b0cf91518cf9efdcf4145962de587e42102141a2c119e9ea84d0d0c946a44199",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-002",
+   "request_sha256": "d0aaf5a0f3b39a56e32e2ef9ab13ec4708d402f22a0fb4fb0d29dc9ec8f90bfc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-003",
+   "request_sha256": "6919f0b908e7c7f7ee01187b77d1845ccb422a1d792a0b7622326a02807520f4",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-004",
+   "request_sha256": "146383fc9fbcc2a3e1ae815978d79d042f99d1565b489d03fc6953a3bd28a758",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-005",
+   "request_sha256": "b1e1e6002b4535c56c8f1d0605adbff95b2edf2f0290c96927fb2c9451d79c44",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-006",
+   "request_sha256": "6923745447881bdf0c14876a849a291057d80eb4cac31defdbcb9ce4727dd092",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-007",
+   "request_sha256": "5504d00c2917060c3cc9565f64f1712d9d883dfed7c4f8c814c5f000c4139681",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-008",
+   "request_sha256": "83a0b720136dc3c466a57f207db7fbc8d4c60096d9c9d5693cd2a6a2eb2fd61f",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-009",
+   "request_sha256": "bb9338e9f1943d497b8de3b2538470f8492486e93410c2a4b93db515fe92da65",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-010",
+   "request_sha256": "bf476783cc986eb8e34cfc2a324a3d9626cd58b34ef7f6d5a5c66c0f85966842",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-011",
+   "request_sha256": "2cc07e94cc08b80932094ec50aba112f3399aeb39c1836e779b701981df090a4",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-012",
+   "request_sha256": "71b595771e2ef71168a6f0ffaca9bec50254e4a6a2453e52d321cbe85837800e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-013",
+   "request_sha256": "349bb5710fc163db32907640347e92ff1fa1c40eb4e773dc2c623c4fe0521757",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-014",
+   "request_sha256": "b7a5a78d0ce0b5f7528cf708583c41f4deb171feee6af420aaa09bf82c7bf834",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-015",
+   "request_sha256": "03bedb7a67a1c9bba9763f774225fc10239f3416dcf4b2145c9deea40cdf434e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-016",
+   "request_sha256": "876c670fc5a5e793634130d7dec088ab270a18c5520a2fe957e263e1f71d3ffe",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-017",
+   "request_sha256": "65f674d4939386d97bb18a4fe46e60f20ea0784c7a04e025f9067188cc8a2e2b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-018",
+   "request_sha256": "5d9327cfce8ffbdea3c3ccb6bf631168dd4cbd05b172f0d245d34f86db9feefe",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-019",
+   "request_sha256": "b2730124a80e9d4bb6a69da815f8d5734ec526c2f82983308bb3b656ccf461a9",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_word-020",
+   "request_sha256": "f6a1251947f2b78aad0bd062a3c6f49d181b6443b34b33c120d05c7f932102a7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-001",
+   "request_sha256": "1ee36039ea1833545df444bc2f4aa483da5de6b06fe37e3cbfe2aaadf696c355",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-002",
+   "request_sha256": "c6321edf74e7344704f0f8c956f904bd83548ba89ad269188ae70436886c1d23",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-003",
+   "request_sha256": "e1a8c8e2ff248485cdcd1467e5d6897c526e5fa34cbf6773e880be7823c4182a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-004",
+   "request_sha256": "41794abd970ed07f0bc697dc4821031869b552cb8b76d2977dd101e849c86f08",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-005",
+   "request_sha256": "6f81074b79aed39065dfb97ba43a384b1dbc633451f046be0ff7e0f8880f52fd",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-006",
+   "request_sha256": "ed7c031b541a384abe4bc2ccdc68239e9fb96203e4080801c1366a5c06cd62d6",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-007",
+   "request_sha256": "5bcf416f920a67816c38beb460433990f4c652a94178a9e46dbc7c160fc8d20c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-008",
+   "request_sha256": "90ffb2fa5d76b0a4a96bc2ec72698b019dd6ca7049e12c59c3e4fde80abc8936",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-009",
+   "request_sha256": "dfd34149eba5e7bf4b553bcb15f994861ed847c4691b60c3d45d9a07aeaf3274",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-010",
+   "request_sha256": "2bb2ebaf16a10402b0c5251c6336100fd03dd2ba62f7a18242f9c626cd8d2f1b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-011",
+   "request_sha256": "20435c9c6e264a88e3f40bce4d90d76096f3a320bfbe3ea90f9d301447dacae7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-012",
+   "request_sha256": "9e6514175c1245ddab52f6c5f170e3b18c255d77d9bc00ae33f5b310cc5f45cb",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-013",
+   "request_sha256": "708e7aaff2f31bf35b94a1c3ba9342dd88b54667709d5344748ddd070ee3442f",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-014",
+   "request_sha256": "d5d2e6dae89e6f16faed5354556dc6dfc9e02284766458ed4aaec0a83fea2bfd",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-015",
+   "request_sha256": "56d3e9d566fc2cece3bcc27e922442dbc043f2cdcbb71445b5333fc0b6d46075",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-016",
+   "request_sha256": "3328d8e567e71d9ee95fa41e4f2cc627de49d2198df5cc429c768e87ac2818d2",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-017",
+   "request_sha256": "6bef58f1836ce50fbdfb45455077bbb43fdb21cce3d54993af5ba95d03bb775c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-018",
+   "request_sha256": "4f83100af0bd5e361e9f3f3f9c288ed3a83807e589e1d26fa98c2868b748a05b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-019",
+   "request_sha256": "e532ab375b9d37e0ba23865b328afb9ea4c5cad906d96e1b1c8a1e614541e0f8",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-forbidden_word-020",
+   "request_sha256": "61c734fdfd5470eb68cc425c2a720450a55fe3802fe2de80fa488be8df3286a3",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-001",
+   "request_sha256": "9c9f6936fa5703644f95e0fd6257887be445674935a6bc38a25ff00dc63db8c2",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-002",
+   "request_sha256": "c9258f733c1baa2b0b08711c8639a9ee89fdf3e0b6c816606652373a3fda45f1",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-003",
+   "request_sha256": "8c143c52579c0483adec29bed57c7269d27c29659c4225d38acc4427ccb901ff",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-004",
+   "request_sha256": "d56f631ff67917b99a58a90761bebc327afa7ef875203404ad16d04e491742b3",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-005",
+   "request_sha256": "08e6c126731a830566281f96f767a05f85d327755d7c09ecc94375a0a999163c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-006",
+   "request_sha256": "5754094f214d8bc36fe6e70c4793301608c713df97132b249b6b56533a277e6e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-007",
+   "request_sha256": "bbfbf5f92efe52ac0f74388c57756c20cdc9652fc034af2e251184bff73d57e7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-008",
+   "request_sha256": "eab0e9818553526a81e181ffc98ae83f0e5e26319a413cb68ae1796621b57b59",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-009",
+   "request_sha256": "d10f0c10de8dcf59154b4ace398d7f3c46da83e6a316f9461380f1402b10d4b3",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-010",
+   "request_sha256": "06ad1ae2e068e7c8f300acc2721da21d26523e4b76787778d0e9eec48bd709d6",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-011",
+   "request_sha256": "2149a90a4bebfb21e01a31a6ada5298b13148d0fa6347d293089c3f528ed518e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-012",
+   "request_sha256": "e9dd9811d8914a1217143bb6ec535880b0e160eb1a4707af89481dd7d48d01bc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-013",
+   "request_sha256": "3e426abd84a0303313044572d300c7b75b365decff8f8ef86ddda41bb9db69ab",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-014",
+   "request_sha256": "305c94bb579ae97afca31997e7a52ddc5bed31345ec3e8c809983555bbc8f14b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-015",
+   "request_sha256": "7ea9825e834b62062aa42c49b6185aaa6ce6262862f8da59e32cbc31d38f4b29",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: the \"Count N ...\" clause reads as a counting procedure rather than an instruction to produce N; prefer \"Produce exactly N ...\".",
+   "request_id": "sp-exact_word_frequency-016",
+   "request_sha256": "c75501bf30a48b3f98b63b402e6288ad2a750d8edaab8376a460ee99f29bb95d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-017",
+   "request_sha256": "47b87600df5b51156f1bae104639d0c94a99e539cb801176721e564408f957a8",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-018",
+   "request_sha256": "acc7dfce5fd40e5f9ba65c9397c0f0d3f5f49f95b6322b58c04e421d8a9aa659",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-019",
+   "request_sha256": "96d49c1fe8fe5c8a5dd76edacd9de039982bf5bdc6c05100d48b8087cb01b423",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-exact_word_frequency-020",
+   "request_sha256": "e8f69bf93e9b867d7e25378da5a560fa991ef894898b5c111dd97de503057068",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-001",
+   "request_sha256": "e6ecb035b90a3dc244d77da347aceaa360e86172458354795c658b80f4ba2f2a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-002",
+   "request_sha256": "b953254985fb3490bb91cfbb2876a58e8bd423b190e8b1e42ef671ea4881158b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-003",
+   "request_sha256": "c1902c31225ffe6f8a0b00f07a039cd1558ac6ddd6acd724fde9ea70db85f224",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-004",
+   "request_sha256": "31eb9192bd15d0df240cd743e1f2df811e9218565ac43a2128c0c6db879fa486",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-005",
+   "request_sha256": "2509c9d33ad0f988406322e4a128d7a68865f318274ce53f413db22afe2ae1eb",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-006",
+   "request_sha256": "4c3302a691c49668485e2b2cd71fde0e9415bbe496a0caa094b0df7b5a6c33d4",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-007",
+   "request_sha256": "733b92d2f0fde8ea46bd7c9df3fc748f8635957eb937d7ebdbea919eaf925406",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-008",
+   "request_sha256": "1b523298c20947cbc89e0a8138350d506f1f88d521c1f92aada0c8ac75b3da90",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-009",
+   "request_sha256": "9dc30223968cccd01573f0cd4326ebd1a6b7ce724f79af467b006521171beb80",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-010",
+   "request_sha256": "e1ab77149ea05945493aebccb1b0894ab9e60b2587cfcea1dd8a28a200ef52eb",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-011",
+   "request_sha256": "d02334aded3caa2c0072da698205dcc1349dfc33a7bcc505facb0fe4bcbdf27a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: the \"Count N ...\" clause reads as a counting procedure rather than an instruction to produce N; prefer \"Produce exactly N ...\".",
+   "request_id": "sp-word_count_interval-012",
+   "request_sha256": "c2c9af3276326a955f2eb2cc115492c2fc55b9e6675d46f3ff10835dc5415a18",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-013",
+   "request_sha256": "7079916bf236219930535616a360469ec29974ef804816d26ab0a61b713e9e19",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-014",
+   "request_sha256": "94a69459b0841349f1e2d70f15b4ac62b65d97a3e71de056e29cf22c9f1674c1",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-015",
+   "request_sha256": "bd68d6d84158b33b1112d7176283b48d794b4d87c700de421587479bd418d19b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-016",
+   "request_sha256": "c430df2355eed2915738eba2d372b8eccecda1a3cc657343721f5c2ee23f7247",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-017",
+   "request_sha256": "86424c25a3271919941e1a677e0c35b7395216bc8517f0333dd91cbaade7b990",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-018",
+   "request_sha256": "a6ec43b316c9063caf88bf9ed74417cc2b300572e99e57bad74208ef8132b55f",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-019",
+   "request_sha256": "a1a4ccd10c314cbfeb5eae8cc0d8bae6484eb82c03c38f3def455f656a534c09",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-word_count_interval-020",
+   "request_sha256": "f55084a907fba84fb29adb30e42fc1da45ce401d3d53eefea6c572d8ebca2aa9",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: \"1 sentences\" is ungrammatical (it mirrors the canonical template wording).",
+   "request_id": "sp-sentence_count-001",
+   "request_sha256": "3c11322066aae35a03201d790fa144c32279b503ca8bf6adf4a7b7eac835bd0c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-002",
+   "request_sha256": "68ca2ed5c22f98be6ee105fa8e246db625004f0d0ebbc1a56e33dfced4bb8cc3",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-003",
+   "request_sha256": "dffe5a54bc6dca4865cd1763a0b270ecb7e0e209bfbf954da5a47e47745c362c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: \"1 sentences\" is ungrammatical (it mirrors the canonical template wording).",
+   "request_id": "sp-sentence_count-004",
+   "request_sha256": "4f5b9c6696fdeb6e4706387657ea5091dd7948127834a711f49a73eab6931e50",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-005",
+   "request_sha256": "b3bd9dbaac152b40045125c626242e54b08e6181f1271ed397ab87d26a9e1b46",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-006",
+   "request_sha256": "9e439ecf511799ec397f3b0b7d1d01229772f296ffe8549be0afc90fd74124d7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: \"1 sentences\" is ungrammatical (it mirrors the canonical template wording).",
+   "request_id": "sp-sentence_count-007",
+   "request_sha256": "9e5e23185c9426b339f720dfe9b357451ef0a8dd9db8abac7656915d11693cb7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-008",
+   "request_sha256": "d3afb998e08f95cfe3f1ed42614780609e1c76d78be2c645c261ea74b62da709",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-009",
+   "request_sha256": "88aefe68b6460b3e6065da99b6f2b8af9604c142dfa4f0fadb1da8030ecae489",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: \"1 sentences\" is ungrammatical (it mirrors the canonical template wording).",
+   "request_id": "sp-sentence_count-010",
+   "request_sha256": "ae2424e1bbcc2c6a674dde93a0a1bdf5a0cb59d3e38926e01b87792ebe440091",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-011",
+   "request_sha256": "3947c7ffd97fec77bba2ce4204e15dee30cbdb2f4f2f5c268ee43d8859a33369",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-012",
+   "request_sha256": "9529988a80dde9996f08cdb269d7b27444ca6019b6019cf2be6fe058f59e4d19",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-013",
+   "request_sha256": "c42154cc4f260c7c47eab679546c24d09b62d0288230005c87856a85b7c10f89",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-014",
+   "request_sha256": "e054b36eac4dcc5c0721ae0d597aa1857cb0fb2c4b477b321e9bd1793d66f8be",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-015",
+   "request_sha256": "98b556c0b87ad65e9eccac4373c13bb99c080e04b86e4b01716ac45f2c506e63",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-016",
+   "request_sha256": "0d37ef2c6675d4ba4340b7dd7296bd3283f8b8c36db458e7977b505a5975b5e6",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-017",
+   "request_sha256": "1c4450d87d53f2aac51301c9511f89dcc7050d6750030f306ba055d5eb6c0634",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-018",
+   "request_sha256": "fd93857769f2f55b7afd8abd497f62cd9851f0ad69ce7e88b266b715a1f9d7c5",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-019",
+   "request_sha256": "973298fa609eab6ddea5ff461de7ffff6bc1a898838f529e043c9857e5c1921b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-sentence_count-020",
+   "request_sha256": "44fc74dab3dbfdf152a31e8001b717ac6adaa446d08e179d0c8b214033a43832",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-001",
+   "request_sha256": "b382acf6a0c636d87810b72bd21556646066e2ea3f29a92fbe865278ab978f40",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-002",
+   "request_sha256": "c20ba1fba926232db525d723500d3c6e953f270db90dd008a10d9836985f1cac",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-003",
+   "request_sha256": "9aa4a919775735691054e7c47961c30a81e0849db2f37211669fe2fcf69832fc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-004",
+   "request_sha256": "f19ae200a901e7e9639101eb7b6a704431ab856dd180ebe55ace6a5641985f9d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-005",
+   "request_sha256": "d4ca07cb1d51d1dc08c15ce2d0a5b5fef349ed6c94b98134043e733c8384cc9d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-006",
+   "request_sha256": "068c7f41ce1e9f2f98af4c6db62e4f3c3cbac1b06e7a06e5252c9cced9406f03",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-007",
+   "request_sha256": "7fc1612c9b9a69086e23ec5f345852b85108c79abcf4f30090788a2f8b227a52",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-008",
+   "request_sha256": "4d8a224b1457656c5afb4334bd67af9a80ee42cb2c89a3076ce35bb471055cd6",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: the \"Count N ...\" clause reads as a counting procedure rather than an instruction to produce N; prefer \"Produce exactly N ...\".",
+   "request_id": "sp-paragraph_count-009",
+   "request_sha256": "52acb5b8417751ed945daed40b08fcbc53294b1e9f4653da049af9ad214e301a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-010",
+   "request_sha256": "135aa45b22352f438dfbefa0866231f77315e55bf8ed0a094454089c3ecadc06",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-011",
+   "request_sha256": "92bb4f389b08119ba737794a624b3dc35d7228e21f01a15080eabddce6797574",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-012",
+   "request_sha256": "59b7ccea0df8fa96226dd46572af54dc83985f1cc04c73a79bee255da60bdd3a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-013",
+   "request_sha256": "8d0221077dc1e872daaeeae0f976984812449628db3749027847026e6f4ea7e0",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-014",
+   "request_sha256": "c7284c6b7bb7a5365cfd0b26b5d109756e68e80d52aaff96da8c4c610010b566",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-015",
+   "request_sha256": "e51fee0ec6d028bc6e52d7b7e5a41f663d74bc9810ee75daa10b5a146b36969d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-016",
+   "request_sha256": "21943fd7cf60f8c3e6a21b300370d1e02a1d436bdbaa847089ea78cfa1be82fc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-017",
+   "request_sha256": "3145cda1fdd518c20a2f59b5018c56fb89376c699a54caddbc9b79b88a7cb647",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-018",
+   "request_sha256": "e30db91a14ac2869b61ff8418dbd935c9e3ac05b141c7de124efddc06505cd15",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: the \"Count N ...\" clause reads as a counting procedure rather than an instruction to produce N; prefer \"Produce exactly N ...\".",
+   "request_id": "sp-paragraph_count-019",
+   "request_sha256": "91d93aaa4ae44055d0ea48f4f65ea36b84d7d740d9c56f058d38da4c353b6d51",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-paragraph_count-020",
+   "request_sha256": "a21d195ca7d2b58c28f400ce24349c7367035e8fa6e3b85ded4432d64e90e953",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-001",
+   "request_sha256": "d5e4a39f18697aa72161ecd5e9c4c09185ad1a7f84cbe0158c256c68d77c7581",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-002",
+   "request_sha256": "ce578a462b699c57fe9a63ecb37f946193b9e26e7cef3aac6ddb6a1d891f2839",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-003",
+   "request_sha256": "3d7d36d702ce1d75e92a6580ccc5f720cf8a5520c378e4a05116316105c03b6d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-004",
+   "request_sha256": "db1f4facca5fb6539bd8c298f908c7e40c9bec07919ccb93e85802d41e152be0",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "Approved. Non-blocking: the \"Count N ...\" clause reads as a counting procedure rather than an instruction to produce N; prefer \"Produce exactly N ...\".",
+   "request_id": "sp-bullet_count-005",
+   "request_sha256": "f32dce5a6e4feb8e1d060b8735a03eda67093a9bde98c46cb2a84606494e80f1",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-006",
+   "request_sha256": "b6de400e93d25de88c77671aea8f59f67565474ce64f45160c1465051a4713dc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-007",
+   "request_sha256": "5d0127e2a951b2118df38a53fa0ad07ab6988afbfeb4c4a6f0dbaa96209750e7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-008",
+   "request_sha256": "5527e064b375ae0293c7e00e1962deba5dd3057e5d011f75c0eb13130d25c9c0",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-009",
+   "request_sha256": "dae90dafed95dc3645fd08a68a35740872890604c18d360ea8d71e639c54efff",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-010",
+   "request_sha256": "5b42106e3a3ff557672a7fd5ef805618eecf3f540bb2d98ad99fc44ca52e8618",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-011",
+   "request_sha256": "af7cfd43974e1292639ca824f4a25e4a41ccbac8c6088f7511376e0478d3d866",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-012",
+   "request_sha256": "5ec2d595a23e1dfa74250f55182e8b796b5d742e0fedba8e2b2dad7b0fc521bf",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-013",
+   "request_sha256": "6a1efad2d2da565fab655fcda97aba3ef835ff44a3cf113af3a297c6fb1d95ec",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-014",
+   "request_sha256": "a94374f95ec49ca1f1d468bb5d8df2bb5055abe99181cc6dfca0ba8c56985cd0",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": false,
+   "notes": "REJECT: the lowercase clause \"All letters throughout the answer must have lowercase forms\" is literally vacuous (every letter has a lowercase form) and never says the reply must be written in lowercase; reword, e.g. \"must be in lowercase\". Also non-blocking: the bullet clause \"Count 3 bullet lines ...\" reads as a counting procedure; prefer \"Produce exactly 3 ...\".",
+   "request_id": "sp-bullet_count-015",
+   "request_sha256": "3b4fc879e68f5c7294eff42579d9942e95b90e07a2ecfec1a05ae914608e4343",
+   "satisfiable": true,
+   "semantic_equivalence": false
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-016",
+   "request_sha256": "fd4bb075c84f115f37e40bd772ecba4481c625d3689a1d6f7f2d5f334de389a0",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-017",
+   "request_sha256": "6ab70d2e4eb2a71aa9dda30cf1856c80a19bef72c2fcef7a980f85f1ea0b1046",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-018",
+   "request_sha256": "772d825e42c7df3b83b9c2faf7dac2bf1ed251d4b559bad34f921fdf51bd8bbd",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-019",
+   "request_sha256": "026ca548ed96959a0c05696b31d1b03b2cb2424f9b206024145b6ba992f22f46",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-bullet_count-020",
+   "request_sha256": "9b982a2f65ae1c0bb2f1fc24a8d4c76e7656d292abfeaa1e0e5057c6c5788d36",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-001",
+   "request_sha256": "1231bf054895e887708466d42573723e4c95b661fef770cde6675883ec08da9e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-002",
+   "request_sha256": "e4a9d56b3af3ac5726dd838d03a3f40458c032e5e5be5501b7b3780f028d1c9b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-003",
+   "request_sha256": "0f67def83673a95878b9114decbc93e4f37b159aa2634be9f39960b1fb17e5ea",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-004",
+   "request_sha256": "6ad688399a0619ad921287003d6b46c4d6328e441f8f17d5667f1763e2d7c46b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-005",
+   "request_sha256": "30fc0cf9be9f6f661bb2e680a21080508f4dfeaad06a43e1976c918d8be2d0f4",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-006",
+   "request_sha256": "072e41b9bf7480582154a64319d1a1d2e3cd8efe413e2c90e691ddb532c6d72b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-007",
+   "request_sha256": "b00b2a68ceea43bc9bfd521decbaebc965d0680b84a743dbdc06c10ee597077b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-008",
+   "request_sha256": "7796ba2f92e78b1e2d518be830029ad8d6e4747c7d4831ac1007a850dc32d1ba",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-009",
+   "request_sha256": "13d1896296b36bd122cf2c4e4a3c733fb5b2c065f91c782ec7fb808ebdc423d8",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-010",
+   "request_sha256": "2f300486342180ff05809bfc732d4d9eb6f09637e9360fdfe118b003d1283d4b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-011",
+   "request_sha256": "5350595862fb6e6bede481f5885451e0ea9ee934c8c8042981ded712a23ba00c",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-012",
+   "request_sha256": "567881d4afd4b8c3fcc79007fbea255176d990886f0a7c73a37db3ef1951f771",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-013",
+   "request_sha256": "2aa705c2b3bc4d6baf2afa6d790b1c766b7abf77346d4358989968f7a56dd8bf",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-014",
+   "request_sha256": "9a91ce466c5520f18bcc232f9f0352542d8e0571f1bb404f2819585832d892eb",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-015",
+   "request_sha256": "b6aa4674508f4e8ba5358508a932691627af4cf9b20014eb951b96d3844f4c8a",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-016",
+   "request_sha256": "f51a8ac22d88ac6f313235599d29a4ddef4001f69408c3e8213be54026f0f9ed",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-017",
+   "request_sha256": "2a2727b3fff0d22525336765cce05c076184305d86f071deaba53d8a1e88c686",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-018",
+   "request_sha256": "6d5093795493d2a3e6fedaff0281c8a591d50b8dc894f245cb49ac2ad925b031",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-019",
+   "request_sha256": "81b849f995f51a6cd1230f46012bcbe4910b389538b100c499edc13da65c1997",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-json_only-020",
+   "request_sha256": "0536b62e06874f5edd24d91740f1523169dd78262b2e12a2323ce15dcd8cd30f",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-001",
+   "request_sha256": "14f99e016f21f4f9cbe05d57eb287df2d2893232104f2377fcddd3c6c38da54b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-002",
+   "request_sha256": "2df2e0b794ab1545711ffa2bcb9a124a089e6d883fd986b954c2c61d5818546d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-003",
+   "request_sha256": "47ab588f58f26afbc677d08fb3d5e23a46085e5019b044c1686276f0851db9aa",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-004",
+   "request_sha256": "f7578024ca0025effab70455b3883ce8598688e2aa42bdc9f88daab39825112d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-005",
+   "request_sha256": "70b4c4452791b1f59cbef6937c68515ad475f3fc6016464eb03ec8d0e3d587f9",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-006",
+   "request_sha256": "8df193cae88932f2a4f439e7b05cd2fafbf036b6d94af1799d135433126ae146",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-007",
+   "request_sha256": "d012d67f8226ecd2f6ad36213860ceee7f41072c69282209ac2d1ff38afe8ab7",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": false,
+   "notes": "REJECT: the lowercase clause \"All letters throughout the answer must have lowercase forms\" is literally vacuous (every letter has a lowercase form) and never says the reply must be written in lowercase; reword, e.g. \"must be in lowercase\".",
+   "request_id": "sp-lowercase_only-008",
+   "request_sha256": "4f61e443492afa396eccd115db488053fa6e2a0905596215af76ed29f3499a0f",
+   "satisfiable": true,
+   "semantic_equivalence": false
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-009",
+   "request_sha256": "5dffbd1a8812861b4cbf1f0bcbc0bfea6c3fcd91ca62e03a29992f6536aee604",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-010",
+   "request_sha256": "f797e23f682291954379d779d2b7323a976545dec1842fa3cc494e31f0b05a2e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-011",
+   "request_sha256": "4ba544e900685fe06ccc1f38512be20bd0f49b12e21e7d3e3e4abb88b0553ddf",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-012",
+   "request_sha256": "a37cb5e7feba7b30018487cc32464cbd0953c4f9e1ce7b6c641e40162dab2225",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-013",
+   "request_sha256": "a10ef7a37cda91d44dcbac5a5a547046fe5073f83e99040c87ef05a992c08460",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-014",
+   "request_sha256": "85d2cfcaf3d4a9164eaf348e0490f9b92ee626536150da4a32038c7ac0e9c3ef",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-015",
+   "request_sha256": "5179c91f11c5ab5d296bcc5708a2a1b0559119c214d11da7246bc11851b5871f",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-016",
+   "request_sha256": "c5e6df43c63c34c550a59c28b8294eb334ea96e604d38f4bf9d581d8f71aa2df",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-017",
+   "request_sha256": "cb7b3564dcaa2928bbf142406c9d306f25ca2ba465bd59820f4a480ded2ae4bc",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": false,
+   "notes": "REJECT: the lowercase clause \"All letters throughout the answer must have lowercase forms\" is literally vacuous (every letter has a lowercase form) and never says the reply must be written in lowercase; reword, e.g. \"must be in lowercase\".",
+   "request_id": "sp-lowercase_only-018",
+   "request_sha256": "4f003700928fb6b5e7ac4f0b1064c61cfd3457db2b5b39b02f1e33b2a3938cb5",
+   "satisfiable": true,
+   "semantic_equivalence": false
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-019",
+   "request_sha256": "b5590aa9fc03fe2888be7e3657165b9c0546b75299ae7f2209d47a55213e91ba",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-lowercase_only-020",
+   "request_sha256": "d78c5191ab6776763a89400f4084c5267ed05a0899ec401288851e7940838b7e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-001",
+   "request_sha256": "b9bd165124a3100cf02b9d91ec185efe6dfeb60ea6b49941fee0944a64dfcdb2",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-002",
+   "request_sha256": "102b24087d4b3627e208d04910de9f040f6616ee53c5c4a18b771384f00b8593",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-003",
+   "request_sha256": "70e9696973b066b4a1b3a6da4cb4449af56686f200cebdf22104c7f399ee4782",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-004",
+   "request_sha256": "729e2d1e944cad32162dbe4d8eb92e2c10154e6ba99565776e16efec75a43768",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-005",
+   "request_sha256": "202be3725ec2e07ef597b81d9c73f351dec869177349c94a1d6cfe43fc300355",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-006",
+   "request_sha256": "6320144e48b84c09e2e6eb5d6ccd58c6ced81710f4c6b22c4aae9a59743bce14",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-007",
+   "request_sha256": "da1f4fa0a84c053d67aeb2aef444c7a618c169d4e061ae411e9b13135632a644",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-008",
+   "request_sha256": "3848e4ec3f5270c02352d24016e9b25f94f79e99cd8fcbae676de08e3997250b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-009",
+   "request_sha256": "7d07643345845ec87610154175ca27eb2755488707d200387203e4399cd180df",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-010",
+   "request_sha256": "6bc83f074e0ddceb1c1d1ce48837660f1da50b51b53c5226177128290d7c0c56",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-011",
+   "request_sha256": "cff6904af190c512b438e4d1f5585d8ce31b2cc2c6056c0ab80528d530eea7ea",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-012",
+   "request_sha256": "0c79eb90c24186d8104e19d9cf8ecd6150185998fb4870488538a4384dcdf37e",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-013",
+   "request_sha256": "f082873842d35efba09d85b4fba0d2f4c8ab80d48d10129bfbd181d4856282b9",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-014",
+   "request_sha256": "1d85fbe6b98f336804cb10dab3c6f758a33774befd12398efea0ef14df318bfa",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-015",
+   "request_sha256": "6a87d2357c953cddfdeb65bbfc8469348f2562f17742deb6872161b179293a1d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-016",
+   "request_sha256": "9e0ee7e82a8a2a2ab73ef293ab10b69371744c5ea85be87368a791c15e438561",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-017",
+   "request_sha256": "415ac289742692f0b0667698717e908633a477f54cac99ac4ec13d7bc85e739b",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-018",
+   "request_sha256": "e96ee12113b4848566064e6d5d32c86ea3ba642e337a505fe4991fa5913a766d",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-019",
+   "request_sha256": "44bd95985ac76e15262f0836838a8a29b3429c883b30e1b2381d29aa2af641aa",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  },
+  {
+   "canonical_provenance": true,
+   "clarity": true,
+   "notes": "",
+   "request_id": "sp-required_suffix-020",
+   "request_sha256": "6d074d46025755f8e673df16f45448eebc3e623fdb10f6e8047968bcde873284",
+   "satisfiable": true,
+   "semantic_equivalence": true
+  }
+ ],
+ "reviewer_id": "claude-opus-5-5-reviewer-1",
+ "schema": "sp-review-receipt-v2"
+}

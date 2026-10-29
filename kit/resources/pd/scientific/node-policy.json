@@ -1,0 +1,126 @@
+{
+  "confirmation": {
+    "fingerprint_file_required_at_send": false,
+    "future_recheck_required": true,
+    "mode": "SEND_TIME_MANAGER_RULING",
+    "ruling_sha256": "359ca24b49b9ff9313f2d26dcb8f3b9d5cb06733b1bf2b7209993a53da7d3af9"
+  },
+  "deletion_allowed": false,
+  "identity_sha256": "56d56fcefe99ae281008fcc3127313ee1f009bbca2d9aff5d219b69c66e121d8",
+  "missing": "DEFERRED before GPU discovery",
+  "overlap": "UNVERIFIED; original frozen IDs retained; no measurement launch",
+  "required_coverage": [
+    "CR",
+    "K",
+    "accepted_responses",
+    "broad",
+    "chemistry_goal1",
+    "earlier_task",
+    "generic_candidates",
+    "generic_rejected",
+    "panels",
+    "programme_sources",
+    "reserved"
+  ],
+  "required_inventories": [
+    {
+      "description": "B frozen generic candidates file, unavailable locally.",
+      "format": "jsonl",
+      "inventory_id": "b-generic-candidates",
+      "role": "generic-candidates",
+      "sha256": "e7119dbfd2a0b68863285f7c38cb1dba7e892043214e244a84272e9389412cb6"
+    },
+    {
+      "description": "B frozen generic accepted file, unavailable locally.",
+      "format": "jsonl",
+      "inventory_id": "b-generic-accepted",
+      "role": "generic-accepted",
+      "sha256": "c88e4e1e5a45a23afcb022e0b341cf702337e1cd088692998d8a4a5cb97ba64c"
+    },
+    {
+      "description": "B frozen generic replay file, unavailable locally.",
+      "format": "jsonl",
+      "inventory_id": "b-generic-replay",
+      "role": "generic-accepted",
+      "sha256": "ca9d725f440145eed97ba469987a32febdd61fc5afe7a6da922631707f87d246"
+    },
+    {
+      "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-d6aec8c0ca29",
+      "producer_manifest_sha256": "162dc3e1f7f02482a7b892b6c22e27e73fa3386d044f55703dcf4849a7a805e0",
+      "role": "earlier",
+      "sha256": "d6aec8c0ca298d58eb69265f4be7363dc394749e9850845140c743df0891677c"
+    },
+    {
+      "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-854fefb90816",
+      "producer_manifest_sha256": "4b64f4b049d278555e728d6780f2aa44ffdc37b661b6dd41cdc9c3b2e8d5ae25",
+      "role": "earlier",
+      "sha256": "854fefb90816d7469f14f42d528626c93cd1dad0c1dd10fd9598ffb9157247f3"
+    },
+    {
+      "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-f232c0d2182a",
+      "producer_manifest_sha256": "5c85619781295c0d16c99387443d633e660edb53bef3d74561967163221b46b6",
+      "role": "earlier",
+      "sha256": "f232c0d2182a5066196844e2efd86215d9de3fe5d81991de29fa0cb8ee5fcffb"
+    },
+    {
+      "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-6747055e0c09",
+      "producer_manifest_sha256": "7d7b65d21a5e9eead5ca0c1f88c87ea4e42a022d93462217a75b7779b3cf51c8",
+      "role": "earlier",
+      "sha256": "6747055e0c099647435b4a4bd80cf10d2b5cb8d5abd69ecdd0dabb1ee0188528"
+    },
+    {
+      "description": "B frozen FinQA train parquet: exact training prompts and accepted teacher demonstrations.",
+      "format": "parquet",
+      "inventory_id": "b-finqa-targets-dfe74f139343",
+      "producer_manifest_sha256": "a3895fc9140417d18e1f3a7820b5b0e25155930c75080780ede7e03cef4ef30d",
+      "role": "earlier",
+      "sha256": "dfe74f1393431049f50827180c86b98bcd8b6e3ee3a3bef0e870fe594cef53f8"
+    },
+    {
+      "description": "ContractNLI frozen prepared training rows.",
+      "format": "jsonl",
+      "inventory_id": "contract-prepared",
+      "role": "cr",
+      "sha256": "4163850b9bcc3d3fb26bce8d1c23ecd4e9a965f0df6309bf9b620d3bb645c1f6"
+    },
+    {
+      "description": "Complete ContractNLI teacher journal, including accepted and rejected attempts; read via frozen producer manifest.",
+      "format": "journal",
+      "inventory_id": "contract-journal",
+      "role": "cr",
+      "sha256": null
+    },
+    {
+      "description": "Complete node-held programme ancestry prompts and responses, including Package-A inputs and custodian exclusions.",
+      "format": "jsonl",
+      "inventory_id": "programme-ancestry",
+      "role": "ancestry",
+      "sha256": null
+    },
+    {
+      "description": "Complete node-held evaluation/heldout prompt inventory and exclusions; no new reserved outcome scoring.",
+      "format": "jsonl",
+      "inventory_id": "programme-panels",
+      "role": "panels",
+      "sha256": null
+    },
+    {
+      "description": "Complete chemistry Goal-1 prompts/responses; explicit closed inventory required.",
+      "format": "jsonl",
+      "inventory_id": "chemistry-goal1",
+      "role": "chemistry_goal1",
+      "sha256": null
+    }
+  ],
+  "rescoring_allowed": false,
+  "schema": "pd-scientific-node-policy-v1",
+  "verification_only": true
+}

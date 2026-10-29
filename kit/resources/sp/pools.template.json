@@ -1,0 +1,63 @@
+{
+ "complete_inventory": null,
+ "frozen_before_scoring": null,
+ "pools": [
+  {
+   "name": "generic-candidates",
+   "path": "generic-candidates.jsonl",
+   "role": "generic-candidates",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "generic-accepted",
+   "path": "generic-accepted.jsonl",
+   "role": "generic-accepted",
+   "scope": "frozen-reference",
+   "sha256": null
+  },
+  {
+   "name": "broad",
+   "path": "broad.jsonl",
+   "role": "broad",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "earlier",
+   "path": "earlier.jsonl",
+   "role": "earlier",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "k",
+   "path": "k.jsonl",
+   "role": "k",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "cr",
+   "path": "cr.jsonl",
+   "role": "cr",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "ancestry",
+   "path": "ancestry.jsonl",
+   "role": "ancestry",
+   "scope": "candidate-superset",
+   "sha256": null
+  },
+  {
+   "name": "panels",
+   "path": "panels.jsonl",
+   "role": "panels",
+   "scope": "frozen-reference",
+   "sha256": null
+  }
+ ],
+ "schema": "sp-pools-v2"
+}

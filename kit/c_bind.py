@@ -47,7 +47,7 @@ def choose(reading):
 def check_start(record, recipe, seed, standin):
     if standin: return dict(record, identity=dict(technical_synthetic=True, model=record['model']))
     require(record.get('receipt'), 'exact original export receipt required')
-    receipt = json.loads(Path(record['receipt']).read_text())
+    receipt = json.loads(__import__('kit.m2_paths',fromlist=['local']).local(record['receipt']).read_text())
     origin = Path(receipt.get('model_dir', ''))
     slot = f'{recipe[0]}-finqa-alone-s{seed}'
     require(slot in origin.parts and origin.name == 'hf-step40', 'wrong original FinQA final: ' + slot)

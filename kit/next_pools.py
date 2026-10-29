@@ -13,6 +13,8 @@ import time
 
 GSM='740312add88f781978c0658806c59bc2815b9866'
 ARC='210d026faf9955653af8916fad021475a3f00453'
+ARC_PROMPT = '\nDo not use Markdown (no bold, italics or headings) anywhere in your reply. End with a final line that is exactly: Answer: X (where X is the correct choice label).'
+POOL_PROTOCOL = 'message2-v2-strict-arc-prompt'
 NOTICES=dict(gsm8k='GSM8K, Cobbe et al. 2021, openai/gsm8k; MIT License; https://github.com/openai/grade-school-math',
     arc='ARC-Challenge, Clark et al. 2018, allenai/ai2_arc; CC-BY-SA-4.0; https://creativecommons.org/licenses/by-sa/4.0/; prompts reformatted; generated responses checked for final labels only',
     earlier='FinQA, Chen et al. 2021; MIT License; https://github.com/czyssrs/FinQA; verified Qwen3.6-27B targets from Package B')
@@ -37,7 +39,7 @@ def candidates(gsm,arc):
         labels=r['choices']['label'];texts=r['choices']['text']
         require(r['answerKey'] in labels and len(labels)==len(set(labels)),'malformed ARC choices')
         rows.append(dict(id='arc-c-train-'+r['id'],order_id=r['id'],source='arc',labels=''.join(labels),
-            prompt=r['question']+'\n'+'\n'.join(f'{k}. {v}' for k,v in zip(labels,texts))+'\nEnd with Answer: <letter>',
+            prompt=r['question']+'\n'+'\n'.join(f'{k}. {v}' for k,v in zip(labels,texts))+ARC_PROMPT,
             gold=r['answerKey'],licence_notice=NOTICES['arc'],**({'fake_response':r['fake_response']} if 'fake_response' in r else {})))
     return rows
 
@@ -128,7 +130,7 @@ def job(a):
         arc,ah=download('allenai/ai2_arc',ARC,'ARC-Challenge/train-')
         sources=dict(gsm8k=gh,arc=ah)
         from transformers import AutoTokenizer
-        tokenizer=AutoTokenizer.from_pretrained(inputs['base']['path'],local_files_only=True)
+        tokenizer=AutoTokenizer.from_pretrained(__import__('kit.m2_paths',fromlist=['local']).local(inputs['base']['path']),local_files_only=True)
     earlier,proof=earlier_rows(a.finqa_targets,a.standin,tokenizer)
     generic=t.read_jsonl(a.out/'replay/replay.jsonl')
     audit_generic(root,generic,panels,a.standin)
@@ -140,12 +142,25 @@ def job(a):
         ordered=sorted((r for r in raw if r['source']==source),key=lambda r:(t.sha('next-v4-broad-v1|'+source+'|'+r['order_id']),r['order_id']))
         kept,ex=exclude(ordered,panels+generic+earlier+prepared,limit=1024)
         prepared+=kept;excluded+=ex
-    provenance=dict(base=base,sources=sources,revisions=dict(gsm8k=GSM,arc=ARC),panels=s.digest(panels),
-        generic=s.file_hash(a.out/'replay/replay.jsonl'),earlier_receipts=proof,technical_synthetic=a.standin)
+    provenance=dict(pool_protocol=POOL_PROTOCOL, arc_prompt=ARC_PROMPT, base=base,sources=sources,revisions=dict(gsm8k=GSM,arc=ARC),panels=s.digest(panels),
+        generic=s.file_hash(a.out/'replay/replay.jsonl'),earlier_receipts=proof,technical_synthetic=a.standin,
+        candidate_preparation=dict(fresh_exclusions_rerun=True,exclusions_sha256=s.digest(excluded),candidate_rows=len(prepared)))
     bind(root/'inputs.json',provenance)
     if (root/'manifest.json').exists():frozen_files(root);print('SKIP pools');return
     write_rows(root/'candidates.jsonl',prepared);write_rows(root/'exclusions.jsonl',excluded)
     write_rows(root/'earlier.jsonl',earlier)
+    if not a.standin:
+        from kit.arc_prompt_acceptance import validate_candidate_membership
+        try:acceptance=validate_candidate_membership(root/'candidates.jsonl')
+        except NotReady as error:
+            atomic(root/'arc-candidate-status.json',dict(status='PENDING',reason=str(error),no_replenishment=True))
+            raise
+        bind(root/'arc-candidate-acceptance.json',acceptance)
+        atomic(root/'arc-candidate-status.json',dict(status='PASS',**acceptance))
+    if getattr(a,'prepare_candidates_only',False):
+        atomic(root/'candidate-manifest.json',files_manifest(root,['inputs.json','candidates.jsonl','exclusions.jsonl','earlier.jsonl'],
+            pool_protocol=POOL_PROTOCOL,arc_prompt=ARC_PROMPT,technical_synthetic=a.standin,fresh_exclusions_rerun=True))
+        print('CPU candidates frozen; no model generation started');return
     os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu,V4_PHASE0_INFERENCE='0')
     started=time.monotonic()
     generator=None;accepted=[];verdicts=[]
@@ -172,11 +187,13 @@ def job(a):
     atomic(root/'cost.json',dict(kind='broad_preparation',gpu_hours=0 if a.standin else (time.monotonic()-started)/3600,technical_synthetic=a.standin))
     freeze(root,['generic-exclusion-audit.json','inputs.json','candidates.jsonl','exclusions.jsonl','earlier.jsonl','gsm8k.jsonl','arc.jsonl','checks.jsonl','licences.json','cost.json']+
         [str(p.relative_to(root)) for p in sorted((root/'raw').glob('*.json'))],a.standin,
+        pool_protocol=POOL_PROTOCOL, arc_prompt=ARC_PROMPT,
         disclosure='Broad is in-distribution for general-v1 maths and near-distribution for knowledge. HellaSwag is the only out-of-pool panel; ARC shares its letter-answer format. Checks verify final answers, not rationales.')
     print('Pool rows:',len(accepted),'broad;',len(earlier),'earlier;',len(excluded),'excluded')
 
 
 def configure(p):
+    p.add_argument('--prepare-candidates-only',action='store_true')
     p.add_argument('--gpu',default='0');p.add_argument('--package-a',type=Path,required=True)
     p.add_argument('--finqa-panel',type=Path,required=True);p.add_argument('--finqa-targets',type=Path,nargs='+',required=True)
     p.add_argument('--gsm-rows',type=Path);p.add_argument('--arc-rows',type=Path)

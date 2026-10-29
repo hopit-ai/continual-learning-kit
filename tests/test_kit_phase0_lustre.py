@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @pytest.fixture
 def shared_work(tmp_path,monkeypatch):
     from kit import v4_phase0 as p,v4_phase0_site as s
-    task=tmp_path/'lustre-storage/fsx_efa/user/a_real_partner_username/v4-phase0'
+    task=tmp_path/'partner-storage/partner-storage/operator/a_real_partner_username/v4-phase0'
     work=task/'work.ABCDEF';work.mkdir(parents=True)
     model=task/'hf-cache/initial';model.mkdir(parents=True)
     (model/'config.json').write_text(json.dumps(CONFIG))
@@ -110,5 +110,5 @@ def test_runbook_requires_large_shared_lustre_storage_up_front():
     """The runnable setup must choose large shared storage instead of the quota-limited home default."""
     text=(ROOT/'kit/README-phase0.md').read_text();intro=text[:text.index('Send this package')]
     assert 'large shared storage' in intro and 'login and compute' in intro and '869 GiB' in intro
-    assert '/lustre-storage/fsx_efa/user/$USER/v4-phase0' in text
+    assert '/partner-storage/shared-storage/operator/$USER/v4-phase0' in text
     assert '$HOME/v4-phase0' not in text and 'prepare refuses' in text

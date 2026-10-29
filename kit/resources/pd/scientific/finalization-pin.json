@@ -1,0 +1,13 @@
+{
+  "approval_file_sha256": "a32e387386790974c15815e524387557a906ba31d8530dd1e6b4e1084c0d79d4",
+  "approval_sha256": "a85576de0c20b0509d76f30601187b26532dfa2f60f5a7c5ef0dbeb14d172d96",
+  "builder_sha256": "d152b1155fbf4a5777d5bbdca50ebcbc9a1613a3251b0d7f614aa2fb40d8f904",
+  "code_sha256": "65de857008bd0a655dc06f7d53b1086ebdedc89bc0193e1c4d424607d4ab0079",
+  "identity_sha256": "095dcb02e5c757179772f42219cecabbb75e3e4884b20babda9d5d87d3f99669",
+  "materializer_sha256": "c48ed730e6f268f51dff717bf9c3ad7f7daab38ae3e8e24a7678676b0360748c",
+  "package_sha256": "0249bc663e145ad8bcfbbac2f0f56b88b99735ac2e2b83b21bec639f2641a084",
+  "preparation_bytes": 508919629,
+  "preparation_file_sha256": "a7e50f1c2ebc4ac918c7704748e0d777d74783002715d52ae58b9b4fac13463c",
+  "preparation_sha256": "d3ad575f52b1203e210098c37584cb4a80db4f3a44508a5babd52fd121a1a7fa",
+  "schema": "pd-scientific-finalization-pin-v1"
+}

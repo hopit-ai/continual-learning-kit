@@ -1,0 +1,38 @@
+{
+  "schema": "rung-p2-distributed-smoke-settings.v1",
+  "model": "Qwen/Qwen3-1.7B",
+  "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+  "world_size": 2,
+  "seed": 101,
+  "updates": 4,
+  "learning_rates": [
+    0,
+    1e-06,
+    2e-06,
+    3e-06
+  ],
+  "deterministic": true,
+  "attention_implementation": "eager",
+  "deterministic_env": {
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "PYTHONHASHSEED": "101"
+  },
+  "preparation": "first 128 of attempt-3 frozen eligible FinQA train rows; native D+replay: 28 FinQA task rows (D teacher contexts) + 4 frozen FinQA CE replay rows at production positions 8/16/24/32; no regulariser",
+  "paired": "frozen development legal targets plus 4/32 frozen FinQA replay, native D+replay; smoke P2 replays the full control actor inputs for updates 1\u20133, update 0 replays X4",
+  "precision": "actual fp32 student/master and optimizer state; fp64 distributed distance/gradient accumulation; refuse otherwise",
+  "gpu_reserved_headroom_fraction": 0.05,
+  "host_limit_gib": 64,
+  "host_headroom_fraction": 0.05,
+  "max_attempts": 4,
+  "timeout_seconds": 3000,
+  "attempt_limits": {
+    "1-3": {
+      "timeout_seconds": 1800,
+      "total_ceiling_usd": 9.77
+    },
+    "4": {
+      "timeout_seconds": 3000,
+      "total_ceiling_usd": 14.17
+    }
+  }
+}

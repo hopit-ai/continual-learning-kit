@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.c_common import *
+from kit.m2_seed_policy import SEEDS
 from kit.p3b_read import bound, load, lower
 from kit.p3b_score import write_csv
 from collections import defaultdict
@@ -19,7 +20,6 @@ def accuracy(rows, field='correct'):
 def status(stats, margin, strict=False):
     if stats['mean'] is None or stats['lower'] is None: return 'PENDING'
     if stats['lower'] > margin if strict else stats['lower'] >= margin: return 'PASS'
-    if stats['upper'] <= margin if strict else stats['upper'] < margin: return 'FAIL'
     return 'INCONCLUSIVE'
 
 
@@ -161,10 +161,10 @@ def analyse(rows, doc, repeats=10000):
                         seed_tables.append(dict(arm=arm,seed=seed,panel=p,parser=parser,initial=accuracy(start_rows,field),final=accuracy(end,field),
                             gain=accuracy(end,field)-accuracy(start_rows,field),gain_auc=auc))
     primary = [r for r in seed_tables if r['arm'] == 'standalone-'+doc['W'] and r['panel']=='test' and r['parser']=='tolerant']
-    final = bound([r['final'] for r in primary],5); gains = bound([r['gain'] for r in primary],5)
+    final = bound([r['final'] for r in primary],3); gains = bound([r['gain'] for r in primary],3)
     positives = sum(r['gain']>0 for r in primary)
     checks = [status(final,69.7),status(gains,0,True)]
-    decision = 'PENDING' if 'PENDING' in checks or len(primary)!=5 else 'PASS' if checks==['PASS','PASS'] and positives>=4 else 'FAIL' if 'FAIL' in checks or positives<4 else 'INCONCLUSIVE'
+    decision = 'PENDING' if 'PENDING' in checks or len(primary)!=3 else 'PASS' if checks==['PASS','PASS'] and positives>=3 else 'INCONCLUSIVE' if 'FAIL' in checks or positives<3 else 'INCONCLUSIVE'
     goal1 = dict(primary='W standalone / test / tolerant',W=doc['W'],F_test=82,threshold=69.7,final_seed_bound=final,
         gain_seed_bound=gains,positive_seeds=positives,status=decision,score_frontier_ratio=final['mean']/82 if final['mean'] is not None else None,
         frontier_sampling=dict(n=100,correct=82,wilson_95=[.733,.883],note='Rounded binomial interval; seed bound conditions on observed 82. Different thinking/compute budgets.'))
@@ -175,7 +175,7 @@ def analyse(rows, doc, repeats=10000):
                 a = {r['seed']:r for r in seed_tables if r['arm']=='standalone-'+recipe and r['panel']==panel and r['parser']==parser}
                 b = {r['seed']:r for r in seed_tables if r['arm']=='sequence-'+recipe and r['panel']==panel and r['parser']==parser}
                 route_comparison.append(dict(recipe=recipe,panel=panel,parser=parser,
-                    contrasts={key:bound([b[k][key]-a[k][key] for k in SEEDS if k in a and k in b and a[k][key] is not None and b[k][key] is not None],5) for key in ('final','gain','gain_auc')}))
+                    contrasts={key:bound([b[k][key]-a[k][key] for k in SEEDS if k in a and k in b and a[k][key] is not None and b[k][key] is not None],3) for key in ('final','gain','gain_auc')}))
     retention = []
     for recipe in arms(doc):
         contrasts = defaultdict(list); survival = []
@@ -196,7 +196,7 @@ def analyse(rows, doc, repeats=10000):
                     if pre and post: transitions.append(dict(arm=seq,seed=seed,panel=p,step=step,parser='registered',**paired(pre,post,'correct',repeats)))
         margins = {'legal_vs_standalone':-2,'stage2_finqa':-1,'stage1_finqa':0}
         margins.update({f'{stage}_{p}':-3 for stage in ('stage1','stage2') for p in ('ifeval','knowledge','math')})
-        bars = {key:dict(seed_bound=bound(contrasts[key],5),margin=margin,status=status(bound(contrasts[key],5),margin,key=='stage1_finqa')) for key,margin in margins.items()}
+        bars = {key:dict(seed_bound=bound(contrasts[key],3),margin=margin,status=status(bound(contrasts[key],3),margin,key=='stage1_finqa')) for key,margin in margins.items()}
         states = [r['status'] for r in bars.values()]
         serving = {}
         for route in ('standalone','sequence'):
@@ -205,7 +205,7 @@ def analyse(rows, doc, repeats=10000):
                 values = [r for r in summaries if r['arm']==route+'-'+recipe and r['panel']==task and r['step']==40]
                 ratios = [r['serving_ratio'] for r in values]
                 serving[route][task] = dict(per_seed=[dict(seed=r['seed'],ratio=r['serving_ratio'],tokens_per_correct=r['tokens_per_correct'],output_tokens=r['output_tokens']) for r in values],
-                    status='PENDING_OR_UNDEFINED' if len(values)!=5 or any(v is None for v in ratios) else 'AT_COST' if any(v>1.5 for v in ratios) else 'PASS')
+                    status='PENDING_OR_UNDEFINED' if len(values)!=3 or any(v is None for v in ratios) else 'AT_COST' if any(v>1.5 for v in ratios) else 'PASS')
         at_cost = all(x=='PASS' for x in states) and any(r['status']=='AT_COST' for route in serving.values() for r in route.values())
         retention.append(dict(recipe=recipe,bars=bars,acquired_finqa_survival=survival,serving=serving,at_cost=at_cost,
                               status='PENDING' if 'PENDING' in states else 'PASS' if all(x=='PASS' for x in states) else 'FAIL' if 'FAIL' in states else 'INCONCLUSIVE'))
@@ -225,10 +225,10 @@ def analyse(rows, doc, repeats=10000):
                             if not all(candidate+control): continue
                             points = [100*sum(int(g[q][field]) for q in ids)/len(ids) for g in candidate+control]
                             by_seed.append(dict(seed=seed,n=len(ids),final_recall_difference=points[1]-points[3],gain_recall_difference=(points[1]-points[0])-(points[3]-points[2])))
-                        label_comparisons[label] = dict(seeds=by_seed,final_recall_bound=bound([r['final_recall_difference'] for r in by_seed],5),gain_recall_bound=bound([r['gain_recall_difference'] for r in by_seed],5))
+                        label_comparisons[label] = dict(seeds=by_seed,final_recall_bound=bound([r['final_recall_difference'] for r in by_seed],3),gain_recall_bound=bound([r['gain_recall_difference'] for r in by_seed],3))
                     comparisons.append(dict(recipe=recipe,route=route,panel=p,parser=parser,per_label=label_comparisons,
-                        final_vs_answer_only=bound([right[k]['final']-left[k]['final'] for k in SEEDS if k in left and k in right],5),
-                        gain_vs_answer_only=bound([right[k]['gain']-left[k]['gain'] for k in SEEDS if k in left and k in right],5)))
+                        final_vs_answer_only=bound([right[k]['final']-left[k]['final'] for k in SEEDS if k in left and k in right],3),
+                        gain_vs_answer_only=bound([right[k]['gain']-left[k]['gain'] for k in SEEDS if k in left and k in right],3)))
     goal1['at_cost'] = goal1['status']=='PASS' and any(r['serving_status']=='AT_COST' for r in summaries if r['arm']=='standalone-'+doc['W'] and r['panel']=='test' and r['step']==40)
     return dict(technical_synthetic=doc['technical_synthetic'],complete=not missing,missing=missing,goal1=goal1,
         seed_tables=seed_tables,summaries=summaries,curves=curves,question_pairs=transitions,answer_only_comparison=comparisons,

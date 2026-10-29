@@ -4,11 +4,12 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.c_common import *
+from kit.m2_gpu import prepared_index
 from kit.p3b_score import write_csv
 from types import SimpleNamespace
 import time
 
-COLUMNS = 'arm seed step task panel cap question_id correct strict_correct tolerant_correct strict_format tolerant_parseable output_tokens finished group gold'.split()
+COLUMNS = 'arm seed step task panel cap question_id correct strict_correct tolerant_correct strict_format tolerant_parseable output_tokens finished group gold incorrect_format strict_diagnostic_correct format_free_correct'.split()
 
 
 def legal_scores(items, raw, arm, seed, step, panel):
@@ -64,7 +65,7 @@ def job(a):
         return
     items = panels()[a.panel_set]
     retain_partial(root); root.mkdir(parents=True, exist_ok=True)
-    os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, KIT_DETERMINISTIC='1', VLLM_BATCH_INVARIANT='1', VLLM_ATTENTION_BACKEND='FLASH_ATTN')
+    os.environ.update(CUDA_VISIBLE_DEVICES=prepared_index(a.gpu,a.standin), KIT_DETERMINISTIC='1', VLLM_BATCH_INVARIANT='1', VLLM_ATTENTION_BACKEND='FLASH_ATTN')
     started = time.monotonic()
     if a.standin:
         raw = []
@@ -77,7 +78,8 @@ def job(a):
     else:
         from kit import score_forgetting as general
         from transformers import AutoTokenizer
-        from vllm import LLM, SamplingParams
+        from vllm import SamplingParams
+        from kit.inference_lifecycle import create_llm as LLM
         tokenizer = AutoTokenizer.from_pretrained(record['model'], local_files_only=True)
         prompts = [legal.render(tokenizer, r['prompt']) for r in items]
         require(all(len(tokenizer.encode(p, add_special_tokens=False)) <= 10240 for p in prompts), 'frozen legal input over cap')

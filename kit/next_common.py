@@ -15,6 +15,8 @@ def frozen_next():
 
 
 def checkpoint(path, receipt, standin=False, base=False):
+    from kit.m2_paths import local
+    path=local(path);receipt=local(receipt)
     require(path is not None, 'missing checkpoint path')
     if receipt is not None:require(Path(receipt).is_file(),'missing checkpoint receipt')
     if standin:
@@ -30,6 +32,12 @@ def checkpoint(path, receipt, standin=False, base=False):
 
 def machine(out, gpu, standin):
     require(',' not in gpu, 'one physical scoring GPU required')
+    from kit.m2_assignment import active
+    proof=active(out,gpu,standin)
+    if proof is not None:
+        value=dict(uuid=proof['uuid'],environment=proof['environment'],assignment=proof)
+        bind(out/'next-scoring-families'/f"{proof['family']}-s{proof['seed']}.json",value)
+        return value
     if standin: value = dict(uuid='CPU-STANDIN', environment='CPU-STANDIN')
     else:
         uuid = subprocess.check_output(['nvidia-smi', '-i', gpu, '--query-gpu=uuid', '--format=csv,noheader'], text=True).strip()
@@ -63,7 +71,8 @@ def shared_score(a, parent, arm, seed, step, panel, runner):
     observed=checkpoint(parent['path'],parent.get('receipt'),a.standin,
                         base=parent['identity']['model_file_hashes']==read_inputs(a.out,a.standin)['base']['identity']['model_file_hashes'])
     require(observed['model_file_hashes']==parent['identity']['model_file_hashes'],'shared endpoint identity changed')
-    key=s.digest(dict(model=observed['model_file_hashes'],panel=panel))[:24]
+    from kit.m2_assignment import cache_identity
+    key=s.digest(dict(model=observed['model_file_hashes'],panel=panel,assignment=cache_identity(a.out)))[:24]
     canonical='next-shared-'+key
     source=f'scores/{canonical}-s0-k0-{panel}'
     alias=f'{arm}-s{seed}-k{step}-{panel}'

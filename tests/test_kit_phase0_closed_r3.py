@@ -8,6 +8,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import pytest
+from test_kit_phase0_host import require_host_build_space
 from test_kit_phase0_storage import CONFIG,GIB
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -76,7 +77,7 @@ raise SystemExit(p.main(sys.argv[2:]))
 @pytest.fixture
 def prepared_site(tmp_path,monkeypatch):
     from kit import v4_phase0 as p,v4_phase0_download as download
-    task=tmp_path/'lustre-storage/fsx_efa/user/realistic_partner_username/v4-phase0'
+    task=tmp_path/'partner-storage/partner-storage/operator/realistic_partner_username/v4-phase0'
     work=task/'work.ABCDEF';work.mkdir(parents=True)
     paths={}
     for key,folder in [('MODEL_DIR','initial'),('TEACHER_MODEL_DIR','teacher'),('QWEN3_8B_TOKENIZER','tokenizer'),('FINQA_ROOT','finqa'),('SDPO_DIR','SDPO')]:
@@ -160,6 +161,7 @@ u._run_finalizers()
 
 def test_real_generated_payload_keeps_short_tmpdir_and_shared_caches(frozen_site,tmp_path):
     """Real bash/cache exports must preserve the frozen short TMPDIR before admission and stop before self-test."""
+    require_host_build_space(frozen_site[0])
     from kit.v4_allocation import script
     from kit.v4_phase0_site import CACHE_KEYS
     work,launch=frozen_site;bindir=tmp_path/'bin';bindir.mkdir()
@@ -267,7 +269,7 @@ def test_containment_entry_keeps_short_job_tmpdir_for_contained_steps(tmp_path,m
     """Astra closed check, item 7: the containment CLI must not restore the long shared TMPDIR inside the allocation."""
     import tempfile as _tempfile
     from kit import p4_contain, v4_phase0_site as site
-    task=tmp_path/('lustre-storage-fsx_efa-user-'+'x'*40);work=task/'v4-phase0'/'work.ABCDEF'
+    task=tmp_path/('partner-storage-partner-storage-user-'+'x'*40);work=task/'v4-phase0'/'work.ABCDEF'
     (work/'v4/report-phase0').mkdir(parents=True)
     monkeypatch.setenv('TASK_ROOT',str(task))
     job_tmp=Path(_tempfile.mkdtemp(prefix='j',dir='/tmp'))

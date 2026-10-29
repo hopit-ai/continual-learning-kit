@@ -1,0 +1,12 @@
+{
+ "frozen_arc_prompt": "\nDo not use Markdown (no bold, italics or headings) anywhere in your reply. End with a final line that is exactly: Answer: X (where X is the correct choice label).",
+ "decided_by": "first pre-declared wording to pass (attempt 2)",
+ "parse_count": 128,
+ "accepted_count": 120,
+ "n": 128,
+ "candidates_sha256": "666dd273bb601c5e2fc04a20d2882bb1219311da4e47075d88040712bbbfcfda",
+ "sample_sha256": "fd80c2ae3d3c3a70d11dac969b9d2b0aed9fe686b69cbbeae478c780faebd76c",
+ "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+ "cost_bound_usd": 0.83,
+ "attempt3_attempt4": "not run (attempt 2 passed)"
+}

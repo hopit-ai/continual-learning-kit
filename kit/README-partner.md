@@ -68,11 +68,25 @@ git -C /work/SDPO checkout 7c457fc1b1f636ae794eb0362ba37d4743b06fbc
 
 ```bash
 pip install -e /work/SDPO
+# Fresh nodes: install these after SDPO, which otherwise resolves incompatible versions.
+pip install 'pyarrow==21.0.0' 'datasets==4.8.5'
 ```
 
 ```bash
 pip install 'antlr4-python3-runtime==4.9.3' 'math-verify==0.8.0' 'ray==2.53.0' 'torchdata==0.11.0' 'transformers==4.57.1'
 ```
+
+Existing working environments need no change. The pins above are for **fresh
+nodes**: PyArrow 26 requires NumPy 2, and newer datasets releases can exceed the
+image's huggingface_hub version. Check the dataset stack in the trainer runtime:
+
+```bash
+python -c "import numpy, pyarrow, datasets; import verl.utils.dataset.rl_dataset"
+```
+
+The first MESSAGE 2 PF-node job runs this import check before hardware checks.
+A failed import writes a PENDING receipt and blocks that node's dependent jobs;
+repair the fresh environment using the pins above, then requeue PF-node.
 
 Check the one import that cost us a paid run:
 

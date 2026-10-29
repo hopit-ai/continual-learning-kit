@@ -1,0 +1,49 @@
+{
+  "arc": {
+    "max_tokens": 2048,
+    "min_accepted": 80,
+    "min_strict_parseable": 127,
+    "n": 128,
+    "replenishment": false,
+    "seed": 0,
+    "temperature": 0,
+    "thinking": false,
+    "top_p": 1
+  },
+  "hellaswag": {
+    "choices": 4,
+    "finite_likelihoods_required": true,
+    "guard_pp": -1,
+    "items": 100,
+    "normalisation": "Python len(preprocessed ending), Unicode characters, excluding separator space",
+    "preprocessing": "lm-eval HellaSwag process_doc: activity_label + colon + ctx_a + space + ctx_b.capitalize; strip, title substitution, remove bracket spans, replace double space",
+    "reference": "independent sequential HF token log-softmax reduction",
+    "scoring": "highest length-normalised conditional log likelihood",
+    "selected_choice_agreement": 100,
+    "strict_format": "diagnostics only",
+    "tie": "lowest original zero-based choice index",
+    "tokenizer_source": "frozen pinned base tokenizer for every checkpoint; export metadata cannot change tokenisation",
+    "validation_items_sha256": "202f480cc2c1c1910a20a5cdecbe1706a6fddbc0d5ab3441f2af3da283bc9c17"
+  },
+  "implementations": {
+    "hellaswag_prompt_check.py": "03b98cbec77ae0e7ef972b97fdd301cad5e588eaa530dc83fc44c32c42a26b06",
+    "hellaswag_reference.py": "2e18acd1f79ee96b9cdbfd551a31bf1175df52904c15442c6938249d3e7fa45a",
+    "inference_subprocess.py": "630995061d6539f947074234d841e83a6655aaa82c4c9a33fed5527190bf25ce",
+    "m2_format.py": "e86c7bf1306af60a191dc1a3885c73f5bad555c9f0881163a2baedd566987d24",
+    "resources/m2/manager-format-launcher.txt": "3aa92751061504afb59200b0dc5b6194415a8234959be8c8b7de08290edc0d51",
+    "scorers.py": "928a36c5206f96ae6e8178f519441c38554d0ddd50df31676d57e63f93f5f9bf"
+  },
+  "schema": "message2-format-validity.v1",
+  "strict_letter": {
+    "decision": "PENDING",
+    "invalid": "FORMAT-CONFOUNDED",
+    "max_incorrect_format": 0,
+    "panels": [
+      "knowledge"
+    ]
+  },
+  "tokenizer_files": {
+    "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+    "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101"
+  }
+}

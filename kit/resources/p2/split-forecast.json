@@ -1,0 +1,64 @@
+{
+  "assumptions": {
+    "extra_update_seconds_central": 30,
+    "extra_update_seconds_sensitivity": [
+      0,
+      60
+    ],
+    "measured_eager_deterministic_overhead_available": false,
+    "merge_saving_credit_seconds": 0,
+    "save_saving_credit_seconds": 0,
+    "separate_cold_start_per_part": true,
+    "shared_cold_start_download_seconds": 120,
+    "two_GPU_speedup_credited": false
+  },
+  "forecast_gate": "Every part upper scenario <=1620 seconds; no checks cut. Timing is a forecast, not a measured guarantee.",
+  "launched": false,
+  "measured_basis": {
+    "gpus": 1,
+    "path": "docs/phase2/evidence/kit-v4-four-arm-smoke.attempt2.json",
+    "seconds": 292.907,
+    "sha256": "a5b2fd43ed7907cb6e871ce282e515b4e32856cd1a3e28bcc9a671710f54b44e",
+    "step": "train-merge-D-chemistry-stand-in",
+    "updates": 2
+  },
+  "parts": {
+    "p2": {
+      "checks": "four-update preparation; X4; four-update X5/X6; all registered P2 gates",
+      "fp32_exports": 3,
+      "full_state_saves": 5,
+      "launches": 4,
+      "logical_actor_calls": 13,
+      "minutes": [
+        21.5271,
+        24.0271,
+        26.5271
+      ],
+      "seconds": {
+        "central": 1441.628,
+        "lower_scenario": 1291.628,
+        "upper_scenario": 1591.628
+      },
+      "upper_with_additional_15percent_unmeasured_slowdown_minutes": 30.2062
+    },
+    "resume": {
+      "checks": "drift prefix 2 and checked resume 3 from untouched pinned base; no third-step save",
+      "fp32_exports": 0,
+      "full_state_saves": 1,
+      "launches": 2,
+      "logical_actor_calls": 3,
+      "minutes": [
+        11.7636,
+        11.7636,
+        11.7636
+      ],
+      "seconds": {
+        "central": 705.814,
+        "lower_scenario": 705.814,
+        "upper_scenario": 705.814
+      },
+      "unused_update_credit_seconds": 0
+    }
+  },
+  "schema": "p2-split-timing-forecast.v1"
+}
