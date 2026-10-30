@@ -181,7 +181,177 @@ frozen input plan. Preserve the failed tree and supervisor PENDING receipts.
 Record failed allocation charges, queue, restore and transfer time.
 Return core evidence independently even when every tier is PENDING.
 
-## Return
+## Returning results as text (current)
+
+First create `report-inputs.local.json`, listing only the roots available on this node.
+Omitted core/tier families report PENDING; omitted 4A always reports DEFERRED / NOT_CONFIGURED. Multiple
+roots per family are supported and numbered separately. A `source` can be a
+native result tree or its existing native archive for M, X, S and 4A. KCR and SP
+use their native trees. Readers run afresh; saved reading JSON is never trusted.
+X/S trees use their existing collectors to make temporary **local** archives;
+no archive needs to be sent. No models, GPU execution or network calls are used.
+Use the same frozen PD anchors/original export resolver and SP inventory as the
+native readers; PD combines all three seed receipts, without filling missing
+cells. Include every PD launcher timing, including failed attempts, exactly once.
+Do not count nested training or streamed scoring again.
+
+```json
+{
+  "M": [{"source": "/results/core"}],
+  "X": [{"source": "/results/x", "screen": "/results/s"}],
+  "S": [{"source": "/results/s"}],
+  "KCR": [{"source": "/results/kcr"}],
+  "PD": [{"evidence": "/results/pd/all-seeds.json",
+          "exports": "/results/pd/original-resolvers.local.json",
+          "trusted": "/results/pd/frozen-anchors.json",
+          "launcher_timings": ["/results/pd/seed101/launcher-timing.json",
+                               "/results/pd/seed102/launcher-timing.json",
+                               "/results/pd/seed103/launcher-timing.json"]}],
+  "SP": [{"source": "/results/sp", "inventory": "/results/sp/inventory.json",
+          "input": ["/results/core", "/results/kcr"]}],
+  "4A": [{"source": "/results/4a"}],
+  "jobs": [
+    {"family": "core", "manifest": "/results/core-launch.json", "durable": "/results/core-durable"},
+    {"family": "KCR", "manifest": "/results/kcr/m3-launch.json", "state": "/results/kcr/state"},
+    {"family": "PD", "manifest": "/results/pd-launch.json", "state": "/results/pd-state"},
+    {"family": "SP", "manifest": "/results/sp-launch.json", "state": "/results/sp/state"}
+  ]
+}
+```
+
+
+For this message, paste WhatsApp chat text only. After all runs **or any partial
+set**, run the CPU-only reporter with the node's existing Python environment:
+
+```bash
+python3 "$KIT/report_text.py" --inputs report-inputs.local.json --out return-text
+```
+
+Use a fresh output directory. **ESSENTIAL is the default: paste Parts 1-3,
+then Part 4 only if present.** The set contains at most four numbered parts,
+each ASCII, without tabs and at most 12,000 characters. Files are
+`return-text/RETURN-TEXT-k-of-N.md`: **paste each whole file, KIT line to SHA256
+line, one part per message; never paste terminal output or `*.local.json`**.
+
+The parts contain:
+
+1. Every registered decision verdict, primary estimate, interval, seed count
+   in the registered direction (negative for PD, positive otherwise) and key guard failures. Part 1 alone supports every decision.
+2. Per-seed primary endpoints and failed/unavailable guards or guards within
+   0.5 points of their bar, plus mean, sample SD, native bound and seed count
+   in that direction. Seeds are 101-103; 4A keeps its registered five seeds 101-105 and
+   monthly inputs. Screen S retains its registered bootstrap bound.
+3. Job completion, recorded GPU-hours per family and total against allowances,
+   wall times and warnings, including coded PENDING reasons.
+4. Overflow from Parts 2/3, only when needed. Evidence is never silently dropped;
+   oversized input scopes refuse the essential return instead of emitting a fifth part.
+   Split the local input map into smaller family/root groups and run separate
+   fresh reports into separate output directories. Paste and import each report
+   separately, including its Part 1 and its own FULL-set reference.
+
+On `Text report refused`, inspect `<out>/refusal.local.txt` locally, fix the
+input/configuration issue, and rerun into a fresh output directory. Never paste
+that diagnostic: it can contain private paths and traceback details. If refusal
+is due to capacity, split the input maps as above; retained FULL files and local
+results stay on the node.
+
+All text floats use four significant figures. Selection and scientific verdicts
+use the unrounded native results. `null` means unavailable, never zero.
+Stand-ins are marked TECHNICAL-STANDIN and provide no scientific evidence.
+The full-precision `full-results.local.json` stays on the node, bound by
+RESULTS-SHA256. Every essential part gives the FULL set's count and digest.
+
+The reporter **always also writes** the complete numbered detail set to
+`return-text/full/RETURN-TEXT-k-of-N.md`. Keep it on the node; send specific
+FULL part numbers only when requested. `--full` selects that complete set in
+the command's output (use a fresh output directory); it still writes ESSENTIAL.
+Do not paste the entire FULL set by default, and do not mix outputs from
+separate report runs. Retain the result trees, local settings, hardware maps,
+and all `*.local.json` on the node; settings and hardware maps are never printed.
+
+
+The jobs array reads each frozen manifest's `tasks` and includes every task,
+including tasks without a state file. `J` rows group DONE, FAILED and PENDING
+jobs using compact indexes into the **shipped public inventory**, whose digest
+is in ESSENTIAL Part 3 (`T|JOB-INVENTORY`). The importer resolves these to registered job
+names only when its own public inventory digest matches. Indexes come from
+`combined-inventory.md` in table order, followed by additional PF-node/PF-tier
+slots 0-127; they do not depend on private manifest settings or node counts.
+`u`-prefixed indexes are local manifest ordinals for unrecognized tasks: their
+names remain private and are explicitly unresolved. The private
+`job-map.local.json` retains that mapping for later verification. Missing
+completion evidence is PENDING; a failed core execution is reported only from
+its manifest-bound execution receipt. Without job manifests the summary says
+unknown/PENDING. Keep the manifests on the node. The PD supervisor can supply a
+small manifest with its three registered seed jobs and per-job supervisor
+receipts in its state directory.
+
+`D` rows are family, comparison, verdict, primary estimate, lower/upper interval,
+seeds in the registered direction and key guard failures. M
+`admission-evaluated` means the admission procedure finished, not a bar passed. A missing upper bound is intentional for
+one-sided registered intervals. `R` rows preserve numeric reader leaves with a
+metric pointer and seed. Repeated records may use compact JSON column tables
+(`@columns`, `@rows`, `@offset`); the importer expands the already rounded values.
+`E` rows carry essential endpoints: family, endpoint, P/G/I kind, ordered seed
+values, mean, sample SD, lower/upper bound, count in the registered direction, n,
+bar and method. The importer names the count `seeds_in_direction` and records
+`seed_direction` (negative for PD, positive otherwise).
+`W` rows group warning/PENDING codes and counts. Registered static reasons are
+coded using their public wording; other free-text reasons get opaque codes and
+stay on the node. Unknown/free-text labels get per-run HMAC aliases. The random
+HMAC key is kept only in private `metric-map.local.json`, with the local alias
+map. Numeric values under unknown keys are dropped and counted in
+`W|family|UNKNOWN_NUMERIC_DROPPED|count`; numeric metadata is never treated as a
+scientific metric merely because its key was aliased. For K/CR's
+two-sided interval, the displayed upper endpoint is the symmetric counterpart
+of the native reader's lower endpoint; one-sided intervals keep upper=null. SP remains
+descriptive; DEFERRED never means a scientific admission. Only registered
+incumbent-bound X comparisons can yield admission. Cost totals are recorded
+process GPU-hours, include recorded failures, and leave unmeasured allocation,
+idle and missing timing costs PENDING. The 1,800 GPU-h tier allowance is monitored
+as a warning, never a new scientific gate.
+
+Each part starts `KIT <tag> <commit> PART k/n` and ends `SHA256 <hex>`, the SHA256
+of its exact ASCII body including the final LF, excluding header/footer.
+The body includes `T|KIT|tag|commit` and `T|PART|k|n`; the importer requires
+exact equality with the outer header, including in Part-1-only reads and FULL
+supplements. Use `--expect-commit` with the full published commit from the send
+message to additionally pin the expected kit. The
+reader restores line wraps, smart quotes, non-breaking spaces, CRLF and leading
+`> ` plus invisible U+200B-U+200F, U+2060 and U+FEFF before checking the canonical body. Part 1 also includes `RESULTS-SHA256`
+over canonical `full-results.local.json` (sorted keys, compact JSON, ASCII
+escapes, no NaN; excluding its final LF). **These detect transcription errors
+and truncation only. They do not authenticate results or independently verify
+science.** All imported decisions and metrics are PARTNER-COMPUTED with
+independent re-verification UNVERIFIED. The FULL-set digest hashes the ordered list of SHA256 hashes of each part's
+canonical content-row JSON (excluding KIT/PART/MODE/FULL-SET rows and outer framing).
+Requested supplements must match that digest/count and kit identity; when all
+FULL parts arrive, the importer verifies the aggregate digest too. These
+references provide no authentication. The full-results hash can be checked
+against the retained JSON when archives become possible again; the text alone
+cannot reconstruct private provenance or prove that digest's contents.
+
+Our side, copy **single messages**, saving each whole part as one text file.
+A multi-message copy adds timestamps and sender prefixes; these are refused as
+unframed text. Set `EXPECTED_COMMIT` to the full published commit from the send
+message, then run:
+
+```bash
+python3 scripts/read_text_return.py essential-*.txt --expect-commit "$EXPECTED_COMMIT" --out text-reading.json
+# Later, any requested FULL parts, without repasting the essential set:
+python3 scripts/read_text_return.py full-part-17.txt --base text-reading.json --expect-commit "$EXPECTED_COMMIT" --out supplemented.json
+# Part 1 alone, explicitly accepting missing essential Parts 2/3/4:
+python3 scripts/read_text_return.py pasted-part1.txt --part1-only --expect-commit "$EXPECTED_COMMIT" --out decisions.json
+```
+
+The importer rejects bad checksums (naming the part), duplicates, mixed kit
+identities and missing parts. It never guesses a damaged value. Keep **all result
+trees and local JSON files on the node**. Paste only the numbered markdown parts.
+Local settings, model/export maps, hardware maps, paths, hostnames, usernames,
+scheduler IDs and GPU UUIDs are never printed in those parts or reporter output.
+The local input map, `*.local.json` and `refusal.local.txt` are excluded from the text return.
+
+## Return (when archives are possible again)
 
 Return core evidence independently of tier status. Include:
 
@@ -203,7 +373,7 @@ Return core evidence independently of tier status. Include:
   intermediate `tables/` and canonical `verified-tables/`, including missing-entry
   and pairwise UNVERIFIED reports.
 
-Exclude **every `*.local.json`**, the operator settings file and `tier_hardware`,
+Exclude **every `*.local.json`**, `refusal.local.txt`, the operator settings file and `tier_hardware`,
 plus local model/export maps and node-pool inventories containing locations,
 hostnames or GPU UUIDs. Apply the native family redaction/collection contracts to
 returned evidence; retain private hardware/location authorities locally. Do not
