@@ -197,7 +197,7 @@ def analyse(rows, repeats=10000):
 
 def load(source):
     if source.is_dir():
-        files={str(p.relative_to(source)):p.read_bytes() for p in source.rglob('*') if p.is_file() and p.suffix in ('.csv','.gz','.json') and not {'hf-step40','weights','models','sources','data','partials'} & set(p.relative_to(source).parts)}
+        files={str(p.relative_to(source)):p.read_bytes() for p in source.rglob('*') if p.is_file() and (p.suffix in ('.csv','.gz','.json') or p == source/'hellaswag/panel.jsonl') and not {'hf-step40','weights','models','sources','data','partials'} & set(p.relative_to(source).parts)}
     elif source.name.endswith(('.csv','.csv.gz')): files={'scores.csv.gz' if source.name.endswith('.gz') else 'scores.csv':source.read_bytes()}
     else:
         with tarfile.open(source,'r:gz') as tar: files={m.name.removeprefix('return/'):tar.extractfile(m).read() for m in tar if m.isfile()}
@@ -207,9 +207,13 @@ def load(source):
             require(raw is not None and len(raw)==record['bytes'] and t.sha(raw)==record['sha256'],'returned evidence hash differs: '+record['path'])
     selected=[(n,b) for n,b in files.items() if n.startswith('scores/') and n.endswith('/scores.csv')] if source.is_dir() else []
     if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv.gz')]
-    if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv')]
+    if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv') and not n.startswith('reference-scores/')]
     rows=[]
     for n,b in selected: rows.extend(csv.DictReader(io.StringIO((gzip.decompress(b) if n.endswith('.gz') else b).decode())))
+    if 'binding.json' in files or any(n.startswith('reference-scores/') for n in files):
+        from kit.ref_guard import overlay
+        scope = json.loads(files.get('binding.json', b'{}')).get('technical_synthetic')
+        rows = overlay(rows, files, scope)
     return rows,files
 
 

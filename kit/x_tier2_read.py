@@ -236,6 +236,11 @@ def validate(evidence,doc,standin,values,p2_validation):
                         for r in values if r['arm']=='x-'+arm and int(r['seed'])==seed}
                     for step,panel in scored:
                         key=f'scores/x-{arm}-s{seed}-k{step}-{panel}/m2-identity.json'
+                        if key not in evidence and panel == 'hellaswag':
+                            from kit.ref_guard import records
+                            require(any(meta['arm'] == 'x-'+arm and meta['seed'] == seed and meta['step'] == step
+                                        and meta['panel'] == panel for meta, _ in records(evidence, standin)), 'tier-2 reference identity missing')
+                            continue
                         meta=json.loads(evidence[key])
                         require(('scoring-assignment.json' in evidence or meta['gpu_identity']==setup) and meta['binding_sha256']==binding and
                             (meta['arm'],meta['seed'],meta['step'],meta['panel'])==('x-'+arm,seed,step,panel), 'tier-2 score identity changed')

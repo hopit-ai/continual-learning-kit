@@ -184,11 +184,13 @@ def analyse(rows,repeats=10000,acquisition='math_screen'):
                 gain_questions.append(dict(seed=seed,**question_interval({q:endpoint_gain(candidate,q)-endpoint_gain(control,q) for q in left},left,repeats)))
             else:
                 auc_questions.append(dict(seed=seed,question_bootstrap_95=question_bootstrap(list(values.values()),repeats)))
-        return dict(candidate=candidate,control=control,endpoints=endpoints,question_pairs=pairs,auc_question_pairs=auc_questions,gain_question_pairs=gain_questions,survival_question_pairs=survival_pairs)
+        result = dict(candidate=candidate,control=control,endpoints=endpoints,question_pairs=pairs,auc_question_pairs=auc_questions,gain_question_pairs=gain_questions,survival_question_pairs=survival_pairs)
+        from kit.ref_guard import apply
+        return apply(result, [r for r in rows if r['arm'] in ('v4-'+candidate, 'v4-'+control)])
     for candidate,control in [('broad','generic'),('earlier','generic'),('both','broad'),('both','generic')]:comparisons.append(contrast(candidate,control))
     broad=comparisons[0];earlier=comparisons[2] if benefit(broad['endpoints']['math']) and all(protects(broad['endpoints'][p]) for p in ('survival','hellaswag',('gain' if acquisition == 'contract_nli' else 'gain_auc'),acquisition)) else comparisons[1]
     def nominated(c,primary,other):
-        return benefit(c['endpoints'][primary]) and all(protects(c['endpoints'][p]) for p in (other,'hellaswag',('gain' if acquisition == 'contract_nli' else 'gain_auc'),acquisition))
+        return c.get('status', 'COMPLETE') == 'COMPLETE' and benefit(c['endpoints'][primary]) and all(protects(c['endpoints'][p]) for p in (other,'hellaswag',('gain' if acquisition == 'contract_nli' else 'gain_auc'),acquisition))
     broad_pass=nominated(broad,'math','survival')
     earlier_pass=nominated(earlier,'survival','math')
     if earlier['candidate']=='both':earlier_pass=earlier_pass and all(protects(comparisons[3]['endpoints'][p]) for p in (('gain' if acquisition == 'contract_nli' else 'gain_auc'),acquisition))

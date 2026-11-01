@@ -15,7 +15,7 @@ import re
 import statistics
 
 SCHEMA = 'kit-text-return.v1'
-LABELS = ('PASS', 'NOT MET', 'INCONCLUSIVE', 'PENDING', 'UNVERIFIED', 'DEFERRED')
+LABELS = ('PASS', 'NOT MET', 'INCONCLUSIVE', 'PENDING', 'UNVERIFIED', 'UNVERIFIED-HARDWARE', 'DEFERRED')
 FAMILIES = ('M', 'X', 'S', 'KCR', 'PD', 'SP', '4A')
 MAX_CHARS = 12000
 
@@ -151,7 +151,8 @@ def metric_leaves(value, path='', seed='all'):
             if len(row)!=len(columns):raise ValueError('invalid metric row width')
             yield from metric_leaves(dict(zip(columns,row)),path+'/'+str(i),seed)
     elif isinstance(value, dict):
-        seed = str(value.get('seed', seed))
+        declared=value.get('seed')
+        if str(declared) in ('101','102','103','104','105'):seed=str(declared)
         if isinstance(value.get('row'),(list,tuple)) and len(value['row'])==6 and value['row'][2] in (101,102,103,104,105):seed=str(value['row'][2])
         for k, item in sorted(value.items()):
             own = k if k in ('101','102','103','104','105') else seed
@@ -164,38 +165,29 @@ def metric_leaves(value, path='', seed='all'):
 
 
 def metric_rows(family, value):
-    def pack(v,path='',seed='all'):
-        if isinstance(v,list) and len(v)>1 and all(isinstance(x,dict) for x in v) and all(set(x)==set(v[0]) for x in v):
-            columns=sorted(v[0]);rows=[];offset=0
-            def table():return {'@columns':columns,'@rows':rows,'@offset':offset}
-            for i,item in enumerate(v):
-                row=[item[k] for k in columns]
-                rows.append(row)
-                if len(canonical(table()))>1600:
-                    rows.pop()
-                    if rows:yield path,canonical(table()).replace(' ',r'\u0020'),seed
-                    offset=i;rows=[row]
-                    if len(canonical(table()))>1600:
-                        yield from pack(item,path+'/'+str(i),seed)
-                        rows=[];offset=i+1
-            if rows:yield path,canonical(table()).replace(' ',r'\u0020'),seed
-            return
-        if isinstance(v,dict):
-            seed=str(v.get('seed',seed))
-            if isinstance(v.get('row'),(list,tuple)) and len(v['row'])==6 and v['row'][2] in (101,102,103,104,105):seed=str(v['row'][2])
-        encoded=canonical(v).replace(' ',r'\u0020')
-        if len(encoded)<=1600:
-            yield path,encoded,seed
-        elif isinstance(v,dict):
-            for k,item in sorted(v.items()):
-                yield from pack(item,path+'/'+k,k if k in ('101','102','103','104','105') else seed)
-        elif isinstance(v,list):
-            for i,item in enumerate(v):
-                own=str(101+i) if path.endswith('/values') and len(v) in (3,5) else seed
-                yield from pack(item,path+'/'+str(i),own)
-        else:raise ValueError('oversize metric scalar')
-    for path,encoded,seed in pack(value):
-        yield 'R|'+family+'|reader|'+seed+'|'+path+'|'+encoded
+    # One scalar per logical key=value record; never a JSON object/table blob.
+    for path, item, seed in metric_leaves(value):
+        encoded=canonical(item).replace(' ',r'\u0020')
+        kind='z' if item is None else 'b' if isinstance(item,bool) else 'n' if isinstance(item,(int,float)) else 's'
+        yield 'R|'+family+'|reader|'+seed+'|'+path+'='+kind+':'+encoded
+
+
+def body_text(rows):
+    """Deterministic <=90-column body, restored after arbitrary chat wrapping."""
+    return ''.join('\n'.join(row[i:i+90] for i in range(0,len(row),90))+'\n' for row in rows)
+
+
+def section_counts(rows):
+    return {kind:sum(row.startswith(kind+'|') for row in rows) for kind in ('D','R','E','J','W','T')}
+
+
+def registered_decisions(scope):
+    result=set()
+    for key in scope:
+        family=re.sub(r'[0-9]+$','',key) if key!='4A' else key
+        if family not in FAMILIES:raise ValueError('invalid decision family')
+        result.update((key,d['comparison']) for d in _stub_decisions(family,{'_reader_status':'PENDING'}))
+    return result
 
 
 def decision(family, comparison, verdict, primary=None, positive=None, guards=()):
@@ -236,7 +228,7 @@ def decisions(family, r):
     elif family == 'M':
         for t in r.get('trajectories', []):
             name = t['trajectory']
-            if 'status' in t: add(name, t['status']); continue
+            if 'status' in t: continue  # Registered endpoint stubs below carry incomplete trajectories.
             for category in ('acquisition', 'retention', 'sequence_acquisition'):
                 for key, v in t.get(category, {}).items():
                     p = v.get('from_incoming', v).get('seed_bound', {})
@@ -374,7 +366,8 @@ def essential_endpoints(family, r):
                 for endpoint,v in t.get(cat,{}).items():
                     name=t['trajectory']+'.'+cat+'.'+endpoint
                     source=v.get('from_incoming',v); stat=source.get('seed_bound',{})
-                    add(name,pairs(source.get('seeds',[])),stat,bar='mean>=6;lo>0;pos=3' if endpoint=='math_hard' and cat=='acquisition' else str(v.get('margin',0)))
+                    add(name,pairs(source.get('seeds',[])),stat,bar='mean>=6;lo>0;pos=3' if endpoint=='math_hard' and cat=='acquisition' else str(v.get('margin',0)),
+                        method='seed-t REFERENCE-SCORED' if v.get('method') == 'REFERENCE-SCORED' else 'seed-t')
                     if endpoint=='contract_nli' and cat=='acquisition':
                         # Final legal accuracy is a separate absolute guard.
                         arm='legal-plain' if t['trajectory']=='plain' else 'legal-'+str(r.get('admission',{}).get('configuration'))
@@ -409,7 +402,8 @@ def essential_endpoints(family, r):
                     x,y=a[seed],b[seed]
                     left=x.get(endpoint,x.get('panel_final',{}).get(endpoint));right=y.get(endpoint,y.get('panel_final',{}).get(endpoint))
                     if left is not None and right is not None:vals[seed]=left-right
-                add(name+'.'+endpoint,vals,q,'P' if endpoint==primary else 'G','mean>=2;lo>0' if endpoint==primary else '-1')
+                add(name+'.'+endpoint,vals,q,'P' if endpoint==primary else 'G','mean>=2;lo>0' if endpoint==primary else '-1',
+                    method='seed-t REFERENCE-SCORED' if c.get('method') == 'REFERENCE-SCORED' and endpoint in ('knowledge', 'hellaswag', 'protected_mean') else 'seed-t')
             # The admission rule counts positive absolute acquisition, not
             # positive primary contrasts. Keep this distinct input explicitly.
             vals={s:x['final']-x['incoming'] for s,x in a.items()}
@@ -431,9 +425,9 @@ def essential_endpoints(family, r):
             if name not in ('K-C0','CR-G'):continue
             q=dict(c.get('primary') or {})
             if q.get('mean') is not None and q.get('lower') is not None:q.setdefault('upper',2*q['mean']-q['lower'])
-            add(name+'.primary',q.get('values'),q,bar='mean>=2;lo>0;pos=3',method='seed-t-two-sided95')
+            add(name+'.primary',q.get('values'),q,bar='mean>=2;lo>0;pos=3',method='seed-t-two-sided95 REFERENCE-SCORED' if name == 'CR-G' and c.get('method') == 'REFERENCE-SCORED' else 'seed-t-two-sided95')
             for endpoint,q in c.get('guards',{}).items():
-                add(name+'.'+endpoint,q.get('values'),q,'G','-1',method='seed-t-two-sided95',near=close(q,-1) or endpoint in c.get('failed_guards',[]))
+                add(name+'.'+endpoint,q.get('values'),q,'G','-1',method='seed-t-two-sided95 REFERENCE-SCORED' if c.get('method') == 'REFERENCE-SCORED' and endpoint.rsplit('/', 1)[-1] in ('knowledge', 'hellaswag') else 'seed-t-two-sided95',near=close(q,-1) or endpoint in c.get('failed_guards',[]))
     elif family=='PD':
         q=r.get('primary',{});add('stage2-base',r.get('seed_differences'),q,bar='mean<=-2;hi<0;negative=3',method='seed-t-two-sided95')
         vals={s:x.get('base',{}).get('final') for s,x in r.get('curves',{}).items()}
@@ -467,7 +461,7 @@ def erow(family,record,names,mapping):
     bar=r['bar']
     if re.fullmatch(r'-?[0-9]+(?:\.[0-9]+)?',bar):bar=canonical(rounded(float(bar)))
     elif bar not in ('-','mean>=6;lo>0;pos=3','mean>=2;lo>0','mean>=0.5;lo>0;pos=3','mean>=2;lo>0;pos=3','mean<=-2;hi<0;negative=3','each>=10','DESCRIPTIVE','mean>=5;lo>0;pos>=4;months>=3','positive-months>=3','mean<signal','pos=3'):bar='UNVERIFIED'
-    fields += [bar,r['method']]
+    fields += [bar,r['method'].replace(' ',':')]
     return 'E|'+'|'.join(fields)
 
 
@@ -515,6 +509,7 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     if list(out.glob('RETURN-TEXT-*.md')) or list((out/'full').glob('RETURN-TEXT-*.md')): raise ValueError('use a fresh text output directory')
     names=vocabulary();mapping=alias_context();public={};verdicts=[];endpoint_by_key={};operations_by_key={}
+    full=dict(full,readers={f:list(full['readers'].get(f) or [dict(_reader_status='DEFERRED' if f=='4A' else 'PENDING',_warning='NOT_CONFIGURED')]) for f in FAMILIES})
     serializable=dict(full,readers={f:list(rs) for f,rs in full['readers'].items()})
     def numeric_fields(values):
         if any(v is not None and (isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v)) for v in values):
@@ -522,6 +517,8 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     def render(family,r,key):
         canonical(r)
         ds=sorted(decisions(family,r),key=lambda d:d['comparison'])
+        if {(family,d['comparison']) for d in ds}!=registered_decisions([family]):
+            raise ValueError('decision presentation differs from registered scope')
         for d in ds:
             d['family']=key
             d['comparison']=safe_key(d['comparison'],names,mapping)
@@ -556,9 +553,10 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
              'T|TECHNICAL-STANDIN' if full.get('technical_synthetic') else 'T|NODE-READERS',
              'RESULTS-SHA256 ' + digest,
              'T|DECISIONS|family|comparison|verdict|estimate|lower|upper|seeds-in-registered-direction|guard-failures']
+    first += ['T|SCOPE|'+','.join(sorted(k for k in public if k!='ACCOUNTING'))]
     first += [drow(rounded(d)) for d in verdicts]
     first += ['T|JOB-INVENTORY|'+job_inventory()[1], 'T|JOBS|family|public-job-index-or-u-local-ordinal|completion'] + list(jobs or full.get('jobs',[]))
-    details = ['T|METRICS|family|comparison|seed|metric-pointer|JSON-value']
+    details = ['T|METRICS|family|comparison|seed|metric-pointer=value']
     for family, r in public.items(): details.extend(metric_rows(family, rounded(r)))
     details += ['T|COSTS|recorded-process-GPU-hours-only|missing-allocation-or-idle-is-unknown',
                 'T|TIER-ALLOWANCE|1800|KCR<=1400|PD<=264|SP<=216|warning-only',
@@ -571,14 +569,14 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     def split(rows,limit):
         chunks=[[]];size=0
         for row in rows:
-            if len(row)+1>limit:raise ValueError('metric record exceeds part limit')
-            if size+len(row)+1>limit:chunks.append([]);size=0
-            chunks[-1].append(row);size+=len(row)+1
+            if len(body_text([row]))>limit:raise ValueError('metric record exceeds part limit')
+            if size+len(body_text([row]))>limit:chunks.append([]);size=0
+            chunks[-1].append(row);size+=len(body_text([row]))
         return chunks
     # Bind the ordered FULL content (not framing/set-reference records). This
     # avoids a self-referential digest and permits requested parts in any order.
     limit=max_chars-500
-    if len('\n'.join(first))+1>limit:raise ValueError('all decisions/jobs exceed Part 1 capacity; never omit verdicts')
+    if len(body_text(first))>limit:raise ValueError('all decisions/jobs exceed Part 1 capacity; never omit verdicts')
     full_chunks=[first]+split(details,limit)
     content_hashes=[sha(canonical(chunk)) for chunk in full_chunks]
     full_digest=sha(canonical(content_hashes));full_count=len(full_chunks)
@@ -586,10 +584,12 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     def emit(directory,chunks,mode):
         directory.mkdir(parents=True,exist_ok=True);paths=[]
         for k,rows in enumerate(chunks,1):
-            body='\n'.join([f'T|KIT|{tag}|{commit}',f'T|PART|{k}|{len(chunks)}','T|MODE|'+mode,reference]+rows)+'\n'
-            text=f'KIT {tag} {commit} PART {k}/{len(chunks)}\n'+body+'SHA256 '+sha(body)+'\n'
+            counts='T|COUNTS|'+','.join(key+'='+str(value) for key,value in section_counts(rows).items())
+            body=body_text([f'T|KIT|{tag}|{commit}',f'T|PART|{k}|{len(chunks)}','T|MODE|'+mode,reference,counts]+rows)
+            text=body_text([f'KIT {tag} {commit} PART {k}/{len(chunks)}'])+body+'SHA256 '+sha(body)+'\n'
             if not text.isascii() or '\t' in text or len(text)>max_chars:raise ValueError('part capacity exceeded')
-            parse_parts([text],part1_only=True,expect_commit=commit,_single_part=True)
+            checked=parse_parts([text],part1_only=True,expect_commit=commit,_single_part=True)
+            if any(value!='MATCH' for value in checked['part_checksums'].values()):raise ValueError('internal text checksum round-trip differs')
             path=directory/f'RETURN-TEXT-{k}-of-{len(chunks)}.md';path.write_text(text,encoding='ascii');paths.append(path)
         return paths
     # Always retain FULL on the node, with stable part numbers for requests.
@@ -612,13 +612,29 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     overflow=[row for chunk in endpoint_chunks[1:]+ops_chunks[1:] for row in chunk]
     essential_chunks=[essential_first,endpoint_chunks[0],ops_chunks[0]]
     if overflow:essential_chunks.append(overflow)
-    oversized=bool(overflow) and len('\n'.join(overflow))+1>limit
+    oversized=bool(overflow) and len(body_text(overflow))>limit
     paths=[] if oversized else emit(out,essential_chunks,'ESSENTIAL')
     (out/'full-results.local.json').write_text(canonical(serializable)+'\n',encoding='ascii')
     (out/'metric-map.local.json').write_text(canonical(mapping)+'\n',encoding='ascii')
     (out/'full-set.local.json').write_text(canonical(dict(parts=full_count,sha256=full_digest,content_hashes=content_hashes))+'\n',encoding='ascii')
     if oversized and not full_detail:raise ValueError('ESSENTIAL exceeds four-part capacity; no evidence omitted; FULL retained on node')
     return full_paths if full_detail else paths
+
+
+def numeric(value, *, integer=False):
+    if value is None:return
+    if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):raise ValueError('invalid numeric field')
+    if integer and (value<0 or value!=int(value)):raise ValueError('invalid numeric count')
+
+
+def without_transcription(record):
+    return {k:v for k,v in record.items() if k!='transcription_verification'}
+
+
+def merge_record(first,second,kind):
+    if without_transcription(first)!=without_transcription(second):raise ValueError('supplement '+kind+' conflict')
+    if 'TRANSCRIPTION-UNVERIFIED' in (first['transcription_verification'],second['transcription_verification']):return dict(first,transcription_verification='TRANSCRIPTION-UNVERIFIED')
+    return first
 
 
 def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _single_part=False):
@@ -628,26 +644,32 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     Supplements retain the same transcription-only trust level as every part.
     """
     if expect_commit is not None and not re.fullmatch('[0-9a-f]{40}',expect_commit):raise ValueError('expected full 40-character commit required')
-    sets={};counts={};identity=None;reference=None
+    sets={};counts={};identity=None;reference=None;checksum_status={}
     for text in texts:
         text=re.sub('[\u200b-\u200f\u2060\ufeff]','',text)
         text=text.translate(str.maketrans({'\u201c':'"','\u201d':'"','\u2018':"'",'\u2019':"'",'\u00a0':' '})).replace('\r','')
         text=re.sub(r'(?m)^[ \t]*(?:>[ \t]+)+','',text)
         text=re.sub(r'\s+','',text)
-        frames=list(re.finditer(r'KIT([A-Za-z0-9_.-]{1,64}?)([0-9a-f]{40})PART(\d+)/(\d+)(.*?)SHA256([0-9a-f]{64})(?=KIT|$)',text,re.S))
+        header=r'KIT([A-Za-z0-9_.-]{1,64}?)([0-9a-f]{40})PART(\d+)/(\d+)'
+        frames=list(re.finditer(header+r'(.*?)(?='+header+r'|$)',text,re.S))
         if not frames:
             hint=re.search(r'PART(\d+)/(\d+)',text)
-            raise ValueError(('part '+hint[1]+': ' if hint else '')+'missing or truncated KIT/SHA256 frame')
+            raise ValueError(('part '+hint[1]+': ' if hint else '')+'missing or truncated KIT frame')
         remainder=text
         for frame in reversed(frames):remainder=remainder[:frame.start()]+remainder[frame.end():]
         if remainder:raise ValueError('unframed pasted text')
         for frame in frames:
-            tag,commit,k,n,raw,digest=frame.groups();header_numbers=(k,n);k=int(k);n=int(n)
+            tag,commit,k,n,raw=frame.groups()[:5];header_numbers=(k,n);k=int(k);n=int(n)
+            footer=re.search(r'(?<!RESULTS-)SHA256(.*)$',raw)
+            digest=None
+            if footer:
+                if not re.fullmatch('[0-9a-f]*',footer[1]):raise ValueError(f'part {k}: unframed text after checksum')
+                digest=footer[1];raw=raw[:footer.start()]
             if not 1<=k<=n:raise ValueError('invalid part number')
             own=(tag,commit)
             if identity is not None and identity!=own:raise ValueError('mixed kit identities')
             identity=own
-            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE))'
+            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE))'
             rows=[v for v in re.split('(?='+prefix+')',raw) if v];restored=[]
             for row in rows:
                 if row.startswith('RESULTS-SHA256'):row='RESULTS-SHA256 '+row[len('RESULTS-SHA256'):]
@@ -657,17 +679,17 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
                     if fields[3]=='NOTMET':fields[3]='NOT MET'
                     row='|'.join(fields)
                 restored.append(row)
-            body='\n'.join(restored)+'\n'
+            body=body_text(restored)
             try:matches=sha(body)==digest
             except UnicodeEncodeError:matches=False
-            if not matches:raise ValueError(f'part {k}: checksum failed')
+            # V5: a checksum is advisory; structural validation remains mandatory.
             kits=[row for row in restored if row.startswith('T|KIT|')]
             numbering=[row for row in restored if row.startswith('T|PART|')]
             if kits!=[f'T|KIT|{tag}|{commit}'] or numbering!=['T|PART|'+'|'.join(header_numbers)]:raise ValueError(f'part {k}: header/body identity mismatch')
             if expect_commit is not None and commit!=expect_commit:raise ValueError(f'part {k}: unexpected kit commit')
             modes=[row.split('|')[2] for row in restored if row.startswith('T|MODE|')]
-            if len(modes)>1 or (modes and modes[0] not in ('ESSENTIAL','FULL')):raise ValueError('invalid mode')
-            mode=modes[0] if modes else 'FULL'  # legacy FULL parts remain readable
+            if len(modes)!=1 or modes[0] not in ('ESSENTIAL','FULL'):raise ValueError('missing or invalid mode')
+            mode=modes[0]
             if mode=='ESSENTIAL' and n>4:raise ValueError('ESSENTIAL exceeds four parts')
             refs=[row.split('|')[2:] for row in restored if row.startswith('T|FULL-SET|')]
             if modes and len(refs)!=1:raise ValueError('missing FULL set reference')
@@ -680,7 +702,14 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
             if mode in counts and counts[mode]!=n:raise ValueError('mixed kit part counts')
             counts[mode]=n;parts=sets.setdefault(mode,{})
             if k in parts:raise ValueError(f'duplicate part {k} ({mode})')
+            counter=[row for row in restored if row.startswith('T|COUNTS|')]
+            if len(counter)!=1:raise ValueError(f'part {k}: missing section row counts')
+            if counter:
+                payload=[row for row in restored if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))]
+                wanted='T|COUNTS|'+','.join(key+'='+str(value) for key,value in section_counts(payload).items())
+                if counter!=[wanted]:raise ValueError(f'part {k}: section row counts differ')
             parts[k]=restored
+            checksum_status[mode+':'+str(k)]='MATCH' if matches else 'TRANSCRIPTION-UNVERIFIED'
     if base is not None:
         if base.get('provenance')!='PARTNER-COMPUTED' or base.get('independent_reverification')!='UNVERIFIED':raise ValueError('invalid local base reading')
         if identity!=(base['kit_tag'],base['kit_commit']):raise ValueError('mixed kit identities')
@@ -694,30 +723,61 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
         if 1 not in parts:raise ValueError('missing part 1')
         if missing and not(part1_only and set(parts)=={1}):raise ValueError('missing parts: '+','.join(map(str,missing)))
     verdicts=[];metrics={};jobs=[];endpoints={};warnings=[];results_hash=None;inventory_hash=None
-    seen_metric=set();seen_job=set();seen_warning=set()
+    seen_metric=set();seen_job=set();seen_warning=set();seen_decisions={};scopes={}
     for mode in ('ESSENTIAL','FULL'):
         for k,rows in sorted(sets.get(mode,{}).items()):
+            transcription=checksum_status[mode+':'+str(k)]
+            def annotate(record):
+                return dict(record,transcription_verification=transcription)
             for row in rows:
                 f=row.split('|')
                 if row.startswith('RESULTS-SHA256 '):
                     if k!=1:raise ValueError('results digest outside part 1')
                     h=row.split()[1]
+                    if not re.fullmatch('[0-9a-f]{64}',h):raise ValueError('invalid RESULTS digest')
                     if results_hash is not None and h!=results_hash:raise ValueError('mixed RESULTS digests')
                     results_hash=h
+                elif f[:2]==['T','SCOPE']:
+                    if k!=1 or mode in scopes or len(f)!=3:raise ValueError('invalid decision scope')
+                    scope=f[2].split(',')
+                    if len(set(scope))!=len(scope) or {re.sub(r'[0-9]+$','',x) if x!='4A' else x for x in scope}!=set(FAMILIES):raise ValueError('incomplete decision family scope')
+                    scopes[mode]=scope
                 elif f[0]=='D':
                     if k!=1:raise ValueError('decision outside part 1')
+                    if len(f)!=9:raise ValueError('invalid decision record')
                     if f[3] not in LABELS:raise ValueError('unknown verdict')
                     d=dict(family=f[1],comparison=f[2],verdict=f[3],estimate=json.loads(f[4]),lower=json.loads(f[5]),upper=json.loads(f[6]),seeds_in_direction=json.loads(f[7]),seed_direction='negative' if f[1].startswith('PD') else 'positive',guards=[] if f[8]=='-' else f[8].split(','),provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
+                    for name in ('estimate','lower','upper'):numeric(d[name])
+                    numeric(d['seeds_in_direction'],integer=True)
+                    if d['seeds_in_direction'] is not None and d['seeds_in_direction']>(5 if f[1].startswith('4A') else 3):raise ValueError('invalid numeric seed count')
+                    if d['lower'] is not None and d['upper'] is not None and d['lower']>d['upper']:raise ValueError('invalid interval ordering')
+                    decision_key=(f[1],f[2])
+                    if decision_key in seen_decisions.setdefault(mode,set()):raise ValueError('duplicate decision line')
+                    seen_decisions[mode].add(decision_key)
+                    d=annotate(d)
                     if mode==main:verdicts.append(d)
-                    elif not supplement_only and d not in verdicts:raise ValueError('FULL decisions differ from ESSENTIAL')
+                    elif not supplement_only and without_transcription(d) not in [without_transcription(v) for v in verdicts]:raise ValueError('FULL decisions differ from ESSENTIAL')
                 elif f[0]=='R':
-                    if len(f)!=6:raise ValueError('invalid metric record')
-                    for pointer,value,seed in metric_leaves(json.loads(f[5]),f[4],f[3]):
+                    if len(f)==5 and '=' in f[4]:
+                        pointer,raw_value=f[4].rsplit('=',1)
+                        kind=None
+                        if re.match(r'^[nbzs]:',raw_value):kind,raw_value=raw_value.split(':',1)
+                        value=json.loads(raw_value)
+                        if isinstance(value,(dict,list)):raise ValueError('metric must be scalar')
+                        if kind=='n':numeric(value)
+                        if kind=='n' and value is None or kind=='b' and not isinstance(value,bool) or kind=='z' and value is not None or kind=='s' and not isinstance(value,str):raise ValueError('invalid metric scalar type')
+                        decoded=[(pointer,value,f[3])]
+                    elif len(f)==6:decoded=metric_leaves(json.loads(f[5]),f[4],f[3])
+                    else:raise ValueError('invalid metric record')
+                    if f[3] not in ('all','101','102','103','104','105'):raise ValueError('invalid metric seed')
+                    for pointer,value,seed in decoded:
+                        if isinstance(value,(int,float)) and not isinstance(value,bool):numeric(value)
                         key=f[1]+pointer
                         if (mode,key) in seen_metric:raise ValueError('duplicate metric')
                         seen_metric.add((mode,key))
                         record=dict(family=f[1],comparison=f[2],seed=seed,metric=pointer,value=value,provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
-                        if key in metrics and metrics[key]!=record:raise ValueError('supplement metric conflict')
+                        record=annotate(record)
+                        if key in metrics:record=merge_record(metrics[key],record,'metric')
                         metrics[key]=record
                 elif f[0]=='E':
                     if len(f)!=13 or mode!='ESSENTIAL':raise ValueError('invalid essential endpoint')
@@ -728,16 +788,29 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
                         seeds=list(range(101,101+len(values))) if method!='months2-6' else None,
                         mean=json.loads(f[5]),sd=json.loads(f[6]),lower=json.loads(f[7]),upper=json.loads(f[8]),seeds_in_direction=json.loads(f[9]),seed_direction='negative' if f[1].startswith('PD') else 'positive',n=json.loads(f[10]),bar=f[11],method=method,
                         provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
+                    if not isinstance(values,list):raise ValueError('invalid endpoint values')
+                    for v in values:numeric(v)
+                    for name in ('mean','sd','lower','upper'):numeric(endpoints[key][name])
+                    for name in ('seeds_in_direction','n'):numeric(endpoints[key][name],integer=True)
+                    endpoints[key]=annotate(endpoints[key])
                 elif f[0]=='W':
                     if len(f)!=4:raise ValueError('invalid warning record')
+                    numeric(int(f[3]),integer=True)
                     if row not in seen_warning:
-                        warnings.append(dict(family=f[1],code=f[2],count=int(f[3]),provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED'));seen_warning.add(row)
+                        warnings.append(annotate(dict(family=f[1],code=f[2],count=int(f[3]),provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_warning.add(row)
                 elif f[:2]==['T','JOB-INVENTORY']:
                     if inventory_hash is not None and inventory_hash!=f[2]:raise ValueError('mixed job inventories')
                     inventory_hash=f[2]
                 elif f[0]=='J':
+                    if len(f)!=4 or f[3] not in ('DONE','FAILED','PENDING'):raise ValueError('invalid job record')
                     if row not in seen_job:
-                        jobs.append(dict(family=f[1],job=f[2],status=f[3],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED'));seen_job.add(row)
+                        jobs.append(annotate(dict(family=f[1],job=f[2],status=f[3],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_job.add(row)
+                elif f[0]!='T' or f[1] not in {'KIT','PART','MODE','FULL-SET','COUNTS','ENDPOINTS','PARTNER-COMPUTED','TECHNICAL-STANDIN','NODE-READERS','DECISIONS','JOBS','METRICS','COSTS','TIER-ALLOWANCE','WARNINGS','CHECKSUM-SCOPE'}:
+                    raise ValueError(f'part {k}: unknown or damaged record')
+    for mode,scope in scopes.items():
+        if seen_decisions.get(mode,set())!=registered_decisions(scope):raise ValueError('missing or unexpected registered decision line')
+    for mode in sets:
+        if 1 in sets[mode] and mode not in scopes and any(row.startswith('T|MODE|') for row in sets[mode][1]):raise ValueError('missing decision scope')
     labels,local_hash=job_inventory()
     for job in jobs:
         resolved=[]
@@ -752,14 +825,15 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     if not supplement_only and (not _single_part or 1 in parts) and (results_hash is None or not verdicts):raise ValueError('part 1 lacks decisions/results digest')
     full_parts=sets.get('FULL',{})
     if reference and len(full_parts)==reference[0]:
-        content=[[row for row in full_parts[k] if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|'))] for k in range(1,reference[0]+1)]
-        if sha(canonical([sha(canonical(chunk)) for chunk in content]))!=reference[1]:raise ValueError('FULL set digest failed')
+        content=[[row for row in full_parts[k] if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))] for k in range(1,reference[0]+1)]
+        if sha(canonical([sha(canonical(chunk)) for chunk in content]))!=reference[1]:
+            checksum_status['FULL-SET']='TRANSCRIPTION-UNVERIFIED'
     result=dict(schema=SCHEMA,kit_tag=identity[0],kit_commit=identity[1],mode=main,complete=not missing,missing_parts=missing,results_sha256=results_hash,job_inventory_sha256=inventory_hash,decisions=verdicts,metrics=metrics,jobs=jobs,endpoints=endpoints,warnings=warnings,
         full_part_count=reference[0] if reference else counts.get('FULL'),full_set_sha256=reference[1] if reference else None,
-        received_full_parts=sorted(full_parts),
+        received_full_parts=sorted(full_parts),part_checksums=checksum_status,
         # Retain verified part hashes to reject conflicting/repeated later text.
         full_part_hashes={str(k):sha('\n'.join(rows)+'\n') for k,rows in full_parts.items()},
-        full_content_hashes={str(k):sha(canonical([row for row in rows if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|'))])) for k,rows in full_parts.items()},
+        full_content_hashes={str(k):sha(canonical([row for row in rows if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))])) for k,rows in full_parts.items()},
         provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
     if base is not None:
         if not supplement_only:raise ValueError('base accepts FULL supplements only')
@@ -767,7 +841,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     result['detail_complete']=len(result['received_full_parts'])==result['full_part_count']
     if result['detail_complete'] and result['full_set_sha256']:
         hashes=[result['full_content_hashes'][str(k)] for k in range(1,result['full_part_count']+1)]
-        if sha(canonical(hashes))!=result['full_set_sha256']:raise ValueError('FULL set digest failed')
+        if sha(canonical(hashes))!=result['full_set_sha256']:result['part_checksums']['FULL-SET']='TRANSCRIPTION-UNVERIFIED'
     result['missing_full_parts']=sorted(set(range(1,result['full_part_count']+1))-set(result['received_full_parts']))
     return result
 
@@ -776,19 +850,19 @@ def merge_supplement(base, supplement):
     """Merge verified later FULL pages into an owner-local ESSENTIAL reading."""
     result=dict(base)
     if supplement.get('results_sha256') and supplement['results_sha256']!=base['results_sha256']:raise ValueError('mixed RESULTS digests')
-    if supplement['decisions'] and supplement['decisions']!=base['decisions']:raise ValueError('supplement decision conflict')
+    if supplement['decisions'] and [without_transcription(v) for v in supplement['decisions']]!=[without_transcription(v) for v in base['decisions']]:raise ValueError('supplement decision conflict')
     hashes=dict(base.get('full_part_hashes',{}))
     for k,h in supplement['full_part_hashes'].items():
         if k in hashes:raise ValueError('duplicate FULL supplement part '+k)
         hashes[k]=h
+    result['part_checksums']={**base.get('part_checksums',{}),**supplement.get('part_checksums',{})}
     result['full_content_hashes']={**base.get('full_content_hashes',{}),**supplement['full_content_hashes']}
     result['full_part_hashes']=hashes;result['received_full_parts']=sorted(map(int,hashes))
     metrics=dict(base['metrics'])
     for key,v in supplement['metrics'].items():
-        if key in metrics and metrics[key]!=v:raise ValueError('supplement metric conflict')
-        metrics[key]=v
+        metrics[key]=merge_record(metrics[key],v,'metric') if key in metrics else v
     result['metrics']=metrics
     result['warnings']=base['warnings']+[w for w in supplement['warnings'] if w not in base['warnings']]
     # FULL's job summary is identical to the ESSENTIAL summary, not extra jobs.
-    if supplement['jobs'] and supplement['jobs']!=base['jobs']:raise ValueError('supplement job conflict')
+    if supplement['jobs'] and [without_transcription(v) for v in supplement['jobs']]!=[without_transcription(v) for v in base['jobs']]:raise ValueError('supplement job conflict')
     return result

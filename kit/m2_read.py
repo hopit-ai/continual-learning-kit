@@ -44,7 +44,12 @@ def analyse(rows, doc, admitted=None, repeats=10000):
     def bar(arm,step,ref,refstep,p,margin,strict=False):
         c=contrast(arm,step,ref,refstep,p)
         result=dict(**c,margin=margin,status=status(c['seed_bound'],margin,strict))
-        if p=='knowledge':
+        if p in ('knowledge','hellaswag'):
+            from kit.ref_guard import apply, METHOD
+            cells=[r for (a,seed,k,panel),group in groups.items() if panel==p and
+                   ((a,k)==(arm,step) or (a,k)==(ref,refstep)) for r in group.values()]
+            apply(result, cells)
+        if p=='knowledge' and result['status'] not in ('UNVERIFIED-HARDWARE',) and result.get('reason') != 'MIXED-SCORERS' and not all(r.get('_guard_method') == METHOD for r in cells):
             from kit.m2_format import letter_valid,letter_cells
             cells=[r for (a,seed,k,panel),group in groups.items() if panel==p and
                    ((a,k)==(arm,step) or (a,k)==(ref,refstep)) for r in group.values()]

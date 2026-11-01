@@ -204,7 +204,31 @@ def accounting(readers):
                 allocation_idle_reconciliation='PENDING',budget_gate=False)
 
 
-def report(inputs, out, *, standin=False, tag='kit-message-v3', commit=None, max_chars=12000, bootstrap=10000, full_detail=False):
+def kit_identity(tag=None, commit=None):
+    """Prefer the actual checked-out release over an older export's build label.
+
+    Plain copied kits have no Git metadata and use their frozen identity file.
+    Explicit overrides are useful for synthetic transport tests and never grant
+    scientific verification or launch authority.
+    """
+    if tag is not None and commit is not None:
+        return tag,commit
+    root=Path(__file__).resolve().parent
+    try:
+        actual_commit=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True,stderr=subprocess.DEVNULL).strip()
+        actual_tag=subprocess.check_output(['git','-C',str(root),'describe','--tags','--exact-match','--match','kit-*','HEAD'],text=True,stderr=subprocess.DEVNULL).strip()
+        ident=dict(tag=actual_tag,commit=actual_commit)
+    except (OSError,subprocess.CalledProcessError):
+        identity=root/'KIT-IDENTITY.json'
+        if identity.exists():
+            ident=read(identity)
+        else:
+            actual_commit=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True,stderr=subprocess.DEVNULL).strip()
+            ident=dict(tag='untagged',commit=actual_commit)
+    return tag if tag is not None else ident['tag'],commit if commit is not None else ident['commit']
+
+
+def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000, bootstrap=10000, full_detail=False):
     readers={}; out=Path(out)
     with tempfile.TemporaryDirectory(prefix='text-readers-') as tmp:
         for family in FAMILIES:
@@ -245,12 +269,7 @@ def report(inputs, out, *, standin=False, tag='kit-message-v3', commit=None, max
     if not jobs: jobs=['J|core|unknown|PENDING','J|KCR|unknown|PENDING','J|PD|unknown|PENDING','J|SP|unknown|PENDING']
     full=dict(schema=SCHEMA,technical_synthetic=standin,readers=readers,accounting=accounting(readers),jobs=jobs)
     # S collector costs are node-local input measurements, not bootstrap samples.
-    if commit is None:
-        identity=Path(__file__).with_name('KIT-IDENTITY.json')
-        if identity.exists():
-            ident=read(identity);commit=ident['commit'];tag=ident['tag']
-        else:
-            commit=subprocess.check_output(['git','-C',str(Path(__file__).resolve().parent),'rev-parse','HEAD'],text=True,stderr=subprocess.DEVNULL).strip()
+    tag,commit=kit_identity(tag,commit)
     paths=write_parts(out,full,tag,commit,jobs,max_chars,full_detail=full_detail)
     (out/'job-map.local.json').write_text(canonical(private_jobs)+'\n')
     return paths
@@ -259,7 +278,7 @@ def report(inputs, out, *, standin=False, tag='kit-message-v3', commit=None, max
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--inputs',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
-    p.add_argument('--kit-tag',default='kit-message-v3');p.add_argument('--kit-commit')
+    p.add_argument('--kit-tag');p.add_argument('--kit-commit')
     p.add_argument('--full',action='store_true',help='select numbered FULL parts (both sets are always written)')
     p.add_argument('--standin',action='store_true');p.add_argument('--max-chars',type=int,default=12000)
     a=p.parse_args(argv)

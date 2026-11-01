@@ -28,6 +28,25 @@ from text_return_fixtures import full_inputs, m3_cells
 COMMIT='a'*40
 
 
+def test_actual_release_identity_overrides_stale_export_label(tmp_path):
+    """A v4 checkout must not repeat a v3 publisher's stale identity label."""
+    kit=tmp_path/'kit';kit.mkdir()
+    (kit/'KIT-IDENTITY.json').write_text(json.dumps(dict(tag='kit-message-v3',commit='b'*40)))
+    with patch.object(report,'__file__',str(kit/'report_text.py')),patch.object(report.subprocess,'check_output',side_effect=[COMMIT,'kit-message-v4']):
+        parts=report.report({},tmp_path/'text')
+    assert parts[0].read_text().startswith(f'KIT kit-message-v4 {COMMIT} PART 1/')
+    parsed=transport.parse_parts([p.read_text() for p in parts])
+    assert parsed['kit_tag']=='kit-message-v4' and parsed['kit_commit']==COMMIT
+
+
+def test_plain_export_identity_and_commit_override_preserve_actual_tag(tmp_path):
+    kit=tmp_path/'kit';kit.mkdir()
+    (kit/'KIT-IDENTITY.json').write_text(json.dumps(dict(tag='kit-message-v4',commit=COMMIT)))
+    with patch.object(report,'__file__',str(kit/'report_text.py')),patch.object(report.subprocess,'check_output',side_effect=OSError('no Git installed')):
+        assert report.kit_identity()==('kit-message-v4',COMMIT)
+        assert report.kit_identity(commit='c'*40)==('kit-message-v4','c'*40)
+
+
 def mangle(text):
     """Hard wraps even hashes/numbers, quotes each physical line, adds CRLF/NBSP."""
     lines=[]
@@ -123,7 +142,7 @@ def test_full_privacy_and_part_sizes(full,capsys):
     _,_,parts,secrets=full
     combined='\n'.join(p.read_text() for p in parts)
     for secret in secrets:assert secret not in combined
-    assert all(p.read_text().isascii() and '\t' not in p.read_text() and len(p.read_text())<=12000 for p in parts)
+    assert all(p.read_text().isascii() and '\t' not in p.read_text() and len(p.read_text())<=12000 and max(map(len,p.read_text().splitlines()))<=90 for p in parts)
     assert all(p.name==f'RETURN-TEXT-{k}-of-{len(parts)}.md' for k,p in enumerate(parts,1))
     assert all(s not in capsys.readouterr().out for s in secrets)
 
@@ -140,20 +159,48 @@ def test_checksum_is_sha256_of_exact_body(small):
         assert hashlib.sha256(''.join(lines[1:-1]).encode('ascii')).hexdigest()==lines[-1].split()[1]
 
 
-@pytest.mark.parametrize('kind',['number','delete','footer'])
-def test_checksum_failure_names_part(small,kind):
+@pytest.mark.parametrize('kind',['number','footer'])
+def test_checksum_failure_is_advisory_and_names_part(small,kind):
     text=small[1]
     if kind=='number':text=text.replace('|1800|','|1801|')
-    elif kind=='delete':text=text.replace('T|COSTS|','T|COSTX|')
-    else:text=text[:-10]+'0'*9+'\n'
-    with pytest.raises(ValueError,match='part 2: checksum failed'):transport.parse_parts([small[0],text])
+    else:
+        start=text.rfind('SHA256 ')+7
+        text=text[:start]+('0' if text[start]!='0' else '1')+text[start+1:]
+    parsed=transport.parse_parts([mangle(small[0]),mangle(text)])
+    assert parsed['part_checksums']['FULL:2']=='TRANSCRIPTION-UNVERIFIED'
+    assert all(r['transcription_verification']=='TRANSCRIPTION-UNVERIFIED' for r in parsed['metrics'].values())
+
+
+def test_structural_damage_is_reported_even_with_advisory_checksums(small):
+    with pytest.raises(ValueError,match='row counts|damaged|invalid'):
+        transport.parse_parts([small[0],small[1].replace('T|COSTS|','T|COSTX|')])
+    for change,reason in ((lambda rows:rows+[next(r for r in rows if r.startswith('D|'))],'duplicate decision'),
+                          (lambda rows:[r for r in rows if not r.startswith('D|PD|')],'registered decision'),
+                          (lambda rows:[r.replace('|null|','|"bad"|',1) if r.startswith('D|PD|') else r for r in rows],'numeric')):
+        rows=logical_rows(small[0]);rows=change(rows)
+        # Keep the structural counts internally consistent: the independent
+        # decision registry must still catch omission/duplication.
+        payload=[r for r in rows if not r.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))]
+        counts='T|COUNTS|'+','.join(k+'='+str(v) for k,v in transport.section_counts(payload).items())
+        rows=[counts if r.startswith('T|COUNTS|') else r for r in rows]
+        damaged=small[0].splitlines()[0]+'\n'+transport.body_text(rows)+small[0].splitlines()[-1]+'\n'
+        with pytest.raises(ValueError,match=reason):transport.parse_parts([damaged],True)
+
+
+def logical_rows(text):
+    """Recover the writer's logical rows without making transport assumptions."""
+    raw=''.join(text.splitlines()[1:-1])
+    prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE))'
+    return [r for r in re.split('(?='+prefix+')',raw) if r]
 
 
 def test_missing_duplicate_mixed_and_truncation_refused(small):
     with pytest.raises(ValueError,match='missing parts'):transport.parse_parts([small[0]])
     with pytest.raises(ValueError,match='duplicate part 1'):transport.parse_parts([small[0],small[0]])
     with pytest.raises(ValueError,match='mixed kit'):transport.parse_parts([small[0],small[1].replace(COMMIT,'b'*40)])
-    with pytest.raises(ValueError):transport.parse_parts([small[0],small[1][:-40]])
+    # Truncating a checksum is advisory; truncating body rows is structural.
+    rows=logical_rows(small[1]);damaged=small[1].splitlines()[0]+'\n'+transport.body_text(rows[:-1])
+    with pytest.raises(ValueError,match='row counts'):transport.parse_parts([small[0],damaged])
     with pytest.raises(ValueError,match='unframed|missing or truncated'):transport.parse_parts([small[0]+'extra',small[1]])
 
 
@@ -213,7 +260,7 @@ def test_parser_cli_and_part1(small,tmp_path):
     assert json.loads(out.read_text())['independent_reverification']=='UNVERIFIED'
     path.write_text(small[0].replace('D|M|','D|X|',1));out.unlink()
     done=subprocess.run([sys.executable,str(ROOT/'scripts/read_text_return.py'),str(path),'--part1-only','--out',str(out)],capture_output=True,text=True)
-    assert done.returncode==2 and 'part 1: checksum failed' in done.stderr and not out.exists()
+    assert done.returncode==2 and ('duplicate decision' in done.stderr or 'registered decision' in done.stderr) and not out.exists()
 
 
 def test_canonical_results_digest_survives_integer_key_json_reload():
@@ -267,21 +314,18 @@ def test_nonfinite_tier_result_cannot_block_core_text(tmp_path):
 
 
 def test_chat_quote_removal_preserves_a_wrapped_greater_than(small):
-    # Exercise the backwards-compatible legacy FULL frame, whose checksum
-    # predates the new aggregate FULL-set binding.
-    legacy=[]
-    for text in small:
-        lines=text.splitlines();body='\n'.join(x for x in lines[1:-1] if not x.startswith(('T|MODE|','T|FULL-SET|')))+'\n'
-        legacy.append(lines[0]+'\n'+body+'SHA256 '+transport.sha(body)+'\n')
-    lines=legacy[1].splitlines()
-    rows=lines[1:-1]+['R|M|reader|all|/finqa>base|3']
-    body='\n'.join(rows)+'\n'
-    text=lines[0]+'\n'+body+'SHA256 '+transport.sha(body)+'\n'
+    # Keep all v5 structural metadata while adding a greater-than metric.
+    rows=logical_rows(small[1])+['R|M|reader|all|/finqa>base=n:3']
+    payload=[r for r in rows if not r.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))]
+    counts='T|COUNTS|'+','.join(k+'='+str(v) for k,v in transport.section_counts(payload).items())
+    rows=[counts if r.startswith('T|COUNTS|') else r for r in rows]
+    body=transport.body_text(rows)
+    text=small[1].splitlines()[0]+'\n'+body+'SHA256 '+transport.sha(body)+'\n'
     # A hard wrap immediately before '>' produces '> >base...' when quoted.
     # Only the first '> ' is chat markup; the second '>' is metric content.
     text=text.replace('/finqa>base','/finqa\n>base')
     pasted='\r\n'.join('> '+line for line in text.splitlines())+'\r\n'
-    result=transport.parse_parts([mangle(legacy[0]),pasted])
+    result=transport.parse_parts([mangle(small[0]),pasted])
     assert result['metrics']['M/finqa>base']['value']==3
 
 
@@ -298,7 +342,7 @@ def test_essential_default_exhaustive_size_all_verdicts_and_privacy(essential,fu
     raw,parts=essential
     assert 3<=len(parts)<=4
     texts=[p.read_text() for p in parts]
-    assert all(len(t)<=12000 and t.isascii() and '\t' not in t for t in texts)
+    assert all(len(t)<=12000 and t.isascii() and '\t' not in t and max(map(len,t.splitlines()))<=90 for t in texts)
     result=transport.parse_parts(texts)
     assert result==transport.parse_parts([mangle(t) for t in reversed(texts)])
     old=transport.parse_parts([p.read_text() for p in full[2]])
@@ -354,8 +398,8 @@ def test_supplements_merge_any_full_part_and_later_cli(essential,tmp_path):
 
 def test_essential_overflow_fourth_page_and_fail_closed(essential,tmp_path):
     raw,_=essential
-    parts=transport.write_parts(tmp_path/'four',raw,'kit-message-v3',COMMIT,max_chars=7000)
-    assert len(parts)==4 and all(len(p.read_text())<=7000 for p in parts)
+    parts=transport.write_parts(tmp_path/'four',raw,'kit-message-v3',COMMIT,max_chars=8000)
+    assert len(parts)==4 and all(len(p.read_text())<=8000 for p in parts)
     parsed=transport.parse_parts([mangle(p.read_text()) for p in parts])
     original=transport.parse_parts([p.read_text() for p in essential[1]])
     assert parsed['endpoints']==original['endpoints'] and parsed['decisions']==original['decisions']
@@ -391,7 +435,9 @@ def test_header_one_character_errors_refused(small,field,part1_only):
     elif field=='n':header=header[:-1]+str(int(header[-1])+1)
     elif field=='leading_k':header=header.replace('PART 1/','PART 01/')
     elif field=='leading_n':header=header.replace('/2','/02')
-    else:header=header.replace('kit-message-v3','kit-message-v4')
+    else:
+        tag=header.split()[1]
+        header=header.replace(tag,tag[:-1]+('x' if tag[-1]!='x' else 'y'),1)
     with pytest.raises(ValueError,match='header/body identity mismatch'):
         transport.parse_parts([header+'\n'+body],part1_only=part1_only)
 
@@ -526,3 +572,41 @@ def test_malformed_numeric_fields_never_print_private_strings(tmp_path,bad_field
     result=transport.parse_parts([p.read_text() for p in paths])
     assert all(d['verdict']=='UNVERIFIED' and d['guards']==['READER_ERROR'] for d in result['decisions'] if d['family']=='S')
     assert secret not in ''.join(p.read_text() for p in (tmp_path/'text').rglob('RETURN-TEXT-*.md'))
+
+
+def test_metric_numeric_type_damage_reported_with_advisory_checksum(small):
+    text=small[1]
+    damaged=re.sub(r'=n:-?[0-9.]+(?:e[+-]?[0-9]+)?','=n:"bad"',text,count=1)
+    assert damaged!=text
+    with pytest.raises(ValueError,match='numeric'):transport.parse_parts([small[0],damaged])
+
+
+def test_altered_wrapped_part1_value_is_kept_with_transcription_label(small):
+    rows=logical_rows(small[0])
+    row=next(r for r in rows if r.startswith('D|PD|'))
+    fields=row.split('|');fields[4]='1.25'
+    changed=small[0].splitlines()[0]+'\n'+transport.body_text(['|'.join(fields) if r==row else r for r in rows])+small[0].splitlines()[-1]+'\n'
+    parsed=transport.parse_parts([mangle(changed)],part1_only=True)
+    assert all(d['transcription_verification']=='TRANSCRIPTION-UNVERIFIED' for d in parsed['decisions'])
+    assert next(d for d in parsed['decisions'] if d['family']=='PD')['estimate']==1.25
+
+
+def test_missing_or_truncated_checksum_is_advisory_when_structure_is_intact(small):
+    for suffix in ('','SHA256 ','SHA256 abc123'):
+        altered=[text[:text.rfind('SHA256 ')]+suffix+'\n' for text in small]
+        parsed=transport.parse_parts(altered)
+        assert all(value=='TRANSCRIPTION-UNVERIFIED' for value in parsed['part_checksums'].values())
+        assert all(d['transcription_verification']=='TRANSCRIPTION-UNVERIFIED' for d in parsed['decisions'])
+
+
+def test_nonexperimental_seed_metadata_does_not_become_an_experiment_seed():
+    rows=list(transport.metric_rows('M',{'records':[{'seed':None,'mean':1},{'seed':0,'mean':2},{'seed':101,'mean':3}]}))
+    assert all(row.split('|')[3]=='all' for row in rows[:4])
+    assert all(row.split('|')[3]=='101' for row in rows[4:])
+
+
+@pytest.mark.parametrize('marker',['T|MODE|','T|COUNTS|','T|SCOPE|'])
+def test_structural_metadata_cannot_be_dropped_to_enable_legacy_fallback(small,marker):
+    rows=[r for r in logical_rows(small[0]) if not r.startswith(marker)]
+    text=small[0].splitlines()[0]+'\n'+transport.body_text(rows)+small[0].splitlines()[-1]+'\n'
+    with pytest.raises(ValueError,match='mode|row counts|scope'):transport.parse_parts([text],True)

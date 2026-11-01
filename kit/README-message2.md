@@ -63,6 +63,9 @@ partition/RAID ancestry and needs no /dev nodes or PATH shims for bind-mounted /
 The 29 October rules supersede the historical send-time nomination prose in the
 serial reference below. Real `m2_send`/`m2_bind` require `--decisions`,
 `--return1-archives` and `--rescore-paths`, in addition to their existing inputs.
+For node binding from a live B export tree, also pass `--b-archive` with
+the original inner B archive (settings `bind.b_archive`); its bytes are checked
+against the fixed shipped public expectation before the local `--expect`.
 Use the original `package-c-return.tar.gz`, `next-return-1.tar.gz` and
 `math-hard-teacher-return.tar.gz` in that directory. Their exact original hashes
 and the reviewed decisions-file hash are frozen in `send-binding.json`. The
@@ -84,7 +87,7 @@ bind command:
 --decisions "$REPO/kit/resources/m2/return1-decisions.json" \
 --return1-archives /absolute/original-return1 \
 --rescore-paths /absolute/send/rescore-paths.json \
---format-check /absolute/send/hellaswag-format-check.attempt1.json
+--format-check "$KIT/resources/m2/receipts/hellaswag-format-check.attempt2.json"
 ```
 
 **RE-PROBE runs first.** R0 freezes the fixed ARC pool/prompt/strict parser and
@@ -129,14 +132,16 @@ the generator owns the reviewed row definitions and dependency graph:
     "finqa": "/staged/finqa"
   },
   "bind": {
-    "b_source": "/staged/B", "b_reading": "/send/b-reading.json",
+    "b_source": "/staged/B", "b_archive": "/original/p3b-return2.tar.gz",
+    "b_reading": "/send/b-reading.json",
     "c_source": "/staged/C", "checkpoints": "/send/checkpoints.json",
     "teacher_source": "/staged/math-hard-teacher",
     "expect": "/send/send-binding.json",
     "decisions": "/repo/kit/resources/m2/return1-decisions.json",
     "return1_archives": "/staged/original-return1",
     "rescore_paths": "/send/rescore-paths.json",
-    "format_check": "/send/hellaswag-format-check.attempt1.json"
+    "format_check": "/repo/kit/resources/m2/receipts/hellaswag-format-check.attempt2.json",
+    "arc_prompt_check": "/repo/kit/resources/m2/arc-prompt-FROZEN.json"
   },
   "next_source": "/staged/NEXT",
   "pools": {
@@ -148,7 +153,7 @@ the generator owns the reviewed row definitions and dependency graph:
     "panel_root": "/staged/finqa", "hellaswag": "/staged/NEXT/hellaswag"
   },
   "screen": {"spec": "/send/s-spec.json", "sources": "/send/s-sources.json"},
-  "addon": {"spec": "/send/x-spec.json", "smoke": "/send/p2-smoke.json"}
+  "addon": {"spec": "/send/x-spec.json", "smoke": "/repo/kit/resources/m2/receipts/p2-smoke.attempt5.json"}
 }
 ```
 
@@ -438,20 +443,15 @@ export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 ```
 
 `C_OUT` must be the full durable C tree; compact returns contain receipts, not
-model weights. Before send, the manager runs the following CPU command on the
-return-1 archives and the returned B reading. It recomputes W, provisional,
-the on-node nomination requirement (old probe outcomes never nominate), the frozen
-`math_hard_teacher_read` outcome and both score digests. Copy the resulting
-`send-binding.json` with the kit. The node must match every field with `--expect`;
-any mismatch stops with exit 2, including a probe that finishes after send.
-
-```bash
-python3 kit/m2_send.py --out /absolute/send \
-  --b-source /absolute/returns/package-b-return.tar.gz \
-  --b-reading /absolute/returns/B/reading/reading.json \
-  --c-source /absolute/returns/package-c-return.tar.gz \
-  --teacher-source /absolute/returns/math-hard-teacher-return.tar.gz
-```
+model weights. For kit-message-v5, follow [combined Step 1](README-combined.md#freeze-the-local-launch-inventory):
+the manager ships `resources/m2/send-binding-expected.json`, containing content
+identities without checkpoint locations. Run the documented CPU `m2_send.py`
+command on your original archives with `--public-expect` to that shipped file.
+It checks every non-path field before creating your full local binding.
+Set `bind.expect` / `m2_bind.py --expect` to that full local `send-binding.json`;
+the ordinary binding then verifies the corresponding full checkpoint trees.
+Keep both that binding and `rescore-paths.json` local. No private manager file
+handoff is needed. Broad nomination still comes from the fresh on-node re-probe.
 
 Bind against the same verified full trees on the node. Never move paths after binding.
 The checkpoints JSON maps `D+replay:101` through `D+replay:103` to
@@ -1004,7 +1004,7 @@ export KIT=/absolute/reviewed-checkout/kit
 export M2_OUT=/local/nvme/message2 M2_DURABLE=/absolute/durable/message2
 export S_OUT=/local/nvme/screen-s S_DURABLE=/absolute/durable/screen-s
 export X_OUT=/local/nvme/addon X_DURABLE=/absolute/durable/addon
-export X_SPEC=/absolute/send/addon-spec.json P_SMOKE=/absolute/send/x-integration-p2-smoke.attempt1.json
+export X_SPEC=/absolute/send/addon-spec.json P_SMOKE="$KIT/resources/m2/receipts/p2-smoke.attempt5.json"
 export FINQA=/absolute/data/finqa SDPO=/absolute/pinned/SDPO BASE=/absolute/cache/student
 export TRAINER_PY=/venvs/trainer/bin/python INFERENCE_PY=/venvs/inference/bin/python SCORE_GPU=0
 export OUT="$X_OUT" DURABLE="$X_DURABLE"

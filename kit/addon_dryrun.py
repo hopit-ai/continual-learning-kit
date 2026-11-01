@@ -251,7 +251,11 @@ def branch(root, configuration, requeue=False, tier2=False):
     qpath = root/'qualification.json'; atomic(qpath,qualify(screen_return,True))
     row('X13-manager-read',x_read.job,NS(out=root/'reading',standin=True,action='read',source=archive,
         screen_qualification=qpath,screen_return=screen_return,bootstrap=20))
-    require(read(root/'reading/reading.json')['admitted']['p'] is True, 'passing P must be admitted at X13')
+    # Owner ruling 1 Nov: this native-score fixture has no reference guard units.
+    # Mechanical P2 qualification remains checked; scientific admission is pending.
+    require(read(root/'reading/reading.json')['admitted']['p'] is None and
+        read(out/'comparison-tables.json')['comparisons']['p'].get('reason') ==
+        'REFERENCE-SCORED required for decision checkpoint guards', 'kit-only P guards must remain PENDING at X13')
     tier2_gate_cases=[]
     if tier2:
         from kit import x_tier2
@@ -264,7 +268,7 @@ def branch(root, configuration, requeue=False, tier2=False):
         row('X23-collect',x_collect.job,NS(**common,archive=archive))
         row('X24-manager-read',x_read.job,NS(out=root/'reading',standin=True,action='read',source=archive,
             screen_qualification=qpath,screen_return=screen_return,bootstrap=20))
-        require(read(root/'reading/reading.json')['admitted']['p'] is True,'tier 2 affected tier-1 P2 admission')
+        require(read(root/'reading/reading.json')['admitted']['p'] is None,'tier 2 changed pending tier-1 reference guards')
     import gzip
     final=x_collect.load(archive,True)
     metadata_bytes=len(gzip.compress(b''.join(raw for name,raw in sorted(final.items())
@@ -315,7 +319,7 @@ def branch(root, configuration, requeue=False, tier2=False):
         stages=len(list((out/'runs').glob('*/complete.json'))),
         probe_receipts=len(list((out/'probes').glob('*/*/receipt.json'))),
         archive_bytes=archive.stat().st_size,metadata_compressed_bytes=metadata_bytes,
-        core_admission_unchanged=True,passing_p_admitted_at_X13=True,
+        core_admission_unchanged=True,passing_p_admitted_at_X13=False,kit_guards_pending_reference_at_X13=True,
         generic_generation_skipped=not (out/'own').exists() if configuration=='generic' else None)
 
 

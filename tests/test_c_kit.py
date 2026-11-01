@@ -439,8 +439,17 @@ def test_replay_prevention_receipt_cannot_enter_c(tmp_path,monkeypatch):
     assert c_bind.check_start(dict(model='unused',receipt=str(receipt)),'D+replay',101,False)['identity']['weights']=='v4-D'
 
 
-def test_probe_contractnli_final_and_gain_common_rule_document_pairs(monkeypatch):
+@pytest.mark.parametrize('reference_guards',[True,False],ids=['reference-guards','kit-only-pending'])
+def test_probe_contractnli_final_and_gain_common_rule_document_pairs(monkeypatch,tmp_path,reference_guards):
+    """1 Nov mandatory-reference ruling: pinned guards admit; kit-only remains PENDING."""
     from kit.next_read import analyse
+    from kit import m2_assignment
+    from kit.ref_guard import METHOD
+    assignment=tmp_path/'ref-scoring-assignment.json'
+    authority={f'core.{panel}|{seed}':dict(node='CPU-STANDIN',uuid=f'CPU-STANDIN-{seed}-{panel}',environment='CPU-STANDIN')
+               for seed in c.SEEDS for panel in ('hellaswag','knowledge-ll')}
+    assignment_sha=m2_assignment.freeze(assignment,dict(schema='message2-scoring-assignment.v2',assignments=authority))
+    assignment_bytes=assignment.read_bytes()
     # Observe actual draw populations, not just the result's metadata.
     choices=c_read.random.Random.choices;populations=[]
     def observed(rng,population,**kwargs):
@@ -458,8 +467,23 @@ def test_probe_contractnli_final_and_gain_common_rule_document_pairs(monkeypatch
             for step in c.RETENTION_STEPS:
                 add('v4-'+arm,seed,step,'math',53 if step and arm in ('broad','both') else 50)
                 add('v4-'+arm,seed,step,'hellaswag',50)
+                add('v4-'+arm,seed,step,'knowledge',50)
                 add('v4-'+arm,seed,step,'finqa',70 if step==0 else 62 if arm in ('earlier','both') else 60)
+    for row in rows:
+        if row['panel'] not in ('hellaswag','knowledge') or row['step'] not in (0,40):continue
+        panel='knowledge-ll' if row['panel']=='knowledge' else row['panel']
+        family='core.'+panel
+        proof=dict(assignment_sha256=assignment_sha,family=family,seed=row['seed'],**authority[f"{family}|{row['seed']}"])
+        assert m2_assignment.verify(dict(assignment=proof),assignment_bytes)==f"{family}|{row['seed']}"
+        row.update(_guard_method=METHOD if reference_guards else 'KIT-SCORED',_guard_validation='PASS',
+                   _guard_uuid=proof['uuid'],_guard_environment=proof['environment'])
     result=analyse(rows,20,acquisition='contract_nli')
+    if not reference_guards:
+        assert all(c['status']=='PENDING' and c['reason']=='REFERENCE-SCORED required for decision checkpoint guards'
+                   for c in result['v4_comparisons'])
+        assert not result['v4_nomination']['broad'] and not result['v4_nomination']['earlier']
+        return
+    assert all(c['method']==METHOD for c in result['v4_comparisons'])
     assert result['v4_nomination']['broad'] and result['v4_nomination']['earlier']
     ep=result['v4_comparisons'][0]['endpoints']
     assert ep['contract_nli']['lower']==ep['gain']['lower']==-1

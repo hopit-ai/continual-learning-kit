@@ -37,10 +37,14 @@ def decision(rows, nomination, repeats=10000):
     if not complete('generic'): return pending,dict(status='PENDING',admitted=False)
     result=analyse(mapped,repeats,acquisition='contract_nli')
     comparisons={(c['candidate'],c['control']):c for c in result['v4_comparisons']}
+    pending['comparisons'] = result['v4_comparisons']
     def passes(candidate,control,primary,other):
-        e=comparisons[(candidate,control)]['endpoints']
+        comparison=comparisons[(candidate,control)]
+        if comparison.get('status', 'COMPLETE') != 'COMPLETE': return False
+        e=comparison['endpoints']
         return benefit(e[primary]) and all(protects(e[p]) for p in (other,'hellaswag','gain','contract_nli'))
     def defined(candidate,control):
+        if comparisons[candidate,control].get('status', 'COMPLETE') != 'COMPLETE': return False
         e=comparisons[candidate,control]['endpoints']
         return all(e[p]['n']==3 and e[p]['mean'] is not None and e[p]['lower'] is not None for p in ('math','survival','hellaswag','gain','contract_nli'))
     if nomination['broad'] is None: return pending,dict(status='PENDING',admitted=False)

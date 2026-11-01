@@ -189,6 +189,11 @@ def m3_cells():
                         values={m:50+bonus(m) for m in metrics}
                         cells[arm,seed,stage,step,panel]=dict(metrics=values,items={m:{f'q{i}':int(i<v) for i in range(100)} for m,v in values.items()},
                             uuid=assignment[f'm3|{seed}']['uuid'],environment='env',format_failures={m:0 for m in metrics},output_tokens=1000,correct=50,tolerant={},pending=None)
+    # Synthetic cell IO double: the passing scenario explicitly uses reference
+    # guards under the 1 Nov mandatory-reference ruling. Kit-only is tested in
+    # test_ref_score_job against the native contrast and guard readers.
+    for key,cell in cells.items():
+        if key[-1] in ('hellaswag','knowledge-ll'):cell['method']='REFERENCE-SCORED'
     return cells,assignment
 
 

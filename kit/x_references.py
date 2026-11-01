@@ -21,7 +21,8 @@ def job(a):
     if not (root/'hellaswag').exists():shutil.copytree(a.out/'hellaswag',root/'hellaswag')
     from kit.m2_format import validation_name,require_validation
     validation=validation_name(a.out,proof)
-    if not a.standin:require_validation(a.out,proof)
+    generated_only = getattr(a, 'generated_only', False)
+    if not a.standin and not generated_only:require_validation(a.out,proof)
     if validation.exists():
         target=validation_name(root,proof);target.parent.mkdir(parents=True,exist_ok=True)
         if target.exists():require(sha(target)==sha(validation),'reference technical validation changed')
@@ -36,7 +37,7 @@ def job(a):
         namespace=dict(m2_score.__dict__,binding=lambda out,standin:doc,
             record=lambda out,binding,arm,seed,step,ref=ref:ref)
         score=FunctionType(m2_score.job.__code__,namespace,'x_reference_score')
-        for panel in (*m.PANEL_SETS,'hellaswag'):
+        for panel in (m.PANEL_SETS if generated_only else (*m.PANEL_SETS,'hellaswag')):
             args=NS(out=root,arm=arm,seed=a.seed,step=0 if arm=='base' else 40,panel_set=panel,
                 gpu=a.gpu,standin=a.standin,panel_root=a.panel_root)
             score(args)
@@ -47,6 +48,7 @@ def job(a):
 
 
 def configure(p):
+    p.add_argument('--generated-only', action='store_true', help='Generated denominators only; likelihood guards are scored separately by ref_score_job.py')
     p.add_argument('--seed',type=int,choices=SEEDS,required=True);p.add_argument('--gpu',default='0');p.add_argument('--panel-root',type=Path)
 if __name__=='__main__':raise SystemExit(entry(job,configure))
 

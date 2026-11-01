@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-01",
+  "decision": "PASS iff every disagreeing item has both top-two token-normalised gaps strictly below the threshold; otherwise PENDING.",
+  "diagnostic_conversion": "Stored score * pinned option character count / pinned conditional-token count. Selected choices remain the original argmax.",
+  "gap_unit": "nats/token",
+  "historical_unanimous_receipt_sha256": "eaa2f3c322f520e38efd4d5de3e1afab49922bbd3c5fd6c122078b3f14169408",
+  "implementations": {
+    "hellaswag_prompt_check.py": "d720c12a73a7703aeee72a2819fee4b5fb762be9dafff69019e1112b64e55c99",
+    "likelihood_validation.py": "3fdfad6174d0c4f12a1d1bc9da3a280eeea2567d367f6bb44796386cd49ea5ae",
+    "m2_format.py": "7c7524c0887ad643a15f59848e83f74f8c950dea0907dbfa54160f6b5b713b2f"
+  },
+  "replaces": {
+    "hellaswag_prompt_check.py": "03b98cbec77ae0e7ef972b97fdd301cad5e588eaa530dc83fc44c32c42a26b06",
+    "m2_format.py": "e86c7bf1306af60a191dc1a3885c73f5bad555c9f0881163a2baedd566987d24"
+  },
+  "rule": "likelihood-near-tie-20261101",
+  "score_storage_unit": "nats/character",
+  "scorer_unchanged": true,
+  "section": "Likelihood-scorer validation: near-tie ruling",
+  "strict_gap_threshold": 0.001
+}

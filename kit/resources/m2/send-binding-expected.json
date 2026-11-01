@@ -1,0 +1,645 @@
+{
+  "W": "D",
+  "provisional": true,
+  "nomination": {
+    "broad": null,
+    "earlier": null,
+    "earlier_comparison": null,
+    "admission": "Pending connected finals",
+    "status": "PENDING"
+  },
+  "hard_math": "QUALIFIES",
+  "b_scores_sha256": "bce73feebad933a67fa6d06133cd4505b0922bb6ab3c1a53de559d337337f746",
+  "c_scores_sha256": "cad18fee21b94b609c88be8ce74eb41134b6c3a1e4602b79a6b3b96d822770c9",
+  "technical_synthetic": false,
+  "return1_archives": {
+    "package-c-return.tar.gz": "cad18fee21b94b609c88be8ce74eb41134b6c3a1e4602b79a6b3b96d822770c9",
+    "next-return-1.tar.gz": "262263e7a6ceb8afd74c7e3fb3a450195f2efbe4bca6ee1f4204e4dfecac1827",
+    "math-hard-teacher-return.tar.gz": "c408eea08fe6fc567d94b35a46d5cfad986e555b4aa58cbd6fbb4d72d0123db7"
+  },
+  "decisions_sha256": "472774171ca234fe6f69eee9ca8a1ce6d8f99eb2adf416c4c8b256bf15f4a62e",
+  "arc_acceptance": {
+    "record_sha256": "6ce5528c1f4cd2d75fca3f98aaadcb6f6f188dd21cfd8a912886d36e65ef8989",
+    "format_validity_sha256": "0d1363f133e4ae6e2a9ee8a5171f79c2ad8d0b2278e75352a1d8c9fbb667d946",
+    "candidates_sha256": "666dd273bb601c5e2fc04a20d2882bb1219311da4e47075d88040712bbbfcfda",
+    "sample_sha256": "fd80c2ae3d3c3a70d11dac969b9d2b0aed9fe686b69cbbeae478c780faebd76c",
+    "attempt2_sha256": "5512e14a95371c8864973b5a4a7b25686c1b8e2694421b5f2824fae36cb59138",
+    "candidate_ids": [
+      "arc-c-train-Mercury_7270305",
+      "arc-c-train-Mercury_7027055",
+      "arc-c-train-Mercury_SC_415477",
+      "arc-c-train-Mercury_7166600",
+      "arc-c-train-AKDE&ED_2012_8_45",
+      "arc-c-train-Mercury_7267680",
+      "arc-c-train-Mercury_7114870",
+      "arc-c-train-Mercury_7228288",
+      "arc-c-train-TIMSS_1995_8_O11",
+      "arc-c-train-Mercury_SC_401591",
+      "arc-c-train-MCAS_1998_8_4",
+      "arc-c-train-MDSA_2007_8_54",
+      "arc-c-train-MCAS_2007_8_5168",
+      "arc-c-train-AKDE&ED_2008_8_25",
+      "arc-c-train-Mercury_7085575",
+      "arc-c-train-Mercury_SC_400169",
+      "arc-c-train-MDSA_2009_4_30",
+      "arc-c-train-Mercury_SC_407194",
+      "arc-c-train-MCAS_2008_8_5719",
+      "arc-c-train-NYSEDREGENTS_2009_4_20",
+      "arc-c-train-Mercury_SC_415465",
+      "arc-c-train-Mercury_SC_405725",
+      "arc-c-train-Mercury_SC_400300",
+      "arc-c-train-Mercury_7188913",
+      "arc-c-train-Mercury_188563",
+      "arc-c-train-Mercury_7090773",
+      "arc-c-train-MDSA_2011_8_10",
+      "arc-c-train-Mercury_7215198",
+      "arc-c-train-Mercury_SC_414245",
+      "arc-c-train-MSA_2012_5_14",
+      "arc-c-train-Mercury_7057733",
+      "arc-c-train-MCAS_2016_8_2",
+      "arc-c-train-Mercury_7188720",
+      "arc-c-train-Mercury_7132195",
+      "arc-c-train-Mercury_SC_401304",
+      "arc-c-train-Mercury_7192448",
+      "arc-c-train-Mercury_7043995",
+      "arc-c-train-Mercury_7116130",
+      "arc-c-train-Mercury_SC_LBS10791",
+      "arc-c-train-Mercury_7044048",
+      "arc-c-train-Mercury_416582",
+      "arc-c-train-Mercury_7017133",
+      "arc-c-train-Mercury_401011",
+      "arc-c-train-Mercury_7196263",
+      "arc-c-train-MDSA_2007_4_35",
+      "arc-c-train-Mercury_7188073",
+      "arc-c-train-Mercury_7233748",
+      "arc-c-train-Mercury_7159670",
+      "arc-c-train-Mercury_SC_405647",
+      "arc-c-train-Mercury_7012618",
+      "arc-c-train-MCAS_2006_9_31",
+      "arc-c-train-NYSEDREGENTS_2007_4_17",
+      "arc-c-train-TIMSS_2011_8_pg136",
+      "arc-c-train-Mercury_7007508",
+      "arc-c-train-Mercury_SC_LBS10244",
+      "arc-c-train-Mercury_7215810",
+      "arc-c-train-TIMSS_2003_8_pg52",
+      "arc-c-train-Mercury_7274348",
+      "arc-c-train-NYSEDREGENTS_2007_8_23",
+      "arc-c-train-Mercury_7107380",
+      "arc-c-train-Mercury_7109253",
+      "arc-c-train-Mercury_SC_408742",
+      "arc-c-train-Mercury_401402",
+      "arc-c-train-Mercury_7267925",
+      "arc-c-train-MCAS_2009_5_6516",
+      "arc-c-train-Mercury_406549",
+      "arc-c-train-NCEOGA_2013_5_1",
+      "arc-c-train-AKDE&ED_2008_8_11",
+      "arc-c-train-NYSEDREGENTS_2004_4_10",
+      "arc-c-train-MCAS_2005_8_15",
+      "arc-c-train-Mercury_7214463",
+      "arc-c-train-Mercury_SC_LBS10918",
+      "arc-c-train-MEAP_2005_8_30",
+      "arc-c-train-NCEOGA_2013_5_10",
+      "arc-c-train-Mercury_7219083",
+      "arc-c-train-Mercury_SC_400863",
+      "arc-c-train-Mercury_7106330",
+      "arc-c-train-NCEOGA_2013_5_42",
+      "arc-c-train-Mercury_7069458",
+      "arc-c-train-NCEOGA_2013_5_33",
+      "arc-c-train-VASoL_2010_3_21",
+      "arc-c-train-Mercury_7040740",
+      "arc-c-train-MCAS_2008_8_5691",
+      "arc-c-train-LEAP__5_10318",
+      "arc-c-train-Mercury_SC_401298",
+      "arc-c-train-Mercury_186218",
+      "arc-c-train-Mercury_SC_402047",
+      "arc-c-train-Mercury_177468",
+      "arc-c-train-Mercury_7013860",
+      "arc-c-train-Mercury_7038430",
+      "arc-c-train-ACTAAP_2015_7_2",
+      "arc-c-train-Mercury_7165060",
+      "arc-c-train-MCAS_2006_8_34",
+      "arc-c-train-Mercury_7219100",
+      "arc-c-train-Mercury_SC_412487",
+      "arc-c-train-TIMSS_1995_8_K12",
+      "arc-c-train-Mercury_SC_LBS10782",
+      "arc-c-train-MDSA_2008_4_2",
+      "arc-c-train-Mercury_7132108",
+      "arc-c-train-Mercury_7228375",
+      "arc-c-train-Mercury_7230545",
+      "arc-c-train-Mercury_7221008",
+      "arc-c-train-Mercury_7033810",
+      "arc-c-train-MSA_2015_8_37",
+      "arc-c-train-Mercury_7113873",
+      "arc-c-train-Mercury_400761",
+      "arc-c-train-Mercury_410136",
+      "arc-c-train-Mercury_SC_LBS10034",
+      "arc-c-train-Mercury_183750",
+      "arc-c-train-Mercury_7159758",
+      "arc-c-train-Mercury_7092505",
+      "arc-c-train-Mercury_7211873",
+      "arc-c-train-Mercury_7099365",
+      "arc-c-train-Mercury_SC_400160",
+      "arc-c-train-Mercury_7122570",
+      "arc-c-train-Mercury_185255",
+      "arc-c-train-MCAS_2016_5_15",
+      "arc-c-train-Mercury_7111248",
+      "arc-c-train-Mercury_SC_409578",
+      "arc-c-train-ACTAAP_2009_5_13",
+      "arc-c-train-AKDE&ED_2008_8_32",
+      "arc-c-train-AKDE&ED_2012_8_9",
+      "arc-c-train-MDSA_2010_4_28",
+      "arc-c-train-MCAS_2000_8_27",
+      "arc-c-train-Mercury_7097248",
+      "arc-c-train-Mercury_7009538",
+      "arc-c-train-Mercury_SC_400673",
+      "arc-c-train-MDSA_2007_5_32"
+    ],
+    "parse_count": 128,
+    "accepted_count": 120,
+    "source": "reviewed-FROZEN"
+  },
+  "format_acceptance": {
+    "record_sha256": "eaa2f3c322f520e38efd4d5de3e1afab49922bbd3c5fd6c122078b3f14169408",
+    "policy_sha256": "0d1363f133e4ae6e2a9ee8a5171f79c2ad8d0b2278e75352a1d8c9fbb667d946",
+    "items_sha256": "202f480cc2c1c1910a20a5cdecbe1706a6fddbc0d5ab3441f2af3da283bc9c17",
+    "knowledge_panel_sha256": "ce5743ef03f59f57b18231ccd88aee66f0350c8fe3fce8a4abaeb816dd00a1e6",
+    "model": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "incoming_checkpoints_validated": "on-node-only",
+    "roles": [
+      "base"
+    ],
+    "gpu_mapper_sha256": "3611cff14db4e338e683909e1759f31d21478ac73ecd9aaee0c2029d93a7e7f9",
+    "lifecycle_sha256": "9502f4110f08ee92baf2b69e26a5613799a8ac187a33bf366698f356bb9367a6",
+    "launcher_sha256": "3aa92751061504afb59200b0dc5b6194415a8234959be8c8b7de08290edc0d51",
+    "subprocess_sha256": "630995061d6539f947074234d841e83a6655aaa82c4c9a33fed5527190bf25ce",
+    "knowledge_audit": "COMPLETE",
+    "source": "manager-presend-technical-probe"
+  },
+  "nomination_policy": "on-node-four-arm-reprobe",
+  "b_archive_sha256": "dc79e6583fba475cbc8ba357bce99634a60122191212a8c710226bc8abdd7b3d",
+  "rescore_refs": [
+    {
+      "reference": 1,
+      "content": {
+        "model_hashes": {
+          "config.json": "f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30",
+          "generation_config.json": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+          "model-00001-of-00005.safetensors": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f",
+          "model-00002-of-00005.safetensors": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282",
+          "model-00003-of-00005.safetensors": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836",
+          "model-00004-of-00005.safetensors": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a",
+          "model-00005-of-00005.safetensors": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff",
+          "model.safetensors.index.json": "f9fdbcb91c23971c13ec5d5f2573d2349e8f61f2f049371ec699281748fdb1bc",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 2,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "52b7d1365d7f336d1d4d1d9129b36ea3a93956f8c853487b2402d0f31714290a",
+          "model-00002-of-00004.safetensors": "42f57e4cccc8d74febfd3382f5ad579f2c9c9ec7daef4c0799c508b238bf15ca",
+          "model-00003-of-00004.safetensors": "feae6af66b70f870204126825324e1d02afe311dc509766b548d2e0d2412170a",
+          "model-00004-of-00004.safetensors": "f2a47bc834383546c189035a3e97eda1b8c88ee53375c2d89d7d65e4909d6195",
+          "model.safetensors.index.json": "dd5a8665942f4f3730171eed1ac6b8cf18e442de875d2b6ca74a0e4abddcb173",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 3,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "f844f350f5b9aeded876db51584d6b7496786e4ccd99fe0e6e18f93ca9060ac1",
+          "model-00002-of-00004.safetensors": "70438e7366d77dab3ada10e22e30aa8f5e188043770a8d9d646675d2e416416b",
+          "model-00003-of-00004.safetensors": "05a9e64564b5dfd2701f49830856bf9e45466767062441af92f515cf285aed62",
+          "model-00004-of-00004.safetensors": "a82ad76d07615a2a97f24dafe0b5bac78252d090d9c5df4439759009f6e14ced",
+          "model.safetensors.index.json": "1d33e334723655b287321bdf3efc031fc8c42f7a87eb25d895701a12e3d7dbce",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 4,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "0160762adbcad04017936ad41eb0b219fece9024a6fe31c7459f13b95aa4f77f",
+          "model-00002-of-00004.safetensors": "7666d149b5ee33dd4e22f1590dc89673f81d45af85e7fefd7f87461e55c9db27",
+          "model-00003-of-00004.safetensors": "4e322eb9ae668032fe790bfe8eab4a867f5386aadccd03ef9d7e0a59df139dd2",
+          "model-00004-of-00004.safetensors": "58b798e403d15ff3f92ef624ac0ea6a2fbd6d306d88c55c11312ead5919f5a1f",
+          "model.safetensors.index.json": "1c14d51a1f643a2b18f4aa1b30db3dc2af20b350c2346d592d27b53ca0690fee",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 5,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "86ab3a66ac350282da354a3d5d4f7cdd02c0f09bc4c9b3dcba09285f0b758b40",
+          "model-00002-of-00004.safetensors": "d7786f45bfce71e0bfb4958031dac065dfd6e22478fe7fcb4932e1cc92e452a2",
+          "model-00003-of-00004.safetensors": "2a73fcf1c889d32a5c5394509137d061d38f0a4c8b00ed6dc9d9b917edb48798",
+          "model-00004-of-00004.safetensors": "78304cb4be87bcc29d6b94553846285dd62d73ec0cda81c2210154fda0de1271",
+          "model.safetensors.index.json": "158c0442c9c92c2c3698b08f1463ca5e5c3b6f050212f7555358e0987923d560",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 6,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "a3113d23af549a35b4ca6b02587f7b8d80b666057d3288a72c83e2b1878fa470",
+          "model-00002-of-00004.safetensors": "acdbc11f569e1e5201d913f39d4c8a3ab0478554fc5ad53cc3501ca3f9f8f0e7",
+          "model-00003-of-00004.safetensors": "80f1aa943057b5053be3ad801cbf8528c8b01c8893c7e93c4a4f1122cf58424a",
+          "model-00004-of-00004.safetensors": "22b7ae517881b3f746ed7e2bf53d67e784a65adaf33037c0d84088d26b77fd27",
+          "model.safetensors.index.json": "fadba7eab9a31aa54e97c6baa3acfbda195b25fff2848446b7e548cb44388ba9",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 7,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "9217d733960dde128abe98d8a363809833fdb03de5641b1d30d0e77fbef9bfea",
+          "model-00002-of-00004.safetensors": "ad165b5ed1b5441354209dc9b16bd60423b0e905d5359083b8b9b0d9eca0f85a",
+          "model-00003-of-00004.safetensors": "1cda5cf41e17efaa3e5689df653eb4e6fd9fa24d06ecccceda3e07114b3d6758",
+          "model-00004-of-00004.safetensors": "e522bfb1fd18027ac0b1951712ba15f1705dec4bdb04c07aa0dbe4682ed55b15",
+          "model.safetensors.index.json": "86637ac4ade2b07b93859bf57333a0c4e7531fec4d21c7755a856034bc243ab6",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 8,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "970d9ac9658b6ca79184c1470679815a24c12c96ce8fae0f82de2558f7b74c11",
+          "model-00002-of-00004.safetensors": "b870a68b857ff801c34d068233fcbc50b0424c85456c5955d597d6e36990660b",
+          "model-00003-of-00004.safetensors": "85fe14f4ddc1f585b03b5df5ed1ba883eb031815b64fdb8edab9cda7693285c7",
+          "model-00004-of-00004.safetensors": "bbcf4d9df74fed00d3ee681ab7cd8ff9e368a6d1e53aab60b8c14d12e6c5321f",
+          "model.safetensors.index.json": "a9ea3ffd15007a5eccc7010549491f9c933cffad2341b4d788ffa94368f01aa7",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 9,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "e0ef5002aaa90602a1e58c8998cc850b2809fbe09dd6c90f5136520a751198b9",
+          "model-00002-of-00004.safetensors": "27d6e93f3992dd195f84ac4887e5236322852edc8f81bd9403d775695ddfb5ea",
+          "model-00003-of-00004.safetensors": "ad36ff1cd30aa9339183a3387ddac897c1f5c6a58448d0e1e16b136b52fc5095",
+          "model-00004-of-00004.safetensors": "41fff1f785a18f7829f68ba102ab2494c7bf956f4755948d38adc47552082e74",
+          "model.safetensors.index.json": "9330d11144022aeba90e73cf6905bb7304ea4413e5d0c3f9ed161574e00ed9c2",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 10,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "e6d26a20bae2728d0d2c7e36251f7be42c1095bc3c0717c463c15964c6f742c3",
+          "model-00002-of-00004.safetensors": "faee647ed49e48aa2face265a6de9ea0394b72ca450ee45459161a61a613a3fa",
+          "model-00003-of-00004.safetensors": "4686acdc5e1551b339970823868a8e16bbb621e476ff80369c688016e5f54b71",
+          "model-00004-of-00004.safetensors": "1cf93ea11a1c6c121e406a39cdf01e492511288afb2f86513114874d441e844b",
+          "model.safetensors.index.json": "2bb84288c65e32575645f7ef5460e10b4056168f9c3040c7c1d9e7299392aae4",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 11,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "6fc609472adeed107ca00410939321f11199fd207a724fea037389bc500be9fd",
+          "model-00002-of-00004.safetensors": "48f0aeefec45c063f4bb3ba22417057bfdce9e95179b9b8dfafe3d0575f3e80a",
+          "model-00003-of-00004.safetensors": "d11a54c198394a71b6935720f3529fa926180a8385556ac0e6e9e7ef7bde5305",
+          "model-00004-of-00004.safetensors": "31572657ea0550037d466885bd93895a73a3e68c4c14645af49fcc5ffc4c75b6",
+          "model.safetensors.index.json": "33182f4b89acfab63bdb6e4970b40c69b0514190a6580607a1bd736e8414e509",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 12,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "224ac626c8a62dc5bd40a8578ed2bfed66f85bd5d6378d9c31cd16d7944f0042",
+          "model-00002-of-00004.safetensors": "a242dd0ac68783f7fd4f6a12cd15a5f55bc9e84d868f08c1bb223008eb8fad8d",
+          "model-00003-of-00004.safetensors": "71936577ba6f89e9659dd7b5e622d286333534c9397862d98a6edc7cd1d3aa4a",
+          "model-00004-of-00004.safetensors": "70edc7a27e3255a6938aac5d238e029c87d581009b993b83ebddd3eb2df09069",
+          "model.safetensors.index.json": "c9973b20e168ade1a9c8e3f2fb4081acb34d41c80ff3e73a2c4fcd1002505c20",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 13,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "35d0c8d841ffe40e30f6c9cc721168af1151055651b70d0f6c99f4a6a0da43f6",
+          "model-00002-of-00004.safetensors": "a555be9bac55a5c08dc82e8d21e0a7431de1f26f726ca228c572e78ebe538c68",
+          "model-00003-of-00004.safetensors": "7641869f69877abc5363ed90223ff7b4c2ddfc136ce90770b10cef5e75c1cc03",
+          "model-00004-of-00004.safetensors": "0d685865c2c729cf7d90febcaa1ea696a025bd54a07c9f320ca60ee846ea59f7",
+          "model.safetensors.index.json": "724cabedaf428b83ae6f2297c4389ad9e1838fccaf351058f51dc5841d4591d8",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 14,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "da58c594411ad39a913c31283a23b0afb1d294047b4f391e88cd3172542ab2a8",
+          "model-00002-of-00004.safetensors": "57f243602bb204f0845142501582477bc7779db04e813edf9d49359a5ec2c7f2",
+          "model-00003-of-00004.safetensors": "1d32e0d06cd2ad4b9f79dce226a99793f82ed37577914feb39cc8c9ef0fdc316",
+          "model-00004-of-00004.safetensors": "53252a77ea475e32bb1612845eae0a95b5655ae7d4e67b8cdf0030cf5b5ab1c0",
+          "model.safetensors.index.json": "38a58049927e20b3c16b36a0378aa8e64fe1e1104c9489c9fd96813b35e8cd36",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 15,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "54ad8bd5b153f59e5ed37a8be7bb42f69f65a871be37a6325205fae7ee8addb1",
+          "model-00002-of-00004.safetensors": "84b48e3d2731ad89c82fa0764f8506480103311d01e025cb090df5f48671f2df",
+          "model-00003-of-00004.safetensors": "b94acac2b39d28dbba81e28ec847d1dba5f7427a7500c5509424cb3c2b7fc9c8",
+          "model-00004-of-00004.safetensors": "be65399d75d7fcface4fec7d10406813fc8fbdacc96cfb2e33e38b6450233e00",
+          "model.safetensors.index.json": "193a42e25c58cd6ea6cca5db0be592a257574e1da510075cdd072125525ff988",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 16,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "96dbc859fb783ebea475c2ce52fb3acd512d4212bf46bdcd9a0eccbd7d1cc50f",
+          "model-00002-of-00004.safetensors": "2bda3475e75cbefdd6e62422f4df5e025dd566e7006d22054d98ae1b834ded90",
+          "model-00003-of-00004.safetensors": "b8b19dd19f49c8b56817bd591da776cb6733245d6a39d098277110aa67066eb8",
+          "model-00004-of-00004.safetensors": "c98ffb56a88c137aec0b072283850ec70443a29d6cb927219c52c7e6f110f838",
+          "model.safetensors.index.json": "3803617d6f021d53ddd4f5769e91d24900cf67240086c9f05cbe157b7e961e4a",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    },
+    {
+      "reference": 17,
+      "content": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "7b0c80f32387ae9f5bcec6c0b8d63310b42caa80fcf236cab5809cd853dc9f02",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "386eb18e1b3481e85a3f3b5483ecf03f77929d40a0f1b56d779ffa05ab4ce144",
+          "model-00002-of-00004.safetensors": "a56fae835227ca3072b78b84fe546195318f5ff9e4f3f31e9a1814891537799b",
+          "model-00003-of-00004.safetensors": "92bf1b023aa04d471592ef098df823a681eb56194f3de4037f24933ed865c2f0",
+          "model-00004-of-00004.safetensors": "15d213708cd62fff530e28045147999703c95e7f249a06c824962fc5f4669801",
+          "model.safetensors.index.json": "cfadff571b617cd964d872235dc21d8a6b6c669c4012ce9315245576e9e42647",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      }
+    }
+  ],
+  "c_identities": {
+    "101": {
+      "finqa": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "8e1789d4f3f1c8fecf402614eb860fb969c74faddc4e6d6c9d420dc2e26ffe82",
+          "model-00002-of-00004.safetensors": "e5423ef0149462373895d8cbd4d259cc02917438b8091dfcd8575b5f7156c83a",
+          "model-00003-of-00004.safetensors": "8d6052ee5000b5e44396db8eadf2c3d567d2ad3b98d31afaf96df990980c798e",
+          "model-00004-of-00004.safetensors": "2941c9d24213adb3d92223da7243df942aa4a658ad474a4558604fa16d06a4a7",
+          "model.safetensors.index.json": "d01da6776890a3efd2697fe3efc270660da45fbbf0939e51e51c9e771912021b",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "a2fdde39129544622f0e6a36b1ae366b769a93b9bebaaa6e1604b170ba866514"
+      },
+      "contract_nli": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "f163e8354c33b3614a77e2c2d21994a414d2a08a8b24cfd530913ac42dc2cac3",
+          "model-00002-of-00004.safetensors": "7e33b34492daf2c1c0f65efa93ad20304f4e11b78a29dcdde514d57c62aa8e48",
+          "model-00003-of-00004.safetensors": "a7e4bb3a6cc0869b4a780b6c668c4d7359b90313321a9f79ed523e742dec3063",
+          "model-00004-of-00004.safetensors": "3d0cba60cd046d892d86036860a1c2f3e26bf986fbfb742f2da0c946e476f1d5",
+          "model.safetensors.index.json": "64af1b8c269fe1a3ed70c2505ca59ad7c3efe4f185555e43e0cd27c753b6f790",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "2dcbc5ba66beaea3fd29c3a27e81f1bbd8d5d9738992552e2d517aaff42bf0ae"
+      }
+    },
+    "102": {
+      "finqa": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "631e38641357f4eb357f38e0fa4b2123ebbaa1d59512867cc75832cf3e511716",
+          "model-00002-of-00004.safetensors": "6c88845b75c90b884a4bdef9862d6c18ab78601edd8c58fb30e55f5b5d2530b1",
+          "model-00003-of-00004.safetensors": "a8b5d4ef5d3b6e1a34f8e518a04374fd8511e6e4426a4e2c1db932c6aa8d6a2b",
+          "model-00004-of-00004.safetensors": "0615220285beee68053765045f7233a51c97196b055b5b85198543963797c5ec",
+          "model.safetensors.index.json": "4ce3a160a033db30b941e2f989029c6e5b04428c25c586b05ca4271974c709ea",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "399a57ea187ee9b1c6302181f83ce6cbc08599fc009cdf688a2f913e69a838b9"
+      },
+      "contract_nli": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "0fe4402db517b1a88521cbb4e87e04bdf2569de223a137221ff9635c5e2d4d30",
+          "model-00002-of-00004.safetensors": "1187c7c8bddc11d8eda80f4f9dfec37a07f60fe2be59251d446a9bf3d58cf4e6",
+          "model-00003-of-00004.safetensors": "d42c623af493b5a648f2b9dc313d823cda64009a5f15bd848839019130cb1cd3",
+          "model-00004-of-00004.safetensors": "f8a04947e097ebb8a44e0562a9bdd59e0f1553c5f2b827820920cfe8400c241a",
+          "model.safetensors.index.json": "01c75adb66bfd2a24c4e36b4bd7f47a0e68b5abdaa77204d5c91dfbb7d5250c2",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "2255e6f123fd6a2b8dac7710df02001c820bb68776b1b6687f32ea12dfa02983"
+      }
+    },
+    "103": {
+      "finqa": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "42dbc47cc5538f3749b6601e5ad28c83ab7f4b608b486787b7fc651d823f8f8c",
+          "model-00002-of-00004.safetensors": "002bc009d9601105e59a70056db2a546adf92686900382abc3ee974a24f0b007",
+          "model-00003-of-00004.safetensors": "5ceb50d083dcb348de04f9471b6adea660381aefe3594276baeff05e4ebe1db4",
+          "model-00004-of-00004.safetensors": "ead872ba5d1b7c642e52026d1975a3fe31b65b3b1b85142953e57dd48a222c00",
+          "model.safetensors.index.json": "a3b5dcaf3b97bcc79c50acc7f85c5f39c411bdfa9ff259eb5da9e8be33218a11",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "792d2bd95f877fef969c0c09ba6080fe878e46a6235bce68fd347c86da4007de"
+      },
+      "contract_nli": {
+        "model_hashes": {
+          "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+          "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+          "config.json": "e737c8751cd662e8e3047ea128f733a559e224f44b3b0e5f46dbb6129a8d2036",
+          "generation_config.json": "d3e057bbca66b92f33a8bdc6a1301014e0e4ab69b3b3fd2e442d9fe0c69f3431",
+          "model-00001-of-00004.safetensors": "224ac626c8a62dc5bd40a8578ed2bfed66f85bd5d6378d9c31cd16d7944f0042",
+          "model-00002-of-00004.safetensors": "a242dd0ac68783f7fd4f6a12cd15a5f55bc9e84d868f08c1bb223008eb8fad8d",
+          "model-00003-of-00004.safetensors": "71936577ba6f89e9659dd7b5e622d286333534c9397862d98a6edc7cd1d3aa4a",
+          "model-00004-of-00004.safetensors": "70edc7a27e3255a6938aac5d238e029c87d581009b993b83ebddd3eb2df09069",
+          "model.safetensors.index.json": "c9973b20e168ade1a9c8e3f2fb4081acb34d41c80ff3e73a2c4fcd1002505c20",
+          "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+          "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "tokenizer_config.json": "443bfa629eb16387a12edbf92a76f6a6f10b2af3b53d87ba1550adfcf45f7fa0",
+          "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "receipt_sha256": "22aab1885526733f89fce9b47429cecc8da0db50a1c7811ebed17056c058b1f3"
+      }
+    }
+  },
+  "handoff_receipts": {
+    "hellaswag_attempt2": "eaa2f3c322f520e38efd4d5de3e1afab49922bbd3c5fd6c122078b3f14169408",
+    "p2_attempt5": "e0573b88aa4bc8a658205ff39a07bbc1647c679706ea00bce81d67b2b05aac34",
+    "pd_attempt3": "a8526f94a201613ae5c7d3a86322633fb16473035c0986dc5d28e1d6ae73ce47",
+    "pd_sealed_identity_sha256": "ba90a27e2e509e1ec39a9cd101da4f05bb46bfa5739db7bbb232deb237054259"
+  },
+  "validation_amendment_sha256": "0936d72923bd726d3db5e40ecf1350e675408225ff91cd751084fe038b657648",
+  "schema": "m2-public-send-expectation.v1"
+}

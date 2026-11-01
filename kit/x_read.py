@@ -122,7 +122,10 @@ def _tables(values, doc, support, inherited=(), repeats=10000, same_machine=True
         from kit.m2_format import letter_valid,letter_cells
         inherited_values=[r for group in old.values() for r in group.values()]
         relevant=[r for r in values if r['arm'] in ('x-pre','x-control','x-'+challenger)]+[r for r in inherited_values if r['arm']=='base']
-        if not letter_valid(relevant):comparisons[challenger].update(status='PENDING',reason='FORMAT-CONFOUNDED',format_cells=letter_cells(relevant))
+        from kit.ref_guard import apply, METHOD
+        generated = [r for r in relevant if r['panel'] == 'knowledge' and r.get('_guard_method') != METHOD]
+        if generated and not letter_valid(generated):comparisons[challenger].update(status='PENDING',reason='FORMAT-CONFOUNDED',format_cells=letter_cells(generated))
+        apply(comparisons[challenger], relevant)
         if challenger=='p':
             secondary=[]
             for seed in SEEDS:
@@ -162,7 +165,7 @@ def without_p(data):
 
 
 def admitted(comparison):
-    if comparison['status'] != 'COMPLETE': return None if comparison['status'] in ('PENDING','INCONCLUSIVE','DEFERRED') else False
+    if comparison['status'] != 'COMPLETE': return None if comparison['status'] in ('PENDING','INCONCLUSIVE','DEFERRED','UNVERIFIED-HARDWARE') else False
     primary = comparison['endpoints'][comparison['primary']]
     if primary['lower'] is None: return None
     guards = [v for k,v in comparison['endpoints'].items() if k != comparison['primary']]
@@ -241,7 +244,8 @@ def reading(data, qualification, standin):
 
 def _validate_common(evidence, doc, standin):
     from kit.m2_assignment import validate_files
-    validate_files(evidence,require_assignment=not standin)
+    from kit.ref_guard import native_files
+    validate_files(native_files(evidence),require_assignment=not standin)
     require(doc['implementation'] == implementation(), 'returned add-on implementation changed')
     require(doc['technical_synthetic'] is standin, 'returned add-on scope mismatch')
     if 'registration_sha256' in doc:
@@ -374,13 +378,30 @@ def inherited_local(out):
     from kit.x_references import gathered
     files={str(p.relative_to(out)):p.read_bytes() for p in (out/'references').rglob('*') if p.is_file() and p.suffix in ('.csv','.json')}
     files['scoring-assignment.json']=(out/'scoring-assignment.json').read_bytes()
-    return gathered(files)
+    from kit.ref_guard import local_files
+    files.update(local_files(out))
+    return reference_inherited(gathered(files), files)
 
 
 def inherited_return(evidence):
     if 'scoring-assignment.json' not in evidence:return json.loads(gzip.decompress(evidence['inherited.json.gz']))['rows']
     from kit.x_references import gathered
-    return gathered(evidence)
+    return reference_inherited(gathered(evidence), evidence)
+
+
+def reference_inherited(rows, files, family=None):
+    from kit.ref_guard import overlay
+    if isinstance(rows, dict): return {k: reference_inherited(v, files, k) for k, v in rows.items()}
+    rows = [dict(r) for r in rows]
+    for name, raw in files.items():
+        if not name.startswith('references/') or not name.endswith('/rows.json'): continue
+        proof = json.loads(raw)['assignment']
+        if family is not None and proof['family'] != family: continue
+        for row in rows:
+            if int(row['seed']) == proof['seed']:
+                row.update(_guard_uuid=proof['uuid'], _guard_environment=proof['environment'])
+    keys = {(r['arm'], int(r['seed']), int(r['step']), r['panel']) for r in rows}
+    return [r for r in overlay(rows, files, family=family) if (r['arm'], int(r['seed']), int(r['step']), r['panel']) in keys]
 
 
 def job(a):
@@ -404,6 +425,8 @@ def job(a):
                     atomic(a.out/'tier2/score-errors'/f'{path.parent.name}.json',dict(status='INCONCLUSIVE',reason=str(error)))
                 elif path.parent.name.startswith('x-p-'):p_errors.append(str(error))
                 else:raise
+        from kit.ref_guard import overlay, local_files
+        values = [r for r in overlay(values, local_files(a.out), a.standin) if r['arm'].startswith('x-')]
         data = tables(values, doc, read(a.out/'support.json'), inherited_local(a.out), a.bootstrap,
                       read(a.out/'m2-scoring-machine.json') == doc['core_scoring_machine']['identity'])
         if p_errors:data['comparisons']['p'].update(status='INCONCLUSIVE',evidence_error='; '.join(p_errors))
@@ -428,6 +451,8 @@ def job(a):
         validation=validate_compact(evidence,doc,a.standin)
         import gzip
         values = list(csv.DictReader(io.StringIO(gzip.decompress(evidence['scores.csv.gz']).decode())))
+        from kit.ref_guard import overlay
+        values = [r for r in overlay(values, evidence, a.standin) if r['arm'].startswith('x-')]
         identities={}
         for name,raw in evidence.items():
             if name.startswith('scores/') and name.endswith('/m2-identity.json'):
@@ -438,7 +463,7 @@ def job(a):
             if row['arm'].startswith('x-t2-'):continue
             panel='general-v1' if row['panel'] in ('ifeval','math','knowledge') else row['panel']
             if row['arm']=='x-p' and validation['status']=='INCONCLUSIVE':continue
-            found=(row['arm'],int(row['seed']),int(row['step']),panel) in identities
+            found=(row['arm'],int(row['seed']),int(row['step']),panel) in identities or row.get('_guard_method') == 'REFERENCE-SCORED'
             if not found and row['arm']=='x-p':
                 validation=dict(status='INCONCLUSIVE',reason='returned P2 score missing identity');continue
             require(found,'returned score missing identity')

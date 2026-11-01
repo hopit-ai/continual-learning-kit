@@ -115,7 +115,12 @@ def reviewed_return1(a):
         for call in package['calls']:
             key=call['checkpoint']
             if key in mapping:
-                refs[key]=bind_rescore_ref(call,mapping[key])
+                if key in refs:
+                    # Optional Tier B can reuse the already checked Tier A base.
+                    # Its different score-set name does not create an export receipt.
+                    require(refs[key]['model_hashes']==call['model_hashes'],'shared checkpoint hashes differ')
+                else:
+                    refs[key]=bind_rescore_ref(call,mapping[key])
             if package['tier']=='A':
                 require(call['identity_path'] in cfiles and t.sha(cfiles[call['identity_path']])==call['identity_sha256'],'original Tier A identity differs')
                 require(call['companion_path'] in cfiles,'original Tier A companion missing')
@@ -152,7 +157,17 @@ def sibling_start(sibling,b_source,seed,standin):
 
 
 def job(a):
+    require(not (getattr(a,'standin',False) and getattr(a,'decisions',None)), '--standin cannot be combined with --decisions')
     expected,cdoc,result,decision=read_return1(a)
+    if not a.standin:
+        from kit.m2_expect import EXPECTED, check_public
+        from kit.m2_return1 import decisions
+        # The binder reads live B exports from a tree; hash the original archive,
+        # never a claimed hash from the local --expect document.
+        archive=a.b_source if a.b_source.is_file() else getattr(a,'b_archive',None)
+        require(archive is not None and archive.is_file(),'original B archive required for public expectation check')
+        expected['b_archive_sha256']=s.file_hash(archive)
+        check_public(EXPECTED,expected,cdoc,decisions(a.decisions))
     check_expect(a.expect,expected)
     nomination=expected['nomination']
     raw=json.loads(a.checkpoints.read_text()); starts={}; exports={}; comparators={}
@@ -189,6 +204,7 @@ def job(a):
 
 
 def return1_options(p):
+    p.add_argument('--b-archive',type=Path,help='original B archive when --b-source is the live export tree')
     p.add_argument('--arc-prompt-check',type=Path)
     p.add_argument('--format-check',type=Path)
     p.add_argument('--decisions',type=Path)

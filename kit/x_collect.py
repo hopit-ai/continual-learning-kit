@@ -34,15 +34,18 @@ def job(a):
     document = read(a.out/'binding.json') if (a.out/'binding.json').exists() else None
     require(document is None or document['technical_synthetic'] is a.standin, 'collection scope mismatch')
     from kit.m2_assignment import validate_files
-    checked={str(p.relative_to(a.out)):p.read_bytes() for p in a.out.rglob('*') if p.is_file() and p.suffix in ('.json','.csv') and not p.is_symlink()}
-    validate_files(checked,require_assignment=not a.standin)
+    checked={str(p.relative_to(a.out)):p.read_bytes() for p in a.out.rglob('*') if p.is_file() and (p.suffix in ('.json','.csv') or p == a.out/'hellaswag/panel.jsonl') and not p.is_symlink()}
+    from kit.ref_guard import native_files
+    validate_files(native_files(checked),require_assignment=not a.standin)
     evidence, bulk, costs, score_rows = {}, [], [], []
     def tier2_error(relative,error):
         evidence['addon/tier2/collection-errors/'+relative.replace('/','_')+'.json']=json.dumps(
             dict(status='INCONCLUSIVE',path=relative,reason=str(error)),sort_keys=True).encode()
     boundary_seconds=[]
     compact = {'scoring-assignment.json','binding.json','support.json','audit.json','pricing.json','inherited.json','comparison-tables.json','m2-scoring-machine.json','scoring-core-match.json','p2/calibration.json'}
-    prefixes = ('node-preflight/','execution/','scoring-core-match/','dispositions/','signals/','failures/','tier2/')
+    compact.add('ref-scoring-assignment.json')
+    compact.add('hellaswag/panel.jsonl')
+    prefixes = ('node-preflight/','execution/','scoring-core-match/','dispositions/','signals/','failures/','tier2/','reference-scores/')
     for path in sorted(a.out.rglob('*')):
         if not path.is_file() or path.is_symlink() or path == a.archive or path.name in ('.lock','collect-complete.json') or path.name.endswith('.tmp'): continue
         relative = str(path.relative_to(a.out))

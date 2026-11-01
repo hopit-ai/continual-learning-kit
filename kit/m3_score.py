@@ -6,7 +6,7 @@ Actions (isolated M3 root only; never message-2's scoring-assignment.json or out
   validate-hellaswag  format-free HellaSwag likelihood validation on this seed's assignment
   validate-knowledge  format-free knowledge likelihood validation on this seed's assignment
                       (both exactly as the HellaSwag rule: frozen base + one incoming checkpoint, C0 stage-1 final of
-                      seed 101; 100% selected-choice agreement with the independent reference, else PENDING)
+                      seed 101; unanimous choices or the 1 Nov strict near-tie rule, else PENDING)
   score               one checkpoint x panel, through the inherited scorers, on the assigned GPU
   alias               step-0 (incoming) unit = the preceding final / base on the same assignment; no rescoring
 The HellaSwag-100 panel is the tier's own freeze (kit/next_hellaswag.py --action prepare in the M3 root).
@@ -168,33 +168,46 @@ def validation_checkpoints(out):
 
 
 def validate(a, panel, rows, production_fn, reference_fn, policy_sha256, declaration):
-    """One validation record per seed's assignment; PASS only if every checkpoint agrees 100/100 with the reference."""
+    """One validation record per seed's assignment; PASS under the 1 Nov near-tie amendment; original scorer choices are unchanged."""
     from kit.m2_format import validation
     from kit.m3_train import base_record
+    if panel=='hellaswag':
+        from kit.likelihood_validation import lengths
+        require({r['id'] for r in rows}<=set(lengths()),'configuration error: HellaSwag panel IDs missing from validation length table')
     proof = proof_for(a.out, a.gpu, a.seed, a.standin)
     resolved_gpu(a)
     checkpoints = validation_checkpoints(a.out); base = base_record(a.out)
     path = validation_path(a.out, panel, proof['family'], proof['seed'])
     identity = dict(policy_sha256=policy_sha256, assignment=proof, items_sha256=s.digest(rows),
                     checkpoints={name: dict(model=c['model'], model_file_hashes=c['identity'].get('model_file_hashes')) for name, c in checkpoints.items()})
+    from kit.likelihood_validation import matches_check,RULE
+    reused={}
     if path.exists():
-        old = json.loads(path.read_text())
-        require(all(old[k] == v for k, v in identity.items()), panel + ' validation declaration changed')
-        if old.get('status') == 'PENDING':
-            archive = path.parent / 'attempts' / path.stem / ('legacy-' + str(time.time_ns()) + '.json')
-            archive.parent.mkdir(parents=True, exist_ok=True); path.rename(archive)
-            for check in old.get('checks', []):
-                if 'production' not in check or 'reference' not in check: continue
-                previous = validation(check['production'], check['reference'], [r['id'] for r in rows])
-                if previous['complete_item_choice_coverage'] and previous['finite_likelihoods'] and previous['selected_choice_agreement'] != previous['required_agreement']:
-                    bind(path, dict(old, status='FAIL'))
-                    require(False, panel + ' legacy agreement FAIL is immutable; rerun forbidden')
-        else:
-            require(old.get('status') in ('PASS', 'FAIL'), 'unknown validation status')
-            require(old['status'] != 'FAIL', panel + ' validation agreement FAIL is immutable; rerun forbidden')
+        old=json.loads(path.read_text())
+        require(all(old[k]==v for k,v in identity.items()),panel+' validation declaration changed')
+        require(old.get('status') in ('PASS','FAIL','PENDING'),'unknown validation status')
+        for check in old.get('checks',[]):
+            if 'production' not in check or 'reference' not in check:continue
+            result=validation(check['production'],check['reference'],[r['id'] for r in rows])
+            if result['complete_item_choice_coverage'] and result['finite_likelihoods']:
+                require(check['checkpoint'] in checkpoints and matches_check(check,result,legacy=True),'stored validation diagnostics differ')
+                require(check['checkpoint'] not in reused,'duplicate stored validation checkpoint')
+                reused[check['checkpoint']]=dict(check,**result)
+        if old.get('validation_rule')==RULE and old['status']=='PENDING' and any(c['status']!='PASS' for c in reused.values()):
+            require(False,panel+' reference disagreement PENDING; rerun forbidden')
+        if old.get('validation_rule')==RULE and old['status']=='PASS':
+            require(set(reused)==set(checkpoints) and all(c['status']=='PASS' for c in reused.values()),'stored validation PASS differs')
             return
+        # Derive new diagnostics on CPU, preserving the exact original receipt.
+        archive=path.parent/'attempts'/path.stem/('legacy-'+str(time.time_ns())+'.json')
+        archive.parent.mkdir(parents=True,exist_ok=True);path.rename(archive)
+        if any(c['status']!='PASS' for c in reused.values()):
+            bind(path,dict(old,status='PENDING',checks=list(reused.values()),validation_rule=RULE,previous_receipt_sha256=s.file_hash(archive)))
+            require(False,panel+' legacy reference disagreement PENDING; rerun forbidden')
     checks = []
     for name, checkpoint in checkpoints.items():
+        if name in reused:
+            checks.append(reused[name]);continue
         try:
             if a.standin: production = reference = standin_likelihoods(rows, name)
             else:
@@ -210,12 +223,12 @@ def validate(a, panel, rows, production_fn, reference_fn, policy_sha256, declara
                    dict(identity, status='ERROR', checkpoint=name, checks=checks, error_type=type(error).__name__, technical_synthetic=a.standin))
             raise
         check = dict(checkpoint=name, **result, production=production, reference=reference)
-        if result['selected_choice_agreement'] != result['required_agreement']:
-            check['status'] = 'FAIL'; checks.append(check)
-            bind(path, dict(identity, status='FAIL', checks=checks, declaration=declaration, technical_synthetic=a.standin))
-            require(False, panel + ' independent reference agreement FAIL; rerun forbidden')
+        if result['status']!='PASS':
+            checks.append(check)
+            bind(path,dict(identity,status='PENDING',checks=checks,declaration=declaration,technical_synthetic=a.standin,validation_rule=RULE))
+            require(False,panel+' independent reference disagreement PENDING; rerun forbidden')
         checks.append(check)
-    bind(path, dict(identity, status='PASS', checks=checks, declaration=declaration, technical_synthetic=a.standin))
+    bind(path,dict(identity,status='PASS',checks=checks,declaration=declaration,technical_synthetic=a.standin,validation_rule=RULE))
 
 
 def validate_hellaswag(a):
@@ -225,14 +238,16 @@ def validate_hellaswag(a):
     validate(a, 'hellaswag', rows, formatting.likelihoods, hellaswag_reference.score, s.file_hash(formatting.POLICY), formatting.policy())
 
 
-def validation_status(out, panel, seed, standin=False):
+def validation_status(out, panel, seed, standin=False, notes=None):
     """Recompute agreement and every frozen identity; a bare or synthetic PASS cannot authorize a scientific read."""
     from kit import m2_assignment, m2_format
     path = validation_path(out, panel, FAMILY, seed)
     if not path.exists(): return None
     try:
         value = json.loads(path.read_text())
-        require(value.get('status') == 'PASS' and bool(value.get('technical_synthetic')) == standin, 'validation provenance/status differs')
+        from kit.likelihood_validation import matches_check,RULE
+        legacy=all('validation_rule' not in c for c in value.get('checks',[]))
+        require((value.get('status')=='PASS' or legacy and value.get('status') in ('FAIL','PENDING')) and bool(value.get('technical_synthetic'))==standin,'validation provenance/status differs')
         raw = assignment_path(out).read_bytes()
         m2_assignment.verify(dict(assignment=value['assignment']), raw)
         require((value['assignment']['family'], value['assignment']['seed']) == (FAMILY, seed), 'validation family/seed differs')
@@ -248,7 +263,9 @@ def validation_status(out, panel, seed, standin=False):
         require(len(checks) == len(checkpoints) and {c['checkpoint'] for c in checks} == set(checkpoints), 'reference checkpoint coverage differs')
         for check in checks:
             result = m2_format.validation(check['production'], check['reference'], [r['id'] for r in rows])
-            require(result['status'] == 'PASS' and all(check.get(k) == v for k, v in result.items()), 'reference agreement evidence differs')
+            require(result['status']=='PASS' and matches_check(check,result,legacy=legacy),'reference agreement evidence differs')
+        if legacy and value.get('status') in ('FAIL','PENDING') and notes is not None:
+            notes.append('Legacy '+value['status']+' receipt re-evaluated PASS under '+RULE+'; stored receipt unchanged; gaps recomputed on CPU')
         return s.file_hash(path)
     except (KeyError, ValueError, TypeError, RuntimeError, OSError): return None
 

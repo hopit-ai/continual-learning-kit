@@ -1,0 +1,69 @@
+{
+  "/partner-storage/shared-storage/operator/OPERATOR_REDACTED/v4-phase0/hf-cache/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218": {
+    "model": "/local/checkpoints/replace-01"
+  },
+  "/partner-storage/shared-storage/operator/OPERATOR_REDACTED/v4-finqa-keep/exports/F-finqa-alone-s101/hf-step40": {
+    "model": "/local/checkpoints/replace-02",
+    "receipt": "/local/receipts/replace-02.json"
+  },
+  "/tmp/message/C/runs/sequence-F-s101/hf-step40": {
+    "model": "/local/checkpoints/replace-03",
+    "receipt": "/local/receipts/replace-03.json"
+  },
+  "/tmp/message/C/runs/sequence-answer-only-s101/hf-step40": {
+    "model": "/local/checkpoints/replace-04",
+    "receipt": "/local/receipts/replace-04.json"
+  },
+  "/tmp/message/C/runs/standalone-F-s101/hf-step40": {
+    "model": "/local/checkpoints/replace-05",
+    "receipt": "/local/receipts/replace-05.json"
+  },
+  "/tmp/message/C/runs/standalone-answer-only-s101/hf-step40": {
+    "model": "/local/checkpoints/replace-06",
+    "receipt": "/local/receipts/replace-06.json"
+  },
+  "/partner-storage/shared-storage/operator/OPERATOR_REDACTED/v4-finqa-keep/exports/F-finqa-alone-s102/hf-step40": {
+    "model": "/local/checkpoints/replace-07",
+    "receipt": "/local/receipts/replace-07.json"
+  },
+  "/tmp/message/C/runs/sequence-F-s102/hf-step40": {
+    "model": "/local/checkpoints/replace-08",
+    "receipt": "/local/receipts/replace-08.json"
+  },
+  "/tmp/message/C/runs/sequence-answer-only-s102/hf-step40": {
+    "model": "/local/checkpoints/replace-09",
+    "receipt": "/local/receipts/replace-09.json"
+  },
+  "/tmp/message/C/runs/standalone-F-s102/hf-step40": {
+    "model": "/local/checkpoints/replace-10",
+    "receipt": "/local/receipts/replace-10.json"
+  },
+  "/tmp/message/C/runs/standalone-answer-only-s102/hf-step40": {
+    "model": "/local/checkpoints/replace-11",
+    "receipt": "/local/receipts/replace-11.json"
+  },
+  "/tmp/message/C/runs/sequence-D-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-12",
+    "receipt": "/local/receipts/replace-12.json"
+  },
+  "/partner-storage/shared-storage/operator/OPERATOR_REDACTED/v4-finqa-keep/exports/F-finqa-alone-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-13",
+    "receipt": "/local/receipts/replace-13.json"
+  },
+  "/tmp/message/C/runs/sequence-F-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-14",
+    "receipt": "/local/receipts/replace-14.json"
+  },
+  "/tmp/message/C/runs/sequence-answer-only-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-15",
+    "receipt": "/local/receipts/replace-15.json"
+  },
+  "/tmp/message/C/runs/standalone-F-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-16",
+    "receipt": "/local/receipts/replace-16.json"
+  },
+  "/tmp/message/C/runs/standalone-answer-only-s103/hf-step40": {
+    "model": "/local/checkpoints/replace-17",
+    "receipt": "/local/receipts/replace-17.json"
+  }
+}

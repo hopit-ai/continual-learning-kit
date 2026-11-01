@@ -106,7 +106,8 @@ def test_tier_node_preflight_retains_pending_for_dependency_failure(tmp_path):
 def test_all_tier_files_in_publisher_scope_and_private_runtime_maps_not_copied(tmp_path):
     publish_kit=pytest.importorskip('scripts.publish_kit',reason='publisher is private build tooling')
     root=Path(__file__).resolve().parents[1]
-    target=publish_kit.build(tmp_path/'public')
+    target=publish_kit.build(tmp_path/'public',tag='kit-message-v4')
+    assert c.load(target/'kit/KIT-IDENTITY.json')['tag']=='kit-message-v4'
     files=c.load(target/'EXPORT-INVENTORY.json')
     for prefix in ('kit/m3_', 'kit/pd_', 'kit/sp_', 'kit/resources/m3/', 'kit/resources/pd/', 'kit/resources/sp/', 'kit/jobs/message3/', 'kit/jobs/message3-sp/', 'kit/jobs/combined/'):
         expected={str(p.relative_to(root)) for p in (root/'kit').rglob('*') if p.is_file() and str(p.relative_to(root)).startswith(prefix) and '__pycache__' not in p.parts}
@@ -116,6 +117,39 @@ def test_all_tier_files_in_publisher_scope_and_private_runtime_maps_not_copied(t
     assert not m2_privacy.scan(target)
     leak=target/'kit/resources/sp/runtime-local.json';leak.write_text(json.dumps({'job_id':123456789}))
     assert m2_privacy.scan(target)==['kit/resources/sp/runtime-local.json:1']
+
+
+@pytest.mark.parametrize('changed_hash',[False,True])
+def test_send_shared_base_needs_no_invented_export_receipt(tmp_path,monkeypatch,changed_hash):
+    """Optional Tier B reuses Tier A's checked base; conflicting hashes still stop.
+
+    Synthetic reader doubles exercise only send-wrapper reference deduplication.
+    The real readers, registrations and receipts are unchanged.
+    """
+    from kit import m2_bind as b,m2_return1 as r,arc_prompt_acceptance,hellaswag_prompt_check
+    hashes=c.load(c.KIT/'resources/p3b/model-hashes.json')['student']['files']
+    call=dict(checkpoint='base',step=0,score_set='scores/base-s101-k0-finqa',model_hashes=hashes,
+        identity_path='identity.json',identity_sha256=b.t.sha(b'identity'),companion_path='companion.json')
+    other=dict(call,score_set='scores/standalone-D-s101-k0-test',model_hashes=dict(hashes))
+    if changed_hash:other['model_hashes']['config.json']='0'*64
+    ruling=dict(B_selection=dict(provisional=True),teacher=dict(status='QUALIFIES'),rescoring=dict(packages=[
+        dict(tier='A',calls=[call]),dict(tier='B',calls=[other])]))
+    reading=tmp_path/'reading.json';reading.write_text('{}')
+    paths=tmp_path/'rescore-paths.local.json';paths.write_text(json.dumps(dict(base=dict(model='/portable/base'))))
+    monkeypatch.setattr(r,'decisions',lambda *args:ruling)
+    monkeypatch.setattr(r,'archives',lambda *args:{'package-c-return.tar.gz':'archive-hash'})
+    monkeypatch.setattr(r,'binding',lambda *args:({},dict({'identity.json':b'identity','companion.json':b'{}'})))
+    monkeypatch.setattr(arc_prompt_acceptance,'validate_frozen',lambda *args:{})
+    monkeypatch.setattr(hellaswag_prompt_check,'validate_receipt',lambda *args:{})
+    monkeypatch.setattr(b,'load',lambda *args:([],{}))
+    monkeypatch.setattr(b,'b_analyse',lambda *args:{})
+    monkeypatch.setattr(b,'choose',lambda *args:dict(W='D',provisional=True))
+    args=NS(decisions=r.DECISIONS,return1_archives=tmp_path,b_source=tmp_path,c_source=tmp_path,b_reading=reading,rescore_paths=paths)
+    if changed_hash:
+        with pytest.raises(Exception,match='shared checkpoint hashes differ'):b.reviewed_return1(args)
+    else:
+        result,_,_,_=b.reviewed_return1(args)
+        assert result['rescore_refs']==dict(base=dict(model='/portable/base',model_hashes=hashes))
 
 
 def test_kcr_shell_wrapper_handles_no_submission_timestamp_and_optional_timestamp(tmp_path):

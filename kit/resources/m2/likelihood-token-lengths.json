@@ -1,0 +1,2811 @@
+{
+  "hellaswag_items_sha256": "202f480cc2c1c1910a20a5cdecbe1706a6fddbc0d5ab3441f2af3da283bc9c17",
+  "knowledge_panel_sha256": "ce5743ef03f59f57b18231ccd88aee66f0350c8fe3fce8a4abaeb816dd00a1e6",
+  "lengths": {
+    "hellaswag-val-10150": {
+      "characters": [
+        67,
+        100,
+        68,
+        51
+      ],
+      "tokens": [
+        15,
+        23,
+        14,
+        12
+      ]
+    },
+    "hellaswag-val-10338": {
+      "characters": [
+        41,
+        52,
+        66,
+        58
+      ],
+      "tokens": [
+        10,
+        10,
+        14,
+        10
+      ]
+    },
+    "hellaswag-val-10638": {
+      "characters": [
+        67,
+        52,
+        45,
+        68
+      ],
+      "tokens": [
+        13,
+        12,
+        10,
+        13
+      ]
+    },
+    "hellaswag-val-10668": {
+      "characters": [
+        61,
+        63,
+        51,
+        78
+      ],
+      "tokens": [
+        13,
+        16,
+        12,
+        18
+      ]
+    },
+    "hellaswag-val-10669": {
+      "characters": [
+        61,
+        65,
+        64,
+        23
+      ],
+      "tokens": [
+        14,
+        16,
+        16,
+        5
+      ]
+    },
+    "hellaswag-val-10739": {
+      "characters": [
+        186,
+        95,
+        112,
+        90
+      ],
+      "tokens": [
+        40,
+        21,
+        24,
+        22
+      ]
+    },
+    "hellaswag-val-11177": {
+      "characters": [
+        36,
+        33,
+        40,
+        77
+      ],
+      "tokens": [
+        7,
+        9,
+        9,
+        15
+      ]
+    },
+    "hellaswag-val-11342": {
+      "characters": [
+        96,
+        37,
+        43,
+        50
+      ],
+      "tokens": [
+        18,
+        9,
+        10,
+        13
+      ]
+    },
+    "hellaswag-val-11348": {
+      "characters": [
+        133,
+        54,
+        115,
+        80
+      ],
+      "tokens": [
+        28,
+        12,
+        26,
+        18
+      ]
+    },
+    "hellaswag-val-116": {
+      "characters": [
+        33,
+        21,
+        41,
+        23
+      ],
+      "tokens": [
+        8,
+        6,
+        9,
+        8
+      ]
+    },
+    "hellaswag-val-11784": {
+      "characters": [
+        52,
+        65,
+        195,
+        137
+      ],
+      "tokens": [
+        14,
+        12,
+        49,
+        29
+      ]
+    },
+    "hellaswag-val-11861": {
+      "characters": [
+        87,
+        78,
+        93,
+        101
+      ],
+      "tokens": [
+        16,
+        15,
+        16,
+        18
+      ]
+    },
+    "hellaswag-val-12441": {
+      "characters": [
+        49,
+        83,
+        76,
+        53
+      ],
+      "tokens": [
+        12,
+        16,
+        18,
+        14
+      ]
+    },
+    "hellaswag-val-12512": {
+      "characters": [
+        65,
+        26,
+        46,
+        26
+      ],
+      "tokens": [
+        14,
+        6,
+        10,
+        6
+      ]
+    },
+    "hellaswag-val-1321": {
+      "characters": [
+        84,
+        114,
+        49,
+        87
+      ],
+      "tokens": [
+        19,
+        27,
+        10,
+        18
+      ]
+    },
+    "hellaswag-val-13911": {
+      "characters": [
+        129,
+        28,
+        34,
+        77
+      ],
+      "tokens": [
+        27,
+        5,
+        8,
+        16
+      ]
+    },
+    "hellaswag-val-14553": {
+      "characters": [
+        140,
+        33,
+        51,
+        78
+      ],
+      "tokens": [
+        34,
+        9,
+        10,
+        20
+      ]
+    },
+    "hellaswag-val-15054": {
+      "characters": [
+        98,
+        59,
+        85,
+        78
+      ],
+      "tokens": [
+        21,
+        13,
+        17,
+        17
+      ]
+    },
+    "hellaswag-val-15277": {
+      "characters": [
+        47,
+        30,
+        51,
+        122
+      ],
+      "tokens": [
+        10,
+        7,
+        11,
+        24
+      ]
+    },
+    "hellaswag-val-15781": {
+      "characters": [
+        59,
+        41,
+        63,
+        56
+      ],
+      "tokens": [
+        11,
+        10,
+        11,
+        11
+      ]
+    },
+    "hellaswag-val-16265": {
+      "characters": [
+        42,
+        53,
+        37,
+        52
+      ],
+      "tokens": [
+        10,
+        9,
+        8,
+        12
+      ]
+    },
+    "hellaswag-val-16931": {
+      "characters": [
+        47,
+        36,
+        57,
+        83
+      ],
+      "tokens": [
+        9,
+        8,
+        11,
+        16
+      ]
+    },
+    "hellaswag-val-17042": {
+      "characters": [
+        25,
+        28,
+        35,
+        33
+      ],
+      "tokens": [
+        5,
+        8,
+        9,
+        6
+      ]
+    },
+    "hellaswag-val-17762": {
+      "characters": [
+        28,
+        38,
+        61,
+        47
+      ],
+      "tokens": [
+        8,
+        9,
+        12,
+        11
+      ]
+    },
+    "hellaswag-val-185": {
+      "characters": [
+        53,
+        93,
+        25,
+        60
+      ],
+      "tokens": [
+        12,
+        21,
+        5,
+        13
+      ]
+    },
+    "hellaswag-val-1858": {
+      "characters": [
+        89,
+        138,
+        50,
+        30
+      ],
+      "tokens": [
+        16,
+        27,
+        11,
+        6
+      ]
+    },
+    "hellaswag-val-18945": {
+      "characters": [
+        31,
+        34,
+        33,
+        18
+      ],
+      "tokens": [
+        7,
+        8,
+        7,
+        5
+      ]
+    },
+    "hellaswag-val-20432": {
+      "characters": [
+        62,
+        26,
+        77,
+        60
+      ],
+      "tokens": [
+        15,
+        7,
+        16,
+        15
+      ]
+    },
+    "hellaswag-val-2060": {
+      "characters": [
+        58,
+        34,
+        23,
+        37
+      ],
+      "tokens": [
+        13,
+        9,
+        6,
+        8
+      ]
+    },
+    "hellaswag-val-20925": {
+      "characters": [
+        21,
+        31,
+        29,
+        49
+      ],
+      "tokens": [
+        7,
+        7,
+        9,
+        12
+      ]
+    },
+    "hellaswag-val-21356": {
+      "characters": [
+        39,
+        60,
+        46,
+        37
+      ],
+      "tokens": [
+        8,
+        13,
+        12,
+        9
+      ]
+    },
+    "hellaswag-val-22156": {
+      "characters": [
+        59,
+        6,
+        40,
+        40
+      ],
+      "tokens": [
+        11,
+        2,
+        9,
+        9
+      ]
+    },
+    "hellaswag-val-22602": {
+      "characters": [
+        29,
+        70,
+        51,
+        25
+      ],
+      "tokens": [
+        7,
+        17,
+        14,
+        7
+      ]
+    },
+    "hellaswag-val-22616": {
+      "characters": [
+        84,
+        82,
+        68,
+        49
+      ],
+      "tokens": [
+        17,
+        20,
+        15,
+        11
+      ]
+    },
+    "hellaswag-val-2278": {
+      "characters": [
+        43,
+        50,
+        32,
+        22
+      ],
+      "tokens": [
+        10,
+        12,
+        8,
+        6
+      ]
+    },
+    "hellaswag-val-22914": {
+      "characters": [
+        41,
+        45,
+        130,
+        70
+      ],
+      "tokens": [
+        10,
+        11,
+        25,
+        16
+      ]
+    },
+    "hellaswag-val-23360": {
+      "characters": [
+        117,
+        81,
+        67,
+        119
+      ],
+      "tokens": [
+        26,
+        18,
+        14,
+        29
+      ]
+    },
+    "hellaswag-val-23672": {
+      "characters": [
+        113,
+        85,
+        36,
+        89
+      ],
+      "tokens": [
+        28,
+        19,
+        9,
+        22
+      ]
+    },
+    "hellaswag-val-23927": {
+      "characters": [
+        100,
+        87,
+        183,
+        106
+      ],
+      "tokens": [
+        20,
+        17,
+        35,
+        24
+      ]
+    },
+    "hellaswag-val-24048": {
+      "characters": [
+        232,
+        177,
+        144,
+        50
+      ],
+      "tokens": [
+        52,
+        42,
+        31,
+        12
+      ]
+    },
+    "hellaswag-val-24085": {
+      "characters": [
+        66,
+        41,
+        61,
+        88
+      ],
+      "tokens": [
+        12,
+        10,
+        13,
+        16
+      ]
+    },
+    "hellaswag-val-24338": {
+      "characters": [
+        31,
+        112,
+        37,
+        73
+      ],
+      "tokens": [
+        7,
+        23,
+        8,
+        14
+      ]
+    },
+    "hellaswag-val-24353": {
+      "characters": [
+        68,
+        51,
+        35,
+        28
+      ],
+      "tokens": [
+        16,
+        12,
+        9,
+        6
+      ]
+    },
+    "hellaswag-val-24823": {
+      "characters": [
+        60,
+        58,
+        14,
+        46
+      ],
+      "tokens": [
+        15,
+        14,
+        5,
+        12
+      ]
+    },
+    "hellaswag-val-25669": {
+      "characters": [
+        48,
+        62,
+        48,
+        109
+      ],
+      "tokens": [
+        11,
+        15,
+        13,
+        24
+      ]
+    },
+    "hellaswag-val-26191": {
+      "characters": [
+        75,
+        34,
+        73,
+        29
+      ],
+      "tokens": [
+        19,
+        10,
+        15,
+        8
+      ]
+    },
+    "hellaswag-val-26589": {
+      "characters": [
+        50,
+        46,
+        97,
+        105
+      ],
+      "tokens": [
+        10,
+        9,
+        23,
+        22
+      ]
+    },
+    "hellaswag-val-28576": {
+      "characters": [
+        57,
+        116,
+        107,
+        109
+      ],
+      "tokens": [
+        14,
+        25,
+        22,
+        24
+      ]
+    },
+    "hellaswag-val-28671": {
+      "characters": [
+        35,
+        27,
+        29,
+        68
+      ],
+      "tokens": [
+        8,
+        6,
+        7,
+        15
+      ]
+    },
+    "hellaswag-val-29144": {
+      "characters": [
+        76,
+        77,
+        83,
+        82
+      ],
+      "tokens": [
+        17,
+        16,
+        17,
+        14
+      ]
+    },
+    "hellaswag-val-29813": {
+      "characters": [
+        81,
+        156,
+        138,
+        73
+      ],
+      "tokens": [
+        18,
+        32,
+        34,
+        18
+      ]
+    },
+    "hellaswag-val-29851": {
+      "characters": [
+        24,
+        38,
+        35,
+        56
+      ],
+      "tokens": [
+        8,
+        11,
+        9,
+        15
+      ]
+    },
+    "hellaswag-val-29958": {
+      "characters": [
+        36,
+        68,
+        69,
+        84
+      ],
+      "tokens": [
+        7,
+        14,
+        15,
+        21
+      ]
+    },
+    "hellaswag-val-30616": {
+      "characters": [
+        70,
+        30,
+        42,
+        44
+      ],
+      "tokens": [
+        18,
+        6,
+        9,
+        9
+      ]
+    },
+    "hellaswag-val-30858": {
+      "characters": [
+        28,
+        86,
+        75,
+        108
+      ],
+      "tokens": [
+        7,
+        17,
+        14,
+        23
+      ]
+    },
+    "hellaswag-val-31168": {
+      "characters": [
+        41,
+        56,
+        29,
+        23
+      ],
+      "tokens": [
+        10,
+        13,
+        7,
+        6
+      ]
+    },
+    "hellaswag-val-31335": {
+      "characters": [
+        72,
+        58,
+        59,
+        91
+      ],
+      "tokens": [
+        9,
+        13,
+        12,
+        19
+      ]
+    },
+    "hellaswag-val-32269": {
+      "characters": [
+        42,
+        28,
+        72,
+        49
+      ],
+      "tokens": [
+        11,
+        8,
+        14,
+        9
+      ]
+    },
+    "hellaswag-val-32550": {
+      "characters": [
+        25,
+        62,
+        28,
+        61
+      ],
+      "tokens": [
+        7,
+        12,
+        6,
+        14
+      ]
+    },
+    "hellaswag-val-33114": {
+      "characters": [
+        88,
+        32,
+        80,
+        44
+      ],
+      "tokens": [
+        20,
+        6,
+        19,
+        10
+      ]
+    },
+    "hellaswag-val-33432": {
+      "characters": [
+        30,
+        51,
+        37,
+        48
+      ],
+      "tokens": [
+        8,
+        11,
+        8,
+        9
+      ]
+    },
+    "hellaswag-val-34029": {
+      "characters": [
+        76,
+        42,
+        55,
+        25
+      ],
+      "tokens": [
+        15,
+        10,
+        13,
+        6
+      ]
+    },
+    "hellaswag-val-34871": {
+      "characters": [
+        31,
+        45,
+        66,
+        33
+      ],
+      "tokens": [
+        8,
+        11,
+        15,
+        7
+      ]
+    },
+    "hellaswag-val-36124": {
+      "characters": [
+        60,
+        28,
+        34,
+        45
+      ],
+      "tokens": [
+        12,
+        8,
+        10,
+        8
+      ]
+    },
+    "hellaswag-val-3623": {
+      "characters": [
+        94,
+        88,
+        81,
+        106
+      ],
+      "tokens": [
+        20,
+        20,
+        16,
+        21
+      ]
+    },
+    "hellaswag-val-36548": {
+      "characters": [
+        39,
+        85,
+        93,
+        44
+      ],
+      "tokens": [
+        11,
+        23,
+        18,
+        10
+      ]
+    },
+    "hellaswag-val-37364": {
+      "characters": [
+        110,
+        52,
+        65,
+        52
+      ],
+      "tokens": [
+        23,
+        10,
+        16,
+        11
+      ]
+    },
+    "hellaswag-val-37685": {
+      "characters": [
+        44,
+        18,
+        32,
+        48
+      ],
+      "tokens": [
+        10,
+        5,
+        8,
+        12
+      ]
+    },
+    "hellaswag-val-37958": {
+      "characters": [
+        34,
+        28,
+        59,
+        28
+      ],
+      "tokens": [
+        9,
+        6,
+        14,
+        6
+      ]
+    },
+    "hellaswag-val-39191": {
+      "characters": [
+        78,
+        29,
+        50,
+        36
+      ],
+      "tokens": [
+        17,
+        8,
+        12,
+        8
+      ]
+    },
+    "hellaswag-val-39913": {
+      "characters": [
+        110,
+        47,
+        73,
+        44
+      ],
+      "tokens": [
+        24,
+        10,
+        15,
+        10
+      ]
+    },
+    "hellaswag-val-4010": {
+      "characters": [
+        74,
+        146,
+        68,
+        50
+      ],
+      "tokens": [
+        13,
+        31,
+        15,
+        9
+      ]
+    },
+    "hellaswag-val-41093": {
+      "characters": [
+        88,
+        38,
+        56,
+        58
+      ],
+      "tokens": [
+        19,
+        9,
+        10,
+        13
+      ]
+    },
+    "hellaswag-val-41806": {
+      "characters": [
+        92,
+        81,
+        84,
+        44
+      ],
+      "tokens": [
+        23,
+        17,
+        21,
+        12
+      ]
+    },
+    "hellaswag-val-42054": {
+      "characters": [
+        82,
+        134,
+        73,
+        42
+      ],
+      "tokens": [
+        18,
+        28,
+        17,
+        8
+      ]
+    },
+    "hellaswag-val-42142": {
+      "characters": [
+        105,
+        71,
+        85,
+        91
+      ],
+      "tokens": [
+        26,
+        15,
+        17,
+        17
+      ]
+    },
+    "hellaswag-val-43250": {
+      "characters": [
+        92,
+        95,
+        64,
+        117
+      ],
+      "tokens": [
+        21,
+        21,
+        13,
+        25
+      ]
+    },
+    "hellaswag-val-43690": {
+      "characters": [
+        81,
+        90,
+        69,
+        59
+      ],
+      "tokens": [
+        18,
+        19,
+        14,
+        13
+      ]
+    },
+    "hellaswag-val-43727": {
+      "characters": [
+        64,
+        114,
+        38,
+        45
+      ],
+      "tokens": [
+        14,
+        24,
+        9,
+        10
+      ]
+    },
+    "hellaswag-val-43847": {
+      "characters": [
+        38,
+        25,
+        37,
+        30
+      ],
+      "tokens": [
+        8,
+        6,
+        9,
+        8
+      ]
+    },
+    "hellaswag-val-46144": {
+      "characters": [
+        54,
+        55,
+        25,
+        39
+      ],
+      "tokens": [
+        12,
+        12,
+        7,
+        10
+      ]
+    },
+    "hellaswag-val-47369": {
+      "characters": [
+        142,
+        99,
+        45,
+        24
+      ],
+      "tokens": [
+        32,
+        20,
+        12,
+        6
+      ]
+    },
+    "hellaswag-val-4744": {
+      "characters": [
+        97,
+        140,
+        173,
+        99
+      ],
+      "tokens": [
+        21,
+        31,
+        38,
+        20
+      ]
+    },
+    "hellaswag-val-47576": {
+      "characters": [
+        55,
+        24,
+        34,
+        61
+      ],
+      "tokens": [
+        13,
+        6,
+        7,
+        13
+      ]
+    },
+    "hellaswag-val-48588": {
+      "characters": [
+        38,
+        75,
+        52,
+        72
+      ],
+      "tokens": [
+        12,
+        18,
+        12,
+        16
+      ]
+    },
+    "hellaswag-val-48592": {
+      "characters": [
+        132,
+        178,
+        48,
+        158
+      ],
+      "tokens": [
+        27,
+        41,
+        12,
+        35
+      ]
+    },
+    "hellaswag-val-49263": {
+      "characters": [
+        25,
+        62,
+        20,
+        30
+      ],
+      "tokens": [
+        5,
+        12,
+        5,
+        6
+      ]
+    },
+    "hellaswag-val-49515": {
+      "characters": [
+        80,
+        90,
+        75,
+        133
+      ],
+      "tokens": [
+        16,
+        18,
+        17,
+        30
+      ]
+    },
+    "hellaswag-val-5543": {
+      "characters": [
+        25,
+        34,
+        40,
+        40
+      ],
+      "tokens": [
+        7,
+        9,
+        8,
+        10
+      ]
+    },
+    "hellaswag-val-5814": {
+      "characters": [
+        35,
+        45,
+        69,
+        55
+      ],
+      "tokens": [
+        8,
+        8,
+        14,
+        12
+      ]
+    },
+    "hellaswag-val-6190": {
+      "characters": [
+        103,
+        82,
+        31,
+        47
+      ],
+      "tokens": [
+        21,
+        16,
+        7,
+        10
+      ]
+    },
+    "hellaswag-val-6501": {
+      "characters": [
+        47,
+        22,
+        41,
+        36
+      ],
+      "tokens": [
+        11,
+        5,
+        10,
+        9
+      ]
+    },
+    "hellaswag-val-6857": {
+      "characters": [
+        73,
+        57,
+        39,
+        55
+      ],
+      "tokens": [
+        16,
+        11,
+        11,
+        12
+      ]
+    },
+    "hellaswag-val-6864": {
+      "characters": [
+        76,
+        131,
+        164,
+        75
+      ],
+      "tokens": [
+        18,
+        31,
+        38,
+        19
+      ]
+    },
+    "hellaswag-val-6887": {
+      "characters": [
+        45,
+        68,
+        27,
+        24
+      ],
+      "tokens": [
+        11,
+        16,
+        6,
+        7
+      ]
+    },
+    "hellaswag-val-7431": {
+      "characters": [
+        198,
+        138,
+        176,
+        127
+      ],
+      "tokens": [
+        43,
+        31,
+        35,
+        28
+      ]
+    },
+    "hellaswag-val-7457": {
+      "characters": [
+        51,
+        68,
+        79,
+        50
+      ],
+      "tokens": [
+        9,
+        12,
+        16,
+        10
+      ]
+    },
+    "hellaswag-val-7480": {
+      "characters": [
+        36,
+        39,
+        44,
+        32
+      ],
+      "tokens": [
+        8,
+        10,
+        12,
+        7
+      ]
+    },
+    "hellaswag-val-7652": {
+      "characters": [
+        70,
+        41,
+        38,
+        33
+      ],
+      "tokens": [
+        15,
+        9,
+        8,
+        10
+      ]
+    },
+    "hellaswag-val-8742": {
+      "characters": [
+        84,
+        69,
+        53,
+        89
+      ],
+      "tokens": [
+        19,
+        15,
+        13,
+        19
+      ]
+    },
+    "mmlu-10005": {
+      "characters": [
+        41,
+        43,
+        43,
+        45
+      ],
+      "tokens": [
+        12,
+        11,
+        11,
+        10
+      ]
+    },
+    "mmlu-1001": {
+      "characters": [
+        14,
+        13,
+        12,
+        12
+      ],
+      "tokens": [
+        11,
+        10,
+        9,
+        9
+      ]
+    },
+    "mmlu-10031": {
+      "characters": [
+        61,
+        65,
+        60,
+        63
+      ],
+      "tokens": [
+        10,
+        11,
+        11,
+        12
+      ]
+    },
+    "mmlu-10190": {
+      "characters": [
+        109,
+        93,
+        117,
+        97
+      ],
+      "tokens": [
+        21,
+        20,
+        19,
+        22
+      ]
+    },
+    "mmlu-1040": {
+      "characters": [
+        6,
+        7,
+        8,
+        8
+      ],
+      "tokens": [
+        2,
+        2,
+        2,
+        3
+      ]
+    },
+    "mmlu-10415": {
+      "characters": [
+        2,
+        7,
+        7,
+        7
+      ],
+      "tokens": [
+        2,
+        7,
+        7,
+        7
+      ]
+    },
+    "mmlu-10456": {
+      "characters": [
+        14,
+        14,
+        13,
+        14
+      ],
+      "tokens": [
+        12,
+        11,
+        11,
+        12
+      ]
+    },
+    "mmlu-10552": {
+      "characters": [
+        14,
+        8,
+        9,
+        16
+      ],
+      "tokens": [
+        3,
+        6,
+        7,
+        3
+      ]
+    },
+    "mmlu-1095": {
+      "characters": [
+        3,
+        3,
+        3,
+        6
+      ],
+      "tokens": [
+        4,
+        4,
+        4,
+        7
+      ]
+    },
+    "mmlu-11334": {
+      "characters": [
+        36,
+        22,
+        29,
+        26
+      ],
+      "tokens": [
+        8,
+        6,
+        5,
+        5
+      ]
+    },
+    "mmlu-1161": {
+      "characters": [
+        7,
+        9,
+        7,
+        7
+      ],
+      "tokens": [
+        7,
+        6,
+        7,
+        7
+      ]
+    },
+    "mmlu-11718": {
+      "characters": [
+        153,
+        123,
+        117,
+        88
+      ],
+      "tokens": [
+        27,
+        21,
+        25,
+        16
+      ]
+    },
+    "mmlu-1173": {
+      "characters": [
+        1,
+        1,
+        1,
+        2
+      ],
+      "tokens": [
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    "mmlu-11745": {
+      "characters": [
+        154,
+        192,
+        140,
+        160
+      ],
+      "tokens": [
+        29,
+        37,
+        29,
+        32
+      ]
+    },
+    "mmlu-12261": {
+      "characters": [
+        15,
+        29,
+        6,
+        12
+      ],
+      "tokens": [
+        4,
+        6,
+        3,
+        2
+      ]
+    },
+    "mmlu-12336": {
+      "characters": [
+        31,
+        24,
+        20,
+        14
+      ],
+      "tokens": [
+        8,
+        6,
+        6,
+        4
+      ]
+    },
+    "mmlu-12346": {
+      "characters": [
+        32,
+        16,
+        14,
+        27
+      ],
+      "tokens": [
+        5,
+        3,
+        4,
+        6
+      ]
+    },
+    "mmlu-1244": {
+      "characters": [
+        30,
+        34,
+        27,
+        21
+      ],
+      "tokens": [
+        4,
+        9,
+        7,
+        4
+      ]
+    },
+    "mmlu-1249": {
+      "characters": [
+        79,
+        30,
+        47,
+        63
+      ],
+      "tokens": [
+        15,
+        6,
+        7,
+        11
+      ]
+    },
+    "mmlu-12529": {
+      "characters": [
+        82,
+        87,
+        67,
+        32
+      ],
+      "tokens": [
+        16,
+        19,
+        16,
+        7
+      ]
+    },
+    "mmlu-13060": {
+      "characters": [
+        38,
+        32,
+        63,
+        63
+      ],
+      "tokens": [
+        6,
+        7,
+        11,
+        11
+      ]
+    },
+    "mmlu-13070": {
+      "characters": [
+        14,
+        8,
+        8,
+        10
+      ],
+      "tokens": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "mmlu-13130": {
+      "characters": [
+        53,
+        46,
+        66,
+        20
+      ],
+      "tokens": [
+        9,
+        8,
+        10,
+        4
+      ]
+    },
+    "mmlu-13138": {
+      "characters": [
+        70,
+        90,
+        75,
+        85
+      ],
+      "tokens": [
+        10,
+        14,
+        12,
+        12
+      ]
+    },
+    "mmlu-133": {
+      "characters": [
+        6,
+        5,
+        7,
+        5
+      ],
+      "tokens": [
+        3,
+        1,
+        2,
+        2
+      ]
+    },
+    "mmlu-13509": {
+      "characters": [
+        28,
+        22,
+        34,
+        16
+      ],
+      "tokens": [
+        5,
+        3,
+        6,
+        4
+      ]
+    },
+    "mmlu-13528": {
+      "characters": [
+        74,
+        87,
+        70,
+        88
+      ],
+      "tokens": [
+        11,
+        14,
+        11,
+        14
+      ]
+    },
+    "mmlu-13650": {
+      "characters": [
+        7,
+        8,
+        9,
+        13
+      ],
+      "tokens": [
+        1,
+        1,
+        2,
+        2
+      ]
+    },
+    "mmlu-138": {
+      "characters": [
+        52,
+        28,
+        37,
+        41
+      ],
+      "tokens": [
+        11,
+        6,
+        8,
+        8
+      ]
+    },
+    "mmlu-13801": {
+      "characters": [
+        28,
+        16,
+        11,
+        16
+      ],
+      "tokens": [
+        5,
+        2,
+        1,
+        4
+      ]
+    },
+    "mmlu-13930": {
+      "characters": [
+        54,
+        68,
+        51,
+        46
+      ],
+      "tokens": [
+        11,
+        11,
+        10,
+        8
+      ]
+    },
+    "mmlu-14033": {
+      "characters": [
+        9,
+        8,
+        9,
+        8
+      ],
+      "tokens": [
+        3,
+        3,
+        2,
+        3
+      ]
+    },
+    "mmlu-1413": {
+      "characters": [
+        6,
+        6,
+        6,
+        6
+      ],
+      "tokens": [
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    "mmlu-1449": {
+      "characters": [
+        8,
+        6,
+        5,
+        6
+      ],
+      "tokens": [
+        7,
+        6,
+        4,
+        5
+      ]
+    },
+    "mmlu-1549": {
+      "characters": [
+        5,
+        9,
+        9,
+        9
+      ],
+      "tokens": [
+        2,
+        2,
+        3,
+        3
+      ]
+    },
+    "mmlu-1567": {
+      "characters": [
+        62,
+        59,
+        54,
+        55
+      ],
+      "tokens": [
+        11,
+        12,
+        7,
+        8
+      ]
+    },
+    "mmlu-1702": {
+      "characters": [
+        10,
+        9,
+        6,
+        17
+      ],
+      "tokens": [
+        1,
+        1,
+        1,
+        2
+      ]
+    },
+    "mmlu-1819": {
+      "characters": [
+        21,
+        23,
+        23,
+        44
+      ],
+      "tokens": [
+        6,
+        7,
+        7,
+        8
+      ]
+    },
+    "mmlu-1897": {
+      "characters": [
+        117,
+        92,
+        128,
+        77
+      ],
+      "tokens": [
+        21,
+        18,
+        20,
+        18
+      ]
+    },
+    "mmlu-1922": {
+      "characters": [
+        10,
+        15,
+        13,
+        16
+      ],
+      "tokens": [
+        4,
+        6,
+        6,
+        8
+      ]
+    },
+    "mmlu-1929": {
+      "characters": [
+        15,
+        18,
+        14,
+        15
+      ],
+      "tokens": [
+        9,
+        12,
+        8,
+        9
+      ]
+    },
+    "mmlu-200": {
+      "characters": [
+        65,
+        64,
+        46,
+        45
+      ],
+      "tokens": [
+        14,
+        15,
+        8,
+        9
+      ]
+    },
+    "mmlu-2012": {
+      "characters": [
+        5,
+        4,
+        9,
+        9
+      ],
+      "tokens": [
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    "mmlu-2256": {
+      "characters": [
+        4,
+        5,
+        4,
+        5
+      ],
+      "tokens": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    "mmlu-2400": {
+      "characters": [
+        6,
+        7,
+        13,
+        14
+      ],
+      "tokens": [
+        3,
+        4,
+        4,
+        5
+      ]
+    },
+    "mmlu-2494": {
+      "characters": [
+        1,
+        6,
+        5,
+        2
+      ],
+      "tokens": [
+        1,
+        5,
+        4,
+        2
+      ]
+    },
+    "mmlu-2576": {
+      "characters": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "tokens": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    "mmlu-2659": {
+      "characters": [
+        6,
+        6,
+        4,
+        5
+      ],
+      "tokens": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "mmlu-2894": {
+      "characters": [
+        33,
+        30,
+        38,
+        31
+      ],
+      "tokens": [
+        9,
+        6,
+        9,
+        6
+      ]
+    },
+    "mmlu-296": {
+      "characters": [
+        59,
+        76,
+        54,
+        116
+      ],
+      "tokens": [
+        11,
+        14,
+        12,
+        20
+      ]
+    },
+    "mmlu-2979": {
+      "characters": [
+        86,
+        79,
+        75,
+        75
+      ],
+      "tokens": [
+        16,
+        14,
+        14,
+        13
+      ]
+    },
+    "mmlu-308": {
+      "characters": [
+        23,
+        16,
+        20,
+        17
+      ],
+      "tokens": [
+        4,
+        3,
+        6,
+        3
+      ]
+    },
+    "mmlu-3176": {
+      "characters": [
+        93,
+        83,
+        113,
+        114
+      ],
+      "tokens": [
+        23,
+        21,
+        25,
+        29
+      ]
+    },
+    "mmlu-3211": {
+      "characters": [
+        3,
+        2,
+        22,
+        17
+      ],
+      "tokens": [
+        1,
+        1,
+        4,
+        4
+      ]
+    },
+    "mmlu-3238": {
+      "characters": [
+        35,
+        41,
+        71,
+        73
+      ],
+      "tokens": [
+        10,
+        13,
+        18,
+        20
+      ]
+    },
+    "mmlu-3267": {
+      "characters": [
+        51,
+        57,
+        25,
+        41
+      ],
+      "tokens": [
+        11,
+        12,
+        6,
+        8
+      ]
+    },
+    "mmlu-3440": {
+      "characters": [
+        65,
+        44,
+        88,
+        76
+      ],
+      "tokens": [
+        12,
+        10,
+        16,
+        16
+      ]
+    },
+    "mmlu-358": {
+      "characters": [
+        32,
+        41,
+        61,
+        61
+      ],
+      "tokens": [
+        7,
+        7,
+        10,
+        10
+      ]
+    },
+    "mmlu-3647": {
+      "characters": [
+        49,
+        18,
+        39,
+        20
+      ],
+      "tokens": [
+        9,
+        4,
+        8,
+        4
+      ]
+    },
+    "mmlu-400": {
+      "characters": [
+        17,
+        17,
+        12,
+        8
+      ],
+      "tokens": [
+        3,
+        3,
+        2,
+        2
+      ]
+    },
+    "mmlu-4285": {
+      "characters": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "tokens": [
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    "mmlu-4605": {
+      "characters": [
+        68,
+        88,
+        70,
+        58
+      ],
+      "tokens": [
+        10,
+        17,
+        10,
+        11
+      ]
+    },
+    "mmlu-4712": {
+      "characters": [
+        55,
+        43,
+        50,
+        45
+      ],
+      "tokens": [
+        7,
+        6,
+        7,
+        6
+      ]
+    },
+    "mmlu-4735": {
+      "characters": [
+        28,
+        18,
+        40,
+        19
+      ],
+      "tokens": [
+        4,
+        3,
+        7,
+        4
+      ]
+    },
+    "mmlu-4873": {
+      "characters": [
+        71,
+        38,
+        46,
+        113
+      ],
+      "tokens": [
+        15,
+        9,
+        13,
+        26
+      ]
+    },
+    "mmlu-4882": {
+      "characters": [
+        31,
+        42,
+        42,
+        37
+      ],
+      "tokens": [
+        7,
+        9,
+        9,
+        8
+      ]
+    },
+    "mmlu-49": {
+      "characters": [
+        1,
+        3,
+        3,
+        2
+      ],
+      "tokens": [
+        2,
+        4,
+        4,
+        3
+      ]
+    },
+    "mmlu-5092": {
+      "characters": [
+        29,
+        27,
+        23,
+        23
+      ],
+      "tokens": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    "mmlu-5147": {
+      "characters": [
+        9,
+        8,
+        13,
+        9
+      ],
+      "tokens": [
+        1,
+        1,
+        4,
+        2
+      ]
+    },
+    "mmlu-5500": {
+      "characters": [
+        13,
+        13,
+        13,
+        64
+      ],
+      "tokens": [
+        10,
+        10,
+        10,
+        13
+      ]
+    },
+    "mmlu-5635": {
+      "characters": [
+        93,
+        96,
+        125,
+        113
+      ],
+      "tokens": [
+        19,
+        19,
+        22,
+        25
+      ]
+    },
+    "mmlu-5656": {
+      "characters": [
+        117,
+        111,
+        109,
+        102
+      ],
+      "tokens": [
+        23,
+        23,
+        19,
+        19
+      ]
+    },
+    "mmlu-566": {
+      "characters": [
+        20,
+        16,
+        17,
+        19
+      ],
+      "tokens": [
+        5,
+        8,
+        4,
+        7
+      ]
+    },
+    "mmlu-5811": {
+      "characters": [
+        47,
+        57,
+        51,
+        39
+      ],
+      "tokens": [
+        9,
+        13,
+        10,
+        7
+      ]
+    },
+    "mmlu-5901": {
+      "characters": [
+        65,
+        62,
+        70,
+        65
+      ],
+      "tokens": [
+        11,
+        12,
+        13,
+        12
+      ]
+    },
+    "mmlu-5917": {
+      "characters": [
+        58,
+        68,
+        79,
+        78
+      ],
+      "tokens": [
+        12,
+        10,
+        10,
+        10
+      ]
+    },
+    "mmlu-6007": {
+      "characters": [
+        27,
+        31,
+        80,
+        63
+      ],
+      "tokens": [
+        4,
+        6,
+        16,
+        13
+      ]
+    },
+    "mmlu-618": {
+      "characters": [
+        60,
+        80,
+        62,
+        78
+      ],
+      "tokens": [
+        11,
+        14,
+        11,
+        14
+      ]
+    },
+    "mmlu-6303": {
+      "characters": [
+        17,
+        11,
+        18,
+        21
+      ],
+      "tokens": [
+        3,
+        2,
+        2,
+        5
+      ]
+    },
+    "mmlu-6545": {
+      "characters": [
+        18,
+        13,
+        19,
+        17
+      ],
+      "tokens": [
+        10,
+        9,
+        10,
+        9
+      ]
+    },
+    "mmlu-6645": {
+      "characters": [
+        102,
+        45,
+        48,
+        50
+      ],
+      "tokens": [
+        18,
+        8,
+        8,
+        10
+      ]
+    },
+    "mmlu-6817": {
+      "characters": [
+        87,
+        78,
+        124,
+        59
+      ],
+      "tokens": [
+        13,
+        14,
+        23,
+        10
+      ]
+    },
+    "mmlu-6841": {
+      "characters": [
+        4,
+        4,
+        5,
+        7
+      ],
+      "tokens": [
+        3,
+        3,
+        4,
+        6
+      ]
+    },
+    "mmlu-6850": {
+      "characters": [
+        10,
+        12,
+        11,
+        11
+      ],
+      "tokens": [
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    "mmlu-7001": {
+      "characters": [
+        15,
+        9,
+        10,
+        13
+      ],
+      "tokens": [
+        2,
+        1,
+        1,
+        3
+      ]
+    },
+    "mmlu-7032": {
+      "characters": [
+        18,
+        6,
+        11,
+        19
+      ],
+      "tokens": [
+        2,
+        1,
+        1,
+        2
+      ]
+    },
+    "mmlu-7156": {
+      "characters": [
+        9,
+        9,
+        9,
+        6
+      ],
+      "tokens": [
+        2,
+        3,
+        2,
+        2
+      ]
+    },
+    "mmlu-7197": {
+      "characters": [
+        13,
+        14,
+        18,
+        20
+      ],
+      "tokens": [
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    "mmlu-7324": {
+      "characters": [
+        18,
+        17,
+        43,
+        19
+      ],
+      "tokens": [
+        5,
+        5,
+        8,
+        4
+      ]
+    },
+    "mmlu-7463": {
+      "characters": [
+        8,
+        8,
+        8,
+        9
+      ],
+      "tokens": [
+        8,
+        8,
+        8,
+        9
+      ]
+    },
+    "mmlu-773": {
+      "characters": [
+        18,
+        22,
+        22,
+        18
+      ],
+      "tokens": [
+        3,
+        3,
+        3,
+        2
+      ]
+    },
+    "mmlu-8340": {
+      "characters": [
+        53,
+        39,
+        40,
+        17
+      ],
+      "tokens": [
+        10,
+        8,
+        8,
+        4
+      ]
+    },
+    "mmlu-865": {
+      "characters": [
+        79,
+        48,
+        52,
+        50
+      ],
+      "tokens": [
+        14,
+        8,
+        10,
+        11
+      ]
+    },
+    "mmlu-8845": {
+      "characters": [
+        12,
+        16,
+        16,
+        20
+      ],
+      "tokens": [
+        3,
+        4,
+        4,
+        5
+      ]
+    },
+    "mmlu-9464": {
+      "characters": [
+        62,
+        41,
+        41,
+        39
+      ],
+      "tokens": [
+        13,
+        12,
+        13,
+        10
+      ]
+    },
+    "mmlu-97": {
+      "characters": [
+        2,
+        1,
+        1,
+        2
+      ],
+      "tokens": [
+        3,
+        2,
+        2,
+        3
+      ]
+    },
+    "mmlu-979": {
+      "characters": [
+        15,
+        8,
+        11,
+        18
+      ],
+      "tokens": [
+        4,
+        2,
+        3,
+        5
+      ]
+    },
+    "mmlu-9865": {
+      "characters": [
+        21,
+        32,
+        15,
+        17
+      ],
+      "tokens": [
+        4,
+        7,
+        4,
+        5
+      ]
+    },
+    "mmlu-9913": {
+      "characters": [
+        20,
+        14,
+        17,
+        18
+      ],
+      "tokens": [
+        5,
+        3,
+        4,
+        5
+      ]
+    },
+    "mmlu-9960": {
+      "characters": [
+        18,
+        19,
+        26,
+        23
+      ],
+      "tokens": [
+        3,
+        3,
+        4,
+        4
+      ]
+    }
+  },
+  "schema": "likelihood-token-lengths.v1",
+  "tokenizer_sha256": {
+    "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+    "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101"
+  }
+}

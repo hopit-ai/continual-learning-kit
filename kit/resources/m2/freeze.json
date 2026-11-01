@@ -5,10 +5,14 @@
     "eval.jsonl": "0bee96d6576a5144a0150d26170b08b6a04644bffcdc31db7e1f7e58f2c21b98",
     "format-validity.json": "0d1363f133e4ae6e2a9ee8a5171f79c2ad8d0b2278e75352a1d8c9fbb667d946",
     "hellaswag-validation-items.json": "202f480cc2c1c1910a20a5cdecbe1706a6fddbc0d5ab3441f2af3da283bc9c17",
+    "likelihood-near-tie.json": "0936d72923bd726d3db5e40ecf1350e675408225ff91cd751084fe038b657648",
+    "likelihood-near-tie.md": "b67563cc41f969ec3a699298e191411dd55112292b22fc92da8980a0adbf5ab3",
+    "likelihood-token-lengths.json": "b5f80b85950121826cdb6974f3b39c694197db875ecc94cb92c2ee8eea23c79d",
     "manager-format-launcher.txt": "3aa92751061504afb59200b0dc5b6194415a8234959be8c8b7de08290edc0d51",
     "manifest.json": "ee2417d5b1b772e994b80b70ea8866b5f49e79e70d241559e96145c55e1a0b8f",
     "registration.md": "6c337c7a58bd9e3e928b14ed8273ce63391b84f91b863cf4cab222325ae4499d",
     "return1-decisions.json": "472774171ca234fe6f69eee9ca8a1ce6d8f99eb2adf416c4c8b256bf15f4a62e",
+    "send-binding-expected.json": "7757532d99ccf45d3791c6cf7673088d2665646bef34358b43eb6e958a5c0799",
     "train_pool.jsonl": "a35cecee96920a6a657b526477fbffc75cc09ba221f108919ed10bbca6ae830d"
   }
 }

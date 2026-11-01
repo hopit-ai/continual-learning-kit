@@ -185,6 +185,8 @@ def save_status(out, doc):
 
 def validate_evidence(doc, files, standin):
     """Validate available compact manifests, scoring setup and parent/output receipts without weights."""
+    from kit.ref_guard import native_files
+    files = native_files(files)
     require(doc.get('technical_synthetic') is standin,'technical_synthetic evidence requires --standin')
     for name,raw in files.items():
         if name.endswith('/manifest.json'):

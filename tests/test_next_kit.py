@@ -317,6 +317,13 @@ def test_factorial_admission_uses_one_point_acquisition_exception_and_surviving_
                 add('v4-'+arm,seed,step,'math',53 if step and arm in ('broad','both') else 50)
                 add('v4-'+arm,seed,step,'hellaswag',50)
                 add('v4-'+arm,seed,step,'finqa',70 if step==0 else 62 if arm in ('earlier','both') else 60)
+    # Owner ruling 1 Nov (reference review 3): kit-only guards cannot nominate.
+    result=reader.analyse(rows,20)
+    assert all(c['status']=='PENDING' for c in result['v4_comparisons'])
+    assert result['v4_nomination']['broad'] is False
+    for row in rows:
+        if row['panel'] in ('knowledge','hellaswag') and row['step'] in (0,40):
+            row.update(_guard_method='REFERENCE-SCORED',_guard_uuid=f"GPU-{row['seed']}",_guard_environment='env')
     result=reader.analyse(rows,20)
     assert result['v4_nomination']['broad'] is True
     assert result['v4_nomination']['earlier'] is True

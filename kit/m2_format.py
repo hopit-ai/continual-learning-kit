@@ -12,7 +12,14 @@ POLICY=KIT/'resources/m2/format-validity.json'
 
 def policy():
     value=json.loads(POLICY.read_text())
-    for name,checksum in value['implementations'].items():check(KIT/name,checksum)
+    from kit.likelihood_validation import amendment
+    update=amendment()
+    for name,checksum in value['implementations'].items():
+        approved=update['replaces'].get(name)
+        if approved is not None:
+            require(approved==checksum,'near-tie baseline implementation pin differs')
+            checksum=update['implementations'][name]
+        check(KIT/name,checksum)
     check(KIT/'resources/m2/hellaswag-validation-items.json',value['hellaswag']['validation_items_sha256'])
     return value
 
@@ -112,9 +119,14 @@ def validation(production,reference,expected_ids):
     if finite:
         ref={r['id']:r for r in reference}
         agreement=sum(selected(r['scores'])==selected(ref[r['id']]['scores']) for r in production)
-    return dict(status='PASS' if complete and finite and agreement==100 else 'PENDING',
+    from kit.likelihood_validation import diagnostics,RULE,THRESHOLD
+    gaps=diagnostics(production,reference) if finite else []
+    allowed=finite and all(not row['disagree'] or row['near_tie'] for row in gaps)
+    return dict(status='PASS' if complete and finite and allowed else 'PENDING',
                 complete_item_choice_coverage=complete,finite_likelihoods=finite,selected_choice_agreement=agreement,
-                required_agreement=100,items=100,choices_per_item=4)
+                required_agreement=100,items=100,choices_per_item=4,validation_rule=RULE,
+                strict_gap_threshold=THRESHOLD,gap_unit='nats/token',per_item_gaps=gaps,
+                near_tie_disagreements=sum(row['near_tie'] for row in gaps))
 
 
 def validation_name(out,proof):return out/'format-validation'/f"{proof['family']}-s{proof['seed']}.json"
@@ -130,6 +142,7 @@ def require_validation(out,proof):
 
 
 def job(a):
+    from kit.likelihood_validation import RULE
     doc=binding(a.out,a.standin);proof=assignment.active(a.out,a.gpu,a.standin)
     require(proof is not None,'assigned validation required')
     declared=policy();rows=items(a.out,a.standin);path=validation_name(a.out,proof)
@@ -138,7 +151,28 @@ def job(a):
         if key.endswith(':'+str(a.seed)):refs[key]=value
     identity=dict(policy_sha256=s.file_hash(POLICY),assignment=proof,checkpoints=refs,items_sha256=s.digest(rows))
     if path.exists():
-        require(all(json.loads(path.read_text())[k]==v for k,v in identity.items()),'technical validation declaration changed');return
+        old=json.loads(path.read_text())
+        require(all(old[k]==v for k,v in identity.items()),'technical validation declaration changed')
+        from kit.likelihood_validation import matches_check,RULE
+        revised=[]
+        for check_record in old.get('checks',[]):
+            if 'production' not in check_record or 'reference' not in check_record:
+                require(old.get('status')=='PENDING','stored technical validation raw evidence missing')
+                return
+            outcome=validation(check_record['production'],check_record['reference'],[r['id'] for r in rows])
+            require(matches_check(check_record,outcome,legacy=True),'stored technical validation diagnostics differ')
+            revised.append(dict(check_record,**outcome))
+        require(len(revised)==len(refs) and {c['checkpoint'] for c in revised}==set(refs),'technical validation checkpoint coverage changed')
+        updated=dict(old,checks=revised,status='PASS' if all(c['status']=='PASS' for c in revised) else 'PENDING',validation_rule=RULE)
+        if 'validation_rule' in old:
+            require(old['validation_rule']==RULE and updated==old,'stored technical validation receipt differs')
+            return
+        if updated!=old:
+            archive=path.parent/'attempts'/path.stem/('legacy-'+str(time.time_ns())+'.json')
+            archive.parent.mkdir(parents=True,exist_ok=True);path.rename(archive)
+            updated['previous_receipt_sha256']=s.file_hash(archive)
+            bind(path,updated)
+        return
     checks=[]
     for name,ref in sorted(refs.items()):
         checked_model(ref,a.standin,base=name=='base')
@@ -153,7 +187,7 @@ def job(a):
             checks.append(dict(checkpoint=name,**validation(production,reference,[r['id'] for r in rows]),production=production,reference=reference))
         except TechnicalInvalid as error:checks.append(dict(checkpoint=name,status='PENDING',error=type(error).__name__+': '+str(error)))
     bind(path,dict(identity,status='PASS' if all(c['status']=='PASS' for c in checks) else 'PENDING',checks=json_finite(checks),
-                   declaration=declared,technical_synthetic=a.standin))
+                   declaration=declared,technical_synthetic=a.standin,validation_rule=RULE))
 
 
 def letter_cells(rows,arms=None):

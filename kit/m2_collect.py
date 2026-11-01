@@ -18,7 +18,8 @@ def job(a):
     doc = binding(a.out, a.standin)
     rows, files = load(a.out)
     from kit.m2_assignment import validate_files
-    validate_files(files,require_assignment=not a.standin)
+    from kit.ref_guard import native_files
+    validate_files(native_files(files),require_assignment=not a.standin)
     if not rows: raise NotReady('no completed message-2 scores to collect')
     exports = a.out / 'return'; exports.mkdir(exist_ok=True)
     # Heterogeneous legal/retention CSVs get a shared schema; no columns are lost.
@@ -45,7 +46,7 @@ def job(a):
         size = path.stat().st_size; sha = s.file_hash(path)
         record = dict(path=name,bytes=size,sha256=sha)
         omit = bool(parts & EXCLUDE) or any(p.startswith('hf-') for p in parts) or path.name in ('scores.csv','metrics.jsonl','pool.jsonl') or 'logs' in parts or (size > 1_000_000 and path.name not in ('reading.json','binding.json','manifest.json','admission.json','broad-decision.json','stage3-status.json','nomination.json','nomination-commit.json'))
-        if (a.out/'scoring-assignment.json').exists() and name.startswith(('scores/','packages/','references/','retained/')) and path.name=='scores.csv':omit=False
+        if (a.out/'scoring-assignment.json').exists() and name.startswith(('scores/','packages/','references/','retained/','reference-scores/')) and path.name=='scores.csv':omit=False
         if name.startswith(('targets/','targets-math/')) and '/teacher/costs/' not in name and path.name not in ('manifest.json','coverage.json','inputs.json','teacher-identity.json','cost.json'): omit = True
         if omit: bulk.append(record)
         else: included.append((path,record))

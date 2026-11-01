@@ -97,7 +97,9 @@ def validate_receipt(path):
     for check in value['checks']:
         require(check['model_hashes']==registered,'pre-send model files differ')
         outcome=validation(check['production'],check['reference'],ids)
-        require(outcome['status']=='PASS' and all(check.get(k)==v for k,v in outcome.items()),'pre-send likelihood technical outcome differs')
+        from kit.likelihood_validation import matches_check,amendment
+        historical=sha(path)==amendment()['historical_unanimous_receipt_sha256']
+        require(outcome['status']=='PASS' and matches_check(check,outcome,legacy=historical),'pre-send likelihood technical outcome differs')
         audit=value['knowledge_audit'][check['checkpoint']];records=audit['rows']
         require(len(records)==100 and {r['id'] for r in records}==knowledge and audit.get('complete') is True,'knowledge audit coverage incomplete')
         from kit.scorers import extract_letter_strict

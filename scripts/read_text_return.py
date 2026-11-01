@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify pasted WhatsApp return parts; no independent scientific verification.
+"""Read pasted WhatsApp return parts; checksums are advisory; no independent scientific verification.
 
 python scripts/read_text_return.py pasted-*.txt --out reading.json
 python scripts/read_text_return.py part1.txt --part1-only --out decisions.json
@@ -24,6 +24,8 @@ def main(argv=None):
         print('REFUSED: '+str(exc),file=sys.stderr);return 2
     a.out.write_text(canonical(result)+'\n')
     print(f"{len(result['decisions'])} verdicts; complete={result['complete']}; PARTNER-COMPUTED; independent re-verification UNVERIFIED")
+    bad=[k for k,v in result.get('part_checksums',{}).items() if v=='TRANSCRIPTION-UNVERIFIED']
+    if bad:print('ADVISORY: TRANSCRIPTION-UNVERIFIED '+', '.join(bad))
     return 0
 
 

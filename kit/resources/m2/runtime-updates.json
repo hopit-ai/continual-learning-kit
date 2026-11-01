@@ -7,8 +7,8 @@
     },
     "kit/addon_dryrun.py": {
       "original_sha256": "05b62496878a5941cc18ca00a88cf3847e6073ab472210345530899081de9f26",
-      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
-      "v2_sha256": "f073586b7d9cf1c6c6078af45506b04d95b5995c961bb2bb562ff06841bbba80"
+      "reason": "Owner ruling 1 November 2026 (reference review 3): CPU kit-only guard fixture remains PENDING; mechanical smoke and scientific checks unchanged",
+      "v2_sha256": "8d0700e6f05ae72b6a5c7cf849f4b7181bfa3eabd2f46bfe1fd278c4e7016241"
     },
     "kit/arc_prompt_acceptance.py": {
       "original_sha256": "ce1b4f88309ee90d4d35fa3e1efe4eac1ccd4accc83c73883ac7b8b2178db6c3",
@@ -42,8 +42,8 @@
     },
     "kit/m2_admit.py": {
       "original_sha256": "b87c98924ce7bbc3fd205b9b0c01dd6e3badaaf1dba804a39adc63eba945f5cb",
-      "reason": "Reviewed round-2 correctness, transport/GPU identity or public metadata redaction; endpoints/doses unchanged",
-      "v2_sha256": "c9bc0acb44e68e9d9aa31336e5551e845a551d7deeb3656b18a6610713711244"
+      "reason": "Owner ruling 1 November 2026: reference-scored decision guards, uniform method and per-seed/panel GPU provenance; scorer math unchanged",
+      "v2_sha256": "3e0a12d956e374271299892dff5ce4a051c8d4b57fd37478933c9a265aba564c"
     },
     "kit/m2_assignment.py": {
       "original_sha256": "7770d7993bafda47b056f91994198d4d9d61d1b54363e51b29bb43be81498ed5",
@@ -145,6 +145,11 @@
       "reason": "Reviewed message-2 fixed ARC prompt, CPU candidate freeze or PCIe NVMe infrastructure amendment; scientific endpoints/doses unchanged",
       "v2_sha256": "1bce91ac28fdcf4e458c3e72a62e99848e2e433164fedacad9b54c90674e5e11"
     },
+    "kit/next_read.py": {
+      "original_sha256": "34979780eb6b71d3a548f5a27c7b42c916bc14d74232c4e819d2b088c710cd96",
+      "reason": "Owner ruling 1 November 2026: reference-scored decision guards, uniform method and per-seed/panel GPU provenance; scorer math unchanged",
+      "v2_sha256": "704c1c8915e85ecc77ef9a69721cc1cb100e681d355019b47ac937235cde8d68"
+    },
     "kit/p3a_common.py": {
       "original_sha256": "29c204aa9be2e05a00e54ffc5481cf2d227a84b81fa5810ad590ec0169408f81",
       "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
@@ -154,6 +159,11 @@
       "original_sha256": "79f473f1ef6c42df444468bf0a93123250973baecd58d284a1e48070e2bd1c5e",
       "reason": "Prospective infrastructure only: engine shutdown, required rapidfuzz, verified replica paths and scoring-assignment receipts; objectives, data and graders unchanged",
       "v2_sha256": "23b0f2933b6a1ddee2fb043bc2b2fcdfde5301839028615ef097030a0efe1fe7"
+    },
+    "kit/p3b_read.py": {
+      "original_sha256": "ba48c49dda3148ec930181d564a9f780f1e1873f4745f17ab370d7f86807a517",
+      "reason": "Owner ruling 1 November 2026: reference-scored decision guards, uniform method and per-seed/panel GPU provenance; scorer math unchanged",
+      "v2_sha256": "505ced966992bd37f9f7aa95049327aefd08a2c60eef5f795321414980314231"
     },
     "kit/p3b_replay_data.py": {
       "original_sha256": "a9ca1721dcc40213fdbb8d422d726c677593cb5aeec7eb95096870808ab5906f",
@@ -207,8 +217,8 @@
     },
     "kit/x_collect.py": {
       "original_sha256": "a8cd06ecbf5f99bfc2757923b3bbc3153b6a2a8ce00bfa7f860057ec7aae0176",
-      "reason": "Round-3 reviewed lifecycle, preflight, transport or privacy correction; science unchanged",
-      "v2_sha256": "5e8a5dd8e1a90056fd09e79fae8b6a3f96dac38e5ae53d48b3a04ed8a58e3e5d"
+      "reason": "Owner ruling 1 November 2026: reference-scored decision guards, uniform method and per-seed/panel GPU provenance; scorer math unchanged",
+      "v2_sha256": "84048a66039b1f65db6960437f26cd84e8f84c572c251871b62910f93f931e13"
     },
     "kit/x_signal.py": {
       "original_sha256": "8a62310d181d261d475f43b1f17b338cc4733de86c9da418405fba06d9d0edbb",

@@ -185,3 +185,10 @@ measured `m3/{actor,ema,base,rollout}_padded_tokens` and four independently cali
 rates. It returns update-phase GPU-hours without changing registered budgets. Add startup,
 exports, scoring and pool preparation separately; oracle work already counted in telemetry
 must not be multiplied again.
+
+
+The owner/manager's 1 November [Likelihood-scorer validation: near-tie ruling](resources/m2/likelihood-near-tie.md)
+amends only the technical unanimous-choice validation gate. Both scorers' top-two
+gaps must be strictly below 0.001 nats/token on every disagreement, otherwise
+PENDING. Frozen character-normalised scores/choices stay unchanged; pinned CPU
+length vectors supply the token-unit validation diagnostics. No automatic retry.

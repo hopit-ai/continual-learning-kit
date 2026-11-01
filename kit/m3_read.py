@@ -131,7 +131,7 @@ def identity_failures(table, assignment):
     """Every constituent of a seed must sit on that seed's dedicated GPU/environment, shared across arms and base."""
     failures = []
     for key, cell in table.cells.items():
-        expected = assignment.get(f'm3|{key[1]}') if assignment else None
+        expected = cell.get('reference_assignment') or (assignment.get(f'm3|{key[1]}') if assignment else None)
         if expected is None: failures.append(dict(cell=list(key), reason='unassigned seed')); continue
         if cell.get('uuid') != expected['uuid'] or cell.get('environment') != expected['environment']:
             failures.append(dict(cell=list(key), reason='off-assignment constituent'))
@@ -167,6 +167,14 @@ def contrast(table, name, failures, pending):
         return dict(result, label='PENDING', reason='constituent pending ' + json.dumps([str(x) for x in exc.args[0]]))
     used_seeds = {key[1] for key, _ in table.used}
     bad = [f for f in failures if f['cell'][1] in used_seeds and f['cell'][0] in (challenger, control, 'base')]
+    from kit.ref_guard import check, METHOD
+    guard_proof = check([dict(panel=metric, seed=key[1], _guard_method=table.cells[key].get('method', 'KIT-SCORED'),
+                             _guard_uuid=table.cells[key].get('uuid'), _guard_environment=table.cells[key].get('environment'),
+                             _guard_hardware_error=table.cells[key].get('hardware_error'))
+                         for key, metric in table.used if metric in ('knowledge', 'hellaswag')])
+    if guard_proof['status'] != 'COMPLETE':
+        return dict(result, label=guard_proof['status'], reason=guard_proof['reason'])
+    if guard_proof.get('method'): result['method'] = METHOD
     diagnostics = optional(table, table.diagnostics(), challenger, control)
     for value in guards.values(): value['sensitivity'] = sensitivity(value['sd'])
     if bad: return dict(result, label='UNVERIFIED', reason=bad[:5])
@@ -466,7 +474,8 @@ def load_cells(out, standin=False):
                 cell.update(uuid=proof['uuid'], environment=proof['environment'])
                 if panel in ('hellaswag', 'knowledge-ll'):
                     from kit.m3_score import validation_status
-                    cell['validation_sha256'] = validation_status(out, panel, seed, standin=standin)
+                    cell['validation_notes'] = []
+                    cell['validation_sha256'] = validation_status(out, panel, seed, standin=standin, notes=cell['validation_notes'])
                     if cell['validation_sha256'] is None: cell['pending'] = 'likelihood validation not PASS (base + C0 s101 stage-1 final)'
             except Exception as exc:
                 cell['identity_error'] = 'UNVERIFIED: ' + str(exc)
@@ -485,6 +494,18 @@ def load_cells(out, standin=False):
                 cell['output_tokens'] += sum(int(r.get('output_tokens') or 0) for r in values)
                 cell['correct'] += sum(int(r['correct']) for r in values)
             cells[(arm, seed, stage, step, panel)] = cell
+    from kit.ref_guard import records, local_files, METHOD
+    for meta, rows in records(local_files(out), standin):
+        if meta['family'] != 'm3': raise ValueError('foreign reference family in M3 root')
+        panel = meta['panel']; metric = 'knowledge' if panel == 'knowledge-ll' else panel
+        proof = meta['assignment']
+        key = (meta['arm'], meta['seed'], meta['stage'], meta['step'], panel)
+        values = {r['question_id']: int(r['correct']) for r in rows}
+        cells[key] = dict(metrics={metric: 100 * sum(values.values()) / len(values)}, items={metric: values},
+                          format_failures={}, tolerant={}, output_tokens=0, correct=sum(values.values()), pending=None,
+                          uuid=proof['uuid'], environment=proof['environment'], method=METHOD,
+                          hardware_error=meta.get('_hardware_error'),
+                          reference_assignment={k: proof[k] for k in ('node', 'uuid', 'environment')})
     return cells, doc['assignments']
 
 
@@ -513,14 +534,16 @@ def read_job(a):
     costs, scoring = total_budget(calls)
     result['costs'] = dict(registered=costs, scoring=scoring, actual=actual_costs(a.out))
     result['wall_time'] = wall_time(states, tasks)
+    result['validation_notes'] = sorted({note for cell in cells.values() for note in cell.get('validation_notes',[])})
     result['technical_synthetic'] = a.standin
     (a.out / 'm3-read.json').write_text(json.dumps(result, indent=1, sort_keys=True, default=str) + '\n')
     lines = ['| Decision | Label |', '|---|---|'] + [f'| {k} ({DECISIONS[k]}) | {result["decisions"][k]} |' for k in DECISIONS]
-    lines += ['', '| Contrast | Role | Label | Mean | Lower bound | Seeds positive |', '|---|---|---|---:|---:|---:|']
+    lines += ['', '| Contrast | Role | Label | Guard method | Mean | Lower bound | Seeds positive |', '|---|---|---|---|---:|---:|---:|']
     for name, value in result['contrasts'].items():
         p = value.get('primary')
         cells_text = f"{p['mean']:.2f} | {p['lower']:.2f} | {sum(v > 0 for v in p['values'])}/3" if p else ' | | '
-        lines.append(f"| {name} | {value['role']} | {value['label']} | {cells_text} |")
+        lines.append(f"| {name} | {value['role']} | {value['label']} | {value.get('method', '')} | {cells_text} |")
+    lines += ['', *result['validation_notes']]
     if result['wall_time']['flags']: lines += ['', '**WALL-TIME FLAGS (> 24 h):** ' + '; '.join(result['wall_time']['flags'])]
     if scoring['flag']: lines += ['', '**PROJECTED SCORING QUEUE > 24 h PER SEED**']
     (a.out / 'm3-read.md').write_text('\n'.join(lines) + '\n')
