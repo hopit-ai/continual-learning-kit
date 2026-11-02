@@ -23,7 +23,7 @@ def gpu(tmp_path,monkeypatch):
 
 def plan(tmp_path,sources,requires=None):
     path=tmp_path/'plan.json'
-    path.write_text(json.dumps([dict(argv=[sys.executable,'-I','-c',s],requires=requires or []) for s in sources]))
+    path.write_text(json.dumps([dict(argv=[sys.executable,'-I','-c',s],requires=requires or [],engine=dict(backend='vllm',model='Qwen/Qwen3-8B',max_model_len=12288)) for s in sources]))
     return path
 
 
@@ -44,6 +44,21 @@ def test_concurrent_bound_order_fraction_uuid_and_stagger(tmp_path,gpu):
     assert record['commands'][2]['start']>=record['commands'][0]['end']
     assert json.loads((tmp_path/'out/lane.json').read_text())==record
     with pytest.raises(FileExistsError):pool.run(tmp_path/'plan.json',2,tmp_path/'out')
+
+
+def test_production_invocation_fills_three_slots_and_refills_without_delay(tmp_path,gpu):
+    commands=[dict(argv=[sys.executable,'-I','-c','import time; time.sleep(.4)'],engine=dict(backend='vllm',model='Qwen/Qwen3-8B',max_model_len=12288)) for _ in range(6)]
+    command=pool.invocation(commands,tmp_path/'lane')
+    assert command[command.index('--stagger-seconds')+1]=='0'
+    result=subprocess.run(command,capture_output=True,text=True,timeout=15)
+    assert result.returncode==0,result.stderr
+    receipt=json.loads((tmp_path/'lane/run/lane.json').read_text())
+    assert receipt['K']==3 and receipt['stagger_seconds']==0 and receipt['status']=='COMPLETE'
+    cells=receipt['commands'];events=sorted((c[key],change) for c in cells for key,change in [('start',1),('end',-1)])
+    active=peak=0
+    for _,change in events:active+=change;peak=max(peak,active)
+    assert peak==3
+    assert 0<=cells[3]['start']-min(c['end'] for c in cells[:3])<2
 
 
 def test_pending_preflight_does_not_even_query_gpu(tmp_path,monkeypatch):
@@ -215,6 +230,65 @@ def test_legacy_repair_generation_uses_same_override_helper(tmp_path,monkeypatch
     assert json.loads(Path(str(out)+'.stats.json').read_text())['engine']['gpu_memory_utilization']==.42
 
 
+@pytest.mark.parametrize('engine,expected',[(None,1),
+    (dict(backend='hf',model='Qwen/Qwen3-8B',max_model_len=12288),1),
+    (dict(backend='vllm',model='Qwen/Qwen3-8B',max_model_len=16384),1),
+    (dict(backend='vllm',model='other-27B',max_model_len=4096),1),
+    (dict(backend='vllm',model='Qwen/Qwen3-8B',max_model_len=12288),3)])
+def test_lane_profile_caps_concurrency(tmp_path,gpu,engine,expected):
+    command=dict(argv=[sys.executable,'-I','-c','pass'])
+    if engine:command['engine']=engine
+    path=tmp_path/'plan.json';path.write_text(json.dumps([command]))
+    result=pool.run(path,3,tmp_path/'out',0)
+    assert result['status']=='COMPLETE' and result['K']==expected and result['requested_K']==3
+
+
+def test_model_directory_name_is_not_qualification(tmp_path):
+    model=tmp_path/'Qwen3-8B';model.mkdir()
+    engine=dict(backend='vllm',model=str(model),max_model_len=12288)
+    assert pool.capacity(dict(engine=engine))==1
+    config=dict(model_type='qwen3',hidden_size=4096,num_hidden_layers=36,num_attention_heads=32,num_key_value_heads=8,intermediate_size=12288)
+    (model/'config.json').write_text(json.dumps(config))
+    assert pool.capacity(dict(engine=engine))==3
+
+
+def test_actual_engine_cannot_sneak_an_unqualified_model_into_shared_lane(monkeypatch):
+    monkeypatch.setenv('KIT_LANE_CONCURRENCY','3');monkeypatch.setenv('KIT_GPU_MEMORY_FRACTION','.31')
+    with pytest.raises(ValueError,match='qualified'):lifecycle.engine_kwargs(dict(model='other',max_model_len=12288))
+    with pytest.raises(ValueError,match='qualified'):lifecycle.engine_kwargs(dict(model='Qwen/Qwen3-8B',max_model_len=16384))
+    kwargs=dict(model='Qwen/Qwen3-8B',max_model_len=12288,seed=0,max_num_seqs=1)
+    assert lifecycle.engine_kwargs(kwargs)==dict(kwargs,gpu_memory_utilization=.31)
+
+
+def test_lane_records_measured_uuid_instead_of_rejecting_historical_assignment(tmp_path,gpu,monkeypatch):
+    monkeypatch.setenv('M2_ASSIGNED_GPU_UUID','GPU-historical')
+    result=pool.run(plan(tmp_path,['import os;assert os.environ["M2_ASSIGNED_GPU_UUID"]=="GPU-test"']),1,tmp_path/'out',0)
+    assert result['status']=='COMPLETE' and result['uuid']=='GPU-test'
+
+
+def test_intra_lane_prerequisite_is_checked_after_its_running_producer(tmp_path,gpu):
+    product=tmp_path/'product'
+    path=tmp_path/'plan.json';path.write_text(json.dumps([
+        dict(argv=[sys.executable,'-I','-c','import time;from pathlib import Path;time.sleep(.1);Path('+repr(str(product))+').touch()']),
+        dict(argv=[sys.executable,'-I','-c','pass'],requires=[str(product)])]))
+    result=pool.run(path,3,tmp_path/'out',0)
+    assert result['status']=='COMPLETE' and all(c['status']=='COMPLETE' for c in result['commands'])
+
+
+def test_mid_lane_pending_preserves_completed_commands_for_same_allocation_only(tmp_path,gpu,monkeypatch):
+    monkeypatch.setenv('KIT_LANE_JOB','nonce');monkeypatch.setenv('SLURM_JOB_ID','one-allocation')
+    product=tmp_path/'ready';count=tmp_path/'count'
+    source='from pathlib import Path;p=Path('+repr(str(count))+');p.write_text(p.read_text()+"x" if p.exists() else "x")'
+    path=tmp_path/'plan.json';path.write_text(json.dumps([
+        dict(argv=[sys.executable,'-I','-c',source]),dict(argv=[sys.executable,'-I','-c','pass'],requires=[str(product)])]))
+    first=pool.run(path,1,tmp_path/'out',0)
+    assert first['status']=='PENDING' and first['commands'][0]['status']=='COMPLETE' and count.read_text()=='x'
+    product.touch();monkeypatch.setenv('SLURM_JOB_ID','different-allocation')
+    with pytest.raises(ValueError,match='same plan, allocation'):pool.run(path,1,tmp_path/'out',0,resume=True)
+    monkeypatch.setenv('SLURM_JOB_ID','one-allocation')
+    second=pool.run(path,1,tmp_path/'out',0,resume=True)
+    assert second['status']=='COMPLETE' and count.read_text()=='x'
+    assert second['commands'][0]==first['commands'][0] and second['job_id']==first['job_id']
 def test_uuid_timeout_retries_with_thirty_second_budget(monkeypatch):
     calls=[]
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0')

@@ -12,20 +12,20 @@ from collections import defaultdict
 
 
 def interval(values,one_sided=False):
-    require(len(values)==5,'paired seed-t requires all five seeds')
-    mean=stats.mean(values);se=stats.stdev(values)/math.sqrt(5)
-    tcrit=2.131846786 if one_sided else 2.776445105
-    return dict(mean=mean,lower=mean-tcrit*se,upper=mean+tcrit*se,n=5,df=4,method='paired seed-t '+('one-sided 95%' if one_sided else 'two-sided 95%'))
+    require(len(values)==3,'paired seed-t requires all three amended seeds')
+    mean=stats.mean(values);se=stats.stdev(values)/math.sqrt(3)
+    tcrit=AMENDMENT['one_sided_t'] if one_sided else AMENDMENT['two_sided_t']
+    return dict(mean=mean,lower=mean-tcrit*se,upper=mean+tcrit*se,n=3,df=2,tcrit=tcrit,method='paired seed-t '+('one-sided 95%' if one_sided else 'two-sided 95%'))
 
 
 def primary(matrix):
-    require(set(matrix)==set(SEEDS) and all(len(v)==5 for v in matrix.values()),'primary requires five seeds x months 2-6')
+    require(set(matrix)==set(SEEDS) and all(len(v)==5 for v in matrix.values()),'primary requires three seeds x months 2-6')
     per_seed=[stats.mean(matrix[s]) for s in SEEDS]
     monthly=[stats.mean(matrix[s][m] for s in SEEDS) for m in range(5)]
     ci=interval(per_seed)
-    established=ci['mean']>=5 and sum(x>0 for x in per_seed)>=4 and sum(x>0 for x in monthly)>=3 and ci['lower']>0
+    established=ci['mean']>=5 and sum(x>0 for x in per_seed)==3 and sum(x>0 for x in monthly)>=3 and ci['lower']>0
     return dict(established=established,per_seed=dict(zip(SEEDS,per_seed)),monthly=monthly,interval=ci,
-        positive_seeds=sum(x>0 for x in per_seed),positive_months=sum(x>0 for x in monthly),bar_points=5)
+        positive_seeds=sum(x>0 for x in per_seed),positive_months=sum(x>0 for x in monthly),bar_points=5,required_positive_seeds=3,required_positive_months=3,required_positive_month_fraction=[3,5])
 
 
 def accuracy(rows,field='correct'):
@@ -44,7 +44,12 @@ def pair(before,after,field='correct'):
 def load(out,require_complete=True):
     records={};missing=[]
     if not (out/'binding.json').exists():raise NotReady('4A binding pending')
-    bound=json.loads((out/'binding.json').read_text());binding_hash=s.file_hash(out/'binding.json')
+    bound=json.loads((out/'binding.json').read_text())
+    require(bound.get('amendment')==AMENDMENT,'three-seed amendment receipt required')
+    if bound.get('execution')=='v6b':
+        from kit.a4_jobs import read_comparison
+        return read_comparison(out,require_complete)
+    binding_hash=s.file_hash(out/'binding.json')
     for row in score_plan():
         root=score_root(out,*row)
         if not (root/'manifest.json').exists():missing.append(root.name);continue
@@ -222,7 +227,7 @@ def analyse(records,stage_summaries,costs,bootstrap=2000):
         for scope in ('all','holdout') if key[4] in MONTHS and key[0]=='arrival' else ('all',):
             rows=[r for r in rr if scope=='all' or int(r['holdout'])]
             if rows:endpoints.append(dict(row=key,scope=scope,n=len(rows),explicit_accuracy=accuracy(rows),historical_accuracy=accuracy(rows,'historical_correct')))
-    return dict(verdict='ESTABLISHED' if established['established'] and kept else 'NOT ESTABLISHED',primary=established,
+    return dict(amendment=AMENDMENT,verdict='ESTABLISHED' if established['established'] and kept else 'NOT ESTABLISHED',primary=established,
         retention=retention,retention_established=kept,descriptive=descriptive,ratios=ratios,transitions=transitions,
         acquired_then_lost=acquired_lost,recurrence=dict(strata=strata,v6_trigger=None,status='EXPLORATORY; 21 Oct deviation: aggregation was not frozen before v0',missing_stratum='undefined; no v6 trigger',
             aggregation='equal months 2-6; seed mean within month; unique question denominators; require both strata in all five months'),
@@ -234,6 +239,9 @@ def analyse(records,stage_summaries,costs,bootstrap=2000):
 
 def job(a):
     source=getattr(a,'source',None)
+    if not source and (a.out/'binding.json').exists() and json.loads((a.out/'binding.json').read_text()).get('execution')=='v6b':
+        from kit.a4_jobs import read_job
+        return read_job(a)
     if source:
         import tarfile,gzip,io
         with tarfile.open(source,'r:gz') as tar:
@@ -244,6 +252,10 @@ def job(a):
         require(set(raw)=={r['path'] for r in manifest['files']}|{'collect-manifest.json'},'unlisted compact archive members')
         for r in manifest['files']:require(t.sha(raw[r['path']])==r['sha256'],'compact member hash mismatch')
         bound=json.loads(raw['binding.json']);binding_hash=t.sha(raw['binding.json'])
+        require(bound.get('amendment')==AMENDMENT,'three-seed amendment receipt required')
+        if bound.get('execution')=='v6b':
+            from kit.a4_jobs import read_archive
+            return read_archive(a,raw,bound,binding_hash)
         records={}
         for row in score_plan():
             name='scores/'+score_name(*row)+'/scores.csv.gz'
@@ -267,7 +279,7 @@ def job(a):
         approved_ceiling_gpu_hours=approved_ceiling(bound), ceiling_gpu_hours=bound['ceiling_gpu_hours'])
     if a.standin:result['scientific_verdict']=None
     atomic(root/'summary.json',result)
-    (root/'summary.md').write_text(('TECHNICAL STAND-IN ONLY\n\n' if a.standin else '')+result['verdict']+'\n\n'+result['note']+'\n')
+    (root/'summary.md').write_text(('TECHNICAL STAND-IN ONLY\n\n' if a.standin else '')+result['verdict']+'\n\nAmendment 2026-11-02: seeds 101–103; paired seed-t df 2; t=4.302653 / 2.919986; 3/3 seeds; ≥3/5 monthly seed-means.\n\n'+result['note']+'\n')
     print(result['verdict'],';',len(records),'score cells')
 
 

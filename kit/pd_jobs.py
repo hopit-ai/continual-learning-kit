@@ -97,6 +97,8 @@ def isolated_tree(root, plan):
 def verify_directory(checkpoint, directory, receipt):
     directory = Path(directory)
     require(directory.is_dir(), "PENDING: checkpoint directory missing")
+    if checkpoint.get("generation_config_sha256"):
+        require(sha256_file(directory/"generation_config.json")==checkpoint["generation_config_sha256"],"UNVERIFIED: export generation config changed")
     tensors = {p.name:p for p in directory.iterdir() if p.suffix in (".bin", ".safetensors")}
     return verify_live_export(checkpoint, tensors, receipt, directory=directory)
 
@@ -106,8 +108,8 @@ def spool_budget(source_bytes):
     checkpoint = max(MIN_CHECKPOINT_BYTES, source_bytes)
     return dict(exports_per_seed=EXPORTS, checkpoint_bound_bytes=checkpoint,
         native_snapshot_bytes=EXPORTS*checkpoint, hf_export_bytes=EXPORTS*checkpoint,
-        spool_bytes=2*EXPORTS*checkpoint, headroom_bytes=HEADROOM_BYTES,
-        required_free_bytes=2*EXPORTS*checkpoint+HEADROOM_BYTES)
+        spool_bytes=(EXPORTS+1)*checkpoint, headroom_bytes=HEADROOM_BYTES,
+        required_free_bytes=(EXPORTS+1)*checkpoint+HEADROOM_BYTES)
 
 
 def prepare(plan_file, root, *, disk_usage=None):
@@ -159,7 +161,10 @@ def prepare(plan_file, root, *, disk_usage=None):
         training_inputs_sha256=sha256_file(root/"training-inputs.json"),
         scoring_inputs_sha256=sha256_file(root/"scoring-inputs.json"),
         budget=budget, observed_free_bytes=observed, resources=resource_rows(plan["seed"])))
-    write_frozen(root/"prep.json", receipt)
+    reserve_storage(root,budget,disk_usage)
+    try: write_frozen(root/"prep.json", receipt)
+    except BaseException:
+        release_storage(root); raise
     return receipt
 
 
@@ -207,19 +212,54 @@ def validate_initial(initial, *, seed, preparation_sha256):
 
 @contextmanager
 def gpu_leases(identity):
-    # UUID keys share one host-wide namespace across independent PD allocations.
-    directory = Path("/tmp")/"kit-gpu-leases"
-    directory.mkdir(exist_ok=True)
-    with ExitStack() as stack:
-        for device in sorted(identity["devices"]):
-            from kit.pd_node import _gpu_uuid
-            name = _gpu_uuid(device)
-            stream = stack.enter_context(open(directory/(name+".lock"), "a"))
-            try:
-                fcntl.flock(stream, fcntl.LOCK_EX|fcntl.LOCK_NB)
-            except BlockingIOError:
-                raise ValueError("PENDING: allocated PD GPU already leased") from None
-        yield
+    # The parent owns admission once; scorers inherit these descriptors.
+    from kit.m3_manifest import allocation_reservation
+    from kit.pd_node import _gpu_uuid
+    with allocation_reservation([_gpu_uuid(d) for d in identity["devices"]]) as fds:
+        yield fds
+
+
+def storage_ledger(root):
+    # All seeds share a persistent ledger on their PD filesystem, outside seed trees.
+    root=Path(root).resolve()
+    require(root.stat().st_dev==root.parent.stat().st_dev,
+            'PENDING: PD seeds must share their parent storage filesystem')
+    return root.parent/'.kit-pd-storage.json'
+
+
+def reserve_storage(root, budget, disk_usage=None):
+    root=Path(root).resolve(); ledger=storage_ledger(root)
+    with ledger.with_suffix('.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        reservations=json.loads(ledger.read_text()) if ledger.exists() else {}
+        reservations={k:v for k,v in reservations.items() if Path(k).exists()}
+        require(str(root) not in reservations,'PENDING: PD storage already reserved')
+        # Free already excludes written bytes. Charge only each other seed's
+        # remaining reservation, so occupied snapshots are never counted twice.
+        remaining=0
+        for path,amount in reservations.items():
+            used=sum(p.stat().st_size for p in Path(path).rglob('*') if p.is_file())
+            remaining+=max(0,amount-used)
+        observed=(disk_usage or shutil.disk_usage)(root).free
+        require(observed-remaining>=budget['required_free_bytes'],'PENDING: insufficient PD spool free space after host reservations')
+        reservations[str(root)]=budget['required_free_bytes']
+        temporary=ledger.with_suffix('.tmp');temporary.write_text(json.dumps(reservations,sort_keys=True));temporary.replace(ledger)
+    return observed
+
+
+def release_storage(root):
+    root=Path(root).resolve();ledger=storage_ledger(root)
+    with ledger.with_suffix('.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        reservations=json.loads(ledger.read_text()) if ledger.exists() else {}
+        reservations.pop(str(root),None)
+        temporary=ledger.with_suffix('.tmp');temporary.write_text(json.dumps(reservations,sort_keys=True));temporary.replace(ledger)
+
+
+def allocation_identity():
+    # CUDA contexts die with this short child, before the launcher starts ranks.
+    code="import sys,json;sys.path.insert(0,"+repr(str(Path(__file__).resolve().parents[1]))+");from kit import pd_probe as p;p.configure_determinism();print(json.dumps(p.gpu_identity()))"
+    return json.loads(subprocess.check_output([sys.executable,'-I','-c',code],text=True))
 
 
 def job_identity(phase, prepared, identity):
@@ -261,7 +301,7 @@ def scoring_cells(plan,root,prepared,job,requests,pooled=False):
     pack=inputs(root,prepared,"scoring")
     if not pooled:
         return [score_cell(plan,pack,*request,job) for request in requests]
-    from kit.lane_pool import execute
+    from kit.lane_pool import invocation
     directory=root/job['phase']/'cells';directory.mkdir()
     commands=[]
     for i,(checkpoint,path,receipt,start,update) in enumerate(requests):
@@ -270,8 +310,13 @@ def scoring_cells(plan,root,prepared,job,requests,pooled=False):
         commands.append([sys.executable,'-I',str(Path(__file__).resolve()),'--score-cell',str(task),
             '--plan',str(root/'plan.local.json'),'--out',str(root)])
     # The prepared plan is copied from the checked in-memory plan, never substituted.
-    write_frozen(root/'plan.local.json',plan)
-    code=execute(commands,directory/'pool',env=dict(os.environ))
+    plan_path=root/'plan.local.json'
+    if plan_path.exists(): require(json.loads(plan_path.read_text())==plan,'UNVERIFIED: PD scoring plan changed')
+    else: write_frozen(plan_path,plan)
+    command=invocation([dict(argv=c,engine=dict(backend='hf',profile='pd-fp32')) for c in commands],directory/'pool',concurrency=2)
+    command[command.index('--concurrency')+1]='2'  # FP32 HF: 2 x ~33 GB; K=3 cannot fit an 80 GB GPU.
+    fds=tuple(json.loads(os.environ.get('M3_GPU_LOCK_FDS','[]')))
+    code=subprocess.run(command,env=dict(os.environ),pass_fds=fds).returncode
     require(code==0,"PENDING: PD scoring lane incomplete; clean whole-seed restart required")
     return [read(directory/(str(i)+'.result.json')) for i in range(len(requests))]
 
@@ -316,12 +361,12 @@ class NativeSpool:
             self.records.append(self.future.result())
             self.future = None
 
-    def submit(self, state, config, parent, update):
+    def submit(self, state, config, parent, update, generation_config=None):
         require(self.future is None, "checkpoint writer still owns a snapshot")
         # Gather ownership has already passed to this private, detached CPU state.
-        self.future = self.pool.submit(self._write, state, config, parent, update)
+        self.future = self.pool.submit(self._write, state, config, parent, update, generation_config)
 
-    def _write(self, state, config, parent, update):
+    def _write(self, state, config, parent, update, generation_config=None):
         import torch
         destination = self.root/(parent["start"]+"-"+str(update))
         temporary = destination.with_name(".pending-"+destination.name)
@@ -331,9 +376,13 @@ class NativeSpool:
         require((temporary/"state.pt").stat().st_size <= self.budget["checkpoint_bound_bytes"],
                 "PENDING: native checkpoint exceeds reserved spool bound")
         config.save_pretrained(temporary)
+        from transformers import GenerationConfig
+        if isinstance(generation_config,(str,Path)): shutil.copyfile(generation_config,temporary/"generation_config.json")
+        else: (generation_config or GenerationConfig.from_model_config(config)).save_pretrained(temporary)
         record = seal(dict(schema="pd-native-snapshot-v1", parent=parent, update=update,
             tensor_sha256=sha256_file(temporary/"state.pt"),
-            config_sha256=sha256_file(temporary/"config.json"), complete=True))
+            config_sha256=sha256_file(temporary/"config.json"),
+            generation_config_sha256=sha256_file(temporary/"generation_config.json"), complete=True))
         write_frozen(temporary/"complete.json", record)
         temporary.rename(destination)
         return record
@@ -345,7 +394,7 @@ class NativeSpool:
             self.pool.shutdown(wait=True)
 
 
-def gather_snapshot(model, spool, parent, update):
+def gather_snapshot(model, spool, parent, update, generation_config_source=None):
     """Only immutable BF16 CPU copies leave the checkpoint barrier."""
     import copy
     import torch
@@ -359,7 +408,8 @@ def gather_snapshot(model, spool, parent, update):
         snapshot = {n:v.detach().to(device="cpu", dtype=torch.bfloat16 if v.is_floating_point() else v.dtype,
                                     copy=True) for n,v in state.items()}
         state.clear()
-        spool.submit(snapshot, copy.deepcopy(model.module.config), parent, update)
+        spool.submit(snapshot, copy.deepcopy(model.module.config), parent, update,
+                     generation_config_source or copy.deepcopy(model.module.generation_config))
     probe._master_call(enqueue)
     del state
     torch.cuda.empty_cache()
@@ -392,7 +442,8 @@ def train_worker(plan_file, root):
                 return probe.load_sharded_model(export["directory"])
             def on_update(model, optimizer, update, receipt):
                 if update in UPDATES[1:]:
-                    gather_snapshot(model, spool, parent, update)
+                    gather_snapshot(model, spool, parent, update,
+                                    Path(plan["exports"][start]["directory"])/"generation_config.json")
             model, optimizer, receipt = probe.train_fork(factory, train["batches"], train["tokenized"],
                 seed=plan["seed"], evaluate=None, on_update=on_update)
             require(receipt["exposure"] == train["exposure"], "UNVERIFIED: fork exposure changed")
@@ -454,24 +505,33 @@ def finalize(plan, root, prepared):
     require(not destination.exists(), "PENDING: failed seed requires clean whole-seed restart")
     destination.mkdir()
     import torch
-    from transformers import AutoConfig, AutoModelForCausalLM
+    from transformers import AutoConfig, AutoModelForCausalLM, GenerationConfig
     checkpoints = []
     for record in training["snapshots"]:
         start, update = record["parent"]["start"], record["update"]
         native = root/"train/native"/(start+"-"+str(update))
         require(read(native/"complete.json") == record and
                 sha256_file(native/"state.pt") == record["tensor_sha256"] and
-                sha256_file(native/"config.json") == record["config_sha256"], "PENDING: native snapshot incomplete or changed")
+                sha256_file(native/"config.json") == record["config_sha256"] and
+                sha256_file(native/"generation_config.json") == record["generation_config_sha256"], "PENDING: native snapshot incomplete or changed")
         state = torch.load(native/"state.pt", map_location="cpu", weights_only=True)
         config = AutoConfig.from_pretrained(native, local_files_only=True)
         # Meta construction creates no second full parameter allocation.
         with torch.device("meta"):
             model = AutoModelForCausalLM.from_config(config, torch_dtype=torch.float32, attn_implementation="eager")
+        model.generation_config=GenerationConfig.from_pretrained(native,local_files_only=True)
         path = destination/(start+"-"+str(update))
         checkpoint = probe.export_probe(model, path, record["parent"], update, state=state)
+        shutil.copyfile(native/"generation_config.json",path/"generation_config.json")
+        checkpoint=seal({**checkpoint,"generation_config_sha256":record["generation_config_sha256"]})
         write_frozen(path/"checkpoint.json", checkpoint)
         require(sum(p.stat().st_size for p in path.iterdir() if p.is_file()) <= prepared["budget"]["checkpoint_bound_bytes"],
                 "PENDING: HF checkpoint exceeds reserved spool bound")
+        verify_directory(checkpoint,path,path/"pd-export.json")
+        require(json.loads((path/"generation_config.json").read_text()) ==
+                json.loads((native/"generation_config.json").read_text()),"UNVERIFIED: generation config changed during export")
+        require(not native.is_symlink() and native.parent.resolve()==root/"train/native", "refusing deletion outside native spool")
+        shutil.rmtree(native)
         checkpoints.append(checkpoint)
         del model, state
     result = seal(dict(schema="pd-spool-complete-v1", seed=plan["seed"], checkpoints=checkpoints,
@@ -527,7 +587,7 @@ def complete_export(root, checkpoint, scored):
     shutil.rmtree(path)
     native = Path(root)/"train/native"/(checkpoint["start"]+"-"+str(checkpoint["step"]))
     require(not native.is_symlink(), "refusing symlinked native checkpoint")
-    shutil.rmtree(native)
+    if native.exists(): shutil.rmtree(native)
     return verification
 
 
@@ -613,6 +673,7 @@ def post_score(plan, root, prepared, identity, pooled=False):
         post_jobs={seed:dict(job=job, reload_agreement=agreement)},
         status="PROCESS_COMPLETED" if agreement["qualified"] else "UNVERIFIED")
     write_frozen(destination/"seed-evidence.json", result)
+    release_storage(root)
     return result
 
 
@@ -696,10 +757,10 @@ def worker(phase, plan_file, root):
         return collect(plan, root, prepared)
     allocation_tokens(os.environ.get("CUDA_VISIBLE_DEVICES"), GPUS[phase])
     prerequisites(phase, plan, root, prepared)
-    probe.configure_determinism()
-    identity = probe.gpu_identity()
+    identity = allocation_identity()
     require(len(identity["devices"]) == GPUS[phase], "PENDING: CUDA allocation differs")
-    with gpu_leases(identity):
+    with gpu_leases(identity) as fds:
+        os.environ["M3_GPU_LOCK_FDS"]=json.dumps(fds)
         if phase == "pre":
             return pre_score(plan, root, prepared, identity, pooled=True)
         if phase == "post":

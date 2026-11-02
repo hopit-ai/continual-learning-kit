@@ -4,6 +4,8 @@ from pathlib import Path
 import sys
 if __package__ in (None, ''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit.next_common import *
+from kit.m2_model_cache import install as install_model_cache
+install_model_cache()
 from kit.next_hellaswag import download, strict_label
 from kit.p3b_replay_data import clean
 from kit.beds.gsm8k import PANEL_PROMPT_SUFFIX

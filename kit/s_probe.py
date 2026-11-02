@@ -10,10 +10,12 @@ import shutil
 import subprocess
 import time
 
+from kit.m2_io import lease_fds
+
 
 def job(a):
     from kit import m2_train
-    if m2_train.run_prepared(a):return
+    if getattr(a,'phase','all') in ('all','train') and m2_train.run_prepared(a):return
     doc=context(a.out,a.standin)
     require(a.incoming in {c['incoming'] for c in doc['spec']['stages']},'unknown incoming')
     require(a.domain in domains_for(doc['spec'],a.incoming),'unregistered probe domain')
@@ -57,7 +59,7 @@ def job(a):
             if m2_train.preparing():
                 m2_train.prepare_training(a,command,env,work,[work/'native-probe.pt',work/'training-receipt.json'])
                 return
-            if not m2_train.published_training(a):subprocess.run(command,env=env,check=True)
+            if not m2_train.published_training(a):subprocess.run(command,env=env,check=True,pass_fds=lease_fds())
             from kit.m2_train import defer_exports
             if not defer_exports():
                 if (work/'native-probe.pt').exists():
@@ -79,8 +81,8 @@ def job(a):
     require((work/'export.json').exists(),'probe training snapshot pending')
     from kit.m2_handoff import scoring_identity
     machine=scoring_identity(a.out,a.score_gpu,a.standin)
-    os.environ['CUDA_VISIBLE_DEVICES']=a.score_gpu
     measurement=getattr(a,'measurement',None)
+    if measurement!='reduce':os.environ['CUDA_VISIBLE_DEVICES']=a.score_gpu
     before_path=work/('before'+suffix+'.json');after_path=work/('after'+suffix+'.json')
     if measurement=='reduce':
         before=read(before_path);after=read(after_path)
@@ -95,14 +97,16 @@ def job(a):
                 if measurement:bind(after_path,after)
             else:
                 schedule=a.out/'own'/a.incoming/a.domain/'monitor.jsonl'
-                subprocess.run([a.inference_python,str(ROOT/'kit/a4_nll.py'),'--out',str(a.out),'--model',str(work/'hf-probe'),
-                    '--receipt',str(work/'export.json'),'--schedule',str(schedule),'--output',str(after_path),'--gpu',a.score_gpu],check=True)
+                subprocess.run([a.inference_python,str(ROOT/'kit/m2_nll.py'),'--out',str(a.out),'--model',str(work/'hf-probe'),
+                    '--receipt',str(work/'export.json'),'--schedule',str(schedule),'--output',str(after_path),'--gpu',a.score_gpu],check=True,pass_fds=lease_fds())
                 after=read(after_path)
-        if measurement:return
+        if measurement:
+            __import__('kit.m2_cost',fromlist=['record']).record(before_path if measurement=='before' else after_path,scoring_start,a.standin,machine.get('assignment'))
+            return
     bind(receipt_path,dict(inputs=inputs,assignment=machine.get('assignment'),status='COMPLETE',before=before,after=after,
         export_hashes=read(work/'export.json')['model_file_hashes'],training=read(work/'training-receipt.json'),
         drop=before['token_mean']-after['token_mean'],final_nll=after['token_mean'],seconds=time.monotonic()-start,
-        gpu_hours=0 if a.standin or measurement=='reduce' else (time.monotonic()-scoring_start)/3600,output_deleted=not bool(family)))
+        gpu_hours=__import__('kit.m2_cost',fromlist=['hours']).hours([before_path,after_path],a.standin,machine.get('assignment')) if measurement=='reduce' else 0 if a.standin else (time.monotonic()-scoring_start)/3600,output_deleted=not bool(family)))
     # Assigned shared probes stay until all assigned scoring snapshots are durable.
     if not family:shutil.rmtree(work)
     print('Probe scored:',a.incoming,a.domain)

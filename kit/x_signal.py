@@ -44,13 +44,15 @@ def job(a):
             part=a.out/'.lane-parts'/path.relative_to(a.out)
             if measurement in ('before','after'):
                 index=('before','after').index(measurement);ref=refs[index]
-                bind(part.with_suffix('.'+measurement+'.json'),nll(ref['model'],targets,a.standin,ref.get('receipt')))
+                measured=part.with_suffix('.'+measurement+'.json')
+                bind(measured,nll(ref['model'],targets,a.standin,ref.get('receipt')))
+                __import__('kit.m2_cost',fromlist=['record']).record(measured,start,a.standin,inputs['assignment'])
                 continue
             measurements=([read(part.with_suffix('.'+name+'.json')) for name in ('before','after')] if measurement=='reduce' else
                 [nll(r['model'],targets,a.standin,r.get('receipt')) for r in refs])
             bind(path, dict(inputs=inputs, before=measurements[0], after=measurements[1],
                 drift=measurements[1]['token_mean']-measurements[0]['token_mean'],
-                seconds=time.monotonic()-start,gpu_hours=0 if a.standin or measurement=='reduce' else (time.monotonic()-start)/3600))
+                seconds=time.monotonic()-start,gpu_hours=__import__('kit.m2_cost',fromlist=['hours']).hours([part.with_suffix('.'+name+'.json') for name in ('before','after')],a.standin,inputs['assignment']) if measurement=='reduce' else 0 if a.standin else (time.monotonic()-start)/3600))
 
 
 def configure(p):

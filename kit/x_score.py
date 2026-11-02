@@ -8,6 +8,10 @@ from kit.x_tier2 import ARMS2
 from types import SimpleNamespace as NS
 
 
+def aliasable(arm,doc):
+    return arm in ('control','drift','plasticity',*ARMS2) or arm=='p' and doc.get('p_variant')=='p2-l2-init'
+
+
 def job(a):
     doc = context(a.out, a.standin)
     from kit.m2_assignment import active
@@ -31,7 +35,7 @@ def job(a):
     match=a.out/'scoring-core-match'/f"{family}-s{a.seed}.json" if proof else a.out/'scoring-core-match.json'
     bind(match,dict(status='MATCH' if machine == doc['core_scoring_machine']['identity']
         else 'PENDING_CROSS_MACHINE',core=doc['core_scoring_machine'],observed=machine))
-    if a.step == 0 and a.arm in ('control','drift','plasticity','p',*ARMS2) and (a.arm!='p' or doc.get('p_variant')=='p2-l2-init'):
+    if a.step == 0 and aliasable(a.arm,doc):
         import csv
         from kit.p3b_score import write_csv
         from kit.c_score import COLUMNS

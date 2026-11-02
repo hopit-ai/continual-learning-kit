@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
+from util70_fixtures import prospective_build_authority
 
 from kit import m3_schedule as plan
 from kit import m3_manifest as manifest
@@ -698,7 +699,7 @@ def test_reader_pending_and_unverified_are_scoped_to_the_affected_comparison():
     assert reader.analyse(make_cells(winning), ASSIGN, pending=['G'])['decisions'] == dict(K='PASS', CR='PENDING', CR_interpretation=None, stacking=None)
     cells = make_cells(winning); cells[('CR', 103, 'finqa', 40, 'finqa')]['uuid'] = 'GPU-other'
     off = reader.analyse(cells, ASSIGN)
-    assert off['decisions']['CR'] == 'UNVERIFIED' and off['decisions']['K'] == 'PASS'
+    assert off['decisions']['CR'] == 'UNVERIFIED-HARDWARE' and off['decisions']['K'] == 'PASS'
     receipts = {(a, s, st): 'PASS' for a in plan.ARMS for s in plan.SEEDS for st in plan.STAGES}
     receipts[('K', 101, 'finqa')] = 'FAIL'; receipts[('G', 101, 'finqa')] = 'INCOMPLETE'
     gated = reader.analyse(make_cells(winning), ASSIGN, receipts=receipts)

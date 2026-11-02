@@ -7,6 +7,7 @@ from kit.x_common import *
 from types import SimpleNamespace as NS, FunctionType
 import csv
 import shutil
+from kit.m2_io import copy_shared
 
 
 def job(a):
@@ -17,8 +18,8 @@ def job(a):
     root=a.out/'references'/f"{proof['family']}-s{a.seed}"
     bind(root/'binding.json',doc)
     source=a.out/'scoring-assignment.json'
-    if not (root/source.name).exists():shutil.copyfile(source,root/source.name)
-    if not (root/'hellaswag').exists():shutil.copytree(a.out/'hellaswag',root/'hellaswag')
+    copy_shared(source,root/source.name)
+    copy_shared(a.out/'hellaswag',root/'hellaswag')
     from kit.m2_format import validation_name,require_validation
     validation=validation_name(a.out,proof)
     generated_only = getattr(a, 'generated_only', False)
@@ -26,7 +27,7 @@ def job(a):
     if validation.exists():
         target=validation_name(root,proof);target.parent.mkdir(parents=True,exist_ok=True)
         if target.exists():require(sha(target)==sha(validation),'reference technical validation changed')
-        else:shutil.copyfile(validation,target)
+        else:copy_shared(validation,target)
     refs={'base':doc['base']}
     core=Path(doc['message2']);core_doc=m.binding(core,a.standin)
     comparator='standalone-legal-'+doc['configuration']

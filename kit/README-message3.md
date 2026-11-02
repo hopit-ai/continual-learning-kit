@@ -237,3 +237,11 @@ checks actual UUID distinctness across seeds, and labels mixed/reused hardware
 UNVERIFIED-HARDWARE. Historical assignments remain provenance; they are not a GPU
 selection request. See [v6 allocation lanes](util70-integration.md) for added calls
 and allocation-cost accounting.
+
+On an interrupted `M3-*-train`, re-run its CPU `-prepare` before resubmitting.
+The GPU entry recomputes start/resume/archive read-only and exits NotReady if
+that decision differs from `launch.json`; it never restarts over changed state.
+`M3-math-ready` uses afterany on both resolve and targets. The teacher row exits
+successfully without CUDA work when CPU resolution selected the copy path.
+Each scoring attempt writes a fresh nonce directory under its task workspace;
+readers select `current.local.json` and require one measured nonce/UUID per lane.

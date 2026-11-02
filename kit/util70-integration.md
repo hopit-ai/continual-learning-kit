@@ -1,6 +1,7 @@
 # v6 allocation lanes
 
-Every one-GPU scoring/generation row uses `lane_pool.py --concurrency 3` inside
+One-GPU scoring/generation rows use `lane_pool.py --concurrency 3` (PD HF
+pre/post use **K=2 maximum**, rolling utilisation **UNMEASURED**) inside
 one `util_watch.py` lifetime. The partner supplies `--nodes=1 --gpus=1
 --cpus-per-task=8`; PD pre/post also use eight CPUs. Resource fields in the
 actual generated launch manifest are authoritative. CPU rows request zero GPUs;
@@ -55,8 +56,8 @@ completion statuses, GPU UUID, shared allocation job identity and memory fractio
 | SP-panel-ASSIGNMENT | One unchanged panel call per inventory entry; the row records the number of entries |
 
 Short validation, S4 and PD pre jobs retain their independent readiness,
-registration and restart boundaries. They still use K=3, but cannot fill three
-slots when only one or two commands are ready. Long generation commands can
+registration and restart boundaries. Validation and S4 still use K=3 but cannot
+fill three slots when only one or two commands are ready; PD uses K≤2. Long generation commands can
 fill three slots even with only three shards. These short lanes and the
 20-second launch stagger remain explicit utilisation risks; their resource
 request is one GPU, never an eight-GPU holder.
@@ -72,8 +73,8 @@ reader is requeued. A later complete frontier must re-score every input of its
 contrast in one job; do not append old reference cells to a new job. Never
 submit a job whose list includes a checkpoint that requires its own decision.
 CPU preparation archives an earlier same-family/seed reference frontier under
-`reference-history` before a retry or later frontier. Each new GPU attempt
-writes a complete current set. Readers validate its reference authority
+`reference-history` before a retry or later frontier. Each new GPU attempt writes a fresh nonce tree; its current-family/seed pointer
+selects only that job in readers. Every checkpoint is rescored on each attempt. Readers validate its reference authority
 separately from native scores and exclude the archived attempts from tables.
 
 ## Allocation identity and retained evidence
@@ -161,3 +162,11 @@ The launch's `lane_runtime` identity seals the exact authority and all thirteen
 shared lane, allocation, reference, M3 and SP implementation files listed in
 `v6_infra.LANE_CODE`. Child processes receive that frozen seal. PD includes the
 same runtime identity in its split-job implementation hash.
+
+PD storage now reserves a peak 16 checkpoint bounds plus 64 GiB per host under
+flock (normally 352 GiB/seed). Finalize verifies each HF export and then deletes
+its native snapshot; post keeps all HF exports until all 18 cells finish. This
+prospective deviation from the old 256-GiB/one-pending-export storage rule must
+be recorded beside the 2 November ruling. Generation configs are byte-preserved
+from each source. PD GPU launchers discover CUDA identity in a short subprocess
+so the launcher retains no CUDA contexts while its eight training ranks run.

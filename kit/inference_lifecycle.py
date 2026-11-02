@@ -8,6 +8,11 @@ def engine_kwargs(kwargs):
     import os
     result=dict(kwargs)
     value=os.environ.get('KIT_GPU_MEMORY_FRACTION')
+    concurrency=int(os.environ.get('KIT_LANE_CONCURRENCY','1'))
+    if concurrency>1:
+        from kit.lane_pool import capacity
+        if concurrency>capacity(dict(engine=dict(backend='vllm',model=result.get('model'),max_model_len=result.get('max_model_len')))) or result.get('tensor_parallel_size',1)!=1:
+            raise ValueError('concurrent engine model/context is outside the qualified Qwen3-8B profile')
     if value is not None:
         fraction=float(value)
         if not math.isfinite(fraction) or not 0<fraction<1:

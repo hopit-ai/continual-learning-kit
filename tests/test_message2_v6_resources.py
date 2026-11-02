@@ -6,6 +6,12 @@ import pytest
 from kit import m2_manifest,m2_node as node,m2_snapshot as snap,m2_assignment as assignment,m2_lane as lane,v6_infra
 
 
+@pytest.fixture(autouse=True)
+def external_test_launch_seal(monkeypatch):
+    from kit import v6_infra
+    monkeypatch.setenv(v6_infra.ENV,v6_infra.authority_sha256())
+
+
 def settings(tmp_path):
     path=tmp_path/'spec.json';path.write_text(json.dumps(dict(stages=[dict(id=f'D-{s}',incoming='base',seed=s) for s in (101,102,103)],nodes=dict(base=dict(root=True)),v4_step20=[])))
     return dict(nodes=['node0'],trainer_python=sys.executable,inference_python=sys.executable,bind={},next_source='/next',pools={},prepare={},screen=dict(spec=str(path),sources='/sources'),addon=dict(spec='/addon',smoke='/smoke'))
@@ -217,7 +223,7 @@ def test_split_signal_parts_stay_private_and_canonical_return_keeps_assignment(t
         def run():return x_signal.job(a)
     for part in ('before','after'):
         a.measurement=part;run()
-    assert not canonical.exists() and len(list((tmp_path/'.lane-parts').rglob('*.json')))==2
+    assert not canonical.exists() and len(list((tmp_path/'.lane-parts').rglob('*.json')))==4
     a.measurement='reduce';run()
     value=json.loads(canonical.read_text())
     assert value['inputs']['assignment']==proof

@@ -12,6 +12,8 @@ from types import SimpleNamespace as NS
 import time
 import csv
 
+from kit.m2_io import lease_fds
+
 
 def canonical_scores(root):
     """Pad inherited scorer columns before freezing the connected evidence tail."""
@@ -82,10 +84,10 @@ def job(a):
                 # The strict diagnostic engine must exit before the likelihood
                 # worker starts; vLLM shutdown alone left live GPU allocations.
                 import subprocess
-                command=[sys.executable,str(KIT/'next_hellaswag.py'),'--out',str(a.out),'--action','score',
+                command=[sys.executable,str(KIT/'m2_cached_score.py'),'next_hellaswag','--out',str(a.out),'--action','score',
                     '--model',str(args.model),'--arm',a.arm,'--seed',str(a.seed),'--step',str(a.step),'--gpu',str(a.gpu)]
                 if args.checkpoint_receipt:command+=['--checkpoint-receipt',str(args.checkpoint_receipt)]
-                subprocess.run(command,check=True)
+                subprocess.run(command,check=True,pass_fds=lease_fds())
         elif not a.standin and a.panel_set in ('finqa','general-v1'):
             from kit.p3b_score import job as score
             args=NS(**vars(a),model=source['model'],checkpoint_receipt=Path(source['receipt']) if source.get('receipt') else None,package_a=None)

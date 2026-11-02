@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import uuid
+import time
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.pd_contract import require
@@ -40,7 +41,8 @@ def run_phase(phase, plan, output):
     child = [sys.executable, "-I", str(Path(jobs.__file__).resolve()), "--phase", phase,
         "--plan", str(Path(plan).resolve()), "--out", str(root)]
     command = child if os.environ.get('UTIL_WATCH_ACTIVE') else [sys.executable, "-I", str(watcher),
-        "--out", str(root/(phase+"-util.jsonl")), "--", *child]
+        "--out", str(root/"util"/phase/(str(time.time_ns())+".jsonl")),
+        "--expect-gpus", str(jobs.GPUS[phase]), "--", *child]
     return subprocess.run(command).returncode
 
 

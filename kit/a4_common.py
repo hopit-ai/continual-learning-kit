@@ -9,7 +9,12 @@ import math
 from datetime import datetime, timezone
 
 MONTHS = tuple(f'2026-{m:02}' for m in range(1, 7))
-SEEDS = tuple(range(101, 106))
+SEEDS = (101, 102, 103)
+AMENDMENT = dict(date='2026-11-02', seeds=list(SEEDS), df=2,
+    two_sided_t=4.302653, one_sided_t=2.919986,
+    positive_seeds=3, positive_month_fraction=[3,5],
+    authority='Owner: Approve all three, put 4A in v6b',
+    registration='resources/a4/amendment-20261102.md')
 ARMS = ('direct', 'consolidation')
 BOUNDARIES = (2, 4, 6)
 REVISION = 'b968826d9c46dd6066d109eabc6255188de91218'
@@ -17,13 +22,13 @@ RES = KIT / 'resources/a4'
 
 
 def protocol():
-    paths = [*sorted(KIT.glob('a4_*.py')), KIT/'a4_payload.sh', KIT/'README-4a.md', RES/'slice.json', RES/'registration.md', RES/'SHA256SUMS',
+    paths = [*sorted(KIT.glob('a4_*.py')), KIT/'a4_payload.sh', KIT/'README-4a.md', RES/'slice.json', RES/'registration.md', RES/'SHA256SUMS', RES/'amendment-20261102.md', RES/'v6b-rows.json', KIT/'README-4a-v6b.md', KIT/'jobs/a4/run-task.sh',
              KIT/'resources/p3b/v4-recipes.json', KIT/'beds/finqa.py', KIT/'eval_bed.py',
              KIT/'score_forgetting.py', KIT/'scorers.py', KIT/'canonical.py',
              KIT/'c_train.py', KIT/'c_data.py', KIT/'c_sdft_entry.py', KIT/'c_sdft_runner.py',
              KIT/'p3b_loss.py', KIT/'sdft_objective.py', KIT/'sdft_actor.py', KIT/'sdft_verl.py',
              KIT/'sft_entry.py', KIT/'p3b_train.py', KIT/'p3b_common.py', KIT/'p3a_common.py',
-             KIT/'v4_teacher.py', KIT/'v4_sft.py', KIT/'v4_contract.py', KIT/'v4_state.py',
+             KIT/'lane_pool.py', KIT/'util_watch.py', KIT/'m3_manifest.py', KIT/'m2_gpu.py', KIT/'inference_lifecycle.py', KIT/'v6_infra.py', KIT/'v4_teacher.py', KIT/'v4_sft.py', KIT/'v4_contract.py', KIT/'v4_state.py',
              KIT/'v4_timing.py', KIT/'v4_phase0_timing.py', KIT/'p3b_reward.py',
              KIT/'p3b_read.py', KIT/'next_w.py', KIT/'c_bind.py',
              KIT/'resources/p3b/model-hashes.json', KIT/'panels/general-v1.jsonl']
@@ -37,6 +42,12 @@ def binding(out, standin):
     require(d['technical_synthetic'] == standin, '4A synthetic mismatch')
     require(d['protocol'] == protocol(), '4A implementation changed after binding')
     approved_ceiling(d)
+    require(d.get('amendment') == AMENDMENT, '4A requires the dated three-seed amendment; old df is forbidden')
+    if d.get('execution')=='v6b' and not standin:
+        from kit.v6_infra import verify
+        seal=os.environ.get('KIT_V6_AUTHORITY_SHA')
+        require(bool(seal) and seal==d.get('infrastructure_update'),'bound v6b authority SHA differs or is absent')
+        verify(seal)
     return d
 
 

@@ -21,7 +21,7 @@ import traceback
 from types import SimpleNamespace as NS
 from kit.text_return import FAMILIES, SCHEMA, canonical, write_parts, job_inventory
 
-UTIL_FAMILIES=(*FAMILIES,'core','preflight','REF')
+UTIL_FAMILIES=('core','kcr','pd','sp','preflight','reference','report')
 
 
 def utilisation(specs):
@@ -31,40 +31,72 @@ def utilisation(specs):
     are summed job-seconds, not GPU-seconds. Missing attempts stay unknown.
     """
     groups=defaultdict(list,{family:[] for family in UTIL_FAMILIES});seen=set()
+    gpu_attempts=defaultdict(int);started=defaultdict(list);seen_counts=set()
     for spec in specs:
-        family=spec['family']
-        if family not in UTIL_FAMILIES:raise ValueError('unknown utilisation family')
+        family={'REF':'reference','4a':'4A'}.get(spec['family'],spec['family'])
+        if family not in (*UTIL_FAMILIES,*FAMILIES):raise ValueError('unknown utilisation family')
         groups[family]
         paths=[Path(p) for p in spec.get('summaries',[])]
+        count_paths=[Path(spec['started_rows_file'])] if spec.get('started_rows_file') else [Path(root)/'started-rows.json' for root in spec.get('roots',[])]
+        for path in count_paths:
+            if path.resolve() in seen_counts:raise ValueError('duplicate utilisation start counter')
+            seen_counts.add(path.resolve())
+            try:
+                count=read(path)['started_gpu_rows']
+                if not isinstance(count,int) or isinstance(count,bool) or count<0:raise ValueError('invalid started GPU row count')
+            except (OSError,ValueError,KeyError,TypeError):count=None
+            started[family].append(count)
         for root in spec.get('roots',[]):
             root=Path(root);found=set(root.rglob('*.summary.json'))
             # A killed watcher cannot finalize its summary. Keep the attempt
             # unknown instead of silently reporting only successful telemetry.
-            found.update(p.with_suffix('.summary.json') for p in root.rglob('*.jsonl') if not p.name.endswith('.phases.jsonl'))
+            found.update(p.with_name(p.name.removesuffix('.attempt.json')+'.summary.json')
+                for p in root.rglob('*.attempt.json'))
+            # Legacy named watcher streams remain recognisable. Arbitrary
+            # JSONL score/engine files are never inferred to be attempts.
+            found.update(p.with_suffix('.summary.json') for p in root.rglob('util.jsonl'))
             paths.extend(sorted(found))
         for path in paths:
             resolved=path.resolve()
             if resolved in seen:raise ValueError('duplicate utilisation attempt')
             seen.add(resolved)
+            # Count GPU attempts even if their telemetry is incomplete. The
+            # marker keeps killed attempts distinguishable from CPU-only work.
+            gpu_count=None
+            for metadata in (path,path.with_name(path.name.removesuffix('.summary.json')+'.attempt.json')):
+                try:
+                    record=read(metadata);gpu_count=record.get('expected_gpus')
+                    if gpu_count is None:gpu_count=record.get('gpus')
+                    if isinstance(gpu_count,int) and not isinstance(gpu_count,bool) and gpu_count>=0:break
+                except (OSError,ValueError,TypeError,AttributeError):pass
+                gpu_count=None
+            if gpu_count:gpu_attempts[family]+=1
             try:
                 r=read(path)
                 if not isinstance(r,dict):raise ValueError('invalid utilisation summary')
                 def valid(k):return isinstance(r.get(k),(int,float)) and not isinstance(r[k],bool) and math.isfinite(r[k]) and r[k]>=0
                 if not all(valid(k) for k in ('gpus','wall_s')) or r['gpus']!=int(r['gpus']) or r.get('telemetry_complete') is not True:raise ValueError('invalid allocation')
                 if r['gpus'] and (
-                    not all(valid(k) for k in ('mean_util','min_window_mean','seconds_below_70')) or
-                    max(r['mean_util'],r['min_window_mean'])>100 or r['seconds_below_70']>r['wall_s']):raise ValueError('incomplete telemetry')
+                    not all(valid(k) for k in ('mean_util','seconds_below_70')) or r['mean_util']>100 or
+                    (r.get('min_window_mean') is not None and (not valid('min_window_mean') or r['min_window_mean']>100)) or
+                    (r.get('min_window_mean') is None and not (valid('window_s') and r['wall_s']<r['window_s'])) or
+                    r['seconds_below_70']>r['wall_s']):raise ValueError('incomplete telemetry')
             except (OSError,ValueError,KeyError,TypeError):r=None
             groups[family].append(r)
     result={}
     for family,attempts in sorted(groups.items()):
-        complete=bool(attempts) and all(r is not None for r in attempts)
+        complete=[r for r in attempts if r is not None]
         gpu_jobs=[r for r in attempts if r and r['gpus']]
         weight=sum(r['gpus']*r['wall_s'] for r in gpu_jobs)
-        result[family]=dict(jobs=len(attempts),gpus=sum(r['gpus'] for r in attempts) if complete else None,
-            mean_util=sum(r['mean_util']*r['gpus']*r['wall_s'] for r in gpu_jobs)/weight if complete and weight else None,
-            worst_window=min(r['min_window_mean'] for r in gpu_jobs) if complete and gpu_jobs else None,
-            seconds_below_70=sum(r['seconds_below_70'] for r in gpu_jobs) if complete and gpu_jobs else None)
+        windows=[r['min_window_mean'] for r in gpu_jobs if r['min_window_mean'] is not None]
+        result[family]=dict(jobs=len(attempts),unknown=len(attempts)-len(complete),gpus=sum(r['gpus'] for r in complete) if complete else None,
+            mean_util=sum(r['mean_util']*r['gpus']*r['wall_s'] for r in gpu_jobs)/weight if weight else None,
+            worst_window=min(windows) if windows else None,
+            seconds_below_70=sum(r['seconds_below_70'] for r in gpu_jobs) if gpu_jobs else None)
+        if started[family]:
+            count=sum(started[family]) if all(n is not None for n in started[family]) else None
+            result[family].update(started_gpu_rows=count,observed_gpu_attempts=gpu_attempts[family],
+                missing_attempts=max(0,count-gpu_attempts[family]) if count is not None else None)
     return result
 
 
@@ -128,8 +160,14 @@ def native(family, spec, scratch, standin=False, bootstrap=10000):
         return result
     if family == 'KCR':
         from kit.m3_read import read_job
-        read_job(NS(out=source,standin=standin))
-        return read(source/'m3-read.json')
+        previous=os.environ.get('KIT_V6A')
+        try:
+            if spec.get('v6a'):os.environ['KIT_V6A']='1'
+            read_job(NS(out=source,result_out=out,standin=standin))
+        finally:
+            if previous is None:os.environ.pop('KIT_V6A',None)
+            else:os.environ['KIT_V6A']=previous
+        return read(out/'m3-read.json')
     if family == 'PD':
         from kit.pd_read import read_evidence, collect_seed_evidence
         evidence=read(spec['evidence'])
@@ -156,7 +194,7 @@ def native(family, spec, scratch, standin=False, bootstrap=10000):
         # Native live-tree 4A reading also accounts allocation tails. Prefer the
         # native archived view when supplied, exactly as the archive workflow.
         job(NS(out=source if source.is_dir() else out, source=None if source.is_dir() else source,
-               standin=standin, bootstrap=bootstrap))
+               standin=standin, bootstrap=spec.get('bootstrap',bootstrap)))
         return read((source/'reading/summary.json') if source.is_dir() else (out/'returned-reading/summary.json'))
     raise ValueError('unknown reader')
 
@@ -276,6 +314,8 @@ def kit_identity(tag=None, commit=None):
 
 
 def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000, bootstrap=10000, full_detail=False):
+    from kit.v6_infra import ENV, activate, activate_v6a, bound
+    authority=activate_v6a() if inputs.get('_mode')=='v6a' else activate()
     readers={}; out=Path(out)
     with tempfile.TemporaryDirectory(prefix='text-readers-') as tmp:
         for family in FAMILIES:
@@ -293,6 +333,12 @@ def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000
                         refused=isinstance(exc,ValueError) or type(exc).__name__ in ('NotReady','Pending','Unbound')
                         r={'_reader_status':'PENDING' if missing or refused else 'UNVERIFIED','_warning':'MISSING_INPUT' if missing else 'READER_REFUSED' if refused else 'READER_ERROR'}
                         r['_local_exception']=type(exc).__name__+': '+str(exc)
+                    finally:
+                        # A refused old send clears its own authority aliases.
+                        # Keep that refusal local to this reader; subsequent
+                        # families still use the externally bound report seal.
+                        os.environ[ENV]=authority
+                        os.environ['M2_INFRA_AUTHORITY_SHA256']=authority
                 def warning_count(v):
                     if isinstance(v,dict):
                         return sum((len(x) if isinstance(x,list) else int(bool(x))) if k in ('warnings','flags','wall_time_warnings') else warning_count(x) for k,x in v.items())
@@ -311,14 +357,13 @@ def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000
                 except Exception as exc:
                     r={'_reader_status':'UNVERIFIED','_warning':'READER_ERROR','warning_count':1,'_local_exception':type(exc).__name__+': '+str(exc)}
                 results.append(r)
-            readers[family]=results or [{'_reader_status':'DEFERRED' if family=='4A' or inputs.get('_mode')=='v6a' else 'PENDING','_warning':'NOT_CONFIGURED'}]
+            readers[family]=results or [{'_reader_status':'DEFERRED' if inputs.get('_mode')=='v6a' else 'PENDING','_warning':'NOT_CONFIGURED'}]
     jobs,private_jobs=job_summary(inputs.get('jobs',[]))
     if not jobs: jobs=['J|core|unknown|PENDING','J|KCR|unknown|PENDING','J|PD|unknown|PENDING','J|SP|unknown|PENDING']
     full=dict(schema=SCHEMA,technical_synthetic=standin,readers=readers,accounting=accounting(readers),jobs=jobs,
-              utilisation=utilisation(inputs.get('utilisation',[])))
-    if inputs.get('_mode')=='v6a':
-        from kit.v6_infra import activate_v6a
-        full['infrastructure_authority']=activate_v6a()
+              utilisation=utilisation(inputs.get('utilisation',[])),
+              reused_v6a_kcr=inputs.get('_mode')!='v6a' and any(s.get('v6a') for s in inputs.get('KCR',[])))
+    full['infrastructure_authority']=bound(authority)
     # S collector costs are node-local input measurements, not bootstrap samples.
     tag,commit=kit_identity(tag,commit)
     paths=write_parts(out,full,tag,commit,jobs,max_chars,full_detail=full_detail)

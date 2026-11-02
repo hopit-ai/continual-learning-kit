@@ -3,6 +3,8 @@ from kit.c_common import (KIT, STEPS, RETENTION_STEPS, lock, checked_model,
                           legal, panels as legal_panels, overlap)
 from kit.p3b_common import *
 from kit.m2_seed_policy import SEEDS
+from kit.m2_model_cache import install as install_model_cache
+install_model_cache()
 
 M = KIT / 'resources/m2'
 PANELS = ('finqa', 'test', 'math_hard', 'ifeval', 'knowledge', 'math')

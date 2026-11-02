@@ -47,6 +47,12 @@ def measure(a,doc,seed):
                 rng_file_sha256=sha(batch/f'rng-r{rank}.pt'),optimizer_steps=0,scheduler_steps=0,ema_steps=0,
                 after_reduction_unscaling=True,before_clipping=True,technical_synthetic=True))
         return
+    if os.environ.get('M2_EXECUTION_PHASE')=='publish':
+        from kit.p3a_common import NotReady
+        if not m2_train.published_training(a):raise NotReady('X4 native measurement pending; CPU publication cannot train')
+        require(all((batch/f'measure-r{r}.json').is_file() for r in range(8)) and (batch/'actor-input.pt').is_file(),
+            'X4 native measurement incomplete; CPU publication cannot train')
+        return
     require(a.sdpo and a.tokenizer and len(set(a.gpus.split(',')))==8,'P2 X4 needs pinned tokenizer/SDPO and eight distinct GPUs')
     require(subprocess.check_output(['git','-C',str(a.sdpo),'rev-parse','HEAD'],text=True).strip()==
         '7c457fc1b1f636ae794eb0362ba37d4743b06fbc','P2 SDPO pin changed')

@@ -106,3 +106,8 @@ admission. No node-wide lock excludes other inference or CPU jobs. Existing
 hardware uniqueness, parent occupancy and UUID/environment pairing still apply.
 The runner records utilisation through `util_watch.py`; unchanged serial scoring
 requires measurement before assuming it meets the rolling 70% threshold.
+
+CPU preparation records binding status per entry. A deleted, expired or missing
+export marks only that entry MISSING-INPUT; other bound entries in the same
+assignment still score. The GPU row substitutes each command independently and
+never waits for a missing export while holding its allocation.

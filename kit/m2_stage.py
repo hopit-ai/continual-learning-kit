@@ -11,14 +11,15 @@ def job(a):
     if a.action=='p2-feasibility':
         a.arm='p'
         from kit import m2_train
-        if m2_train.run_prepared(a):return
         from kit.x_common import context
         from kit.x_p import calibration
-        from kit.x_p2_feasibility import ensure
+        from kit.x_p2_feasibility import ensure,retry_pending
         from types import SimpleNamespace as NS
         doc=context(a.out,a.standin)
         if doc.get('p_variant')!='p2-l2-init':return
-        ensure(NS(**dict(vars(a),arm='p')),doc,calibration(a.out,doc))
+        passed=ensure(NS(**dict(vars(a),arm='p')),doc,calibration(a.out,doc))
+        if not passed and not m2_train.preparing() and retry_pending(a.out,a.seed):
+            raise NotReady('disposable P2 pass interrupted; re-run CPU staging for the single fresh retry')
         return
     if a.action=='pool-source':
         from kit.m2_paths import local

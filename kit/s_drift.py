@@ -8,6 +8,8 @@ from kit.s_common import *
 from kit.s_generate import selected, domains_for
 import time
 
+from kit.m2_io import lease_fds
+
 
 def nll(model_path, targets, standin, receipt=None):
     require(bool(targets) and all(r['verified'] is True for r in targets), 'NLL requires verified own responses')
@@ -22,7 +24,7 @@ def nll(model_path, targets, standin, receipt=None):
         atomic(root/'reference.json', dict(model=model_path, receipt=receipt))
         write_rows(root/'targets.jsonl', targets)
         subprocess.run([sys.executable, str(ROOT/'kit/s_nll.py'), '--reference', str(root/'reference.json'),
-                        '--schedule', str(root/'targets.jsonl'), '--output', str(root/'nll.json')], check=True)
+                        '--schedule', str(root/'targets.jsonl'), '--output', str(root/'nll.json')], check=True,pass_fds=lease_fds())
         return read(root/'nll.json')
 
 

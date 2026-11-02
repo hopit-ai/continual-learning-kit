@@ -6,6 +6,8 @@ if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().pa
 from kit.x_common import *
 import subprocess
 
+from kit.m2_io import lease_fds
+
 
 def job(a):
     doc = context(a.out, a.standin)
@@ -17,7 +19,7 @@ def job(a):
         cmd = [python or a.inference_python, str(ROOT/'kit'/script), '--out', str(a.out), *map(str,args)]
         if a.standin: cmd.append('--standin')
         if getattr(a,'command_sink',None) is not None:a.command_sink.append(cmd)
-        else:subprocess.run(cmd,check=True)
+        else:subprocess.run(cmd,check=True,pass_fds=lease_fds())
     def scores(arm, seed, steps):
         if mode=='train':return
         for step in steps:

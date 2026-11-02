@@ -10,6 +10,19 @@ from kit import lane_evidence as evidence, lane_pool, m2_assignment as assignmen
 from kit import m2_manifest, m2_lane, m3_manifest, m3_score, pd_jobs, ref_guard, ref_score_job
 
 
+@pytest.fixture(autouse=True)
+def external_cpu_fixture_authority(tmp_path,monkeypatch):
+    import hashlib
+    from kit import v6_infra
+    root=v6_infra.ROOT
+    doc=json.loads((root/v6_infra.AUTHORITY).read_text())
+    for row in doc['files']:
+        row['new_sha256']=hashlib.sha256((root/row['path']).read_bytes()).hexdigest()
+    path=tmp_path/'cpu-fixture-authority.json';path.write_text(json.dumps(doc))
+    monkeypatch.setattr(v6_infra,'AUTHORITY',str(path))
+    monkeypatch.setenv(v6_infra.ENV,hashlib.sha256(path.read_bytes()).hexdigest())
+
+
 def freeze(tmp_path):
     path=tmp_path/'scoring-assignment.json'
     assignment.freeze(path,dict(schema='message2-scoring-assignment.v2',assignments={
@@ -88,7 +101,7 @@ def test_reference_both_panels_expand_each_checkpoint_once(tmp_path,monkeypatch)
         path.write_text(json.dumps(dict(checkpoints=checkpoints,assignment_sha256=ref_score_job.s.file_hash(tmp_path/ref_guard.ASSIGNMENT),
             sources=[dict(source={},observed={},metadata={})]*2)))
     monkeypatch.setattr(ref_score_job,'model_metadata',lambda *a:{})
-    calls=[];monkeypatch.setattr(lane_pool,'execute',lambda commands,*a,**kw:calls.extend(commands) or 0)
+    calls=[];monkeypatch.setattr(lane_pool,'execute',lambda commands,*a,**kw:calls.extend(c['argv'] for c in commands) or 0)
     seals=[];monkeypatch.setattr(evidence,'complete_attempt',lambda *a:seals.append(a))
     ref_score_job.run_lane(a)
     assert len(calls)==2
@@ -101,14 +114,16 @@ def test_pd_pooled_cells_keep_one_job_proof_and_full_order(tmp_path,monkeypatch)
     job=dict(phase='post',identity_sha256='job',gpu_identity=dict(uuid='GPU-one'))
     (tmp_path/'post').mkdir()
     requests=[(dict(checkpoint_id=str(i)),'model','receipt','start',i) for i in range(18)]
-    def execute(commands,*a,**kw):
+    def execute(command,*a,**kw):
+        assert command[command.index('--concurrency')+1]=='2'
+        commands=[c['argv'] for c in json.loads(Path(command[command.index('--plan')+1]).read_text())]
         assert len(commands)==18
         for command in commands:
             task=Path(command[command.index('--score-cell')+1]);doc=json.loads(task.read_text())
             assert doc['job']==job
             pd_jobs.write_frozen(task.with_suffix('.result.json'),pd_jobs.seal(dict(index=doc['update'])))
-        return 0
-    monkeypatch.setattr(lane_pool,'execute',execute)
+        return NS(returncode=0)
+    monkeypatch.setattr(pd_jobs.subprocess,'run',execute)
     cells=pd_jobs.scoring_cells({},tmp_path,{},job,requests,True)
     assert [c['index'] for c in cells]==list(range(18))
 
@@ -167,10 +182,11 @@ def test_s_generation_partition_lanes_preserve_selection_and_output_bytes(tmp_pa
     from kit import s_bind,s_audit,s_freeze,s_generate,s_common,v6_infra
     from kit.screen_s_dryrun import fixtures
     if (Path(__file__).resolve().parents[1]/'.git').exists():
-        from scripts.v6_infra_authority import generate
-        authority=tmp_path/'cpu-test-authority.json';authority.write_text(json.dumps(generate('main'),sort_keys=True))
+        from util70_fixtures import prospective_core_authority_bytes
+        authority=tmp_path/'cpu-test-authority.json';authority.write_bytes(prospective_core_authority_bytes())
         monkeypatch.setattr(v6_infra,'AUTHORITY',str(authority))
     monkeypatch.setenv('M2_INFRA_AUTHORITY_SHA256',v6_infra.identity())
+    monkeypatch.setenv(v6_infra.ENV,v6_infra.identity())
     monkeypatch.delenv('M2_ASSIGNMENT',raising=False)
     sources,spec,message2=fixtures(tmp_path/'fixtures')
     ready=tmp_path/'ready'
@@ -209,6 +225,7 @@ def test_sp_frozen_code_amendment_requires_an_external_authority_seal(monkeypatc
     from kit import sp_prepare,v6_infra
     frozen=sp_prepare.RESOURCES/'FROZEN.json';before=frozen.read_bytes()
     monkeypatch.delenv('M2_INFRA_AUTHORITY_SHA256',raising=False)
+    monkeypatch.delenv(v6_infra.ENV,raising=False)
     with pytest.raises(ValueError,match='code differs'):sp_prepare.verify_frozen()
     monkeypatch.setenv('M2_INFRA_AUTHORITY_SHA256',v6_infra.identity())
     assert sp_prepare.verify_frozen()['code']!=sp_prepare.code_hashes()
@@ -236,12 +253,13 @@ def test_tier_cpu_child_gets_the_manifest_bound_seal(tmp_path,monkeypatch):
     from kit import v6_infra
     monkeypatch.delenv('M2_INFRA_AUTHORITY_SHA256',raising=False)
     runtime=v6_infra.runtime_identity()
-    doc=dict(lane_runtime=runtime,technical_synthetic=True,tasks=[dict(id='M3-init',kind='prepare',requires=[],gpus=0,commands=[['python','fake.py']])])
+    doc=dict(infrastructure_update=runtime['authority'],lane_runtime=runtime,technical_synthetic=True,tasks=[dict(id='M3-init',kind='prepare',requires=[],gpus=0,commands=[['python','fake.py']])])
     monkeypatch.setattr(m3_manifest,'load',lambda *a:doc)
     calls=[]
     def run(command,**kw):calls.append(kw['env']);return NS(returncode=0)
     monkeypatch.setattr(m3_manifest.subprocess,'run',run)
     assert m3_manifest.run_task('ignored','M3-init',tmp_path,{})==0
+    assert calls[0]['KIT_V6_AUTHORITY_SHA']==runtime['authority']
     assert calls[0]['M2_INFRA_AUTHORITY_SHA256']==runtime['authority']
 
 

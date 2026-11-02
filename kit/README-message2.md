@@ -247,9 +247,16 @@ local staging exits PENDING immediately; requeue staging on the same host.
 Scoring staging resolves every checkpoint before admission and freezes
 `LOCAL_ROOT/TASK/lane-commands.json` (`message2-lane-commands.v1`): ordered
 `commands` argv arrays, one checkpoint × panel group each, plus CPU `reducers`.
-The GPU task executes this ordered list through `lane_pool.py --concurrency 3`
-on its one allocated UUID, inside one utilisation watcher. CPU publication runs
-the reducers after every command completes. Incoming and adaptive frontiers
+The staged `pool_commands` declare the actual local model, engine context cap
+and model/export prerequisites for each independent vLLM call. The GPU task
+executes qualified Qwen3-8B segments through `lane_pool.py --concurrency 3`
+(measured K=3, 88% utilisation, memory fraction .31). HF NLL, mixed vLLM/HF
+format validation, dependent or unqualified commands use **K=1**. These serial
+segments remain ordered barriers; they cannot lower adjacent vLLM segments to
+K=1 or overlap their successors. All segments retain one allocated UUID and
+allocation nonce inside one utilisation watcher. Costs use single-GPU allocation
+wall time, including the K=1 segments; no K=3 discount applies to those segments.
+CPU publication runs the reducers after every command completes. Incoming and adaptive frontiers
 remain separate jobs; each comparison re-scores its own earlier checkpoints.
 Complete comparison rows feed nomination, admission and final readback. Historical
 RA retained/reused inputs are freshly scored in the same package job. The
@@ -262,6 +269,17 @@ startup, unchanged HF references and scorer teardown still need rolling-window
 telemetry; right-sizing alone does not establish 70% activity. Do not allocate
 GPUs to wait for dependencies or to run CPU publication. A CPU staging result
 with no runnable work (a registered deferred/skip branch) needs no GPU submission.
+Staging prints `SKIP: no GPU submission needed`, seals a skipped GPU result, and
+allows CPU publication immediately. An accidentally submitted GPU row returns
+SKIP before probing or leasing GPUs. Re-run CPU staging after an interrupted or
+failed GPU attempt; only plans selected by that staging pass may execute.
+
+CPU staging hashes lane models once and seals local file-stat receipts (resolved
+path, size, mtime, ctime, inode and device). GPU commands reuse those exact hashes
+only while the complete file inventory still matches; a change requires CPU
+restaging. GPU completion records include per-command wall times and allocation
+GPU-hours; split NLL reducers sum the measurement costs. Concurrent command-hours
+are diagnostic and must not be added to allocation-hours as a second charge.
 
 Prospective v6 code pins are generated at integration using
 `python -I scripts/v6_infra_authority.py --base <reviewed-ref> --out

@@ -284,23 +284,36 @@ It writes tensor hashes, the original live-load proof inputs and checkpoint
 identities. A spool completion receipt is published only after every export
 exists. The post job refuses missing/incomplete spools before CUDA discovery.
 Its unchanged likelihood/diagnostic functions hash and live-load each export,
-then retain a sealed proof and scores **before** deleting that HF export and
-its redundant native snapshot. A missing/wrong live-load proof preserves both.
+then retain a sealed proof and scores **before** deleting that HF export.
+Finalize has already deleted each redundant native snapshot after independently
+verifying its complete HF export. A missing/wrong live-load proof preserves the HF export.
 Original checkpoints are never deleted. CPU collect rechecks scientific closure
 and publishes `seed-evidence.verified.json`; failed reload agreement remains
 UNVERIFIED there and in the amended reader.
 
-Storage is deliberately conservative: reserve `15 * checkpoint_bound` native
-bytes plus the same HF bytes, plus 64 GiB headroom. `checkpoint_bound` is the
-larger of 18 GiB and the largest bound source tensor inventory's actual byte
-size. Thus the usual per-seed spool bound is **540 GiB**, requiring **604 GiB
-free at CPU preparation** (1,812 GiB for three simultaneous seed trees on one
-filesystem). Each written checkpoint is checked against its bound. The old
-256-GiB quota/320-GiB free check belonged to the retired one-slot streaming path.
-At roughly 8B BF16 parameters the weights alone are about 15 GiB per checkpoint,
-or about 450 GiB for both copies of all 15 points; actual sizes/config/shards
-are measured on the node. Reserve disk capacity for concurrent seeds at the
-scheduler/storage level: a free-space observation does not reserve disk blocks.
+Storage deviation beside the 2 November split-job ruling: the former registered
+256-GiB quota and one-pending-export rule cannot hold a complete scoring lane.
+The split path keeps 15 native snapshots, then converts one at a time and deletes
+each native only after its HF export verifies. Peak storage is bounded by
+`(15+1)*max(18 GiB, largest source tensor inventory bytes)+64 GiB`: normally
+**288 GiB spool / 352 GiB reserved capacity per seed**. Three simultaneous seeds
+need **1,056 GiB** at this bound. A per-host/filesystem reservation ledger under
+`flock` charges other active seeds' remaining capacity before admitting a seed;
+already written bytes are counted through filesystem free space. Release follows
+successful full post scoring/deletion. Failed trees retain their reservation
+until discarded; deleting the failed tree releases it on the next reservation.
+This is an accounting reservation shared by PD sends, not a filesystem quota;
+unrelated writers still require storage management. The manager must record this
+prospective storage deviation with the ruling; no scientific definitions change.
+Every snapshot carries the exact source `generation_config.json`; CPU conversion
+copies the same bytes into the HF export and binds its hash.
+
+Pre/post use per-cell subprocesses under one pre-created `job.json` and nonce,
+at **K=2 maximum** (two FP32 ~33-GB models on an 80-GB H100). All 18 post cells
+finish before any HF export is deleted. Scorer functions, FP32 load/BF16 autocast,
+rows and diagnostics remain unchanged. Expected rolling utilisation is
+**UNMEASURED**; K=2 is a memory bound, not evidence of the 70% requirement.
+
 Host RAM must fit the existing full FP32 gather plus one BF16 snapshot; a new
 snapshot waits for the previous writer rather than growing a queue.
 

@@ -318,7 +318,7 @@ def job_inventory():
     labels=[]
     for line in Path(__file__).with_name('combined-inventory.md').read_text().splitlines():
         cells=[x.strip() for x in line.split('|')]
-        if len(cells)>=4 and cells[2] in ('core','preflight','kcr','pd','sp') and re.fullmatch(r'[A-Za-z0-9_.-]+',cells[1]):
+        if len(cells)>=4 and cells[2] in ('core','preflight','kcr','pd','sp','reference','4a','report') and re.fullmatch(r'[A-Za-z0-9_.-]+',cells[1]):
             if cells[1] not in labels:labels.append(cells[1])
     for prefix in ('PF-node-','PF-tier-'):
         for i in range(128):
@@ -341,13 +341,14 @@ def essential_endpoints(family, r):
     when the reader supplies only its seed vector and bound. Selection uses
     unrounded values: a guard is retained when failing, unknown, or <=0.5
     points inside its bar. Primary records are always retained. 4A retains
-    its registered five seeds rather than pretending it is a three-seed rule.
+    the seeds and df bound by the reader's dated amendment.
     """
     records=[]
+    seeds=r.get('amendment',{}).get('seeds',list(range(101,106)) if family=='4A' else [101,102,103])
     def add(name, values, stat=None, kind='P', bar='-', method='seed-t', near=True):
         if not near:return
-        if isinstance(values,dict): values=[values.get(str(s),values.get(s)) for s in range(101,106 if family=='4A' else 104)]
-        values=list(values or [None]*(5 if family=='4A' else 3))
+        if isinstance(values,dict): values=[values.get(str(s),values.get(s)) for s in seeds]
+        values=list(values or [None]*len(seeds))
         stat=stat or {}; known=[v for v in values if isinstance(v,(int,float)) and not isinstance(v,bool)]
         records.append(dict(name=name,kind=kind,values=values,mean=stat.get('mean',statistics.mean(known) if known else None),
             sd=stat.get('sd',statistics.stdev(known) if len(known)>1 else None),
@@ -443,14 +444,15 @@ def essential_endpoints(family, r):
                 for metric,q in stats.items():
                     add(name+'.'+comparison+'.'+metric,q.get('per_seed',q.get('values')),q,bar='DESCRIPTIVE',method='descriptive-seed-t')
     elif family=='4A':
-        q=r.get('primary',{});add('consolidation-memory',q.get('per_seed'),q.get('interval'),bar='mean>=5;lo>0;pos>=4;months>=3',method='seed-t-n5')
+        q=r.get('primary',{});amended=len(seeds)==3
+        add('consolidation-memory',q.get('per_seed'),q.get('interval'),bar='mean>=5;lo>0;pos=3;months>=3' if amended else 'mean>=5;lo>0;pos>=4;months>=3',method='seed-t-n3-df2' if amended else 'seed-t-n5')
         add('positive-months',q.get('monthly'),kind='I',bar='positive-months>=3',method='months2-6')
         for q in r.get('retention',[]):
             if q.get('arm')!='consolidation' or not q.get('is_registered_bar') or not close(q['interval'],q['margin'],True):continue
             matching=[x for x in r.get('transitions',[]) if x.get('comparison')=='retention' and all(x.get(k)==q.get(k) for k in ('arm','month','panel','mode','reference'))]
             vals={str(x['seed']):-x['delta_points'] for x in matching}
             name='.'.join(str(q[k]) for k in ('arm','month','panel','mode','reference'))
-            add(name,vals,q['interval'],'G',str(q['margin']),method='seed-t-upper-n5')
+            add(name,vals,q['interval'],'G',str(q['margin']),method='seed-t-upper-n3-df2' if amended else 'seed-t-upper-n5')
     return records
 
 
@@ -460,7 +462,7 @@ def erow(family,record,names,mapping):
     fields += [canonical(r[k]) for k in ('mean','sd','lower','upper','positive','n')]
     bar=r['bar']
     if re.fullmatch(r'-?[0-9]+(?:\.[0-9]+)?',bar):bar=canonical(rounded(float(bar)))
-    elif bar not in ('-','mean>=6;lo>0;pos=3','mean>=2;lo>0','mean>=0.5;lo>0;pos=3','mean>=2;lo>0;pos=3','mean<=-2;hi<0;negative=3','each>=10','DESCRIPTIVE','mean>=5;lo>0;pos>=4;months>=3','positive-months>=3','mean<signal','pos=3'):bar='UNVERIFIED'
+    elif bar not in ('-','mean>=6;lo>0;pos=3','mean>=2;lo>0','mean>=0.5;lo>0;pos=3','mean>=2;lo>0;pos=3','mean<=-2;hi<0;negative=3','each>=10','DESCRIPTIVE','mean>=5;lo>0;pos>=4;months>=3','positive-months>=3','mean>=5;lo>0;pos=3;months>=3','positive-months>=4','mean<signal','pos=3'):bar='UNVERIFIED'
     fields += [bar,r['method'].replace(' ',':')]
     return 'E|'+'|'.join(fields)
 
@@ -468,14 +470,19 @@ def erow(family,record,names,mapping):
 def utilisation_rows(full):
     rows=[]
     if full.get('utilisation'):
-        rows=['T|UTIL|family|jobs|gpus|mean_util|worst_window|seconds_below_70']
+        rows=['T|UTIL|family|jobs|gpus|mean_util|worst_window|seconds_below_70|unknown']
     for family,r in sorted(full.get('utilisation',{}).items()):
-        if family not in (*FAMILIES,'core','preflight','REF'):raise ValueError('unknown utilisation family')
-        values=[r[k] for k in ('jobs','gpus','mean_util','worst_window','seconds_below_70')]
+        if family not in (*FAMILIES,'core','kcr','pd','sp','preflight','reference','report'):raise ValueError('unknown utilisation family')
+        values=[r[k] for k in ('jobs','gpus','mean_util','worst_window','seconds_below_70')]+[r.get('unknown',0)]
         for i,v in enumerate(values):
-            numeric(v,integer=i<2)
+            numeric(v,integer=i<2 or i==5)
             if v is not None and (v<0 or i in (2,3) and v>100):raise ValueError('invalid utilisation value')
         rows.append('T|UTIL|'+family+'|'+'|'.join(canonical(rounded(v)) for v in values))
+        if 'missing_attempts' in r:
+            if r['missing_attempts'] is None:rows.append(f'W|{family}|UTIL_START_COUNT_UNKNOWN|1')
+            elif r['missing_attempts']:
+                numeric(r['missing_attempts'],integer=True)
+                rows.append(f'W|{family}|UTIL_ATTEMPTS_MISSING|'+str(r['missing_attempts']))
     return rows
 
 
@@ -524,7 +531,7 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     if list(out.glob('RETURN-TEXT-*.md')) or list((out/'full').glob('RETURN-TEXT-*.md')): raise ValueError('use a fresh text output directory')
     names=vocabulary();mapping=alias_context();public={};verdicts=[];endpoint_by_key={};operations_by_key={}
-    full=dict(full,readers={f:list(full['readers'].get(f) or [dict(_reader_status='DEFERRED' if f=='4A' else 'PENDING',_warning='NOT_CONFIGURED')]) for f in FAMILIES})
+    full=dict(full,jobs=list(jobs or full.get('jobs',[])),readers={f:list(full['readers'].get(f) or [dict(_reader_status='DEFERRED' if f=='4A' else 'PENDING',_warning='NOT_CONFIGURED')]) for f in FAMILIES})
     serializable=dict(full,readers={f:list(rs) for f,rs in full['readers'].items()})
     def numeric_fields(values):
         if any(v is not None and (isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v)) for v in values):
@@ -568,9 +575,13 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
              'T|TECHNICAL-STANDIN' if full.get('technical_synthetic') else 'T|NODE-READERS',
              'RESULTS-SHA256 ' + digest,
              'T|DECISIONS|family|comparison|verdict|estimate|lower|upper|seeds-in-registered-direction|guard-failures']
+    if not full.get('infrastructure_authority'):
+        from kit.v6_infra import activate
+        full['infrastructure_authority']=activate()
     if full.get('infrastructure_authority'):
         if not re.fullmatch('[0-9a-f]{64}',full['infrastructure_authority']):raise ValueError('invalid infrastructure authority')
         first.insert(0,'T|AUTH|'+full['infrastructure_authority'])
+    if full.get('reused_v6a_kcr'):first.insert(0,'T|PROVENANCE|KCR-v6a-outputs-read-with-v6b-code')
     first += ['T|SCOPE|'+','.join(sorted(k for k in public if k!='ACCOUNTING'))]
     first += [drow(rounded(d)) for d in verdicts]
     for i, r in enumerate(full['readers']['KCR']):
@@ -599,7 +610,15 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     # Bind the ordered FULL content (not framing/set-reference records). This
     # avoids a self-referential digest and permits requested parts in any order.
     limit=max_chars-500
-    if len(body_text(first))>limit:raise ValueError('all decisions/jobs exceed Part 1 capacity; never omit verdicts')
+    job_header=first.index('T|JOB-INVENTORY|'+job_inventory()[1])
+    essential_first=first[:job_header]
+    if len(body_text(first))>limit:
+        # Decisions stay in Part 1; FULL retains every job range in subsequent
+        # numbered pages, even for a fragmented partial-run inventory.
+        job_rows=first[job_header+2:]
+        first=first[:job_header+2]
+        details=job_rows+details
+    if len(body_text(first))>limit:raise ValueError('all decisions exceed Part 1 capacity; never omit verdicts')
     full_chunks=[first]+split(details,limit)
     content_hashes=[sha(canonical(chunk)) for chunk in full_chunks]
     full_digest=sha(canonical(content_hashes));full_count=len(full_chunks)
@@ -617,9 +636,9 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
         return paths
     # Always retain FULL on the node, with stable part numbers for requests.
     full_paths=emit(out/'full',full_chunks,'FULL')
-    essential_first=first[:first.index('T|JOB-INVENTORY|'+job_inventory()[1])]
+
     endpoint_rows=['T|ENDPOINTS|family|endpoint|P-primary-G-guard-I-rule-input|seeds101-103|mean|sample-SD|lower|upper|seeds-in-registered-direction|n|bar|method',
-        'T|ENDPOINTS|4A-keeps-five-seeds101-105|months2-6-kept-separately|KCR-upper-symmetric-derived']
+        'T|ENDPOINTS|4A-seeds101-103-df2-amendment20261102|months2-6-kept-separately|KCR-upper-symmetric-derived' if any(r.get('amendment') for r in full['readers']['4A']) else 'T|ENDPOINTS|4A-keeps-five-seeds101-105|months2-6-kept-separately|KCR-upper-symmetric-derived']
     for rows in endpoint_by_key.values():endpoint_rows.extend(rows)
     ops=operation_rows(dict(readers={},jobs=full.get('jobs',[]),utilisation=full.get('utilisation',{})),public,names,mapping)
     footer=ops[-3:];ops=ops[:-3]
@@ -632,6 +651,13 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     ops.extend(drop_rows);ops.extend(footer)
     # Fixed semantic pages 1/2/3; page 4 carries overflow from 2 and/or 3.
     endpoint_chunks=split(endpoint_rows,limit);ops_chunks=split(ops,limit)
+    overflow=[row for chunk in endpoint_chunks[1:]+ops_chunks[1:] for row in chunk]
+    if len(body_text(overflow))>limit:
+        job_rows=[row for row in ops if row.startswith('J|')]
+        if job_rows:
+            ops=[row for row in ops if not row.startswith('J|')]
+            ops.insert(2,'T|JOBS|ranges-in-FULL|'+str(len(job_rows)))
+            ops_chunks=split(ops,limit)
     overflow=[row for chunk in endpoint_chunks[1:]+ops_chunks[1:] for row in chunk]
     essential_chunks=[essential_first,endpoint_chunks[0],ops_chunks[0]]
     if overflow:essential_chunks.append(overflow)
@@ -692,7 +718,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
             own=(tag,commit)
             if identity is not None and identity!=own:raise ValueError('mixed kit identities')
             identity=own
-            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:AUTH|KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE|UTIL))'
+            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|kcr|pd|sp|preflight|reference|report)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE|UTIL|AUTH|PROVENANCE))'
             rows=[v for v in re.split('(?='+prefix+')',raw) if v];restored=[]
             for row in rows:
                 if row.startswith('RESULTS-SHA256'):row='RESULTS-SHA256 '+row[len('RESULTS-SHA256'):]
@@ -745,7 +771,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     if not supplement_only and not _single_part:
         if 1 not in parts:raise ValueError('missing part 1')
         if missing and not(part1_only and set(parts)=={1}):raise ValueError('missing parts: '+','.join(map(str,missing)))
-    verdicts=[];metrics={};jobs=[];endpoints={};warnings=[];results_hash=None;inventory_hash=None;utilisation={};seen_util=set();authority=None
+    verdicts=[];metrics={};jobs=[];endpoints={};warnings=[];results_hash=None;inventory_hash=base.get('job_inventory_sha256') if base else None;utilisation={};seen_util=set();authority=None;auth_modes=set();job_range_rows_in_full=0;reader_provenance=[];provenance_modes=set()
     seen_metric=set();seen_job=set();seen_warning=set();seen_decisions={};scopes={}
     for mode in ('ESSENTIAL','FULL'):
         for k,rows in sorted(sets.get(mode,{}).items()):
@@ -821,29 +847,37 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
                     numeric(int(f[3]),integer=True)
                     if row not in seen_warning:
                         warnings.append(annotate(dict(family=f[1],code=f[2],count=int(f[3]),provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_warning.add(row)
+                elif f[:2]==['T','PROVENANCE']:
+                    if k!=1 or mode in provenance_modes or f!=['T','PROVENANCE','KCR-v6a-outputs-read-with-v6b-code']:raise ValueError('invalid reader provenance')
+                    provenance_modes.add(mode)
+                    if f[2] not in reader_provenance:reader_provenance.append(f[2])
+                elif f[:2]==['T','AUTH']:
+                    if k!=1 or mode in auth_modes or len(f)!=3 or not re.fullmatch('[0-9a-f]{64}',f[2]):raise ValueError('invalid authority record')
+                    if authority is not None and authority!=f[2]:raise ValueError('mixed infrastructure authorities')
+                    authority=f[2];auth_modes.add(mode)
                 elif f[:2]==['T','UTIL']:
-                    if f==['T','UTIL','family','jobs','gpus','mean_util','worst_window','seconds_below_70']:continue
-                    if len(f)!=8 or f[2] not in (*FAMILIES,'core','preflight','REF'):raise ValueError('invalid utilisation record')
+                    if f in (['T','UTIL','family','jobs','gpus','mean_util','worst_window','seconds_below_70'],['T','UTIL','family','jobs','gpus','mean_util','worst_window','seconds_below_70','unknown']):continue
+                    if len(f) not in (8,9) or f[2] not in (*FAMILIES,'core','kcr','pd','sp','preflight','reference','report'):raise ValueError('invalid utilisation record')
                     values=[json.loads(v) for v in f[3:]]
+                    if len(values)==5:values.append(None)  # legacy text did not count unknowns
                     for i,v in enumerate(values):
-                        numeric(v,integer=i<2)
+                        numeric(v,integer=i<2 or i==5)
                         if v is not None and (v<0 or i in (2,3) and v>100):raise ValueError('invalid utilisation value')
                     if (mode,f[2]) in seen_util:raise ValueError('duplicate utilisation family')
                     seen_util.add((mode,f[2]))
-                    record=annotate(dict(zip(('jobs','gpus','mean_util','worst_window','seconds_below_70'),values),family=f[2],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED'))
+                    record=annotate(dict(zip(('jobs','gpus','mean_util','worst_window','seconds_below_70','unknown'),values),family=f[2],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED'))
                     if f[2] in utilisation:record=merge_record(utilisation[f[2]],record,'utilisation')
                     utilisation[f[2]]=record
                 elif f[:2]==['T','JOB-INVENTORY']:
                     if inventory_hash is not None and inventory_hash!=f[2]:raise ValueError('mixed job inventories')
                     inventory_hash=f[2]
+                elif f[:3]==['T','JOBS','ranges-in-FULL']:
+                    if mode!='ESSENTIAL' or len(f)!=4 or not f[3].isdigit() or int(f[3])<1 or job_range_rows_in_full:raise ValueError('invalid deferred job range count')
+                    job_range_rows_in_full=int(f[3])
                 elif f[0]=='J':
                     if len(f)!=4 or f[3] not in ('DONE','FAILED','PENDING'):raise ValueError('invalid job record')
                     if row not in seen_job:
                         jobs.append(annotate(dict(family=f[1],job=f[2],status=f[3],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_job.add(row)
-                elif f[:2]==['T','AUTH']:
-                    if len(f)!=3 or not re.fullmatch('[0-9a-f]{64}',f[2]):raise ValueError('invalid authority header')
-                    if authority is not None and authority!=f[2]:raise ValueError('mixed authority headers')
-                    authority=f[2]
                 elif f[0]!='T' or f[1] not in {'KIT','PART','MODE','FULL-SET','COUNTS','ENDPOINTS','PARTNER-COMPUTED','TECHNICAL-STANDIN','NODE-READERS','DECISIONS','JOBS','METRICS','COSTS','TIER-ALLOWANCE','WARNINGS','CHECKSUM-SCOPE'}:
                     raise ValueError(f'part {k}: unknown or damaged record')
     for mode,scope in scopes.items():
@@ -867,7 +901,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
         content=[[row for row in full_parts[k] if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))] for k in range(1,reference[0]+1)]
         if sha(canonical([sha(canonical(chunk)) for chunk in content]))!=reference[1]:
             checksum_status['FULL-SET']='TRANSCRIPTION-UNVERIFIED'
-    result=dict(schema=SCHEMA,kit_tag=identity[0],kit_commit=identity[1],mode=main,complete=not missing,missing_parts=missing,results_sha256=results_hash,job_inventory_sha256=inventory_hash,decisions=verdicts,metrics=metrics,jobs=jobs,endpoints=endpoints,warnings=warnings,utilisation=utilisation,
+    result=dict(schema=SCHEMA,kit_tag=identity[0],kit_commit=identity[1],infrastructure_update=authority,mode=main,complete=not missing,missing_parts=missing,results_sha256=results_hash,job_inventory_sha256=inventory_hash,decisions=verdicts,metrics=metrics,jobs=sorted(jobs,key=lambda r:(r['family'],r['job'])),endpoints=endpoints,warnings=warnings,utilisation=utilisation,job_range_rows_in_full=job_range_rows_in_full,reader_provenance=reader_provenance,
         full_part_count=reference[0] if reference else counts.get('FULL'),full_set_sha256=reference[1] if reference else None,
         received_full_parts=sorted(full_parts),part_checksums=checksum_status,
         # Retain verified part hashes to reject conflicting/repeated later text.
@@ -882,6 +916,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     if result['detail_complete'] and result['full_set_sha256']:
         hashes=[result['full_content_hashes'][str(k)] for k in range(1,result['full_part_count']+1)]
         if sha(canonical(hashes))!=result['full_set_sha256']:result['part_checksums']['FULL-SET']='TRANSCRIPTION-UNVERIFIED'
+    if result['detail_complete'] and result.get('job_range_rows_in_full') and len(result['jobs'])!=result['job_range_rows_in_full']:raise ValueError('FULL job range count differs')
     result['missing_full_parts']=sorted(set(range(1,result['full_part_count']+1))-set(result['received_full_parts']))
     return result
 
@@ -889,6 +924,8 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
 def merge_supplement(base, supplement):
     """Merge verified later FULL pages into an owner-local ESSENTIAL reading."""
     result=dict(base)
+    if supplement.get('reader_provenance') and supplement['reader_provenance']!=base.get('reader_provenance'):raise ValueError('supplement reader provenance conflict')
+    if supplement.get('infrastructure_update') is not None and supplement['infrastructure_update']!=base.get('infrastructure_update'):raise ValueError('mixed infrastructure authorities')
     if supplement.get('results_sha256') and supplement['results_sha256']!=base['results_sha256']:raise ValueError('mixed RESULTS digests')
     if supplement['decisions'] and [without_transcription(v) for v in supplement['decisions']]!=[without_transcription(v) for v in base['decisions']]:raise ValueError('supplement decision conflict')
     hashes=dict(base.get('full_part_hashes',{}))
@@ -906,6 +943,14 @@ def merge_supplement(base, supplement):
     result['utilisation']=dict(base.get('utilisation',{}))
     for key,v in supplement.get('utilisation',{}).items():
         result['utilisation'][key]=merge_record(result['utilisation'][key],v,'utilisation') if key in result['utilisation'] else v
-    # FULL's job summary is identical to the ESSENTIAL summary, not extra jobs.
-    if supplement['jobs'] and [without_transcription(v) for v in supplement['jobs']]!=[without_transcription(v) for v in base['jobs']]:raise ValueError('supplement job conflict')
+    # FULL pages may carry only a subset of the job ranges. When ESSENTIAL
+    # deferred them explicitly, collect those pages up to the declared count.
+    jobs={(v['family'],v['job']):v for v in base['jobs']}
+    for record in supplement['jobs']:
+        key=(record['family'],record['job'])
+        if key in jobs:jobs[key]=merge_record(jobs[key],record,'job')
+        elif base.get('job_range_rows_in_full'):jobs[key]=record
+        else:raise ValueError('supplement job conflict')
+    result['jobs']=sorted(jobs.values(),key=lambda r:(r['family'],r['job']))
+    if base.get('job_range_rows_in_full') and len(result['jobs'])>base['job_range_rows_in_full']:raise ValueError('FULL job range count differs')
     return result

@@ -9,6 +9,8 @@ from types import SimpleNamespace as NS
 import csv
 import subprocess
 
+from kit.m2_io import lease_fds
+
 
 def accuracy(out, ref, gpu, finqa, standin, score_panel=None, read_only=False):
     from kit.p3b_score import job as score
@@ -25,9 +27,9 @@ def accuracy(out, ref, gpu, finqa, standin, score_panel=None, read_only=False):
                      checkpoint_receipt=None, panel_root=finqa, package_a=None, gpu=gpu, standin=True))
         else:
             require(finqa is not None, 'staged FinQA evaluation root required')
-            subprocess.run([sys.executable, str(ROOT/'kit/p3b_score.py'), '--out', str(folder), '--arm', arm,
+            subprocess.run([sys.executable, str(ROOT/'kit/m2_cached_score.py'), 'p3b_score', '--out', str(folder), '--arm', arm,
                 '--seed', '101', '--step', '20', '--panel-set', panel, '--model', ref['model'],
-                '--checkpoint-receipt', ref['receipt'], '--panel-root', str(finqa), '--gpu', gpu], check=True)
+                '--checkpoint-receipt', ref['receipt'], '--panel-root', str(finqa), '--gpu', gpu], check=True,pass_fds=lease_fds())
     if score_panel:return
     values = {}
     evidence = {};sources={};format_failures={}

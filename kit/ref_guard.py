@@ -49,6 +49,9 @@ def records(files, standin=None):
         if not name.startswith('reference-scores/') or not name.endswith('/ref-identity.json'): continue
         prefix = name.rsplit('/', 1)[0] + '/'
         meta = json.loads(raw)
+        current=files.get(f"reference-scores/{meta['family']}/current-s{meta['seed']}.json")
+        nonce=json.loads(current)['job_nonce'] if current else None
+        if nonce and prefix.split('/')[2]!=nonce: continue
         require(meta['method'] == METHOD and meta['panel'] in PANELS, 'unknown reference method/panel')
         from kit.p3b_common import s, KIT
         implementation = KIT / ('hellaswag_reference.py' if meta['panel'] == 'hellaswag' else 'm3_score.py')
@@ -65,7 +68,9 @@ def records(files, standin=None):
         proof = meta['assignment']
         require(proof['family'] == meta['family'] + '.' + meta['panel'] and proof['seed'] == meta['seed'], 'foreign reference family/seed')
         unit = meta['arm'] if meta['family'] != 'm3' or meta['arm'] == 'base' else meta['arm'] + '.' + meta['stage']
-        require(prefix == f"reference-scores/{meta['family']}/{unit}-s{meta['seed']}-k{meta['step']}-{meta['panel']}/", 'reference directory identity differs')
+        lane=f"reference-scores/{meta['family']}/"+(nonce+'/' if nonce else '')
+        require(prefix == lane+f"{unit}-s{meta['seed']}-k{meta['step']}-{meta['panel']}/", 'reference directory identity differs')
+        if nonce: require(proof.get('allocation_job')==nonce,'UNVERIFIED-HARDWARE: reference nonce differs from job tree')
         require(meta['step'] in (0, 40), 'reference unit is not a decision checkpoint')
         validate_model(meta, files)
         rows = list(csv.DictReader(io.StringIO(files[prefix + 'scores.csv'].decode())))

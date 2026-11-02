@@ -7,6 +7,7 @@ from kit.a4_common import *
 
 
 def job(a):
+    require(a.standin,'legacy GPU-held handoff is retired; use the CPU v6b collector')
     doc=binding(a.out,a.standin)
     with lock(a.out/'node-writer'):
         attempt=start_attempt(a.out,doc,'handoff',a.standin);complete=False

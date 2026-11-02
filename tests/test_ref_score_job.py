@@ -320,7 +320,7 @@ def test_x_and_tier2_guard_values_gate_on_method_and_recorded_gpu(monkeypatch,re
     assert all(c['status']=='PENDING' and c['reason']=='REFERENCE-SCORED required for decision checkpoint guards' for c in (first,second))
 
 
-def test_m_collector_archive_round_trip_through_native_reader(tmp_path):
+def test_m_collector_archive_round_trip_through_native_reader(tmp_path,reference_infrastructure):
     """Reference review 1: exercise M collection, manifests, overlay and native readback."""
     from kit import m2_collect, m2_read, m2_common, m2_assignment
     from kit.p3b_read import load
@@ -359,7 +359,7 @@ def test_kit_only_decision_guards_require_reference_even_after_validation(panel,
     assert guard.apply(dict(status='PASS'),rows)['status']=='PENDING'
 
 
-def test_reference_method_labels_round_trip_without_checksum_changes(tmp_path):
+def test_reference_method_labels_round_trip_without_checksum_changes(tmp_path,reference_infrastructure):
     """Reference-labelled endpoint methods must survive whitespace-tolerant paste parsing."""
     from kit.text_return import write_parts,parse_parts
     stat=dict(mean=3.,sd=0.,lower=3.,upper=3.,values=[3.,3.,3.],n=3)
@@ -421,6 +421,37 @@ def test_reference_history_is_preserved_without_duplicating_reader_cells(root):
     from kit.m2_assignment import validate_files
     files['scoring-assignment.json']=(root/'m3-scoring-assignment.json').read_bytes()
     validate_files(files,require_assignment=True)
+
+
+def test_each_reference_attempt_scores_a_fresh_complete_nonce_tree(root,monkeypatch):
+    """A relocated/requeued job cannot reuse a prior job's completed units."""
+    from copy import copy
+    from kit import lane_pool
+    a=NS(out=root,family='m3',checkpoints=root/'checkpoints.json',seed=101,panel='both',gpu='0',standin=True)
+    for panel in guard.PANELS:
+        child=copy(a);child.panel=panel;job.prepare(child)
+    attempts=[]
+    def execute(commands,directory,*,env,pass_fds,concurrency):
+        attempts.append(env['KIT_LANE_JOB'])
+        assert pass_fds==(17,) and env['M3_GPU_LOCK_FDS']=='[17]' and concurrency==2
+        assert not list(Path(env['REF_ATTEMPT_ROOT']).rglob('ref-identity.json'))
+        with monkeypatch.context() as context:
+            for key,value in env.items():context.setenv(key,value)
+            for command in commands:
+                command=command['argv']
+                child=copy(a)
+                child.panel=command[command.index('--panel')+1]
+                child.cell_index=int(command[command.index('--cell-index')+1])
+                job.run(child)
+        return 0
+    monkeypatch.setenv('M3_GPU_LOCK_FDS','[17]')
+    monkeypatch.setattr(lane_pool,'execute',execute)
+    job.run_lane(a);first=guard.records(guard.local_files(root),True)
+    job.run_lane(a);second=guard.records(guard.local_files(root),True)
+    assert len(set(attempts))==2 and len(first)==len(second)==4
+    assert {meta['assignment']['allocation_job'] for meta,_ in first}=={attempts[0]}
+    assert {meta['assignment']['allocation_job'] for meta,_ in second}=={attempts[1]}
+    assert len(list((root/'reference-attempts/m3/101').glob('*/attempt.json')))==2
 
 
 @pytest.fixture

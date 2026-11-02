@@ -7,7 +7,10 @@ import json
 from pathlib import Path
 
 
-def allowed_update(path, expected, observed, authority_sha256=None):
+from kit.v6_infra import _UNSET
+
+
+def allowed_update(path, expected, observed, authority_sha256=_UNSET):
     root=Path(__file__).resolve().parents[1]
     try:name=str(Path(path).resolve().relative_to(root))
     except ValueError:return False

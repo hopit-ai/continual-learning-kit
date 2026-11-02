@@ -29,22 +29,22 @@ COMMIT='a'*40
 
 
 @pytest.fixture(scope='module',autouse=True)
-def prospective_test_authority(tmp_path_factory):
-    """Generate a disposable authority for this changed CPU test build only.
-
-    The release authority remains manager-owned and is never rewritten here.
-    """
-    if not (ROOT/'.git').exists():
-        yield  # A release copy uses the manager's final committed authority.
-        return
-    from scripts.v6_infra_authority import generate
+def reviewed_fixture_authority(tmp_path_factory):
+    """Prospective CPU fixture authority; never rewrites the shipped authority."""
     from kit import v6_infra
-    path=tmp_path_factory.mktemp('test-authority')/'authority.json'
-    path.write_text(json.dumps(generate('main'),sort_keys=True))
-    with pytest.MonkeyPatch.context() as scope:
-        scope.setattr(v6_infra,'AUTHORITY',str(path))
-        scope.setenv('M2_INFRA_AUTHORITY_SHA256',hashlib.sha256(path.read_bytes()).hexdigest())
+    from util70_fixtures import prospective_core_authority_bytes
+    doc=json.loads(prospective_core_authority_bytes())
+    path=tmp_path_factory.mktemp('cpu-fixture-authority')/'authority.json';path.write_text(json.dumps(doc))
+    with patch.object(v6_infra,'AUTHORITY',str(path)),patch.dict('os.environ',{
+            v6_infra.ENV:hashlib.sha256(path.read_bytes()).hexdigest(),
+            'M2_INFRA_AUTHORITY_SHA256':hashlib.sha256(path.read_bytes()).hexdigest()}):
         yield
+
+
+@pytest.fixture(autouse=True)
+def bound_test_authority(monkeypatch):
+    from kit import v6_infra
+    monkeypatch.setenv(v6_infra.ENV,v6_infra.authority_sha256())
 
 
 def test_utilisation_weighting_unknowns_cpu_and_duplicate_attempts(tmp_path):
@@ -54,14 +54,14 @@ def test_utilisation_weighting_unknowns_cpu_and_duplicate_attempts(tmp_path):
     second=save('two',gpus=2,wall_s=20,mean_util=50,min_window_mean=40,seconds_below_70=10,telemetry_complete=True)
     cpu=save('cpu',gpus=0,wall_s=30,mean_util=None,min_window_mean=None,seconds_below_70=None,telemetry_complete=True)
     r=report.utilisation([dict(family='KCR',summaries=[first,second,cpu])])['KCR']
-    assert r==dict(jobs=3,gpus=3,mean_util=56.,worst_window=40,seconds_below_70=12)
+    assert r==dict(jobs=3,gpus=3,mean_util=56.,worst_window=40,seconds_below_70=12,unknown=0)
     assert report.utilisation([dict(family='core',summaries=[cpu])])['core']['mean_util'] is None
     r=report.utilisation([dict(family='KCR',summaries=[first,str(tmp_path/'missing')])])['KCR']
-    assert r['jobs']==2 and r['mean_util'] is None and r['gpus'] is None
+    assert r['jobs']==2 and r['mean_util']==80 and r['gpus']==1 and r['unknown']==1
     assert report.utilisation([dict(family='SP',roots=[str(tmp_path/'absent')])])['SP']['mean_util'] is None
-    orphan=tmp_path/'interrupted.jsonl';orphan.touch()
+    orphan=tmp_path/'utilisation/123.attempt.json';orphan.parent.mkdir();orphan.write_text('{"schema":"kit-util-watch-attempt.v1"}')
     result=report.utilisation([dict(family='KCR',roots=[str(tmp_path)])])['KCR']
-    assert result['jobs']==4 and result['mean_util'] is None
+    assert result['jobs']==4 and result['mean_util']==56 and result['unknown']==1
     invalid=tmp_path/'bad.summary.json';invalid.write_text('[]')
     assert report.utilisation([dict(family='PD',summaries=[str(invalid)])])['PD']['gpus'] is None
     with pytest.raises(ValueError,match='duplicate'):report.utilisation([dict(family='KCR',summaries=[first,first])])
@@ -281,7 +281,7 @@ def test_missing_duplicate_mixed_and_truncation_refused(small):
 def test_unconfigured_partial_set_lists_all_decisions(small):
     parsed=transport.parse_parts([small[0]],True)
     assert len(parsed['decisions'])>=50
-    assert all(d['verdict']==('DEFERRED' if d['family']=='4A' else 'PENDING') for d in parsed['decisions'])
+    assert all(d['verdict']=='PENDING' for d in parsed['decisions'])
     a4=[d for d in parsed['decisions'] if d['family']=='4A']
     assert {d['comparison'] for d in a4}=={'consolidation-memory','retention'}
     assert all(d['guards']==['NOT_CONFIGURED'] for d in a4)
@@ -436,7 +436,8 @@ def test_essential_default_exhaustive_size_all_verdicts_and_privacy(essential,fu
     k=result['endpoints']['KCR:K-C0.primary']
     assert k['values']==[5,5.5,6] and k['sd']==.5 and k['seeds_in_direction']==3 and k['lower']==4.258
     assert result['endpoints']['X:p.acquisition-positive']['seeds_in_direction']==3
-    assert result['endpoints']['4A:consolidation-memory']['seeds']==[101,102,103,104,105]
+    assert result['endpoints']['4A:consolidation-memory']['seeds']==[101,102,103]
+    assert result['endpoints']['4A:consolidation-memory']['method']=='seed-t-n3-df2'
     assert all('J|' not in t for t in texts[:2]) and 'T|TIER-ALLOWANCE|1800' in texts[2]
 
 
@@ -684,3 +685,39 @@ def test_structural_metadata_cannot_be_dropped_to_enable_legacy_fallback(small,m
     rows=[r for r in logical_rows(small[0]) if not r.startswith(marker)]
     text=small[0].splitlines()[0]+'\n'+transport.body_text(rows)+small[0].splitlines()[-1]+'\n'
     with pytest.raises(ValueError,match='mode|row counts|scope'):transport.parse_parts([text],True)
+
+
+def test_short_complete_attempt_keeps_mean_without_inventing_a_full_window(tmp_path):
+    summary=dict(gpus=1,wall_s=30,window_s=300,mean_util=80,min_window_mean=None,seconds_below_70=0,telemetry_complete=True)
+    path=tmp_path/'1.summary.json';path.write_text(json.dumps(summary))
+    result=report.utilisation([dict(family='reference',summaries=[str(path)])])['reference']
+    assert result==dict(jobs=1,gpus=1,mean_util=80,worst_window=None,seconds_below_70=0,unknown=0)
+
+
+def test_stray_jsonl_does_not_invent_a_missing_utilisation_attempt(tmp_path):
+    summary=dict(gpus=1,wall_s=600,window_s=300,mean_util=90,min_window_mean=80,seconds_below_70=0,telemetry_complete=True)
+    (tmp_path/'123.summary.json').write_text(json.dumps(summary))
+    (tmp_path/'scores.jsonl').write_text('{}\n');(tmp_path/'engine-receipts.jsonl').touch()
+    (tmp_path/'utilisation').mkdir();(tmp_path/'utilisation/123456.jsonl').touch()
+    result=report.utilisation([dict(family='reference',roots=[str(tmp_path)])])['reference']
+    assert result['jobs']==1 and result['mean_util']==90
+
+
+def test_manifest_group_names_and_authority_header_round_trip(tmp_path):
+    from kit import v6_infra
+    rows={family:dict(jobs=0,gpus=0,mean_util=None,worst_window=None,seconds_below_70=None)
+          for family in ('core','kcr','pd','sp','reference','preflight','report')}
+    parts=transport.write_parts(tmp_path/'text',dict(readers={},utilisation=rows),'test',COMMIT)
+    assert 'T|AUTH|'+v6_infra.authority_sha256() in parts[0].read_text()
+    parsed=transport.parse_parts([p.read_text() for p in parts])
+    assert parsed['infrastructure_update']==v6_infra.authority_sha256()
+    assert set(parsed['utilisation'])==set(rows)
+    bad=parts[0].read_text().replace('T|AUTH|'+v6_infra.authority_sha256(),'T|AUTH|bad')
+    with pytest.raises(ValueError,match='authority'):transport.parse_parts([bad],part1_only=True)
+
+
+def test_text_writer_requires_a_bound_authority_seal(tmp_path,monkeypatch):
+    from kit import v6_infra
+    monkeypatch.delenv(v6_infra.ENV,raising=False);monkeypatch.delenv('M2_INFRA_AUTHORITY_SHA256',raising=False)
+    with pytest.raises(ValueError,match='seal absent'):
+        transport.write_parts(tmp_path/'text',dict(readers={}),'test',COMMIT)

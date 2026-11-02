@@ -76,9 +76,11 @@ def fixtures(directory):
         'elif "index,uuid" in a:print('+repr('5, '+gpu)+')\n'
         'else:print('+repr(gpu)+')\n')
     binary.chmod(0o755)
-    tier=m3_manifest.build(dict(nodes=[socket.gethostname().split('.')[0]],trainer_python=str(shim),
-        inference_python=str(shim),inputs=dict(contract_targets='/CPU-STANDIN/C',replay='/CPU-STANDIN/B',panels={},inventory='/CPU-STANDIN/inventory'),
-        technical_synthetic=False))
+    from kit import v6_infra
+    with patch.dict(os.environ,{v6_infra.ENV:v6_infra.authority_sha256()}):
+        tier=m3_manifest.build(dict(nodes=[socket.gethostname().split('.')[0]],trainer_python=str(shim),
+            inference_python=str(shim),inputs=dict(contract_targets='/CPU-STANDIN/C',replay='/CPU-STANDIN/B',panels={},inventory='/CPU-STANDIN/inventory'),
+            technical_synthetic=False))
     c.write(root/'m3-launch.json',tier)
     settings=dict(kcr_manifest=str(root/'m3-launch.json'),kcr_root=str(root),control_root=str(directory/'control'),
                   inference_python=str(shim))
@@ -200,7 +202,16 @@ def run(directory, missing_intermediates=False):
     assert {d['comparison'] for d in decisions}=={'K-C0','CR-G'}
     assert all(d['verdict']=='INCONCLUSIVE' for d in decisions),decisions
     if missing_intermediates:
-        reading=c.load(directory/'kcr/m3-read.json')
+        # v6b readers never write under the reused K/CR root (tier M1); re-read into scratch.
+        from types import SimpleNamespace as _NS
+        from kit.m3_read import read_job as _read_job
+        _scratch=directory/'kcr-read-scratch';_scratch.mkdir(exist_ok=True)
+        _prev=os.environ.get('KIT_V6A');os.environ['KIT_V6A']='1'
+        try:_read_job(_NS(out=directory/'kcr',result_out=_scratch,standin=True))
+        finally:
+            if _prev is None:os.environ.pop('KIT_V6A',None)
+            else:os.environ['KIT_V6A']=_prev
+        reading=c.load(_scratch/'m3-read.json')
         assert reading['missing_intermediate_exports']=={str(s):36 for s in schedule.SEEDS}
         for comparison in ('K-C0','CR-G'):
             diagnostics=reading['contrasts'][comparison]['diagnostics']

@@ -47,6 +47,7 @@ def test_exit_passthrough_summary_scoped_uuid_and_phases(tmp_path,env):
     assert summary['returncode']==37 and summary['telemetry_complete'] is True
     assert summary['wall_s']>0 and summary['mean_util']==pytest.approx(80)
     assert summary['min_window_mean'] is None and summary['seconds_below_70']==0
+    assert summary['startup_mean_util']==pytest.approx(80)
     assert summary['phases'][0]['phase']=='score'
 
 
@@ -81,6 +82,7 @@ def test_time_weighted_rolling_window():
     assert stats.total/stats.elapsed==pytest.approx(100/3)
     assert stats.add(20,100)==50
     assert stats.below==pytest.approx(10) and stats.minimum==0
+    assert stats.startup_total/10==50 and stats.startup_below==5
 
 
 def test_phase_jsonl_preserves_unicode_line_separators(tmp_path):
@@ -101,17 +103,17 @@ def test_allocated_set_is_frozen_or_ambiguous(tmp_path,env,scope):
 
 
 def test_slurm_scope_and_count_mismatch_are_not_host_samples(tmp_path,env):
-    env.pop('CUDA_VISIBLE_DEVICES');env.update(SLURM_JOB_GPUS='1',SLURM_GPUS_ON_NODE='2')
+    env.update(CUDA_VISIBLE_DEVICES='0',SLURM_JOB_GPUS='5',SLURM_GPUS_ON_NODE='2')
     done,samples,summary=run(tmp_path,env)
     assert done.returncode==0 and not samples and summary['telemetry_complete'] is False
     assert summary['mean_util'] is None and summary['gpus']==1
 
 
-def test_remapped_cuda_uses_slurm_physical_mapping(tmp_path,env):
+def test_remapped_cuda_and_slurm_agree_on_count(tmp_path,env):
     env.update(CUDA_VISIBLE_DEVICES='0',SLURM_JOB_GPUS='1',SLURM_GPUS_ON_NODE='1')
     done,samples,summary=run(tmp_path,env)
-    assert done.returncode==0 and samples and summary['telemetry_complete']
-    assert summary['gpu_uuids']==['GPU-b'] and summary['mean_util']==80
+    assert done.returncode==0 and {s['gpu'] for s in samples}=={'GPU-a'}
+    assert summary['telemetry_complete'] and summary['gpus']==1
 
 
 @pytest.mark.parametrize('slurm',[dict(SLURM_GPUS_ON_NODE='8'),dict(SLURM_JOB_GPUS='0')])
@@ -199,16 +201,66 @@ def test_combined_and_kcr_wrappers_share_one_watcher_and_retain_attempts(tmp_pat
     (kit/'m3_manifest.py').write_text('import os;assert os.environ["UTIL_WATCH_ACTIVE"]=="1";raise SystemExit(75)\n')
     (kit/'combined_send.py').write_text('import os,subprocess;raise SystemExit(subprocess.call(["bash",os.environ["KIT"]+"/jobs/message3/run-task.sh","M3-example"]))\n')
     manifest=tmp_path/'combined.json';roots={k:str(tmp_path/k) for k in ('core_local_root','kcr_root','pd_root','sp_root','control_root')}
-    manifest.write_text(json.dumps(dict(settings=roots,tasks=[dict(id='M3-example',group='kcr')])))
+    manifest.write_text(json.dumps(dict(settings=roots,tasks=[dict(id='M3-example',group='kcr',gpus=0)])))
     env.update(KIT=str(kit),JOB_PY=sys.executable,COMBINED_MANIFEST=str(manifest),M3_OUT=roots['kcr_root'],M3_MANIFEST='unused',CUDA_VISIBLE_DEVICES='')
     for i in range(2):
         done=subprocess.run(['bash',str(ROOT/'kit/jobs/combined/run-task.sh'),'M3-example'],env=env,timeout=10)
         assert done.returncode==75
-    summaries=list((Path(roots['kcr_root'])/'state/utilisation').glob('*.summary.json'))
+    # Fix B: every group's watcher output lives under the shared control root.
+    summaries=list((Path(roots['control_root'])/'utilisation/kcr').glob('*.summary.json'))
     assert len(summaries)==2
     assert all(json.loads(p.read_text())['job']=='M3-example' for p in summaries)
 
 
+def test_manifest_zero_gpu_overrides_absent_or_host_visibility_without_nvml(tmp_path,env):
+    env.pop('CUDA_VISIBLE_DEVICES');env['SLURM_GPUS_ON_NODE']='8'
+    out=tmp_path/'zero.jsonl';command=argv(out,'raise SystemExit(75)');command[3:3]=['--expect-gpus','0']
+    done=subprocess.run(command,env=env,timeout=10)
+    summary=json.loads(out.with_suffix('.summary.json').read_text())
+    assert done.returncode==75 and summary['gpus']==0 and summary['telemetry_complete']
+    assert not Path(env['FAKE_CALLED']).exists()
+
+
+@pytest.mark.parametrize('cuda',[None,'0','GPU-a'])
+def test_cgroup_visible_nvml_list_uses_slurm_counts_not_physical_ids(tmp_path,env,cuda):
+    env.update(FAKE_GPU_ROWS='5, GPU-a, 90, 120',SLURM_JOB_GPUS='5',SLURM_STEP_GPUS='5',SLURM_GPUS_ON_NODE='1')
+    if cuda is None:env.pop('CUDA_VISIBLE_DEVICES')
+    else:env['CUDA_VISIBLE_DEVICES']=cuda
+    done,samples,summary=run(tmp_path,env)
+    assert done.returncode==0 and {r['gpu'] for r in samples}=={'GPU-a'}
+    assert summary['telemetry_complete']
+
+
+def test_partial_startup_is_separate_from_complete_rolling_windows():
+    stats=watch.Rolling(300)
+    stats.add(30,0);assert stats.minimum is None and stats.below==0
+    stats.add(300,100);assert stats.minimum==90 and stats.below==0
+    stats.add(330,100);assert stats.minimum==90 and stats.below==0
+    assert stats.startup_total/300==90 and stats.startup_below==30
+
+
+@pytest.mark.parametrize('group',['core','kcr','pd','sp','preflight','reference','report'])
+def test_every_manifest_group_runs_through_combined_wrapper_with_exact_gpu_count(tmp_path,env,group):
+    import shutil
+    kit=tmp_path/'kit';kit.mkdir();shutil.copy(ROOT/'kit/util_watch.py',kit/'util_watch.py')
+    (kit/'combined_send.py').write_text('import os;assert os.environ["UTIL_WATCH_ACTIVE"]=="1";raise SystemExit(75)')
+    roots={key:str(tmp_path/key) for key in ('core_local_root','kcr_root','pd_root','sp_root','control_root')}
+    manifest=tmp_path/'manifest.json';manifest.write_text(json.dumps(dict(settings=roots,tasks=[dict(id='attempt',group=group,gpus=0)])))
+    env.update(KIT=str(kit),COMBINED_MANIFEST=str(manifest),JOB_PY=sys.executable)
+    done=subprocess.run(['bash',str(ROOT/'kit/jobs/combined/run-task.sh'),'attempt'],env=env,timeout=10)
+    assert done.returncode==75 and not Path(env['FAKE_CALLED']).exists()
+    summaries=list(tmp_path.rglob('*.summary.json'));assert len(summaries)==1
+    assert json.loads(summaries[0].read_text())['gpus']==0
+
+
+def test_standalone_message3_wrapper_uses_manifest_zero_gpu_count(tmp_path,env):
+    import shutil
+    kit=tmp_path/'kit';kit.mkdir();shutil.copy(ROOT/'kit/util_watch.py',kit/'util_watch.py')
+    (kit/'m3_manifest.py').write_text('raise SystemExit(75)')
+    manifest=tmp_path/'manifest.json';manifest.write_text(json.dumps(dict(tasks=[dict(id='cpu',gpus=0)])))
+    env.update(KIT=str(kit),M3_MANIFEST=str(manifest),M3_OUT=str(tmp_path/'out'),JOB_PY=sys.executable)
+    done=subprocess.run(['bash',str(ROOT/'kit/jobs/message3/run-task.sh'),'cpu'],env=env,timeout=10)
+    assert done.returncode==75 and not Path(env['FAKE_CALLED']).exists()
 def test_stuck_sampler_is_daemon_and_never_blocks_child(tmp_path,monkeypatch):
     from types import SimpleNamespace as NS
     import threading
@@ -223,8 +275,24 @@ def test_stuck_sampler_is_daemon_and_never_blocks_child(tmp_path,monkeypatch):
     start=time.monotonic()
     try:
         assert watch.run(args)==37 and entered.is_set()
-        assert time.monotonic()-start<1
+        assert time.monotonic()-start<3
         assert any(t.name=='util-sampler' and t.daemon for t in threading.enumerate())
         summary=json.loads(args.out.with_suffix('.summary.json').read_text())
         assert not summary['telemetry_complete'] and summary['mean_util'] is None
     finally:release.set()
+
+
+def test_slow_query_finishes_after_child_without_losing_telemetry(tmp_path,monkeypatch):
+    from types import SimpleNamespace as NS
+    def slow(timeout):
+        assert timeout==1
+        time.sleep(.8)
+        return [dict(uuid='GPU-a',index='0',util=80,mem=1)]
+    monkeypatch.setattr(watch,'query',slow)
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0')
+    args=NS(out=tmp_path/'slow.jsonl',window=300,interval=.01,warn=70,expect_gpus=1,
+        command=[sys.executable,'-I','-c','import time;time.sleep(.1);raise SystemExit(37)'])
+    assert watch.run(args)==37
+    summary=json.loads(args.out.with_suffix('.summary.json').read_text())
+    assert summary['telemetry_complete'] and summary['telemetry_errors']==0
+    assert summary['mean_util']==80 and summary['gpu_uuids']==['GPU-a']

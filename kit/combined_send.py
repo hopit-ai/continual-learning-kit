@@ -9,6 +9,8 @@ import json
 import os
 import socket
 import subprocess
+import uuid
+from datetime import date
 from kit import m2_node
 
 KIT = Path(__file__).resolve().parent
@@ -26,6 +28,53 @@ def need(ok, message):
 def write(path, value):
     path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True)+'\n')
+
+
+def utilisation_attempt(settings, row):
+    """Shared, immutable start evidence survives missing watcher summaries."""
+    path=Path(settings['control_root'])/'utilisation'/row['group']/(uuid.uuid4().hex+'.jsonl')
+    path.parent.mkdir(parents=True,exist_ok=True)
+    if row['gpus']:
+        with path.with_suffix('.started.json').open('x') as stream:
+            json.dump(dict(task=row['id'],gpus=row['gpus']),stream)
+    return path
+
+
+def report_utilisation(inputs, doc, control, scratch, a4root):
+    """Add every shared group once, including starts lacking watcher evidence."""
+    specs=inputs.setdefault('utilisation',[])
+    aliases={'KCR':'kcr','PD':'pd','SP':'sp','REF':'reference','4a':'4A'}
+    for spec in specs:spec['family']=aliases.get(spec['family'],spec['family'])
+    for group in sorted({r['group'] for r in doc['tasks']}):
+        family='4A' if group=='4a' else group
+        root=control/'utilisation'/group
+        starts=list(root.glob('*.started.json'))
+        count=scratch/(group+'-started-rows.json')
+        write(count,dict(started_gpu_rows=len(starts)))
+        matching=[s for s in specs if s.get('family') in (family,group)]
+        spec=matching[0] if matching else dict(family=family,roots=[])
+        if not matching:specs.append(spec)
+        roots=spec.setdefault('roots',[])
+        # A single attempt must never be scanned twice through overlapping roots.
+        if not any(Path(p).resolve()==root.resolve() or Path(p).resolve() in root.resolve().parents for s in matching for p in s.get('roots',[])):
+            roots.append(str(root))
+        spec.update(started_rows=len(starts),started_rows_file=str(count))
+        if group=='4a':
+            legacy=Path(a4root)/'v6b/attempts'
+            if not any(Path(p).resolve()==legacy.resolve() or Path(p).resolve() in legacy.resolve().parents for s in [spec,*matching] for p in s.get('roots',[])):
+                roots.append(str(legacy))
+
+
+def v6b_send_gate(settings):
+    decision=settings.get('v6b_send',{})
+    try:
+        day=decision.get('date','')
+        valid=date.fromisoformat(day).isoformat()==day
+        review=Path(decision.get('review_file',''))
+        valid=valid and review.is_file() and decision.get('review_sha256')==sha(review)
+    except (ValueError,TypeError,OSError):valid=False
+    need(decision.get('status')=='SEND' and valid,
+         'PENDING: tier needs v6b own Opus SEND date and matching v6b review file')
 
 
 def price(task, group):
@@ -51,7 +100,7 @@ def price(task, group):
             return dict(gpu_h=[2.,25.] if task['id']=='M3-broad' else [10.,30.],
                         basis='K/CR shared generation; compatible committed core targets remove new math generation charge')
         return dict(gpu_h=[0,0], basis='K/CR CPU/handoff')
-    if group == 'pd': return dict(gpu_h=[73.864972, 87.873469], basis='PD measured reprice, per seed; within approved tier component allowance')
+    if group == 'pd': return dict(gpu_h=[20.737253,32.460714], basis='PD revised per-seed planning envelope; utilisation UNMEASURED')
     if group == 'sp':
         n = len(task.get('entries', []))
         return dict(gpu_h=[n*.25, n] if task.get('uses_gpu') else [0, 0],
@@ -124,6 +173,22 @@ def build(settings):
             seed=task.get('seed'),phase='tier',pd_phase=task['phase'],requires=task['requires'],dependency=task['dependency'],
             estimate=dict(gpu_h=[0,0] if not task['gpus'] else None,basis='PD split phase; all seeds 63–98 GPU-h; measured phase cost pending'),
             **resources(task)))
+    # 4A is always present, including before its local inputs have been staged.
+    a4=load(KIT/'resources/a4/v6b-rows.json')
+    nodes['4a']=[host(n) for n in settings.get('a4_nodes',settings['pd_nodes'])]
+    need(nodes['4a'], '4A needs explicit nodes')
+    for task in a4['rows']:
+        dependencies=task['depends_on']
+        need(len({d['type'] for d in dependencies})<=1,'mixed 4A dependency types')
+        rows.append(dict(id=task['id'],group='4a',kind='train-stage' if task['gpus']==8 else
+            'score-family' if task['gpus']==1 else 'collect' if task['phase'] in ('read','collect') else 'prepare',
+            phase='v6b',a4_phase=task['phase'],requires=[d['id'] for d in dependencies],
+            dependency=dependencies[0]['type'] if dependencies else 'afterok',
+            depends_on=dependencies,dependency_options=task['dependency_options'],
+            commands=[task['command']],expected_command_counts=task['expected_command_counts'],
+            command_count=task['expected_command_counts'],
+            estimate=dict(gpu_h=[0,0] if not task['gpus'] else None,basis=task['gpu_hour_basis']),
+            **resources(dict(gpus=task['gpus'],cpus=task['cpus']))))
     # Reference guards are independent serial (family, seed, panel) lanes. Local
     # settings bind restored native roots/lists; no model paths enter the table.
     families = ['core','reprobe','m3', *sorted({t['family'] for t in core['tasks'] if t.get('family', '').startswith('x-tier')})]
@@ -141,34 +206,46 @@ def build(settings):
         for seed in (101,102,103):
             ident=f'{prefix}-{seed}';prepared=ident+'-prepare'
             args=['--checkpoints',checkpoints,'--seed',str(seed)]
-            rows.append(dict(id=prepared,group='reference',kind='prepare',family=family,requires=[assign,*item.get('requires',[])],
+            if 'requires' in item: defaults=item['requires']
+            elif family=='m3': defaults=[t['id'] for t in tier['tasks'] if t['id'].endswith('-export') and t.get('seed')==seed]
+            elif family=='core': defaults=[f'M-final-score-{seed}']
+            elif family=='reprobe': defaults=[f'R-compare-full-{seed}']
+            elif family=='x-tier1': defaults=[f'X-complete-{seed}']
+            else: defaults=[t['id'] for t in core['tasks'] if t.get('family')==family and t.get('seed')==seed and
+                           '-complete-' in t['id'] and not t['id'].endswith(('-stage','-gpu'))]
+            need(bool(defaults) or 'requires' in item,'reference family needs explicit export prerequisites: '+family)
+            rows.append(dict(id=prepared,group='reference',kind='prepare',family=family,requires=[assign,*defaults],
                 phase='tier',dependency='afterok',commands=[[*command,'--action','prepare',*args,'--panel',panel] for panel in ('hellaswag','knowledge-ll')],
                 estimate=dict(gpu_h=[0,0],basis='CPU reference checkpoint verification'),**resources({})))
             rows.append(dict(id=ident,group='reference',kind='score-family',requires=[prepared],phase='tier',dependency='afterok',
                 commands=[[*command,'--action','score',*args,'--panel','both','--gpu','{score_gpu}']],family=family,seed=seed,
                 command_count='2 × decision checkpoints (both panels)',
-                estimate=dict(gpu_h=None,basis='both complete HF panel lanes on one allocated GPU; K=3'),**resources(dict(gpus=1))))
+                estimate=dict(gpu_h=None,basis='both complete HF panel lanes on one allocated GPU; K=2'),**resources(dict(gpus=1))))
             refs.append(ident)
-    rows.append(dict(id='REPORT-text', group='report', kind='collect', requires=refs, phase='tier', dependency='afterany',
+    rows.append(dict(id='REPORT-text', group='report', kind='collect', requires=refs+[r['id'] for r in rows if r.get('kind')=='collect' or r['id'] in ('M3-read','PD-read','SP-read','A4-collect')], phase='tier', dependency='afterany',
         commands=[[settings['inference_python'], '-I', str(KIT / 'report_text.py'), '--inputs', settings.get('report_inputs',
             str(Path(settings['control_root']) / 'report-inputs.local.json')), '--out', settings.get('text_out',
             str(Path(settings['control_root']) / 'return-text'))]],
         estimate=dict(gpu_h=[0,0], basis='CPU reporter and reference guards'), **resources({})))
     for row in rows:
-        if row['gpus']==1:row['lane_concurrency']=3
+        if row['group']=='reference' and row.get('family')!='m3':row['node']=nodes['core'][0]
+        if row['gpus']==1:row['lane_concurrency']=2 if row['group'] in ('pd','reference') else 3
     ids={r['id'] for r in rows}
     need(len(ids)==len(rows), 'duplicate combined IDs')
     need(all(set(r['requires'])<=ids for r in rows), 'unknown combined prerequisite')
     coreids={r['id'] for r in rows if r['group']=='core'}
     need(all(set(r['requires'])<=coreids for r in rows if r['group']=='core'), 'core depends on tier')
-    return dict(schema=SCHEMA, technical_synthetic=bool(settings.get('technical_synthetic')), nodes=nodes, settings=settings,
-        sources={key:sha(settings[key]) for key in ('core_manifest','kcr_manifest','sp_manifest','sp_inventory')}, tasks=rows,
+    sources={key:sha(settings[key]) for key in ('core_manifest','kcr_manifest','sp_manifest','sp_inventory')}
+    if settings.get('a4_config') and Path(settings['a4_config']).is_file():sources['a4_config']=sha(settings['a4_config'])
+    return dict(schema=SCHEMA,infrastructure_update=core.get('infrastructure_update'), technical_synthetic=bool(settings.get('technical_synthetic')), nodes=nodes, settings=settings,
+        sources=sources, tasks=rows,
         budgets=[dict(component='Core M', gpu_h='109.6 floor includes 46.4 MATH +10 targets +30 scoring/export +23.2 legal; +23.2 per confirmation set; fresh 12-stage re-probe +92.8 proxy; independent 31-call rescore/overhead unpriced'),
           dict(component='Screen S', gpu_h='30–50 envelope; v2 scoring/transfer measurement pending'),
           dict(component='X tier 1', gpu_h='12 x 7.733333 = 92.8 training; probes/generation/scoring/X4/startup additional'),
           dict(component='X tier 2', gpu_h='36 x 7.733333 = 278.4 training; 295.2–316.8 historical envelope; v2 overheads remain measured separately'),
           dict(component='K/CR', gpu_h=[786.297517,1387.157525]),
           dict(component='PD', gpu_h=[62.211758,97.382143], rounded_request='63–98; approved component <=264 GPU-h'),
+          dict(component='4A',gpu_h=[400,450],basis='planning proxy; separate approved ceiling 800 GPU-h; all allocations and failed attempts charged'),
           dict(component='SP', gpu_h=inv['price']['sp_b_gpu_hours'], basis='entry sum 53.75–215 plus 1 GPU-h startup =54.75–216; SP(a)=0')],
         send_gate='Message-3 joins only on Opus SEND by 2026-11-02; otherwise send core alone. No launch authority.',
         total_gpu_h=None, total_reason='Incomplete measured components; component envelopes overlap per-job amounts; do not sum both.')
@@ -226,12 +303,27 @@ def build_v6a(settings):
         total_gpu_h=None)
 
 
+def build_v6b(settings):
+    """Reuse v6a outputs; never submit completed K/CR or REF-m3 work again."""
+    doc=build(settings);doc['mode']='v6b'
+    removed={r['id'] for r in doc['tasks'] if r['group']=='kcr' or r.get('family')=='m3'}
+    doc['tasks']=[r for r in doc['tasks'] if r['id'] not in removed]
+    for row in doc['tasks']:
+        reused=[r for r in row['requires'] if r in removed]
+        if reused:row['reused_v6a_requires']=reused
+        row['requires']=[r for r in row['requires'] if r not in removed]
+        row['dependency_options']=['--kill-on-invalid-dep=yes']
+    doc['budgets']=[r for r in doc['budgets'] if r['component']!='K/CR']
+    doc['send_gate']='v6b: core M/X/S, PD, SP, 4A and their reference/read jobs. Reuse v6a; do not rerun it.'
+    return doc
+
+
 def inventory(doc):
     lines=['# Combined launch inventory', '', doc['send_gate'], '',
            'Generated from every source task. Runtime locations stay in the local JSON; this table contains portable IDs only.', '',
-           '| Job | Group | Prerequisites | Dependency | gpus | nodes | cpus | share node | commands | GPU-h estimate / basis |', '|---|---|---|---|---|---|---|---|---|---|']
+           '| Job | Group | Prerequisites | Dependency | gpus | nodes | cpus | share node | commands / concurrency (PD K≤2) | GPU-h estimate / basis |', '|---|---|---|---|---|---|---|---|---|---|']
     for row in doc['tasks']:
-        p=row['estimate']; lines.append('| '+ ' | '.join((row['id'],row['group'],', '.join(row['requires']) or 'none', row.get('dependency','first wave'), str(row['gpus']), str(row['nodes']), str(row['cpus']), 'yes' if row['share_node'] else 'no',str(row.get('command_count',3 if row.get('pd_phase')=='pre' else 18 if row.get('pd_phase')=='post' else 'phase worker' if row['gpus'] else 'CPU')), str(p['gpu_h'])+'; '+p['basis']))+' |')
+        p=row['estimate']; lines.append('| '+ ' | '.join((row['id'],row['group'],', '.join(row['requires']) or 'none', row.get('dependency','first wave'), str(row['gpus']), str(row['nodes']), str(row['cpus']), 'yes' if row['share_node'] else 'no',str(row.get('command_count',3 if row.get('pd_phase')=='pre' else 18 if row.get('pd_phase')=='post' else 'phase worker' if row['gpus'] else 'CPU'))+(' / K='+str(row['lane_concurrency']) if row.get('lane_concurrency') else ''), str(p['gpu_h'])+'; '+p['basis']))+' |')
     lines += ['', 'Component envelopes (overlap per-job components; not additive):', '']
     for row in doc['budgets']: lines.append('- '+row['component']+': '+str(row['gpu_h'])+ ('; '+row['basis'] if row.get('basis') else ''))
     if doc.get('mode')!='v6a':lines += ['', 'Approved tier allowance: 1,800 GPU-h; component limits K/CR <=1,400, PD <=264, SP <=216. The revised upper case is about 1,700.54 GPU-h before unpriced rescoring; a PD whole-seed restart adds about 20.74–32.46 GPU-h plus CPU/queue cost. These are warnings monitored in partner receipts, never launch/scientific gates; no cells are dropped. Core is separate. Queue/restore/transfer time and failed attempts must be charged separately.', '']
@@ -253,9 +345,15 @@ def execute(doc, ident, *, runner=subprocess.run):
     need(not doc['technical_synthetic'], 'synthetic inventory is CPU rehearsal only')
     need(sha(s['core_manifest'])==doc['sources']['core_manifest'], 'source manifest changed: core_manifest')
     node=host(socket.gethostname()); control=Path(s['control_root']); env=environment(s)
+    from kit.v6_infra import verify
+    env.pop('KIT_V6_AUTHORITY_SHA',None);env.pop('M2_INFRA_AUTHORITY_SHA256',None)
+    if doc.get('infrastructure_update'):
+        verify(doc['infrastructure_update'])
+        env['KIT_V6_AUTHORITY_SHA']=doc['infrastructure_update']
+        env['M2_INFRA_AUTHORITY_SHA256']=doc['infrastructure_update']
     def call(command, pass_fds=()):
-        if row['gpus'] and group != 'core' and not env.get('UTIL_WATCH_ACTIVE'):
-            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(control/'util'/ident/(str(__import__('time').time_ns())+'.jsonl')), '--', *command]
+        if row['gpus'] and not env.get('UTIL_WATCH_ACTIVE'):
+            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(utilisation_attempt(s,row)), '--expect-gpus', str(row['gpus']), '--', *command]
             return runner(command, env=dict(env, UTIL_WATCH_ACTIVE='1'), **(dict(pass_fds=pass_fds) if pass_fds else {})).returncode
         return runner(command, env=env).returncode
     if group=='preflight':
@@ -268,28 +366,60 @@ def execute(doc, ident, *, runner=subprocess.run):
         need(slot is not None, 'freeze core manifest/assignment before combined build')
         need(host(load(s['core_manifest'])['nodes'][int(slot.split('/')[0])])==node, 'wrong frozen core slot')
         return call(['bash',str(KIT/'jobs/message2-v2'/f'{WRAPPERS[task["kind"]]}.sh'),'--task',ident,'--node-slot',slot])
-    core_control=group=='report' or group=='reference' and row.get('family')!='m3'
+    core_control=group in ('report','4a') or group=='reference' and row.get('family')!='m3'
     if not core_control:
         for key in ('kcr_manifest','sp_manifest','sp_inventory'):
             need(sha(s[key])==doc['sources'][key],'source manifest changed: '+key)
-    env={key:value for key,value in env.items() if not key.startswith('M2_') and key not in ('MANIFEST','DURABLE','LOCAL_ROOT')}
+    env={key:value for key,value in env.items() if (not key.startswith('M2_') or key=='M2_INFRA_AUTHORITY_SHA256') and key not in ('MANIFEST','DURABLE','LOCAL_ROOT')}
     if not core_control:
         need(load(control/'core-submitted.json').get('core_manifest_sha256')==doc['sources']['core_manifest'], 'PENDING: record current core submissions first')
-        decision=s.get('tier_send',{})
-        need(decision.get('status')=='SEND' and '2026-01-01'<=decision.get('date','')<='2026-11-02' and decision.get('review_sha256')==sha(REVIEW), 'PENDING: tier needs Opus SEND by 2 November')
-    allowed = set(sum(doc['nodes'].values(), [])) if group in ('reference','report') else set(doc['nodes'][group])
+        if doc.get('mode')=='v6b':v6b_send_gate(s)
+        else:
+            decision=s.get('tier_send',{})
+            need(decision.get('status')=='SEND' and '2026-01-01'<=decision.get('date','')<='2026-11-02' and decision.get('review_sha256')==sha(REVIEW), 'PENDING: tier needs Opus SEND by 2 November')
+    allowed = ({row.get('node',doc['nodes']['core'][0])} if group=='reference' and row.get('family')!='m3' else
+               set(sum(doc['nodes'].values(), [])) if group in ('reference','report') else set(doc['nodes'][group]))
     need(node in allowed, 'tier must run on a configured node')
     if not core_control:
         proof=load(control/'preflight'/(node+'.json'))
         need(proof.get('status')=='PASS' and proof.get('technical_synthetic') is False and proof.get('settings_sha256')==hashlib.sha256(json.dumps(s,sort_keys=True).encode()).hexdigest(), 'tier preflight missing/stale')
         need(proof.get('hardware_sha256')==sha(s['tier_hardware']), 'tier hardware inventory changed')
     if group=='kcr': return call(['bash',str(KIT/'jobs/message3/run-task.sh'),ident])
+    if group=='4a':
+        config=s.get('a4_config',str(control/'a4-config.local.json'))
+        need(Path(config).is_file(),'PENDING: stage the mandatory 4A config')
+        need('a4_config' in doc['sources'],'PENDING: stage 4A config and rebuild the bound inventory')
+        need(sha(config)==doc['sources']['a4_config'],'4A config changed')
+        env['A4_CONFIG']=config
+        return call(['bash',str(KIT/'jobs/a4/run-task.sh'),ident])
+    if group=='report' and doc.get('mode')!='v6a':
+        attempt=uuid.uuid4().hex
+        scratch=control/'report-attempts'/attempt
+        original=Path(s.get('report_inputs',str(control/'report-inputs.local.json')))
+        inputs=load(original) if original.exists() else {}
+        config=s.get('a4_config',str(control/'a4-config.local.json'))
+        config_bound=Path(config).is_file() and doc['sources'].get('a4_config')==sha(config)
+        a4root=load(config)['out'] if config_bound else str(control/'4a-pending')
+        inputs['4A']=[dict(source=a4root,bootstrap=2000)]
+        report_utilisation(inputs,doc,control,scratch,a4root)
+        if not any(spec.get('family')=='4A' for spec in inputs.get('jobs',[])):
+            job_manifest=control/'4a-report-jobs.local.json'
+            write(job_manifest,dict(tasks=[r for r in doc['tasks'] if r['group']=='4a']))
+            inputs.setdefault('jobs',[]).append(dict(family='4A',manifest=str(job_manifest),
+                state=str(Path(a4root)/'v6b/status')))
+        if Path(s['kcr_root']).exists():inputs.setdefault('KCR',[dict(source=s['kcr_root'])])
+        if doc.get('mode')=='v6b':
+            inputs['KCR']=[dict(spec,v6a=True) for spec in inputs.get('KCR',[])]
+        prepared=scratch/'report-inputs.combined.local.json';write(prepared,inputs)
+        return call([s['inference_python'],'-I',str(KIT/'report_text.py'),'--inputs',str(prepared),
+            '--out',str(Path(s.get('text_out',str(control/'return-text')))/attempt)])
     if group=='pd':
         root=Path(s['pd_root']);root.mkdir(parents=True,exist_ok=True)
         phase=row['pd_phase']
         if phase=='read':
             evidence=root/'seed-records.local.json'
-            write(evidence,dict(seed_records=[load(root/('seed-'+str(seed))/'seed-evidence.verified.json') for seed in (101,102,103)]))
+            records=[root/('seed-'+str(seed))/'seed-evidence.verified.json' for seed in (101,102,103)]
+            write(evidence,dict(seed_records=[load(p) for p in records if p.is_file()]))
             return call([s['inference_python'],'-I',str(KIT/'pd_jobs_read.py'),'--evidence',str(evidence),
                 '--exports',s.get('pd_exports',str(root/'exports.local.json')),'--trusted',s.get('pd_trusted',str(root/'trusted.local.json')),
                 '--out',str(root/'reader.json')])
@@ -317,13 +447,13 @@ def execute(doc, ident, *, runner=subprocess.run):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='action',required=True)
-    for action in ('build','build-v6a'):
+    for action in ('build','build-v6a','build-v6b'):
         b=sub.add_parser(action); b.add_argument('--settings',required=True); b.add_argument('--out',required=True); b.add_argument('--inventory',required=True)
     r=sub.add_parser('run'); r.add_argument('--manifest',required=True); r.add_argument('--task',required=True)
     c=sub.add_parser('core-submitted'); c.add_argument('--manifest',required=True)
     a=p.parse_args()
-    if a.action in ('build','build-v6a'):
-        doc=(build_v6a if a.action=='build-v6a' else build)(load(a.settings)); need(not Path(a.out).exists(), 'use a fresh combined manifest')
+    if a.action in ('build','build-v6a','build-v6b'):
+        doc={'build':build,'build-v6a':build_v6a,'build-v6b':build_v6b}[a.action](load(a.settings)); need(not Path(a.out).exists(), 'use a fresh combined manifest')
         write(a.out,doc); Path(a.inventory).write_text(inventory(doc)); print(len(doc['tasks']),'combined rows; none submitted'); return 0
     doc=load(a.manifest)
     if a.action=='core-submitted':

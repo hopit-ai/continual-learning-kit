@@ -11,6 +11,7 @@ from kit import m2_snapshot as snapshots
 
 def training_uses_p2_cache(command):
     script=Path(command[1]).stem if len(command)>1 else ''
+    if script=='m2_stage':return '--action' in command and command[command.index('--action')+1]=='p2-feasibility'
     if script=='x_run':return '--action' in command and command[command.index('--action')+1]=='p'
     if script!='x_train' or '--arm' not in command:return False
     arm=command[command.index('--arm')+1]
@@ -285,7 +286,10 @@ def build(settings):
         task['resources']=dict(nodes=1,gpus=gpus,cpus=32 if gpus==8 else 8 if gpus else 4,share_node=gpus!=8)
         task['uses_gpu']=bool(gpus)
         if gpus==1:
-            task['lane_concurrency']=3
+            serial=all(Path(c[1]).stem in ('m2_format','s_drift','s_probe','x_signal') or
+                Path(c[1]).stem=='m2_stage' and '--action' in c and c[c.index('--action')+1] in ('x-probes','tier2-measure') for c in task['commands'])
+            task['lane_concurrency']=1 if serial else 3
+            task['lane_concurrency_basis']='independent qualified Qwen3-8B vLLM segments K=3; HF NLL/validation, dependent or unqualified segments K=1'
             task['expected_commands']='CPU-staged plan: len(commands); see lane-commands.json'
             if task['row']=='S4':task['expected_commands']=2
             elif task['id']=='M3b':task['expected_commands']=3

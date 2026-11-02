@@ -183,6 +183,7 @@ def _read(evidence, export_resolvers, trusted):
 def collect_seed_evidence(records):
     from kit.pd_read import collect_seed_evidence as collect_v2
     from kit.pd_jobs import validate_seed_amendment
+    require(len(records)==3, "INCOMPLETE: three seed receipts required; failed seed is UNVERIFIED")
     for record in records:
         validate_seed_amendment(record)
     merged = collect_v2(records)
@@ -196,6 +197,8 @@ def collect_seed_evidence(records):
 
 def read_evidence(evidence, export_resolvers=None, *, trusted=None):
     try:
+        if "seed_records" in evidence:
+            evidence=collect_seed_evidence(evidence["seed_records"])
         return _read(evidence, export_resolvers, trusted)
     except (ValueError, KeyError, TypeError, OSError) as error:
         reason = "UNVERIFIED: local export artifact unavailable" if isinstance(error, OSError) else str(error)
@@ -210,10 +213,8 @@ def main():
         parser.add_argument("--"+name, required=True)
     args = parser.parse_args()
     evidence = json.loads(Path(args.evidence).read_text())
-    if "seed_records" in evidence:
-        evidence = collect_seed_evidence(evidence["seed_records"])
-    result = read_evidence(evidence, json.loads(Path(args.exports).read_text()),
-                           trusted=json.loads(Path(args.trusted).read_text()))
+    result = read_evidence(evidence, json.loads(Path(args.exports).read_text()) if Path(args.exports).is_file() else None,
+                           trusted=json.loads(Path(args.trusted).read_text()) if Path(args.trusted).is_file() else None)
     from kit.pd_prepare import write_frozen
     write_frozen(args.out, result)
     return 0 if result["primary"] is not None else 3

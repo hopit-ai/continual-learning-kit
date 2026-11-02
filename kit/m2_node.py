@@ -25,6 +25,22 @@ def resources(task):
     return task.get('resources',dict(nodes=1,gpus=8 if task['kind']=='train-stage' else 1 if task['kind']=='score-family' or task.get('uses_gpu') else 0,cpus=4,share_node=task['kind']!='train-stage'))
 
 
+def seal_environment(env,doc):
+    # Only the durably bound launch supplies trust, including for old sends.
+    seal=doc.get('infrastructure_update')
+    for name in ('KIT_V6_AUTHORITY_SHA','M2_INFRA_AUTHORITY_SHA256'):
+        env.pop(name,None)
+        if seal:env[name]=seal
+    return env
+
+
+def begin_preparations(root):
+    for path in (root/'.gpu-work').glob('*.json'):
+        if not path.name.endswith('.done.json') and not path.with_suffix('.done.json').exists():path.unlink()
+    active=root/'prepared-current.json';snapshots.atomic(active,[])
+    return active
+
+
 def allocated_gpus(task,standin=False,expected=None):
     count=resources(task)['gpus']
     if not count:return {}
@@ -37,15 +53,24 @@ def allocated_gpus(task,standin=False,expected=None):
     return selected
 
 
-def gpu_leases(local_root,devices):
+def allocated_idle(devices):
+    processes=subprocess.check_output(['nvidia-smi','--query-compute-apps=gpu_uuid,pid','--format=csv,noheader'],text=True,timeout=5)
+    if any(line.split(',')[0].strip() in devices.values() for line in processes.splitlines()):
+        raise snapshots.Pending('allocated GPU still has active GPU work')
+
+
+def gpu_leases(local_root,devices,*,check_idle=False):
     """All-or-nothing nonblocking UUID leases; CPU jobs have no GPU lease."""
-    directory=Path('/tmp')/'kit-gpu-leases';directory.mkdir(exist_ok=True)
+    # Synthetic CPU fixtures must not contend with another worktree's fixtures.
+    directory=Path(local_root)/'.synthetic-gpu-leases' if devices and all(u.startswith('CPU-STANDIN') for u in devices.values()) else Path('/tmp')/'kit-gpu-leases'
+    directory.mkdir(parents=True,exist_ok=True)
     leases=[]
     try:
         for uuid in sorted(set(devices.values())):
             assignment.require('/' not in uuid and uuid not in ('.','..'),'unsafe GPU UUID')
             lease=(directory/(uuid+'.lock')).open('a');leases.append(lease)
             fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        if devices and check_idle:allocated_idle(devices)
         return leases
     except BlockingIOError:
         for lease in leases:lease.close()
@@ -415,10 +440,7 @@ def _run_task(a,termination=None):
     snapshots.atomic(root/'dependencies.json',dependencies)
     snapshots.atomic(root/'path-map.json',path_map)
     snapshots.atomic(root/'canonical-roots.json',canonical)
-    env=dict(os.environ)
-    from kit.v6_infra import identity
-    seal=identity()
-    if seal:env['M2_INFRA_AUTHORITY_SHA256']=seal
+    env=seal_environment(dict(os.environ),doc)
     if not resources(stage_task or task)['gpus']:env['CUDA_VISIBLE_DEVICES']=''
     env.pop('M2_PATH_MAP',None);env.pop('M2_CANONICAL_ROOTS',None)
     env.update(CUDA_DEVICE_ORDER='PCI_BUS_ID',HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1',TRANSFORMERS_OFFLINE='1',M2_ASSIGNMENT=str(target),
@@ -434,6 +456,9 @@ def _run_task(a,termination=None):
             if len(command)>1 and command[1].startswith(str(Path(__file__).resolve().parent)+'/') and '--standin' not in command:command.append('--standin')
     if stage_task:
         # Only CPU staging materialises the complete lane before GPU admission.
+        active=begin_preparations(root)
+        env.update(M2_PREPARED_WORK_FILE=str(active),M2_EXECUTION_PHASE='stage',M2_MODEL_HASH_RECEIPTS_FILE=str(root/'model-hashes.json'))
+        env.pop('M2_MODEL_HASH_RECEIPTS_SHA256',None)
         lane=None
         if resources(task)['gpus']==1:
             from kit.m2_lane import plan,stage
@@ -466,10 +491,17 @@ def _run_task(a,termination=None):
                 result=termination.wait()
                 if result==3:raise snapshots.Pending('CPU training preparation pending')
                 if result:raise ChildCrash('CPU training preparation failed')
-        context=dict(task=task,commands=commands,lane=lane,prepared_work={str(p.relative_to(root)):assignment.sha(p) for p in (root/'.gpu-work').glob('*.json') if not p.name.endswith('.done.json')},gpu_skip=task['kind']=='train-stage' and not a.standin and not list((root/'.gpu-work').glob('*.json')),env={k:v for k,v in env.items() if k.startswith(('M2_','HF_','TRANSFORMERS_')) or k in ('CUDA_DEVICE_ORDER','PYTHONPATH')},parents=parents,parent_complete=parent_complete,
+        prepared=[Path(p) for p in json.loads(active.read_text())]
+        env.pop('M2_PREPARED_WORK_FILE',None)
+        if (root/'model-hashes.json').exists():env['M2_MODEL_HASH_RECEIPTS_SHA256']=assignment.sha(root/'model-hashes.json')
+        context=dict(task=task,commands=commands,lane=lane,prepared_work={str(p.relative_to(root)):assignment.sha(p) for p in prepared},gpu_skip=(lane is not None and not lane['commands']) or (task['kind']=='train-stage' and not a.standin and not prepared),env={k:v for k,v in env.items() if k.startswith(('M2_','HF_','TRANSFORMERS_','KIT_V6_')) or k in ('CUDA_DEVICE_ORDER','PYTHONPATH')},parents=parents,parent_complete=parent_complete,
             origins=origins,refresh_from=refresh_from,dependencies=dependencies,assignment=assignment_sha,
             launch=assignment.sha(frozen),node=doc['nodes'][i],stage_task=stage_task['id'])
         snapshots.atomic(root/'staged.json',context)
+        if context['gpu_skip']:
+            snapshots.atomic(root/'gpu-result.json',dict(result=0,interrupted=False,commands=[],command_times=[],seconds=0,gpu_hours=0,
+                uuids=[],quiescent=True,skipped=True,scoring_assignment=None,staged_sha256=assignment.sha(root/'staged.json')))
+            print('SKIP: no GPU submission needed for',task['id'])
         if recovery:snapshots.atomic(root/'retry-ready.json',dict(previous_result=assignment.sha(failed)))
         ready=root/'ready';snapshots.atomic(ready/'ready.json',dict(task=task['id'],assignment=assignment_sha,context=assignment.sha(root/'staged.json')))
         pointer=snapshots.publish(ready,a.durable,stage_task['id'],parents=parents,assignment=assignment_sha,complete=True)
@@ -548,31 +580,37 @@ def run_staged(a,task,doc,authority,assignment_sha,termination):
     ready=json.loads((root/'ready/ready.json').read_text())
     assignment.require(ready['context']==assignment.sha(root/'staged.json'),'staged context changed')
     for name,checksum in context.get('prepared_work',{}).items():assignment.require(assignment.sha(root/name)==checksum,'prepared training plan changed')
-    env=dict(os.environ,**context['env']);result_path=root/'gpu-result.json'
+    env=seal_environment(dict(os.environ,**context['env']),doc);result_path=root/'gpu-result.json'
     if task['execution_phase']=='gpu':
         if result_path.exists():
             previous=json.loads(result_path.read_text())
+            if previous.get('skipped'):
+                assignment.require(previous.get('staged_sha256')==assignment.sha(root/'staged.json'),'skipped GPU result changed')
+                print('SKIP: no GPU submission needed for',key)
+                return dict(status='SKIP',task=task['id'])
             if previous['result']==0 and not previous['interrupted']:return dict(status='SKIP',task=task['id'])
             if not a.standin:
                 retry=root/'retry-ready.json'
                 if not retry.is_file() or json.loads(retry.read_text())['previous_result']!=assignment.sha(result_path):raise snapshots.Pending('requeue CPU staging before a fresh complete GPU lane retry')
         expected=authority['assignments'][f"{payload['family']}|{payload['seed']}"] if payload['kind']=='score-family' else None
-        devices=allocated_gpus(task,a.standin,expected);leases=gpu_leases(a.local_root,devices)
+        devices=allocated_gpus(task,a.standin,expected);leases=gpu_leases(a.local_root,devices,check_idle=not a.standin)
         env.update(CUDA_VISIBLE_DEVICES=','.join(devices),M2_EXECUTION_PHASE='gpu')
+        env['M3_GPU_LOCK_FDS']=json.dumps([lease.fileno() for lease in leases])
         if len(devices)==1 and not a.standin:
             env.update(KIT_LANE_JOB=__import__('uuid').uuid4().hex,M2_ASSIGNED_GPU_UUID=next(iter(devices.values())),
                 M2_ALLOCATION_PROOF=str(root/('allocation-'+str(time.time_ns())+'.json')))
         commands=__import__('copy').deepcopy([] if context.get('gpu_skip') else context['lane']['commands'] if context.get('lane') else context['commands'])
         checks=[c for c in commands if len(c)>1 and Path(c[1]).stem=='m2_stage' and '--action' in c and c[c.index('--action')+1]=='x-stage-check']
         commands=[c for c in commands if c not in checks]
+        described={tuple(c['argv']):c for c in (context.get('lane') or {}).get('pool_commands',[])}
+        pool_commands=[]
         for command in commands:
+            entry=__import__('copy').deepcopy(described.get(tuple(command),{}))
             for flag in ('--gpu','--gpus','--teacher-gpu','--score-gpu'):
                 if flag in command:command[command.index(flag)+1]=','.join(devices) if flag not in ('--score-gpu',) else next(iter(devices))
             if len(command)>1 and Path(command[1]).stem=='m2_run' and '--action' in command and command[command.index('--action')+1]=='targets':command+=['--teacher-gpu',','.join(devices)]
-        if len(devices)==1 and commands and not a.standin:
-            from kit.lane_pool import invocation
-            commands=[invocation(commands,root/'lane-attempts'/str(time.time_ns()))]
-        start=time.monotonic();result=0 if not commands else 3;finished=False
+            entry['argv']=command;pool_commands.append(entry)
+        start=time.monotonic();result=0 if not commands else 3;finished=False;command_times=[]
         try:
             from kit.m2_node_preflight import probe_allocated
             proof=probe_allocated(devices,authority,context['node'],a.standin)
@@ -582,11 +620,21 @@ def run_staged(a,task,doc,authority,assignment_sha,termination):
                 observed={k:proof[0][k] for k in ('node','uuid','environment')} if not a.standin else expected
                 scoring_proof=dict(assignment_sha256=assignment_sha,family=payload['family'],seed=payload['seed'],**observed)
                 if not a.standin:scoring_proof.update(allocation_job=env['KIT_LANE_JOB'],historical_assignment=expected)
+            if len(devices)==1 and commands and not a.standin:
+                from kit.m2_lane import pool_invocations
+                commands=pool_invocations(pool_commands,root/'lane-attempts'/str(time.time_ns()))
             for command in commands:
                 if termination.interrupted:break
-                try:termination.spawn(command,env=env,start_new_session=True)
+                command_start=time.monotonic()
+                try:termination.spawn(command,env=env,start_new_session=True,pass_fds=tuple(lease.fileno() for lease in leases))
                 except OSError as error:raise ChildCrash('failed to start GPU child') from error
                 result=termination.wait()
+                if '--plan' in command and any(Path(c).name=='lane_pool.py' for c in command):
+                    pool=Path(command[command.index('--out')+1])/'lane.json'
+                    if pool.exists():
+                        for row in json.loads(pool.read_text())['commands']:
+                            command_times.append(dict(command=row['argv'],seconds=None if row['end'] is None or row['start'] is None else row['end']-row['start'],result=row['exit_code']))
+                else:command_times.append(dict(command=command,seconds=time.monotonic()-command_start,result=result))
                 if result:break
             finished=True
         finally:
@@ -595,7 +643,7 @@ def run_staged(a,task,doc,authority,assignment_sha,termination):
             if expected and not a.standin and Path(env['M2_ALLOCATION_PROOF']).exists():
                 scoring_proof=json.loads(Path(env['M2_ALLOCATION_PROOF']).read_text())
             snapshots.atomic(result_path,dict(result=result if finished else 4,interrupted=termination.interrupted,
-                commands=commands,seconds=time.monotonic()-start,uuids=list(devices.values()),quiescent=True,
+                commands=commands,command_times=command_times,seconds=time.monotonic()-start,gpu_hours=0 if a.standin else len(devices)*(time.monotonic()-start)/3600,uuids=list(devices.values()),quiescent=True,staged_sha256=assignment.sha(root/'staged.json'),
                 scoring_assignment=scoring_proof if 'scoring_proof' in locals() else None))
         if termination.interrupted or result in (3,75):raise snapshots.Pending('GPU task pending/interrupted; CPU follow-up may preserve partial state')
         if result==2:raise assignment.Unverified('UNVERIFIED: GPU child refused identity')
@@ -607,6 +655,7 @@ def run_staged(a,task,doc,authority,assignment_sha,termination):
     saved_proof=json.loads(result_path.read_text()).get('scoring_assignment') or {}
     if saved_proof.get('allocation_job'):env['KIT_LANE_JOB']=saved_proof['allocation_job']
     result=json.loads(result_path.read_text());assignment.require(result['quiescent'],'GPU child still writing')
+    assignment.require(result.get('staged_sha256')==assignment.sha(root/'staged.json'),'GPU result belongs to another CPU staging pass')
     if result['result']==0 and not result['interrupted']:
         for command in (context.get('lane') or {}).get('reducers',[]):
             termination.spawn(command,env=env,start_new_session=True)
@@ -632,7 +681,7 @@ def run_staged(a,task,doc,authority,assignment_sha,termination):
         archive(out,key,payload['family'],payload['seed'])
     complete=result['result']==0 and not result['interrupted'] and completed_outputs(out,payload)
     snapshots.atomic(out/'execution'/(key+'.json'),dict(task=key,assignment=assignment_sha,result=result['result'],
-        child_wall_seconds=result['seconds'],gpu_uuids=result['uuids'],technical_synthetic=a.standin,gpu_hours=None))
+        child_wall_seconds=result['seconds'],command_times=result.get('command_times',[]),gpu_uuids=result['uuids'],technical_synthetic=a.standin,gpu_hours=result['gpu_hours']))
     termination.publishing=True
     binding_sha=assignment.sha(out/'binding.json') if (out/'binding.json').exists() else payload.get('binding_sha256')
     pointer=snapshots.publish(out,a.durable,key,parents=context['parents'],binding=binding_sha,assignment=assignment_sha,
@@ -653,7 +702,7 @@ def watched_task(a):
         root=Path(a.local_root)/task.get('workspace_task',task['id'])
         command=[sys.executable,'-I',str(Path(__file__).resolve()),*sys.argv[1:]]
         code=subprocess.run([sys.executable,'-I',str(Path(__file__).with_name('util_watch.py')),
-            '--out',str(root/'utilisation'/(str(time.time_ns())+'.jsonl')),'--',*command]).returncode
+            '--out',str(root/'utilisation'/(str(time.time_ns())+'.jsonl')),'--expect-gpus',str(resources(task)['gpus']),'--',*command]).returncode
         if code==3:raise snapshots.Pending('GPU task pending')
         if code:raise ChildCrash('watched GPU task failed')
         return dict(status='COMPLETE',task=task['id'])

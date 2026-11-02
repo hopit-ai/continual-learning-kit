@@ -435,7 +435,8 @@ def math_targets(a):
     require(not root.exists(), 'partial M3 hard-MATH targets present; move them aside before retrying')
     decision = a.out / 'math-resolution.json'
     if not decision.exists(): raise NotReady('resolve committed target reuse on CPU first')
-    require(json.loads(decision.read_text())['mode'] == 'generate', 'CPU copy resolved; do not request teacher GPUs')
+    if json.loads(decision.read_text())['mode'] == 'copy':
+        print('SKIP: CPU copy resolved; no teacher work'); return
     root.mkdir(parents=True)
     source = generate_math_targets(a, root)
 
@@ -925,6 +926,8 @@ def job(a):
             for index, folder in enumerate(a.finqa_targets or ()): bound_input(a.out, f'finqa_targets_{index}', folder)
     from contextlib import nullcontext
     from kit.m3_manifest import gpu_execution
+    if a.action=='math-targets' and (a.out/'math-resolution.json').is_file() and json.loads((a.out/'math-resolution.json').read_text())['mode']=='copy':
+        return math_targets(a)
     if not a.standin and a.action in ('broad', 'math-targets'):
         if not os.environ.get('CUDA_VISIBLE_DEVICES'): raise NotReady('allocated CUDA_VISIBLE_DEVICES required')
         a.gpu = os.environ['CUDA_VISIBLE_DEVICES']

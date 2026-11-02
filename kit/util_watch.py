@@ -20,8 +20,8 @@ import threading
 
 
 def visible(env):
-    """CUDA identifiers are physical NVML indexes/UUIDs, never visible ordinals."""
-    for key in ('CUDA_VISIBLE_DEVICES','SLURM_STEP_GPUS','SLURM_JOB_GPUS','NVIDIA_VISIBLE_DEVICES'):
+    """Resolve the CUDA/cgroup namespace; Slurm IDs may be node-wide."""
+    for key in ('CUDA_VISIBLE_DEVICES','NVIDIA_VISIBLE_DEVICES'):
         if key not in env:continue
         raw=env[key].strip()
         if raw.lower() in ('','-1','none','void','nodevfiles'):return []
@@ -49,35 +49,37 @@ def query(timeout):
     return rows
 
 
-def allocated(rows, ids, env):
+def allocated(rows, ids, env, expected=None):
     def select(tokens):
         result=[]
         for ident in tokens:
             matches=[r for r in rows if r['index']==ident or r['uuid']==ident or
                      ident.startswith(('GPU-','MIG-')) and r['uuid'].startswith(ident)]
-            if len(matches)!=1:raise ValueError('allocated GPU missing or ambiguous')
+            if len(matches)!=1:
+                # ConstrainDevices can renumber CUDA ordinals while NVML keeps
+                # physical indexes. Only the complete cgroup list is safe here.
+                if tokens==[str(i) for i in range(len(rows))]:return rows
+                raise ValueError('allocated GPU missing or ambiguous')
             result.extend(matches)
         return result
-    scheduler={k:env[k] for k in ('SLURM_STEP_GPUS','SLURM_JOB_GPUS') if k in env}
-    expected=visible(scheduler) if scheduler else None
-    scope=expected if expected else ids
-    try:result=rows if scope is None else select(scope)
-    except ValueError:
-        # ConstrainDevices can expose physical NVML index 5 as CUDA ordinal 0.
-        # Only use the whole inventory when its size equals the visible scope.
-        if scope and all(v.isdigit() for v in scope) and len(rows)==len(scope):result=rows
-        else:raise
-    if ids and expected and ids!=expected:
-        mismatch=(tuple(ids),tuple(expected))
+    scheduler=[env[k].split(',') for k in ('SLURM_STEP_GPUS','SLURM_JOB_GPUS') if env.get(k)]
+    if ids and any(tokens!=ids for tokens in scheduler):
+        mismatch=(tuple(ids),tuple(tuple(v) for v in scheduler))
         if mismatch not in _scope_warnings:
             print('WARN CUDA/Slurm GPU index mismatch; using measured allocation UUIDs',file=sys.stderr)
             _scope_warnings.add(mismatch)
+    result=rows if ids is None else select(ids)
     if len({r['uuid'] for r in result})!=len(result):raise ValueError('allocated GPU repeated')
-    if scheduler:
-        if expected is not None and len(expected)!=len(result):
-            raise ValueError('CUDA and Slurm GPU counts differ')
+    for key in ('SLURM_STEP_GPUS','SLURM_JOB_GPUS'):
+        if key not in env:continue
+        tokens=env[key].split(',') if env[key] else []
+        def size(token):
+            bounds=token.split('-')
+            return int(bounds[1])-int(bounds[0])+1 if len(bounds)==2 and all(v.isdigit() for v in bounds) else 1
+        if sum(size(t) for t in tokens)!=len(result):raise ValueError('Slurm GPU count differs')
     count=env.get('SLURM_GPUS_ON_NODE','')
     if count.isdigit() and len(result)!=int(count):raise ValueError('allocated GPU count differs')
+    if expected is not None and len(result)!=expected:raise ValueError('manifest GPU count differs')
     return result
 
 
@@ -85,15 +87,18 @@ _scope_warnings=set()
 
 
 class Rolling:
-    """Time-weighted activity; eviction statistics use complete windows only."""
+    """Time-weighted sample-and-hold activity; eviction uses full windows only."""
     def __init__(self, window):
         self.window=window;self.segments=deque();self.total=0.;self.elapsed=0.
-        self.minimum=None;self.below=0.
+        self.minimum=None;self.below=0.;self.startup_total=0.;self.startup_below=0.
 
     def add(self, end, value):
         start=self.elapsed;duration=end-start
         if duration>0:
             self.segments.append((start,end,value));self.total+=duration*value
+            startup=max(0.,min(end,self.window)-start)
+            self.startup_total+=startup*value
+            if value<70:self.startup_below+=startup
         # The window integral minus 70 * window length is piecewise linear.
         # Integrate threshold crossings between samples rather than charging a
         # whole interval from its endpoint (important around a rolling eviction).
@@ -104,13 +109,13 @@ class Rolling:
             area=sum(max(0.,min(b,t)-max(a,cut))*v for a,b,v in self.segments)
             return area-70*size,area/size if size else value
         values=[measurement(t) for t in points]
-        complete=[t for t in points if t>=self.window]
-        measured=[measurement(t) for t in complete]
-        for (a,b),((left,_),(right,_)) in zip(zip(complete,complete[1:]),zip(measured,measured[1:])):
+        for (a,b),((left,_),(right,_)) in zip(zip(points,points[1:]),zip(values,values[1:])):
+            if a<self.window:continue
             if left<0 and right<0:self.below+=b-a
             elif left<0:self.below+=(b-a)*(-left)/(right-left)
             elif right<0:self.below+=(b-a)*(-right)/(left-right)
-        for _,mean in measured:self.minimum=mean if self.minimum is None else min(self.minimum,mean)
+        for t,(_,mean) in zip(points,values):
+            if t>=self.window:self.minimum=mean if self.minimum is None else min(self.minimum,mean)
         self.elapsed=end;cut=max(0.,end-self.window)
         while self.segments and self.segments[0][1]<=cut:self.segments.popleft()
         mean=values[-1][1]
@@ -131,11 +136,14 @@ def phases(path):
 
 
 def run(a):
+    if not hasattr(a,'expect_gpus'):a.expect_gpus=None
     a.out=Path(a.out).resolve();a.out.parent.mkdir(parents=True,exist_ok=True)
-    summary_path=a.out.with_suffix('.summary.json');phase_path=a.out.with_suffix('.phases.jsonl')
+    summary_path=a.out.with_suffix('.summary.json');phase_path=a.out.with_suffix('.phases.jsonl');attempt_path=a.out.with_suffix('.attempt.json')
     # Never overwrite an earlier attempt or merge UUIDs across invocations.
-    if summary_path.exists() or phase_path.exists():raise ValueError('use a fresh utilisation path')
+    if summary_path.exists() or phase_path.exists() or attempt_path.exists():raise ValueError('use a fresh utilisation path')
     stream=a.out.open('x',buffering=1)
+    with attempt_path.open('x') as attempt:
+        json.dump(dict(schema='kit-util-watch-attempt.v1',expected_gpus=a.expect_gpus),attempt)
     env=dict(os.environ,UTIL_PHASE_FILE=str(phase_path),UTIL_WATCH_ACTIVE='1')
     child=None;pending=[];old={}
     def forward(signum,frame):
@@ -158,24 +166,24 @@ def run(a):
         child=subprocess.Popen(a.command,env=env,start_new_session=True,close_fds=False)
         a._child=child
         for signum in pending:forward(signum,None)
-        try:ids=[] if getattr(a,'expect_gpus',None)==0 else visible(env)
+        expected=getattr(a,'expect_gpus',None)
+        try:ids=[] if expected==0 else visible(env)
         except ValueError:errors+=1;scope_valid=False
         if ids==[]:
             uuids=[]
             try:
-                if getattr(a,'expect_gpus',None)!=0:allocated([],[],env)
+                if expected!=0:allocated([],[],env,expected)
             except ValueError:errors+=1
         stopped=threading.Event();finalized=threading.Event()
+        query_timeout=max(1.,min(5.,a.interval))
         def sample():
             nonlocal uuids,errors,last
             while True:
                 if ids!=[] and scope_valid:
                     try:
-                        measured=query(max(1.,min(5.,a.interval)))
+                        measured=query(query_timeout)
                         if finalized.is_set():return
-                        rows=allocated(measured,ids,env)
-                        if getattr(a,'expect_gpus',None) is not None and len(rows)!=a.expect_gpus:
-                            raise ValueError('manifest GPU count differs')
+                        rows=allocated(measured,ids,env,expected)
                         current=[r['uuid'] for r in rows]
                         if uuids is not None and set(current)!=set(uuids):raise ValueError('allocated UUIDs changed')
                         uuids=current
@@ -193,7 +201,7 @@ def run(a):
         sampler.start()
         try:code=child.wait()
         finally:
-            stopped.set();sampler.join(timeout=.5)
+            stopped.set();sampler.join(timeout=query_timeout+1.)
             finalized.set()
             if sampler.is_alive():
                 errors+=1
@@ -210,10 +218,12 @@ def run(a):
             mean=stats.add(wall,last)
             if wall>=a.window:warn(mean,wall)
         complete=errors==0 and uuids is not None
-        result=dict(job=os.environ.get('UTIL_JOB',os.environ.get('SLURM_JOB_ID')),gpus=len(uuids) if uuids is not None else len(ids) if ids is not None else None,
+        result=dict(schema='kit-util-watch.v1',expected_gpus=a.expect_gpus,job=os.environ.get('UTIL_JOB',os.environ.get('SLURM_JOB_ID')),gpus=len(uuids) if uuids is not None else len(ids) if ids is not None else None,
             gpu_uuids=uuids,wall_s=wall,mean_util=min(100.,max(0.,stats.total/wall)) if complete and last is not None else None,
             min_window_mean=min(100.,max(0.,stats.minimum)) if complete and stats.minimum is not None else None,
             seconds_below_70=min(wall,max(0.,stats.below)) if complete and last is not None else None,
+            startup_wall_s=min(wall,a.window),startup_mean_util=stats.startup_total/min(wall,a.window) if complete and last is not None else None,
+            startup_seconds_below_70=stats.startup_below if complete and last is not None else None,
             phases=phases(phase_path),telemetry_complete=complete,telemetry_errors=errors,
             started_at=started_at,returncode=code,interval_s=a.interval,window_s=a.window)
         try:summary_path.write_text(json.dumps(result,allow_nan=False)+'\n')
@@ -228,8 +238,8 @@ def run(a):
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out',type=Path,required=True);p.add_argument('--interval',type=float,default=5)
+    p.add_argument('--expect-gpus',type=int,choices=range(9))
     p.add_argument('--window',type=float,default=300);p.add_argument('--warn',type=float,default=75)
-    p.add_argument('--expect-gpus',type=int,choices=(0,1,2,8))
     p.add_argument('command',nargs=argparse.REMAINDER);a=p.parse_args(argv)
     if a.command[:1]==['--']:a.command=a.command[1:]
     if not a.command or not all(math.isfinite(v) and v>0 for v in (a.interval,a.window)) or not math.isfinite(a.warn) or not 0<=a.warn<=100:

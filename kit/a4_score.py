@@ -137,6 +137,7 @@ def _job(a):
 
 
 def job(a):
+    require(a.standin,'legacy scorer is retired; use the prepared v6b lane through jobs/a4/run-task.sh')
     with lock(a.out/'node-writer'):return _job(a)
 
 

@@ -456,7 +456,7 @@ def validate_stage_receipt(out, arm, seed, stage):
     return receipt
 
 
-def native_checkpoint(run, arm, seed, stage):
+def native_checkpoint(run, arm, seed, stage, *, read_only=False):
     """Latest complete native state; partial newer directories stay untouched."""
     from kit.v4_retry import tree_hash
     root = Path(run) / 'sdft'
@@ -475,8 +475,9 @@ def native_checkpoint(run, arm, seed, stage):
                 base_revision=contract.BASE_REVISION, code_sha256=contract.code_digest()).items()), 'native resume identity differs')
         require(all(meta.get(k) == step for k in ('completed_updates', 'optimizer_steps', 'ema_steps', 'scheduler_steps')),
                 'native resume counters differ')
-        snapshot = dict(step=step, sha256=tree_hash(path))
-        bind(Path(run) / 'native-snapshots' / (path.name + '.json'), snapshot)
+        if not read_only:
+            snapshot = dict(step=step, sha256=tree_hash(path))
+            bind(Path(run) / 'native-snapshots' / (path.name + '.json'), snapshot)
         return path
     return None
 
@@ -500,14 +501,16 @@ def archive_failed_attempt(run):
     return archive
 
 
-def training_action(run, arm, seed, stage):
-    checkpoint = native_checkpoint(run, arm, seed, stage)
+def training_action(run, arm, seed, stage, *, read_only=False):
+    checkpoint = native_checkpoint(run, arm, seed, stage, read_only=read_only)
     if checkpoint is not None and checkpoint.name == 'global_step_40':
         if not (Path(run) / 'm3-receipt.json').exists():
             raise NotReady('step-40 state preserved; receipt-only native resume is required before export (trainer interface pending)')
         return 'export', checkpoint
     if checkpoint is not None: return 'resume', checkpoint
-    if (Path(run) / 'started.json').exists(): archive_failed_attempt(run)
+    if (Path(run) / 'started.json').exists():
+        if read_only: return 'archive', None
+        archive_failed_attempt(run)
     return 'start', None
 
 
@@ -603,6 +606,9 @@ def train_job(a):
             launch = json.loads(launch_path.read_text())
             require(launch['prepared_sha256'] == s.file_hash(run / 'prepared.json'), 'launch preparation changed')
             action, checkpoint = launch['action'], launch['checkpoint']
+            current, native = training_action(run, arm, seed, stage, read_only=True)
+            if (current, str(native) if native else None) != (action, checkpoint):
+                raise NotReady('training state changed; re-run CPU -prepare before resubmitting -train')
             cmd, env = command(a, arm, stage, incoming['model'], data, run, base, geometry, checkpoint if action == 'resume' else None)
             attempt = str(time.time_ns())
             bind(run / 'commands' / (attempt + '.json'), dict(action=action, command=cmd))

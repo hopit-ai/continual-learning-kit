@@ -8,6 +8,8 @@ import subprocess
 import time
 import shutil
 
+from kit.m2_io import lease_fds
+
 
 def measure(a,doc,arm,seed,step,adaptive):
     from kit.s_generate import selected
@@ -31,7 +33,9 @@ def measure(a,doc,arm,seed,step,adaptive):
         index=('before','after').index(measurement);ref=refs[index]
         for domain,values in monitors.items():
             if getattr(a,'domain',None) and a.domain!=domain:continue
-            bind(part.with_suffix('.'+domain+'.'+measurement+'.json'),nll(ref['model'],values,a.standin,ref.get('receipt')))
+            started=time.monotonic();measured_path=part.with_suffix('.'+domain+'.'+measurement+'.json')
+            bind(measured_path,nll(ref['model'],values,a.standin,ref.get('receipt')))
+            __import__('kit.m2_cost',fromlist=['record']).record(measured_path,started,a.standin,frozen['assignment'])
         return
     def measured(index,domain,values):
         if measurement=='reduce':return read(part.with_suffix('.'+domain+'.'+('before','after')[index]+'.json'))
@@ -48,7 +52,7 @@ def measure(a,doc,arm,seed,step,adaptive):
     previous=read(target.parent/f'k{step-10}.json')['allocation_signal'] if adaptive and step>10 else None
     signal=ema(previous,raw) if adaptive else raw
     bind(target,dict(inputs=frozen,measurements=measurements,raw_drift=raw,allocation_signal=signal,
-        seconds=time.monotonic()-began,gpu_hours=0 if a.standin or measurement=='reduce' else (time.monotonic()-began)/3600))
+        seconds=time.monotonic()-began,gpu_hours=__import__('kit.m2_cost',fromlist=['hours']).hours([part.with_suffix('.'+d+'.'+name+'.json') for d in monitors for name in ('before','after')],a.standin,frozen['assignment']) if measurement=='reduce' else 0 if a.standin else (time.monotonic()-began)/3600))
 
 
 def comparison(a,doc,name):
@@ -64,7 +68,7 @@ def comparison(a,doc,name):
         cmd=[python or a.inference_python,str(ROOT/'kit'/script),'--out',str(a.out),*map(str,args)]
         if a.standin:
             cmd.append('--standin')
-        subprocess.run(cmd,check=True)
+        subprocess.run(cmd,check=True,pass_fds=lease_fds())
     def score(arm,seed,steps):
         if getattr(a,'mode','all')=='train':return
         for step in steps:

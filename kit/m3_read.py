@@ -141,17 +141,19 @@ def identity_failures(table, assignment):
         expected = cell.get('reference_assignment') or (assignment.get(f'm3|{key[1]}') if assignment else None)
         if expected is None: failures.append(dict(cell=list(key), reason='unassigned seed')); continue
         if cell.get('uuid') != expected['uuid'] or cell.get('environment') != expected['environment']:
-            failures.append(dict(cell=list(key), reason='off-assignment constituent'))
+            failures.append(dict(cell=list(key), reason='UNVERIFIED-HARDWARE: off-assignment constituent'))
         if cell.get('identity_error'): failures.append(dict(cell=list(key), reason=cell['identity_error']))
     native={}
     for key,cell in table.cells.items():
-        if cell.get('allocation_job') and cell.get('method')!='REFERENCE-SCORED':
-            native.setdefault(key[1],set()).add((cell.get('uuid'),cell.get('environment'),cell['allocation_job']))
+        if cell.get('method')!='REFERENCE-SCORED':
+            native.setdefault(key[1],set()).add((cell.get('uuid'),cell.get('environment'),cell.get('allocation_job')))
     for seed,identities in native.items():
-        if len(identities)!=1:failures.append(dict(cell=['seed',seed],reason='UNVERIFIED-HARDWARE: mixed allocation jobs'))
+        if any(job for uuid,env,job in identities) and len(identities)!=1:
+            failures.append(dict(cell=['seed',seed],reason='UNVERIFIED-HARDWARE: mixed allocation jobs'))
     reference={}
+    reference_jobs={}
     for key,cell in table.cells.items():
-        if cell.get('method')=='REFERENCE-SCORED' and cell.get('allocation_job'):
+        if cell.get('method')=='REFERENCE-SCORED':
             reference.setdefault(key[1],set()).add((cell.get('uuid'),cell.get('environment'),cell.get('allocation_job')))
         if cell.get('attempt_scored') and not all(cell.get(k) for k in ('uuid','environment','allocation_job')):
             failures.append(dict(cell=list(key),reason='UNVERIFIED-HARDWARE: missing allocation identity'))
@@ -478,7 +480,7 @@ def sp_tiers_job(a):
 def load_cells(out, standin=False):
     """Read every frozen M3 score unit (following aliases) into reader cells, with identity checks."""
     import csv
-    from kit.p3b_common import frozen_files
+    from kit.p3b_common import frozen_files,require
     from kit.m3_score import resolve, ASSIGNMENT
     from kit import m2_assignment
     out = Path(out); raw = (out / ASSIGNMENT).read_bytes(); doc = json.loads(raw)
@@ -566,8 +568,12 @@ def load_cells(out, standin=False):
 
 
 def read_job(a):
+    # Historical roots may be live in a separately staged release. Keep all
+    # evidence reads at a.out, while allowing reports to write only to scratch.
+    result_out = Path(getattr(a, 'result_out', None) or a.out)
     from kit.m3_manifest import require_m3_root, load as load_manifest
     require_m3_root(a.out)
+    result_out.mkdir(parents=True, exist_ok=True)
     cells, assignment = load_cells(a.out, standin=a.standin)
     availability = json.loads((a.out / 'pools/availability.json').read_text()) if (a.out / 'pools/availability.json').exists() else {}
     from kit.m3_pools import pool_root
@@ -599,7 +605,7 @@ def read_job(a):
     result['wall_time'] = wall_time(states, tasks)
     result['validation_notes'] = sorted({note for cell in cells.values() for note in cell.get('validation_notes',[])})
     result['technical_synthetic'] = a.standin
-    (a.out / 'm3-read.json').write_text(json.dumps(result, indent=1, sort_keys=True, default=str) + '\n')
+    (result_out / 'm3-read.json').write_text(json.dumps(result, indent=1, sort_keys=True, default=str) + '\n')
     lines = ['| Decision | Label |', '|---|---|'] + [f'| {k} ({DECISIONS[k]}) | {result["decisions"][k]} |' for k in DECISIONS]
     lines += ['', '| Contrast | Role | Label | Guard method | Mean | Lower bound | Seeds positive |', '|---|---|---|---|---:|---:|---:|']
     for name, value in result['contrasts'].items():
@@ -609,7 +615,7 @@ def read_job(a):
     lines += ['', *result['validation_notes']]
     if result['wall_time']['flags']: lines += ['', '**WALL-TIME FLAGS (> 24 h):** ' + '; '.join(result['wall_time']['flags'])]
     if scoring['flag']: lines += ['', '**PROJECTED SCORING QUEUE > 24 h PER SEED**']
-    (a.out / 'm3-read.md').write_text('\n'.join(lines) + '\n')
+    (result_out / 'm3-read.md').write_text('\n'.join(lines) + '\n')
     print(json.dumps(result['decisions'], sort_keys=True))
 
 
@@ -619,6 +625,7 @@ def job(a):
 
 def configure(p):
     p.add_argument('--action', choices=('read', 'sp-tiers'), default='read')
+    p.add_argument('--result-out', type=Path, help='write reading files here; evidence stays under --out')
 
 
 if __name__ == '__main__':

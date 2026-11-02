@@ -6,6 +6,8 @@ if __package__ in (None,''): sys.path.insert(0,str(Path(__file__).resolve().pare
 from kit.m2_common import *
 import subprocess
 
+from kit.m2_io import lease_fds
+
 
 def job(a):
     doc=binding(a.out,a.standin)
@@ -17,7 +19,7 @@ def job(a):
         cmd=[python or a.trainer_python,str(KIT/(name+'.py')),'--out',str(a.out),*map(str,args)]
         if a.standin: cmd.append('--standin')
         if getattr(a,'command_sink',None) is not None:a.command_sink.append(cmd)
-        else:subprocess.run(cmd,check=True)
+        else:subprocess.run(cmd,check=True,pass_fds=lease_fds())
     def scores(arm,seed,step,panels):
         if mode=='train' or score_phase=='incoming' and step!=0 or score_phase=='final' and step==0:return
         for panel in panels:

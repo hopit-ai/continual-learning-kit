@@ -183,7 +183,7 @@ def run_ready_lane(a):
     attempt.mkdir(parents=True,exist_ok=False)
     env=dict(os.environ,REF_POOL_CHILD='1',REF_ATTEMPT_ROOT=str(attempt),KIT_LANE_JOB=nonce)
     fds=tuple(json.loads(env.get('M3_GPU_LOCK_FDS','[]')))
-    code=execute(commands,attempt/'pool',env=env,pass_fds=fds,concurrency=2)
+    code=execute([dict(argv=c,engine=dict(backend='hf',profile='reference-bf16')) for c in commands],attempt/'pool',env=env,pass_fds=fds,concurrency=2)
     if code in (3,75):raise NotReady('reference lane incomplete')
     require(code==0,'reference lane failed')
     from kit.lane_evidence import complete_attempt
@@ -338,7 +338,11 @@ def main():
             if not manifest.is_file():
                 from kit.p3b_common import NotReady
                 raise NotReady('bound M3 launch manifest required for reference scoring')
-            os.environ['M2_INFRA_AUTHORITY_SHA256']=verify_runtime(load(manifest)['lane_runtime']) or ''
+            from kit.m3_manifest import launch_environment
+            env=launch_environment(load(manifest))
+            for key in ('KIT_V6_AUTHORITY_SHA','M2_INFRA_AUTHORITY_SHA256'):
+                if key in env: os.environ[key]=env[key]
+                else: os.environ.pop(key,None)
         else:activate(a.out)
         from kit.m3_manifest import allocated_gpus, allocation_reservation, watched
         if not os.environ.get('UTIL_WATCH_ACTIVE'):

@@ -1,0 +1,36 @@
+{
+  "base_commit": "68100bf629b46817d0735d7e894d571f35a9c7e8",
+  "likelihood": {
+    "row": {"activity_label": "Moving", "ctx_a": " A [noise] person [title] starts", "ctx_b": "walking", "endings": [" [noise] outside", "indoors", "  back", "still"]},
+    "scores": [[-1.0, -1.0, -2.0, -3.0], [-1.00001, -1.0, -2.0, -3.0]],
+    "lengths": {"characters": [10, 10, 10, 10], "tokens": [5, 5, 5, 5]}
+  },
+  "general": {
+    "members": [
+      {"panel": "math", "id": "m1", "answer": "4"},
+      {"panel": "math", "id": "m2", "answer": "5"},
+      {"panel": "knowledge", "id": "k1", "answer": "B"},
+      {"panel": "knowledge", "id": "k2", "answer": "A"},
+      {"panel": "ifeval", "id": "i1", "meta": {"instruction_id_list": ["punctuation:no_comma"], "kwargs": [{}]}},
+      {"panel": "ifeval", "id": "i2", "meta": {"instruction_id_list": ["punctuation:no_comma"], "kwargs": [{}]}}
+    ],
+    "responses": ["Answer: 4", "Answer: 3", "Answer: B", "", "hello world", "hello, world"]
+  },
+  "broad": {
+    "gsm": [{"question": "How many?", "answer": "work #### 4"}],
+    "arc": [{"id": "one", "question": "Which?", "choices": {"label": ["A", "B", "C", "D"], "text": ["one", "two", "three", "four"]}, "answerKey": "B"}],
+    "answers": ["Answer: 4", "Answer: 5", "Answer: B", "B"]
+  },
+  "intervals": [[1, 2, 3], [1, 1, 1], [1, null, 3], [1, 2]],
+  "ce": {"logits": [[1.25, -0.5, 2.0], [-1.0, 3.0, 0.25]], "targets": [2, 1]},
+  "sp": {
+    "raw": [
+      {"id": "one", "response": "hello", "finish_reason": "stop", "token_ids": [2, 3]},
+      {"id": "two", "response": "bad", "finish_reason": "length", "token_ids": [4, 5, 6]},
+      {"id": "three", "response": "", "finish_reason": "missing"}
+    ],
+    "correct": {"one": 1, "two": 0, "three": 0},
+    "text_pairs": [["Hello,  world!", "hello world"], ["request alpha", "request beta"], ["", ""]]
+  },
+  "probe": {"before": {"token_mean": 1.2345, "sequence_mean": 2.3456, "tokens": 64}, "after_shift": -0.1}
+}

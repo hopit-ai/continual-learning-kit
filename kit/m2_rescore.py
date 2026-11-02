@@ -85,7 +85,8 @@ def score(a):
     require(len(packages)==1,'unbound/disabled return-1 package')
     package=packages[0];root=a.out/'packages'/package['id']
     bind(root/'binding.json',doc)
-    if not (root/'scoring-assignment.json').exists():shutil.copyfile(a.out/'scoring-assignment.json',root/'scoring-assignment.json')
+    from kit.m2_io import copy_shared
+    copy_shared(a.out/'scoring-assignment.json',root/'scoring-assignment.json')
     with scope('return1.'+package['id'],package['seed']):
         proof=assignment.active(root,a.gpu,a.standin)
         require(proof.get('allocation_job') or proof['uuid']==package['assigned_gpu_uuid'] and proof['environment']==package['compatible_environment'],'UNVERIFIED: return-1 off-assignment')

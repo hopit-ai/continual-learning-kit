@@ -158,6 +158,7 @@ def _job(a):
 
 
 def job(a):
+    require(a.standin,'legacy mixed-allocation trainer is retired; use jobs/a4/run-task.sh')
     require(not a.fail_once or a.standin,'failure injection is stand-in only')
     with lock(a.out/'node-writer'):return _job(a)
 

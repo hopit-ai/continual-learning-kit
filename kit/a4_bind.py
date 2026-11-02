@@ -9,7 +9,7 @@ import argparse
 import subprocess
 
 
-def ceiling(stage_gpu_hours): return 50*math.ceil((1.5*45*stage_gpu_hours+140)/50)
+def ceiling(stage_gpu_hours): return 50*math.ceil((1.5*27*stage_gpu_hours+140)/50)
 
 
 def selected_exports(files,recipe,standin):
@@ -17,7 +17,7 @@ def selected_exports(files,recipe,standin):
     if standin:return {}
     result={}
     for route in ('standalone','sequence'):
-        for seed in SEEDS:
+        for seed in range(101,106):
             name=f'scores/{route}-{recipe}-s{seed}-k40-math_screen/identity.json'
             if name not in files:raise NotReady('original unreset B export identity pending: '+name)
             record=json.loads(files[name]);observed=record.get('model',{})
@@ -31,12 +31,22 @@ def selected_exports(files,recipe,standin):
 
 
 def job(a):
+    split=getattr(a,'v6b',False)
+    require(a.standin or split,'real 4A binding requires --v6b and CPU preparation')
+    authority=None
+    if split and not a.standin:
+        from kit.v6_infra import verify
+        authority=os.environ.get('KIT_V6_AUTHORITY_SHA')
+        require(bool(authority),'4A requires authority SHA from the bound v6b launch')
+        verify(authority)
+    if authority:os.environ['M2_INFRA_AUTHORITY_SHA256']=authority
     from kit.next_w import job as select_w
     from types import SimpleNamespace as NS
     require(a.slice.is_dir(), 'missing audited slice')
     if not a.b_source.exists(): raise NotReady('completed unreset B required to bind W')
     select_w(NS(out=a.out/'selection', source=a.b_source, bootstrap=20, standin=a.standin))
     selected = json.loads((a.out/'selection/W.json').read_text())
+    if split:require(selected['recipe']=='D','v6b 4A requires the bound W=D selection')
     from kit.p3b_read import load as load_b
     b_rows,b_files=load_b(a.b_source)
     require(s.digest(b_rows)==selected['source_sha256'],'B evidence changed while binding W')
@@ -88,7 +98,7 @@ def job(a):
     trainer_versions=t.runtime_versions() if a.standin else json.loads(subprocess.check_output([
         a.trainer_python,'-c','import json; from kit.v4_teacher import runtime_versions; print(json.dumps(runtime_versions()))'],
         cwd=KIT.parent,text=True))
-    doc = dict(W=selected['recipe'], provisional=selected['provisional'], selection=selected,
+    doc = dict(amendment=AMENDMENT, execution='v6b' if split else 'legacy', infrastructure_update=authority, W=selected['recipe'], provisional=selected['provisional'], selection=selected,
         B_exports=b_exports,B_evidence_files={n:t.sha(b) for n,b in sorted(b_files.items())
             if n.endswith(('identity.json','export-40.json','scores.csv','scores.csv.gz'))},
         base=base, base_identity=observed, slice=str(a.slice.resolve()), slice_files=files,
@@ -102,7 +112,7 @@ def job(a):
         handoff_seconds=getattr(a,'handoff_seconds',300),
         software=dict(inference=t.runtime_versions(),trainer=trainer_versions),
         input_cap=10240, output_cap=2048, incumbent='static-k3', protocol=protocol(),
-        technical_synthetic=a.standin, physical=machine(a.out,a.gpu,a.standin))
+        technical_synthetic=a.standin, physical=None if split else machine(a.out,a.gpu,a.standin))
     require(doc['allocation_gpus']==8 and doc['handoff_seconds']>0 and
         all(v>0 and math.isfinite(v) for v in doc['job_limits'].values()),'invalid allocation/job limits')
     bind(a.out/'binding.json', doc)
@@ -110,6 +120,7 @@ def job(a):
 
 
 def configure(p):
+    p.add_argument('--v6b',action='store_true',help='CPU binding; scorer measured in each allocation')
     p.add_argument('--b-source',type=Path,required=True); p.add_argument('--slice',type=Path,required=True)
     p.add_argument('--base',required=True); p.add_argument('--replay',type=Path)
     p.add_argument('--stage-gpu-hours',type=float,required=True); p.add_argument('--approved-ceiling',type=float,default=argparse.SUPPRESS)

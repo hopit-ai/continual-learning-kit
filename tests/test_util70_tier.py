@@ -6,6 +6,12 @@ import pytest
 from kit import combined_send as combined, m3_manifest as m, sp_manifest as sp, m3_train as train
 
 
+@pytest.fixture(autouse=True)
+def external_test_launch_seal(monkeypatch):
+    from kit import v6_infra
+    monkeypatch.setenv(v6_infra.ENV,v6_infra.authority_sha256())
+
+
 def test_disjoint_gpu_jobs_share_host_and_training_conflicts(monkeypatch):
     monkeypatch.setattr(m.socket, 'gethostname', lambda: 'lease-fixture')
     with m.allocation_reservation(['GPU-A'], check_idle=False):
@@ -116,7 +122,7 @@ def test_native_cpu_proof_replaces_only_identity_hashing(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match='checkpoint changed'): score.checked(tmp_path, 'K',101,'finqa',40,False)
 
 
-def test_sp_missing_last_entry_never_starts_partial_lane(tmp_path, monkeypatch):
+def test_sp_missing_last_entry_still_scores_ready_entry(tmp_path, monkeypatch):
     state = tmp_path / 'state'; state.mkdir()
     proof = dict(verified=True)
     (tmp_path / 'pool-verification.json').write_text(json.dumps(proof))
@@ -127,6 +133,6 @@ def test_sp_missing_last_entry_never_starts_partial_lane(tmp_path, monkeypatch):
         return value
     monkeypatch.setattr(sp, 'substitute', substitute)
     calls = []
-    assert sp.run(dict(tasks=[task]), task['id'], {'{sp}':tmp_path}, {}, runner=lambda *a,**kw:calls.append(a)) == 0
-    assert calls == []
+    assert sp.run(dict(tasks=[task]), task['id'], {'{sp}':tmp_path}, {}, runner=lambda *a,**kw:calls.append(a) or NS(returncode=0)) == 0
+    assert calls == [(['score','ready'],)]
     assert json.loads((state / (task['id'] + '.json')).read_text())['status'] == 'MISSING-INPUT'

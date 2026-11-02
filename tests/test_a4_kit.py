@@ -46,14 +46,14 @@ def test_bind_c_rule_and_resumption(tmp_path,recipe):
     doc=c.binding(out,True)
     assert doc['W']==recipe
     assert doc['approved_ceiling_gpu_hours']==(600 if recipe in ('F','F+replay') else 800)
-    assert doc['ceiling_gpu_hours']==350
+    assert doc['ceiling_gpu_hours']==300
     before=(out/'binding.json').read_bytes();a4_bind.job(a)
     assert (out/'binding.json').read_bytes()==before
     a.stage_gpu_hours=3.1
     with pytest.raises(c.CorrectnessStop,match='changed'):a4_bind.job(a)
 
 
-@pytest.mark.parametrize('hours,expected',[(2.7,350),(3,350),(3.3,400),(6.3,600),(6.7,600),(7.73,700)])
+@pytest.mark.parametrize('hours,expected',[(2.7,250),(3,300),(3.3,300),(6.3,400),(6.7,450),(7.73,500)])
 def test_registered_cost_formula(hours,expected):assert a4_bind.ceiling(hours)==expected
 
 
@@ -173,9 +173,9 @@ def test_primary_all_bars_and_inconclusive():
     assert a4_read.primary(matrix)['established']
     assert not a4_read.primary({s:[4.9]*5 for s in c.SEEDS})['established']
     assert not a4_read.primary({s:[30,30,-1,-1,-1] for s in c.SEEDS})['established']
-    assert not a4_read.primary({s:[10 if s<104 else -1]*5 for s in c.SEEDS})['established']
-    assert a4_read.interval([3]*5,True)['upper']==3
-    assert a4_read.interval([0,0,0,0,9],True)['upper']>3
+    assert not a4_read.primary({s:[10 if s<103 else -1]*5 for s in c.SEEDS})['established']
+    assert a4_read.interval([3]*3,True)['upper']==3
+    assert a4_read.interval([0,0,9],True)['upper']>3
     with pytest.raises(c.CorrectnessStop):a4_read.interval([1]*4)
 
 
@@ -206,13 +206,13 @@ def test_full_graph_resume_every_row_and_return(tmp_path,monkeypatch):
     run.fail_once=False;a4_run.job(run)
     records,missing=a4_read.load(out)
     assert not missing and len(records)==len(list(a4_run.score_plan()))
-    assert len(list((out/'runs').glob('*/summary.json')))==45
+    assert len(list((out/'runs').glob('*/summary.json')))==27
     assert all(len(c.t.read_jsonl(p))==1280 for p in (out/'data').glob('*/schedule.jsonl'))
     snapshots={str(p):c.s.file_hash(p) for p in (out/'runs').rglob('*') if p.is_file()}
     a4_run.job(run)
     assert snapshots=={str(p):c.s.file_hash(p) for p in (out/'runs').rglob('*') if p.is_file()}
     result=json.loads((out/'reading/summary.json').read_text())
-    assert len(result['primary']['per_seed'])==5
+    assert len(result['primary']['per_seed'])==3
     assert len(result['retention'])>50 and result['scientific_verdict'] is None
     assert not any(r['panel']=='finqa' for r in result['retention'])
     assert result['retention_established']==all(r['established'] for r in result['retention'] if r['arm']=='consolidation' and r['is_registered_bar'])
@@ -339,7 +339,7 @@ def test_incomplete_canonical_generation_is_retained_and_retried(tmp_path,monkey
 def test_original_b_export_identities_required_and_pinned(recipe):
     files={}
     for route in ('standalone','sequence'):
-        for seed in c.SEEDS:
+        for seed in range(101,106):
             name=f'scores/{route}-{recipe}-s{seed}-k40-math_screen/identity.json'
             files[name]=json.dumps(dict(model=dict(model_dir=f'/durable/B/runs/{route}-{recipe}-s{seed}/hf-step40',
                 model_file_hashes={'model.safetensors':'a'*64}),technical_synthetic=False)).encode()
@@ -678,7 +678,7 @@ def test_binding_formula_is_forecast_even_above_approval(tmp_path):
     out,a=setup(tmp_path)
     (out/'binding.json').unlink();a.stage_gpu_hours=10
     a4_bind.job(a);doc=c.binding(out,True)
-    assert doc['ceiling_gpu_hours']==850 and doc['approved_ceiling_gpu_hours']==600
+    assert doc['ceiling_gpu_hours']==550 and doc['approved_ceiling_gpu_hours']==600
 
 
 def test_budget_requires_bound_approved_ceiling(tmp_path):

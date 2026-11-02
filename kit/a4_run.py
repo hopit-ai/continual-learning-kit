@@ -27,6 +27,7 @@ def score_plan():
 
 
 def job(a):
+    require(a.standin,'legacy mixed-allocation runner is retired; use jobs/a4/run-task.sh')
     doc=binding(a.out,a.standin)
     require(not a.fail_once or a.standin,'failure injection is stand-in only')
     require(1<=a.through_month<=6,'invalid month limit')

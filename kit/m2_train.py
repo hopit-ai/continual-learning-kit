@@ -31,9 +31,13 @@ def prepare_training(a,command,env,run,outputs,*,resolve=None):
     overrides={k:v for k,v in env.items() if os.environ.get(k)!=v}
     atomic(prepared_path(a),dict(command=command,env=overrides,cwd=str(a.sdpo) if getattr(a,'sdpo',None) else None,
         run=str(run),outputs=[str(p) for p in outputs]))
+    active=os.environ.get('M2_PREPARED_WORK_FILE')
+    if active:
+        paths=json.loads(Path(active).read_text())
+        atomic(Path(active),list(dict.fromkeys([*paths,str(prepared_path(a))])))
 
 
-def run_prepared(a):
+def run_prepared(a,runner=None):
     if not defer_exports() or a.standin:return False
     path=prepared_path(a)
     if not path.is_file():raise NotReady('CPU training preparation missing')
@@ -46,7 +50,8 @@ def run_prepared(a):
     env=dict(os.environ,**value['env']);env.update(CUDA_VISIBLE_DEVICES=os.environ['CUDA_VISIBLE_DEVICES'],M2_EXECUTION_PHASE='gpu')
     started=time.monotonic()
     atomic(run/'started.json',dict(prepared_sha256=s.file_hash(path)))
-    try:done=subprocess.run(value['command'],cwd=value['cwd'],env=env)
+    from kit.m2_io import lease_fds
+    try:done=(runner or subprocess.run)(value['command'],cwd=value['cwd'],env=env,pass_fds=lease_fds())
     finally:
         seconds=time.monotonic()-started
         atomic(run/'training-costs'/f'{time.time_ns()}.json',dict(kind='training_job',gpu_hours=8*seconds/3600,seconds=seconds,technical_synthetic=False,includes='native GPU process only; CPU staging/export separate'))

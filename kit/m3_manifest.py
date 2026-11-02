@@ -229,7 +229,7 @@ def build(settings):
     add('M3-math-targets', 'prepare', ['M3-math-resolve'], [cmd('m3_pools', action='math-targets',
                                                         model=inputs.get('teacher'), tokenizer=inputs.get('tokenizer'), gpu=inputs.get('teacher_gpus', '0,1'))],
         uses_gpu=True, reads_core_snapshot=bool(inputs.get('core_durable')))
-    add('M3-math-ready', 'prepare', ['M3-math-resolve'], [cmd('m3_pools', action='math-finish')])
+    add('M3-math-ready', 'prepare', ['M3-math-resolve','M3-math-targets'], [cmd('m3_pools', action='math-finish')], partial_inputs=True)
     add('M3-schedules-math', 'prepare', ['M3-pools-shared', 'M3-math-ready'],
         [cmd('m3_train', action='schedules', arms=['C0', 'K'], panel=panels, holdout=holdouts, stages=['math_hard'], schedule_roots=[schedule_roots['math_hard']], tokenizer=inputs.get('tokenizer'))])
     for suffix, stages, deps in (('', early, ['M3-finqa-targets']), ('-math', ['math_hard'], ['M3-math-ready'])):
@@ -326,7 +326,7 @@ def build(settings):
         ready = [t for t in waiting if set(t['requires']) <= done]
         need(bool(ready), 'static dependency cycle')
         ordered += ready; done |= {t['id'] for t in ready}; waiting = [t for t in waiting if t['id'] not in done]
-    return dict(schema=SCHEMA,lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),nodes=settings['nodes'], message2_nodes=sorted(core_nodes), message2_roots=settings.get('message2_roots', []), message2_assignment=settings.get('inputs', {}).get('message2_assignment'), inventory=inputs.get('inventory'),
+    return dict(schema=SCHEMA,infrastructure_update=__import__('kit.v6_infra',fromlist=['activate']).activate(),lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),nodes=settings['nodes'], message2_nodes=sorted(core_nodes), message2_roots=settings.get('message2_roots', []), message2_assignment=settings.get('inputs', {}).get('message2_assignment'), inventory=inputs.get('inventory'),
                 tasks=ordered, technical_synthetic=settings.get('technical_synthetic', False))
 
 
@@ -464,8 +464,24 @@ def gpu_execution(out, gpus=1):
         with node_reservation(load(manifest), check_idle=True, gpus=gpus): yield
 
 
-def watched(command, out):
-    return [command[0], '-I', str(KIT / 'util_watch.py'), '--out', str(out), '--expect-gpus','1','--', *command]
+def launch_environment(doc, env=None):
+    """Only a launch's explicit authority field seals prospective bytes."""
+    from kit.v6_infra import verify,verify_runtime
+    result=dict(os.environ if env is None else env)
+    result.pop('KIT_V6_AUTHORITY_SHA',None);result.pop('M2_INFRA_AUTHORITY_SHA256',None)
+    if 'lane_runtime' in doc: verify_runtime(doc['lane_runtime'])
+    expected=doc.get('infrastructure_update')
+    if expected:
+        verify(expected)
+        need('lane_runtime' not in doc or doc['lane_runtime']['authority']==expected,'launch authority differs from runtime seal')
+        result['KIT_V6_AUTHORITY_SHA']=expected
+        # Compatibility with I1 pin readers; both values originate in the launch.
+        result['M2_INFRA_AUTHORITY_SHA256']=expected
+    return result
+
+
+def watched(command, out, expect_gpus=1):
+    return [command[0], '-I', str(KIT / 'util_watch.py'), '--out', str(out), '--expect-gpus', str(expect_gpus), '--', *command]
 
 
 def submission_time(values):
@@ -486,11 +502,8 @@ def run_task(manifest_path, ident, out, values, runner=None):
     except Exception: return EXIT_FAILED
     task = next((t for t in doc['tasks'] if t['id'] == ident), None)
     if task is None:return EXIT_FAILED
-    runtime_env=dict(os.environ)
-    if 'lane_runtime' in doc:
-        from kit.v6_infra import verify_runtime
-        try:runtime_env['M2_INFRA_AUTHORITY_SHA256']=verify_runtime(doc['lane_runtime']) or ''
-        except (ValueError,OSError):return EXIT_FAILED
+    try: runtime_env=launch_environment(doc)
+    except (ValueError,OSError): return EXIT_FAILED
     old = status(out, ident); attempts = list(old.get('attempts', []))
     if old.get('status') == 'RUNNING' and old.get('started_at') is not None:
         ended = time.time()
@@ -543,7 +556,11 @@ def run_task(manifest_path, ident, out, values, runner=None):
                     if workspace:
                         from kit.v6a import rescore_concurrency
                         concurrency=rescore_concurrency(env['M3_SCORE_READY'],expanded_commands)
-                    code=execute(expanded_commands,Path(out)/'lane-attempts'/(ident+'-'+str(time.time_ns())),env=env,pass_fds=reservation,concurrency=concurrency)
+                    if workspace:
+                        from kit.v6a import rescore_plan
+                        pool_commands=rescore_plan(env['M3_SCORE_READY'],expanded_commands)
+                    else:pool_commands=expanded_commands
+                    code=execute(pool_commands,Path(out)/'lane-attempts'/(ident+'-'+str(time.time_ns())),env=env,pass_fds=reservation,concurrency=concurrency)
                 else:
                     for expanded in expanded_commands:
                         code=subprocess.run(expanded,env=env,pass_fds=reservation).returncode
@@ -595,7 +612,7 @@ def main(argv=None):
         print(json.dumps(report, sort_keys=True)); return 0 if report['passed'] else EXIT_FAILED
     task = next(t for t in load(a.manifest)['tasks'] if t['id'] == a.task)
     if task.get('gpus', 0) and not a.standin and not load(a.manifest).get('technical_synthetic') and not os.environ.get('UTIL_WATCH_ACTIVE'):
-        return subprocess.run(watched([sys.executable, '-I', str(Path(__file__).resolve()), *(argv if argv is not None else sys.argv[1:])], a.out / 'util' / a.task / (str(time.time_ns())+'.jsonl')), env=dict(os.environ, UTIL_WATCH_ACTIVE='1')).returncode
+        return subprocess.run(watched([sys.executable, '-I', str(Path(__file__).resolve()), *(argv if argv is not None else sys.argv[1:])], a.out / 'util' / a.task / (str(time.time_ns())+'.jsonl'),task['gpus']), env=dict(os.environ, UTIL_WATCH_ACTIVE='1')).returncode
     return run_task(a.manifest, a.task, a.out, dict(kit=str(KIT), score_gpu=a.score_gpu, **({'submitted_at': a.submitted_at} if a.submitted_at is not None else {})))
 
 

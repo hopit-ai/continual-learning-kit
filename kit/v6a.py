@@ -29,6 +29,13 @@ def rescore_concurrency(ready, commands):
     return 3
 
 
+def rescore_plan(ready, commands):
+    """Describe the CPU-verified engine profile to the shared capacity guard."""
+    if rescore_concurrency(ready,commands)!=3:return commands
+    model=next(iter(load(ready)['checkpoints'].values()))['source']['model']
+    return [dict(argv=c,engine=dict(backend='vllm',model=model,max_model_len=12288)) for c in commands]
+
+
 def execute(doc, ident, *, runner=subprocess.run):
     from kit.m3_manifest import allocated_gpus, allocation_reservation, substitute, require_m3_root, Unbound
     from kit.m3_score import prepare_workspace, unit_root, prepared_commands
@@ -93,7 +100,7 @@ def execute(doc, ident, *, runner=subprocess.run):
                 env.update(M3_GPU_LOCK_FDS=json.dumps(fds),M3_NODE_POLICY=json.dumps(dict(nodes=doc['nodes']['kcr'])))
             if workspace:
                 concurrency=rescore_concurrency(ready,commands)
-                code=pool(commands,workspace/'pool',env=env,pass_fds=fds,runner=runner,concurrency=concurrency)
+                code=pool(rescore_plan(ready,commands),workspace/'pool',env=env,pass_fds=fds,runner=runner,concurrency=concurrency)
                 if code==0:
                     identities=[]
                     for c in commands:

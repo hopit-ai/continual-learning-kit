@@ -1,5 +1,23 @@
 # 4A: memory plus consolidation, plan-v6 rung v2
 
+**Prospective amendment, 2 November 2026:** owner approved “Approve all three,
+put 4A in v6b”; 4A has never run and no 4A outcome has been read. Use
+[README-4a-v6b.md](README-4a-v6b.md) and the explicitly configured
+[v6b rows](resources/a4/v6b-rows.json) for execution. Seeds are **101–103**;
+paired seed-t intervals use **df 2**, **t=4.302653** two-sided and **t=2.919986**
+one-sided. Positive seed means must be **3/3**; positive monthly seed-means
+must be **≥3/5** (three of the unchanged five months 2–6). Every other bar,
+arm, dose, endpoint, slice, six-month horizon, input cap and **800 GPU-h**
+D-family ceiling stays unchanged. Deterministic controls are unseeded and run
+once, with S4 technical remeasurement documented separately. The reader's JSON
+and Markdown receipts carry this date and exact amendment; old-df receipts are
+refused. See the [amendment](resources/a4/amendment-20261102.md).
+
+The remainder below documents the historical whole-allocation procedure and
+allocation accounting. It is superseded operationally by the v6b runbook;
+do not launch `a4_payload.sh` or the mixed `a4_run.py` on the v6 cluster.
+
+
 Run after return 1 of [README-message.md](README-message.md). Historical `k4a`
 is unrelated. This is a plain offline kit; the partner owns sbatch and the
 existing `run_stage`/`message_handoff.py` chained-job handoff. Run exactly one
@@ -13,7 +31,7 @@ The binding science is copied
 | A2 | Select W from complete unreset B; bind audited slice, base, replay and measured budget | `a4_bind.py` |
 | A3 | Base general-v1 references, same physical scorer | `a4_run.py`, first rows |
 | A4 | Render and archive arrival contexts and recurrence tags from earlier ledgers | `a4_memory.py`, called by runner |
-| A5 | Seal all whole-month arrivals: frozen, static memory, direct ×5, consolidation on/off ×5 | `a4_score.py` |
+| A5 | Seal all whole-month arrivals: frozen, static memory, direct ×3, consolidation on/off ×3 | `a4_score.py` |
 | A6 | Admit only frozen, finished, unedited, source/unit-checked dual-scorer successes; freeze ledger hashes | `a4_ledger.py` |
 | A7 | Direct stage each month; cumulative consolidation at 2/4/6; incoming retention references and NLL | `a4_train.py` |
 | A8 | After each stage: all arrived holdouts with archived contexts, on/off for consolidation; each general-v1 panel | `a4_score.py` |
@@ -227,15 +245,16 @@ and general-v1 evaluation prompts before binding. Training schedules have
 Only empty monthly/cumulative ledgers skip their respective stage. No replacement
 stage is made up. Only stage-final step-40 weights are saved: nine full-weight
 checkpoints per seed, all scored; none is selected by score.
-The approximately 0.7 TB figure covers HF stage-final weights only. Native
+Approximately 0.4 TB covers the 27 HF stage-final weight exports only. Native
 optimizer checkpoints and failed partials are also retained and hash-listed;
 their additional storage and copy time must fit the actual durable filesystem.
 
 A10 writes `reading/summary.json` and Markdown. The primary is the unweighted
 months 2–6 mean of consolidation minus static memory on permanent unseen-issuer
-holdouts: ≥5 explicit-unit points, ≥4/5 positive seeds, ≥3/5 positive monthly
-seed-means and a positive two-sided 95% paired seed-t interval (df 4). Retention
-uses paired one-sided seed-t upper bounds ≤3 points for every registered margin,
+holdouts: ≥5 explicit-unit points, 3/3 positive seeds, ≥3/5 positive monthly
+seed-means (3 of months 2–6) and a positive two-sided 95% paired seed-t interval
+(df 2, t=4.302653; amendment 2 November 2026). Retention
+uses paired one-sided seed-t upper bounds (df 2, t=2.919986) ≤3 points for every registered margin,
 including incoming and original general references. Crossing bounds mean **not
 established**. Historical scores, issuer bootstrap, all-arrival/family/recurring-
 issuer splits, paired transitions and acquired-then-lost IDs remain descriptive.
@@ -270,41 +289,30 @@ return with the job IDs, failed/restarted attempts, allocation/wall/GPU-hour and
 idle-reservation accounting, storage paths and unresolved inputs. Nothing in
 this kit sends messages or submits jobs.
 
-Measured pricing and the registration's formula (45 stages across seeds 101–105):
+Current three-seed pricing (amendment 2 November 2026; 27 stages):
 
-| W timing anchor | Training GPU-h | Training wall h | Rounded formula forecast |
-|---|---:|---:|---:|
-| F, 2.7–3.3 GPU-h/stage | 121.5–148.5 | 15.2–18.6 | 350–400 GPU-h |
-| D+replay, 6.3–6.7 GPU-h/stage | 283.5–301.5 | 35.4–37.7 | 600 GPU-h |
+| W timing anchor | Training GPU-h | Rounded formula forecast |
+|---|---:|---:|
+| F, 2.7–3.3 GPU-h/stage | 72.9–89.1 | 250–300 GPU-h |
+| D+replay proxy, 6.3–6.7 GPU-h/stage | 170.1–180.9 | 400–450 GPU-h |
 
-Formula forecast = `ceil_to_50(1.5 × 45 × measured_stage_gpu_hours + 140)`.
-The 140 is the registered 60 scoring reserve plus 80 startup/export/storage/
-failure allowance. F+replay and D use their own measured W receipt at send;
-until then their respective F and D+replay proxies apply. The combined C runbook
-also records a slower 58-minute D+replay anchor (7.73 GPU-h), which would make
-this same formula **700 GPU-h**. Bind actual measurements and the approved
-**800 GPU-h** D-family ceiling. No stage timing for SEC long contexts is claimed.
+Formula forecast = `ceil_to_50(1.5 × 27 × measured_stage_gpu_hours + 140)`.
+The 140 retains the registered 60 scoring reserve plus 80 overhead/failure
+allowance. The slower 7.73 GPU-h anchor forecasts 500. W=D uses its own measured
+receipt at binding. The approved D-family ceiling remains **800 GPU-h**.
+No SEC long-context stage timing or 70% utilisation qualification is claimed.
 
-There are **688 scientific score cells**: 102 arrival, 45 incoming, 270
-post-stage, 270 final-grid and one base control. Without deterministic cache
-reuse they contain **41,575 predictions**. Removing the 91 FinQA cells removes
-104,377 predictions. Exact matching weights/prompts/physical-scorer generations
-are reused under each arm/reference label. At the registration's approximate
-1.22 s/question, the uncached registered panels take **14.1 one-GPU hours**,
-versus 49.5 previously. NLL, engine loads and long-context throughput still need
-measurement. The registered 60 scoring +80 overhead reserve and rounded ceiling
-formula remain unchanged; unused reserve is not permission to add panels.
-
-For an operational forecast, charge all eight reserved GPUs during those
-14.1 scoring wall hours: **112.7 allocation GPU-h**. With training
-121.5–301.5 GPU-h and the existing 80 GPU-h overhead allowance (10 wall hours
-on eight GPUs), 4A is **314.2–494.2 allocation GPU-h and 39.3–61.8 wall hours**,
-before NLL, slower contexts, or training contingency. Combined with return 1's
-265.7–486.3 GPU-h and 70.8–119.2 wall hours, this is **579.9–980.5 GPU-h and
-110.1–181.0 wall hours**, plus M3b's 2.6–4 GPU-h and ≤2 wall hours. These are
-forecasts, not measured SEC throughput or a guarantee that every bound ceiling
-will fit. NLL and longer startup/handoff timings consume the remaining reserve;
-the runner refuses jobs that cannot fit their worst-case limits.
+There are **418 scientific score cells**: 66 arrival, 27 incoming, 162 post-stage,
+162 final-grid and one base control. These contain 25,381 uncached predictions.
+The v6b graph additionally remeasures the 255 chronological arrival/stage cells
+in its complete allocation, for 673 cells / 47,978 uncached predictions in total,
+plus 54 paired stage-score HF NLL endpoints; the comparison repeats no NLL. Exact matching weights/prompts are generated once
+within an allocation; cross-job deterministic cache reuse is forbidden. Controls
+have no seed replication. At the historical 1.22 s/question anchor this is 16.3
+process hours before cache reuse, NLL and model loads; it is not a measured SEC
+forecast. CPU exports hold zero GPUs. Actual GPU allocation receipts govern
+spend. Follow [README-4a-v6b.md](README-4a-v6b.md) for the right-sized accounting
+and manifest; the historical eight-GPU scoring conversion is superseded.
 
 The owner-approved 4A ceilings are **600 GPU-h for F/F+replay** and **800 for
 D/D+replay**, independent of the formula forecast. Combined with the matching

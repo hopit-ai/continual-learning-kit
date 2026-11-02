@@ -90,7 +90,7 @@ def job(a):
     require(original==returned,'compact archive readout differs')
     require(original['shared_study_gpu_hours']==.25,'collector omitted the nonzero synthetic tail cost')
     nll_files=[p for p in (out/'runs').glob('*/nll-*.json') if not p.name.endswith('.identity.json')]
-    require(len(nll_files)==90 and all(json.loads(p.read_text())['response_tokens']>0 for p in nll_files),'before/after NLL missing')
+    require(len(nll_files)==54 and all(json.loads(p.read_text())['response_tokens']>0 for p in nll_files),'before/after NLL missing')
     summary=dict(synthetic_tail_gpu_hours=.25,durable_omitted_hashes_checked=len(compact['omitted']),nll_readouts=len(nll_files),technical_synthetic=True,all_runbook_rows=True,score_cells=len(records),
         stages=len(list((out/'runs').glob('*/summary.json'))),question_rows=sum(len(r) for r in records.values()),
         failures=failures,resume_across_jobs=True,completed_stage_hashes_unchanged=True,archive_bytes=archive.stat().st_size,

@@ -1,10 +1,12 @@
 # Concurrent scoring on one allocated GPU
 
-`lane_pool.py` is an opt-in runner for independent, already ready commands belonging
+`lane_pool.py` is an opt-in runner for ordered commands belonging
 to **one** assignment lane. Request one node, one GPU and a per-GPU lease from the
 existing scheduling wrapper. All checkpoints and panels must be staged and bound
-by CPU jobs first. List every required input in `requires`; the entire plan exits
-PENDING (75) before GPU admission if any are absent. A child may also exit 75 or
+by CPU jobs first. List every required input in `requires`; the first command exits
+PENDING (75) before GPU admission if its inputs are absent. Later inputs are checked
+per command; outputs from a running predecessor can satisfy them. Once no command
+is running, an absent input returns PENDING immediately. A child may also exit 75 or
 the existing kit NotReady code 3;
 the runner stops admitting commands, lets active peers finish and returns PENDING.
 Other child failures mark the lane FAILED and return 1. There are no retries.
@@ -43,18 +45,21 @@ python -I kit/lane_pool.py --plan lane-plan.json --concurrency 3 --out lane-job
 ```
 
 The runner requires exactly one visible GPU, queries only the allocated device
-when `CUDA_VISIBLE_DEVICES` is set, checks any current allocation UUID assertion, pins
-children to the physical UUID and checks it again at every launch and completion.
+when `CUDA_VISIBLE_DEVICES` is set, records its measured UUID, and checks it again
+at every launch and completion. A historical desired UUID never refuses admission.
 `lane.json` records the plan hash, K, UUID, ordered commands, exit codes and wall
-times. A fresh output directory is required; do not combine receipts across jobs.
+times. A fresh output directory is required for each allocation. Completed command receipts
+survive a PENDING result. `--resume` reuses them only when the plan hash, measured
+UUID, inherited `KIT_LANE_JOB` nonce and `SLURM_JOB_ID` all match. A different
+allocation must re-score the complete contrast in a fresh tree.
 The U3 concurrency decision permits overlapping independent checkpoint commands;
 the same-GPU comparison rule remains mandatory for every checkpoint in the lane.
-Keep dependencies requiring scientific order in separate ready plans. Historical assignment maps remain unchanged. New complete jobs bind the actual
+List dependencies requiring scientific order on the dependent command. Historical assignment maps remain unchanged. New complete jobs bind the actual
 scheduler-selected UUID and re-score every input of a contrast. See
 [v6 allocation lanes](util70-integration.md).
 
-Starts are staggered by 20 seconds by default (configurable with
-`--stagger-seconds`, 0–60). This is a fixed delay between starts of ready commands,
+Direct CLI starts are staggered by 20 seconds by default (configurable with
+`--stagger-seconds`, 0–60); production `invocation()` uses zero. This is a fixed delay between starts of ready commands,
 never a wait for another job's output. An optional `--timeout-seconds` terminates
 active command process groups and writes FAILED when the controller deadline expires.
 Normal command failures let active peers finish. The enclosing scheduler's wall
@@ -75,18 +80,27 @@ every shared constructor also writes a separate engine receipt under
 `<lane-job>/<command-index>/engines/`, including likelihood engines with no standalone
 engine receipt. The scorer's score rows and response files are untouched.
 
-K=1 clears the override and uses each engine's original default. K=2 sets .42;
-K=3 sets .28, reserving at most 84% total for the engines. On an 80-GiB H100 this
-is 33.6 or 22.4 GiB per engine. Qwen3-8B BF16 weights need about 15.3 GiB.
-Its frozen configuration has 36 layers, 8 KV heads, head dimension 128:
-BF16 KV for a single 12,288-token sequence is
-`2 * 36 * 8 * 128 * 2 * 12288 = 1.6875 GiB` (1.125 GiB at 8192).
-Thus weights plus one full sequence fit analytically at K=3, leaving about
-5.4 GiB for activations, runtime and additional cache. This is a capacity estimate,
-not a measured startup guarantee. vLLM profiles runtime memory and fails closed
-if it cannot support the original context/sequence settings. Do not reduce
-`max_model_len`, `max_num_seqs`, doses or prompts to make a failed startup pass.
-The 27B TP2 teacher is outside this single-GPU runner's scope.
+K is selected per lane from every command's optional `engine` description:
+
+```json
+{"argv":["python","-I","kit/scorer.py","--model","/staged/model"],
+ "engine":{"backend":"vllm","model":"/staged/model","max_model_len":12288}}
+```
+
+K=3 is permitted only for Qwen3-8B vLLM at `max_model_len <= 12288`, with TP1.
+The model is the exact `Qwen/Qwen3-8B` identifier or a local `config.json` with
+its 8B geometry. The shared constructor rechecks actual model/context/TP kwargs
+before loading, so a plan cannot silently launch an unqualified engine. K=3 uses
+`.31` per process (93% total); K=2 vLLM uses `.42`. K=1 clears the override and
+preserves the original engine defaults. The lane's minimum qualified capacity
+caps the requested K, including an explicit CLI `--concurrency 3`.
+
+Absent profiles, other models, larger/unknown contexts, HF references and HF FP32
+PD scoring select K=1. Existing callers without engine descriptions therefore run
+serially. PD concurrency up to two requires the separately reviewed per-cell
+commands and qualification; this controller does not infer that approval. No
+three-process HF qualification is claimed. Do not reduce model context, sequences,
+doses or prompts to make startup pass. The TP2 teacher runs outside this pool.
 
 Concurrency changes timing and reservations; deterministic equality remains an
 acceptance condition to measure. It does not establish 70% utilisation in advance.

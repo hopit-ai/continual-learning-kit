@@ -2,6 +2,7 @@
 import copy
 import csv
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -285,7 +286,10 @@ def test_cli_failure_exit_codes_and_help(tmp_path):
     for name in ('bind','targets','train','score','read','collect'):
         done=subprocess.run([sys.executable,str(c.KIT/f'c_{name}.py'),'--help'],capture_output=True,text=True)
         assert done.returncode==0
-    done=subprocess.run([sys.executable,str(c.KIT/'c_score.py'),'--out',str(tmp_path/'pending'),'--standin','--arm','base','--seed','101','--step','0','--panel-set','test'],capture_output=True,text=True)
+    # A child interpreter reads the shipped file, independent of this process's
+    # disposable authority fixture; bind that child's exact input explicitly.
+    seal=c.s.file_hash(c.KIT/'resources/v6/infrastructure-update.json')
+    done=subprocess.run([sys.executable,str(c.KIT/'c_score.py'),'--out',str(tmp_path/'pending'),'--standin','--arm','base','--seed','101','--step','0','--panel-set','test'],capture_output=True,text=True,env=dict(os.environ,KIT_V6_AUTHORITY_SHA=seal,M2_INFRA_AUTHORITY_SHA256=seal))
     assert done.returncode==3 and 'NOT READY' in done.stdout
 
 

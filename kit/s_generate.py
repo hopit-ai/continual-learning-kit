@@ -6,6 +6,8 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.s_common import *
 from kit.s_freeze import partitions
+from kit.m2_model_cache import install as install_model_cache
+install_model_cache()
 import time
 
 

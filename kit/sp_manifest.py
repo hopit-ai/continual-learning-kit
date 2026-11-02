@@ -719,7 +719,7 @@ def build_sidecar(launches, inv, settings=None):
                                          '--sp', '{sp}', '--input', '{inputs}']])
     add('SP-read', [*panels, length, verify], [[py, '-I', '{kit}/sp_read.py', '--sidecar', '{sp}', '--inventory',
                                                 '{sp}/inventory.json', '--input', '{inputs}', '--out', '{sp}/tables']])
-    return dict(schema=SIDECAR_SCHEMA,lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),parent_launch_sha256=[digest(l) for l in launches],
+    return dict(schema=SIDECAR_SCHEMA,infrastructure_update=__import__('kit.v6_infra',fromlist=['identity']).identity(),lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),parent_launch_sha256=[digest(l) for l in launches],
                 inventory_sha256=inv['identity_sha256'], tasks=tasks)
 
 
@@ -1155,9 +1155,8 @@ def run(sidecar, task_id, values, maps, inputs=(), runner=subprocess.run):
     record=dict(task=task_id,started=time.time(),commands=[])
     runtime_env=dict(os.environ)
     try:
-        if 'lane_runtime' in sidecar:
-            from kit.v6_infra import verify_runtime
-            runtime_env['M2_INFRA_AUTHORITY_SHA256']=verify_runtime(sidecar['lane_runtime']) or ''
+        from kit.m3_manifest import launch_environment
+        runtime_env=launch_environment(sidecar)
         task = next(t for t in sidecar['tasks'] if t['id'] == task_id)
         record['assignment'] = task.get('assignment')
         if not task.get('uses_gpu'):
@@ -1172,19 +1171,42 @@ def run(sidecar, task_id, values, maps, inputs=(), runner=subprocess.run):
             prepared_path = state / (task['after'][0] + '.json')
             if not prepared_path.exists(): raise MissingInput('CPU preparation receipt absent')
             proof = json.loads(prepared_path.read_text())
-            if proof.get('status') != 'DONE': raise MissingInput('CPU preparation did not complete')
+            ready_entries=proof.get('entries',{})
+            if not ready_entries and proof.get('status') != 'DONE': raise MissingInput('CPU preparation has no bound entries')
             receipt = Path(values['{sp}']) / 'pool-verification.json'
             if not receipt.exists() or proof.get('pool_verification_sha256') != digest(json.loads(receipt.read_text())):
                 raise MissingInput('CPU pool verification absent/changed')
             maps=dict(maps,observed_parent_gpu_uuids=proof.get('observed_parent_gpu_uuids',[]),allocation_scoring=True)
-            commands = [[substitute(a, values, maps) for a in expand_inputs(raw, inputs)] for raw in commands]
-        if task.get('uses_gpu') and runner is subprocess.run:
+        if task.get('uses_gpu'):
+            admitted=[]
+            for raw in commands:
+                entry=Path(raw[raw.index('--entry')+1]).stem if '--entry' in raw else None
+                try:
+                    if ready_entries and ready_entries.get(entry,{}).get('status')!='DONE':
+                        raise MissingInput('entry CPU binding missing')
+                    admitted.append([substitute(a,values,maps) for a in expand_inputs(raw,inputs)])
+                except MissingInput as exc:
+                    record['commands'].append(dict(entry_id=entry,status='MISSING-INPUT',error=str(exc)))
+                except Exception as exc:
+                    record['commands'].append(dict(entry_id=entry,status='FAILED',error=type(exc).__name__))
+            commands=admitted
+        if task.get('uses_gpu') and runner is subprocess.run and commands:
             from kit.lane_pool import execute
-            code=execute(commands,state/'lane-attempts'/(task_id+'-'+str(time.time_ns())),env=dict(runtime_env,SP_POOL_CHILD='1'))
-            record['commands']=[dict(entry_id=c[c.index('--entry')+1] if '--entry' in c else None,
-                status='DONE' if code==0 else 'MISSING-INPUT' if code in (3,75) else 'FAILED',returncode=code) for c in commands]
+            directory=state/'lane-attempts'/(task_id+'-'+str(time.time_ns()))
+            results=directory.with_name(directory.name+'-entries');results.mkdir(parents=True)
+            from kit.score_forgetting import ENGINE
+            children=[dict(argv=[sys.executable,'-I',str(Path(__file__).resolve()),'score-child','--status',str(results/(str(i)+'.json')),'--',*command],
+                engine=dict(backend='vllm',model=command[command.index('--model')+1],max_model_len=ENGINE['max_model_len'])
+                    if '--model' in command and str(Path(__file__).with_name('sp_score.py')) in command else {})
+                      for i,command in enumerate(commands)]
+            code=execute(children,directory,env=dict(runtime_env,SP_POOL_CHILD='1'),pass_fds=tuple(json.loads(runtime_env.get('M3_GPU_LOCK_FDS','[]'))))
+            for i,command in enumerate(commands):
+                result_path=results/(str(i)+'.json')
+                result=json.loads(result_path.read_text()) if result_path.is_file() else dict(status='FAILED',returncode=code)
+                record['commands'].append(dict(entry_id=Path(command[command.index('--entry')+1]).stem if '--entry' in command else None,**result))
             commands=[]
         prepared = True
+        entry_status={}
         for raw in commands:
             item = dict(script=next((Path(str(v)).name for v in raw[1:] if str(v).endswith('.py')), None))
             if '--entry-id' in raw:
@@ -1204,8 +1226,12 @@ def run(sidecar, task_id, values, maps, inputs=(), runner=subprocess.run):
                 item.update(status='FAILED', error=type(exc).__name__)
             item['wall_seconds'] = time.monotonic() - started
             record['commands'].append(item)
+            if task['id'].startswith('SP-prepare-') and item.get('entry_id'):
+                previous=entry_status.get(item['entry_id'],{}).get('status','DONE')
+                entry_status[item['entry_id']]=dict(status=previous if previous!='DONE' else item['status'])
             if any(str(v).endswith('/sp_manifest.py') for v in raw) and 'entry' in raw:
                 prepared = item['status'] == 'DONE'
+        if task['id'].startswith('SP-prepare-'): record['entries']=entry_status
         statuses = {c['status'] for c in record['commands']}
         record['status'] = 'FAILED' if 'FAILED' in statuses else 'MISSING-INPUT' if 'MISSING-INPUT' in statuses else 'DONE'
     except MissingInput as exc:
@@ -1363,7 +1389,20 @@ def run_length(inv, sp_root, inputs):
     return out
 
 
+def score_child(argv):
+    """Keep one missing entry from cancelling other independent pool cells."""
+    marker=argv.index('--');path=Path(argv[argv.index('--status')+1])
+    try:
+        result=subprocess.run(argv[marker+1:],pass_fds=tuple(json.loads(os.environ.get('M3_GPU_LOCK_FDS','[]'))))
+        value=dict(status='DONE' if result.returncode==0 else 'MISSING-INPUT' if result.returncode in (3,75) else 'FAILED',returncode=result.returncode)
+    except Exception as exc: value=dict(status='FAILED',error=type(exc).__name__)
+    path.write_text(json.dumps(value,sort_keys=True)+'\n')
+    return 0
+
+
 def main(argv=None):
+    arguments=sys.argv[1:] if argv is None else argv
+    if arguments and arguments[0]=='score-child': return score_child(arguments[1:])
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('action', choices=('inventory', 'sidecar', 'validate', 'price', 'run', 'entry', 'length', 'verify-pools', 'hardware'))
     p.add_argument('--launch', type=Path, action='append', default=[]); p.add_argument('--pd', type=Path)
@@ -1398,7 +1437,8 @@ def main(argv=None):
             if not os.environ.get('UTIL_WATCH_ACTIVE'):
                 env = dict(os.environ, UTIL_WATCH_ACTIVE='1')
                 return subprocess.run(watched([sys.executable, '-I', str(Path(__file__).resolve()), *(argv if argv is not None else sys.argv[1:])], a.sp / 'util' / a.task / (str(time.time_ns())+'.jsonl')), env=env).returncode
-            with allocation_reservation(allocated_gpus(1)):
+            with allocation_reservation(allocated_gpus(1)) as fds:
+                os.environ['M3_GPU_LOCK_FDS']=json.dumps(fds)
                 return run(sidecar, a.task, values, maps, a.input)
         return run(sidecar, a.task, values, maps, a.input)
     if a.action == 'hardware':

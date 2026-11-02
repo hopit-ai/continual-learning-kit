@@ -3,7 +3,7 @@
 
 Plan: [{"argv":["python","-I","kit/scorer.py",...],"requires":["export/config.json",...]}].
 Paths and commands are relative to the submitting working directory. All prerequisites
-are checked before querying the GPU. Missing => PENDING (exit 75), never wait/retry.
+are checked at admission of each command. Missing => PENDING (exit 75), never wait for external work.
 Use fresh output trees for every command; never merge scores from separate lane jobs.
 The scheduler wrapper owns the per-GPU lease and util_watch.py invocation.
 """
@@ -67,6 +67,26 @@ def gpu_uuid():
     return uuid
 
 
+def capacity(command):
+    """Only explicitly described, qualified vLLM lanes may overlap models.
+
+    Missing engine descriptions (including HF references/PD) select K=1.
+    A local model must identify Qwen3-8B in config.json; a directory name is
+    insufficient. The constructor independently checks the actual engine kwargs.
+    """
+    engine=command.get('engine',{})
+    if not isinstance(engine,dict):return 1
+    if engine.get('backend')=='hf' and engine.get('profile') in ('reference-bf16','pd-fp32'):return 2
+    if engine.get('backend')!='vllm':return 1
+    model=engine.get('model');length=engine.get('max_model_len')
+    if not isinstance(length,int) or isinstance(length,bool) or not 0<length<=12288:return 1
+    if model=='Qwen/Qwen3-8B':return 3
+    try:
+        config=json.loads((Path(model)/'config.json').read_text())
+        if all(config.get(k)==v for k,v in dict(model_type='qwen3',hidden_size=4096,
+                num_hidden_layers=36,num_attention_heads=32,num_key_value_heads=8,intermediate_size=12288).items()):return 3
+    except (OSError,ValueError,TypeError):pass
+    return 1
 def recheck_uuid():
     # Admission already validated the allocation scope. A malformed later NVML
     # response is unknown telemetry, not evidence that the physical GPU changed.
@@ -78,8 +98,8 @@ def load_plan(path):
     raw=path.read_bytes();plan=json.loads(raw)
     if not isinstance(plan,list) or not plan:raise ValueError('nonempty ordered command list required')
     for command in plan:
-        if not isinstance(command,dict) or set(command)-{'argv','requires'}:
-            raise ValueError('command must contain argv and optional requires only')
+        if not isinstance(command,dict) or set(command)-{'argv','requires','engine'}:
+            raise ValueError('command must contain argv and optional requires/engine only')
         argv=command.get('argv');requires=command.get('requires',[])
         if not isinstance(argv,list) or not argv or any(not isinstance(v,str) or not v for v in argv):
             raise ValueError('argv must be nonempty strings; shell commands are not accepted')
@@ -88,21 +108,33 @@ def load_plan(path):
     return plan,hashlib.sha256(raw).hexdigest()
 
 
-def run(plan_path,concurrency,out,stagger_seconds=20,timeout_seconds=None):
+def run(plan_path,concurrency,out,stagger_seconds=20,timeout_seconds=None,resume=False):
     if concurrency not in FRACTIONS:raise ValueError('concurrency must be 1, 2 or 3')
     if not 0<=stagger_seconds<=60:raise ValueError('stagger must be between 0 and 60 seconds')
     if timeout_seconds is not None and (not math.isfinite(timeout_seconds) or timeout_seconds<=0):
         raise ValueError('timeout must be finite and positive')
-    plan,digest=load_plan(Path(plan_path));out=Path(out);out.mkdir(parents=True,exist_ok=False)
+    plan,digest=load_plan(Path(plan_path));out=Path(out)
+    requested=concurrency;concurrency=min(concurrency,*(capacity(c) for c in plan))
+    previous=None
+    if resume:
+        previous=json.loads((out/'lane.json').read_text())
+        if previous['plan_sha256']!=digest or previous['status']!='PENDING' or not os.environ.get('SLURM_JOB_ID') or previous.get('allocation_id')!=os.environ['SLURM_JOB_ID'] or not os.environ.get('KIT_LANE_JOB') or previous.get('job_id')!=os.environ['KIT_LANE_JOB']:
+            raise ValueError('resume requires the same plan, allocation and lane nonce; rescore the complete contrast in a new allocation')
+        if previous['uuid']!=gpu_uuid():raise ValueError('resume GPU UUID changed')
+    else:out.mkdir(parents=True,exist_ok=False)
     commands=[dict(index=i,argv=c['argv'],requires=c.get('requires',[]),uuid=None,
         exit_code=None,start=None,end=None,status='NOT_RUN') for i,c in enumerate(plan)]
-    record=dict(schema='kit-lane-pool.v1',plan_sha256=digest,K=concurrency,uuid=None,
+    if previous:
+        for i,c in enumerate(previous['commands']):
+            if c['status']=='COMPLETE':commands[i]=c
+    record=dict(schema='kit-lane-pool.v1',plan_sha256=digest,K=concurrency,requested_K=requested,uuid=None,
         gpu_memory_fraction=FRACTIONS[concurrency],stagger_seconds=stagger_seconds,
-        start=time.time(),end=None,status='RUNNING',commands=commands)
+        start=previous['start'] if previous else time.time(),end=None,status='RUNNING',commands=commands,
+        allocation_id=os.environ.get('SLURM_JOB_ID'))
     active={};next_index=0;last_start=None;error=None
     deadline=None if timeout_seconds is None else time.monotonic()+timeout_seconds
     try:
-        missing=[p for c in commands for p in c['requires'] if not Path(p).exists()]
+        missing=[p for p in commands[0]['requires'] if not Path(p).exists()]
         if missing:
             record.update(status='PENDING',missing=missing)
         else:
@@ -116,6 +148,7 @@ def run(plan_path,concurrency,out,stagger_seconds=20,timeout_seconds=None):
             record['job_id']=env['KIT_LANE_JOB']   # keep the inherited index: vLLM rejects UUIDs
             if concurrency>1:env['KIT_GPU_MEMORY_FRACTION']=str(FRACTIONS[concurrency])
             else:env.pop('KIT_GPU_MEMORY_FRACTION',None)
+            env['KIT_LANE_CONCURRENCY']=str(concurrency)
             while active or next_index<len(commands):
                 if deadline is not None and time.monotonic()>=deadline:
                     raise TimeoutError('lane deadline exceeded')
@@ -135,13 +168,20 @@ def run(plan_path,concurrency,out,stagger_seconds=20,timeout_seconds=None):
                 elif next_index<len(commands) and len(active)<concurrency and (
                         not active or last_start is None or time.monotonic()-last_start>=stagger_seconds):
                     command=commands[next_index]
+                    if command['status']=='COMPLETE':
+                        next_index+=1;continue
                     # Recheck immediately before starting, but never wait for a prerequisite.
-                    if any(not Path(p).exists() for p in command['requires']):
-                        command['status']='PENDING';record['status']='PENDING';continue
+                    missing=[p for p in command['requires'] if not Path(p).exists()]
+                    if missing:
+                        if active:
+                            time.sleep(.05);continue  # a running producer may supply it
+                        command['status']='PENDING';record.update(status='PENDING',missing=missing);continue
                     current=recheck_uuid()
                     if current is not None and current!=uuid:raise ValueError('lane GPU UUID changed')
                     if current is None:record.setdefault('uuid_query_warnings',[]).append(next_index)
-                    directory=out/str(next_index);directory.mkdir()
+                    directory=out/str(next_index)
+                    if directory.exists():directory.rename(out/(str(next_index)+'-attempt-'+str(time.time_ns())))
+                    directory.mkdir()
                     child_env=dict(env,KIT_ENGINE_RECEIPT_DIR=str((directory/'engines').resolve()))
                     log=(directory/'command.log').open('x')
                     command.update(uuid=uuid,start=time.time(),status='RUNNING')
@@ -173,11 +213,13 @@ def run(plan_path,concurrency,out,stagger_seconds=20,timeout_seconds=None):
     return record
 
 
-def invocation(commands,directory,python=None,concurrency=3,stagger_seconds=20):
+def invocation(commands,directory,python=None,concurrency=3,stagger_seconds=0):
     """Freeze one fresh ordered plan. CPU callers may prepare it before allocation."""
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=False)
     plan=directory/'plan.json'
-    write(plan,[c if isinstance(c,dict) else dict(argv=[str(v) for v in c]) for c in commands])
+    commands=[c if isinstance(c,dict) else dict(argv=[str(v) for v in c]) for c in commands]
+    write(plan,commands)
+    concurrency=min(concurrency,*(capacity(c) for c in commands))
     return [str(python or sys.executable),'-I',str(Path(__file__).resolve()),'--plan',str(plan),
         '--concurrency',str(concurrency),'--stagger-seconds',str(stagger_seconds),'--out',str(directory/'run')]
 
@@ -193,10 +235,11 @@ def main(argv=None):
     parser.add_argument('--concurrency',type=int,choices=FRACTIONS,required=True)
     parser.add_argument('--stagger-seconds',type=float,default=20)
     parser.add_argument('--timeout-seconds',type=float)
+    parser.add_argument('--resume',action='store_true')
     args=parser.parse_args(argv)
     def stop(signum,frame):raise KeyboardInterrupt('lane controller signal '+str(signum))
     previous=signal.signal(signal.SIGTERM,stop)
-    try:record=run(args.plan,args.concurrency,args.out,args.stagger_seconds,args.timeout_seconds)
+    try:record=run(args.plan,args.concurrency,args.out,args.stagger_seconds,args.timeout_seconds,args.resume)
     finally:signal.signal(signal.SIGTERM,previous)
     print(record['status'])
     return 0 if record['status']=='COMPLETE' else PENDING if record['status']=='PENDING' else 1

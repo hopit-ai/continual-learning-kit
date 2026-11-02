@@ -108,10 +108,16 @@ def ensure(a,doc,calibration):
         require(not (root/'terminal-failure.json').exists(),'completed disposable pass failed; no retry')
         if receipt.exists():
             validate_local(a.out,doc,a.seed);return True
+        from kit import m2_train
+        if os.environ.get('M2_EXECUTION_PHASE')=='publish' and (root/'pending.json').exists():return False
+        if m2_train.defer_exports():
+            # Use the frozen CPU plan, but retain the registered disposable
+            # process classification and its single fresh interruption retry.
+            m2_train.run_prepared(a,runner=disposable_process)
+            seal(a.out,doc,a.seed,expected);return True
         from kit.x_common import incoming,m
         require(m.checked_model(incoming(doc,a.seed),False)==incoming(doc,a.seed)['identity'],'disposable preflight incoming changed')
         from kit.x_p2_measure import runtime
-        from kit import m2_train
         run=root/'run';data=a.out/'p2-data'/f's{a.seed}'
         m.frozen_files(data)
         require(sha(data/'manifest.json')==read(a.out/'p2'/f's{a.seed}'/'schedule.json')['data_manifest_sha256'],'disposable preflight data differ from X4')
@@ -120,15 +126,16 @@ def ensure(a,doc,calibration):
         cmd=runtime(env,cmd,mode='train',batch=a.out/'p2'/f's{a.seed}',run=run,anchor=doc['p2_anchor']['model'],seed=a.seed,value=calibration['coefficient']['value'])
         cmd=runtime_identity(env,cmd,root/'identity.json',expected)
         if m2_train.published_training(a):
-            atomic(run/'process-exit.json',dict(returncode=0))
+            require((run/'process-exit.json').is_file(),'disposable process exit missing')
         if run.exists():
             if (run/'process-exit.json').exists():
                 require(read(run/'process-exit.json')['returncode']==0,'completed disposable process failed; no retry')
                 seal(a.out,doc,a.seed,expected);return True
-            require(not (root/'run.interrupted-1').exists(),'disposable retry already consumed')
-            run.rename(root/'run.interrupted-1')
+            if (run/'interrupted.json').exists():
+                require(not (root/'run.interrupted-1').exists(),'disposable retry already consumed')
+                run.rename(root/'run.interrupted-1')
         cmd=[v for v in cmd if not v.startswith('trainer.save_freq=')]+['trainer.save_freq=40']
-        run.mkdir(parents=True);atomic(run/'command.json',cmd)
+        run.mkdir(parents=True,exist_ok=True);atomic(run/'command.json',cmd)
         measured=[read(a.out/'p2'/f's{a.seed}'/f'geometry-r{r}.json') for r in range(8)]
         for r,value in enumerate(measured):
             require(value['rank']==r,'X4 resource rank missing');check_rank(value,dict(expected,calibration_sha256=None),read(SETTINGS),measurement=True)
@@ -138,16 +145,7 @@ def ensure(a,doc,calibration):
             return False
         start=time.monotonic()
         try:
-            try:
-                subprocess.run(cmd,cwd=a.sdpo,env=env,check=True)
-                atomic(run/'process-exit.json',dict(returncode=0))
-            except subprocess.CalledProcessError as error:
-                if error.returncode in (-15,-9,143,137):
-                    from kit.x_memory import sample
-                    if sample(node=True).get('oom_kill')==0:
-                        atomic(run/'interrupted.json',dict(returncode=error.returncode,oom_kill=0))
-                        raise InterruptedError('disposable pass interrupted; one fresh requeue allowed') from error
-                atomic(run/'process-exit.json',dict(returncode=error.returncode));raise
+            disposable_process(cmd,cwd=a.sdpo,env=env)
         finally:atomic(run/'cost.json',dict(gpu_hours=8*(time.monotonic()-start)/3600,seconds=time.monotonic()-start,disposable=True))
         seal(a.out,doc,a.seed,expected);return True
     except (ValueError,KeyError,OSError,TypeError,RuntimeError,subprocess.CalledProcessError) as error:
@@ -161,6 +159,20 @@ def ensure(a,doc,calibration):
         atomic(a.out/'p2/feasibility'/f's{a.seed}'/'failure.json',dict(status='FAIL',reason=str(error),p2_only=True))
         (failed_root/'pending.json').unlink(missing_ok=True)
         return False
+
+
+def disposable_process(cmd,*,cwd,env,pass_fds=()):
+    run=Path(env['X_P2_RUN'])
+    try:done=subprocess.run(cmd,cwd=cwd,env=env,pass_fds=pass_fds)
+    except subprocess.CalledProcessError as error:done=NS(returncode=error.returncode)
+    if done.returncode in (-15,-9,143,137):
+        from kit.x_memory import sample
+        if sample(node=True).get('oom_kill')==0:
+            atomic(run/'interrupted.json',dict(returncode=done.returncode,oom_kill=0))
+            raise InterruptedError('disposable pass interrupted; one fresh requeue allowed')
+    atomic(run/'process-exit.json',dict(returncode=done.returncode))
+    if done.returncode:raise subprocess.CalledProcessError(done.returncode,cmd)
+    return done
 
 
 def retry_pending(out,seed):
