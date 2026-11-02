@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace as NS
 import pytest
+from kit_authority import sealed_v6_authority
 from kit import ref_guard as guard, ref_score_job as job
 from kit.p3b_common import atomic, files_manifest
 
@@ -73,8 +74,10 @@ def test_dispatch_calls_the_validation_references_without_production_math(root, 
     monkeypatch.setattr(job, 'source_for', lambda *a: (dict(model='native-export'), dict(model_file_hashes={'x': 'y'})))
     original = m2_assignment.active
     monkeypatch.setattr(m2_assignment, 'active', lambda out, gpu, standin: original(out, gpu, True))
+    monkeypatch.setattr(job, 'model_metadata', lambda *a: {'file': [1,2,3,4,5]})
     for panel in guard.PANELS:
-        job.run(NS(out=root, family='m3', checkpoints=root / 'checkpoints.json', seed=101, panel=panel, gpu='0', standin=False))
+        a = NS(out=root, family='m3', checkpoints=root / 'checkpoints.json', seed=101, panel=panel, gpu='0', standin=False)
+        job.prepare(a); job.run(a)
     assert len(calls) == 4 and all(c[0] == 'native-export' and c[2] == 100 for c in calls)
 
 
@@ -183,7 +186,7 @@ def test_m3_contrasts_label_reference_mixed_and_hardware():
     assert value['label']=='PENDING' and value['reason']=='REFERENCE-SCORED required for decision checkpoint guards'
 
 
-def test_m_reader_uses_reference_knowledge_without_letter_gate():
+def test_m_reader_uses_reference_knowledge_without_letter_gate(reference_infrastructure):
     from kit.m2_read import analyse
     from kit.m3_score import knowledge_items
     rows = [dict(arm=arm, seed=seed, step=step, cap=2048, panel='knowledge', question_id=r['id'], correct=1,
@@ -270,7 +273,7 @@ def test_text_return_preserves_public_reference_and_hardware_labels():
     assert label('UNVERIFIED-HARDWARE') == 'UNVERIFIED-HARDWARE'
 
 
-def test_x_and_tier2_guard_values_gate_on_method_and_recorded_gpu(monkeypatch):
+def test_x_and_tier2_guard_values_gate_on_method_and_recorded_gpu(monkeypatch,reference_infrastructure):
     from kit import x_read, m2_score, x_tier2_read, x_tier2
     def items(panel, *args):
         if panel == 'general-v1':
@@ -367,3 +370,111 @@ def test_reference_method_labels_round_trip_without_checksum_changes(tmp_path):
     assert set(parsed['part_checksums'].values())=={'MATCH'}
     methods=[e['method'] for e in parsed['endpoints'].values() if guard.METHOD in e['method']]
     assert methods and all(' ' not in method and method.endswith(guard.METHOD) for method in methods)
+
+
+def test_assignment_accepts_distinct_reviewed_panel_lanes(root, tmp_path):
+    assignment = root / guard.ASSIGNMENT
+    assignment.unlink(); assignment.with_suffix('.json.sha256').unlink()
+    lanes = {f'm3.{panel}|{seed}': dict(node='CPU-STANDIN', uuid=f'GPU-{seed}-{panel}', environment='env')
+             for seed in (101,102,103) for panel in guard.PANELS}
+    path = tmp_path / 'lanes.json'
+    atomic(path, dict(schema='message2-scoring-assignment.v2', assignments=lanes))
+    job.assign(NS(out=root, family='m3', from_assignment=None, lane_assignment=path))
+    assert json.loads(assignment.read_text())['assignments'] == lanes
+    assert lanes['m3.hellaswag|101']['uuid'] != lanes['m3.knowledge-ll|101']['uuid']
+
+
+def test_missing_late_reference_checkpoint_stops_before_first_score(root, monkeypatch):
+    calls = []
+    def source(out, family, checkpoint, standin):
+        if checkpoint['arm'] == 'K': raise ValueError('missing late checkpoint')
+        calls.append('base-resolved')
+        return {}, {}
+    monkeypatch.setattr(job, 'source_for', source)
+    from kit import m3_score
+    monkeypatch.setattr(m3_score, 'knowledge_reference', lambda *a: pytest.fail('partial lane scored'))
+    with pytest.raises(ValueError, match='missing late'):
+        score(root)
+    assert calls == ['base-resolved'] and not (root / 'reference-scores').exists()
+
+
+def test_native_validator_uses_reference_authority_and_still_checks_every_reference_hash(root):
+    from kit.m2_assignment import validate_files
+    score(root)
+    files=guard.local_files(root)
+    files['scoring-assignment.json']=(root/'m3-scoring-assignment.json').read_bytes()
+    validate_files(files,require_assignment=True)
+    name=next(n for n in files if n.startswith('reference-scores/') and n.endswith('/likelihoods.json'))
+    broken=dict(files);broken[name]=b'changed likelihoods'
+    with pytest.raises(ValueError,match='hash changed'):validate_files(broken,require_assignment=True)
+
+
+def test_reference_history_is_preserved_without_duplicating_reader_cells(root):
+    from kit.p3b_read import load
+    score(root)
+    a=NS(out=root,family='m3',seed=101,panel='knowledge-ll',checkpoints=root/'checkpoints.json',standin=True,gpu='0')
+    for _ in range(2):
+        job.prepare(a);job.run(a)
+    assert len(list((root/'reference-history').rglob('scores.csv')))==4
+    rows,files=load(root)
+    assert len(rows)==200 and all(r['_guard_method']==guard.METHOD for r in rows)
+    from kit.m2_assignment import validate_files
+    files['scoring-assignment.json']=(root/'m3-scoring-assignment.json').read_bytes()
+    validate_files(files,require_assignment=True)
+
+
+@pytest.fixture
+def reference_infrastructure(sealed_v6_authority):
+    """Use the committed exact pairs; never rehash code or append duplicate pairs."""
+    return sealed_v6_authority
+
+
+def test_merged_reference_panels_load_once_and_preserve_cpu_likelihoods(root,monkeypatch):
+    """Run the unchanged reductions on CPU tensors, standalone and shared net."""
+    import sys
+    from types import ModuleType
+    torch=pytest.importorskip('torch')
+    from kit import m3_score,m2_format,m2_assignment,m2_gpu,hellaswag_reference
+    loads=[]
+    class Tokenizer:
+        def encode(self,text,**kw):return [ord(c)%8 for c in text]
+    class Net:
+        def to(self,device):assert device=='cuda';return self
+        def eval(self):return self
+        def __call__(self,input_ids,use_cache):
+            assert use_cache is False
+            logits=torch.arange(8,dtype=torch.float32).repeat(1,input_ids.shape[1],1)
+            return NS(logits=logits)
+    def load(*args,**kw):
+        assert kw==dict(local_files_only=True,torch_dtype=torch.bfloat16)
+        loads.append(args[0]);return Net()
+    fake=ModuleType('transformers')
+    fake.AutoModelForCausalLM=NS(from_pretrained=load)
+    fake.AutoTokenizer=NS(from_pretrained=lambda *a,**kw:Tokenizer())
+    monkeypatch.setitem(sys.modules,'transformers',fake)
+    tensor=torch.tensor
+    monkeypatch.setattr(torch,'tensor',lambda *a,**kw:tensor(*a,**dict(kw,device='cpu')))
+    monkeypatch.setattr(torch.cuda,'empty_cache',lambda:None)
+    monkeypatch.setattr(m2_gpu,'assert_current',lambda:None)
+    monkeypatch.setattr(m2_format,'tokenizer_identity',lambda p:None)
+    population=[dict(id=f'hs-{i}',label=0,activity_label='Test',ctx_a='Context',ctx_b='continues',
+        endings=['a','bb','ccc','dddd']) for i in range(100)]
+    monkeypatch.setattr(m2_format,'items',lambda *a:population)
+    # The ordinary HellaSwag adapter isolates CUDA in a subprocess. CPU test
+    # calls that identical implementation locally to supply the fake SDK.
+    monkeypatch.setattr(hellaswag_reference,'score',hellaswag_reference._score)
+    monkeypatch.setattr(job,'source_for',lambda *a:(dict(model='export'),dict(model_file_hashes={'x':'y'})))
+    monkeypatch.setattr(job,'model_metadata',lambda *a:{'file':[1,2,3,4,5]})
+    active=m2_assignment.active
+    monkeypatch.setattr(m2_assignment,'active',lambda out,gpu,standin:active(out,gpu,True))
+    for panel in guard.PANELS:
+        job.prepare(NS(out=root,family='m3',checkpoints=root/'checkpoints.json',seed=101,panel=panel,gpu='0',standin=False))
+    expected={}
+    for panel in guard.PANELS:
+        job.run(NS(out=root,family='m3',checkpoints=root/'checkpoints.json',seed=101,panel=panel,gpu='0',standin=False))
+        expected.update({p.parent.name:json.loads(p.read_text())['rows'] for p in (root/'reference-scores').rglob('likelihoods.json')})
+    assert len(loads)==4
+    loads.clear();merged=root/'merged';monkeypatch.setenv('REF_ATTEMPT_ROOT',str(merged))
+    job.run(NS(out=root,family='m3',checkpoints=root/'checkpoints.json',seed=101,panel='both',gpu='0',standin=False))
+    actual={p.parent.name:json.loads(p.read_text())['rows'] for p in merged.rglob('likelihoods.json')}
+    assert actual==expected and len(actual)==4 and loads==['export','export']

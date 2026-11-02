@@ -28,6 +28,80 @@ from text_return_fixtures import full_inputs, m3_cells
 COMMIT='a'*40
 
 
+@pytest.fixture(scope='module',autouse=True)
+def prospective_test_authority(tmp_path_factory):
+    """Generate a disposable authority for this changed CPU test build only.
+
+    The release authority remains manager-owned and is never rewritten here.
+    """
+    if not (ROOT/'.git').exists():
+        yield  # A release copy uses the manager's final committed authority.
+        return
+    from scripts.v6_infra_authority import generate
+    from kit import v6_infra
+    path=tmp_path_factory.mktemp('test-authority')/'authority.json'
+    path.write_text(json.dumps(generate('main'),sort_keys=True))
+    with pytest.MonkeyPatch.context() as scope:
+        scope.setattr(v6_infra,'AUTHORITY',str(path))
+        scope.setenv('M2_INFRA_AUTHORITY_SHA256',hashlib.sha256(path.read_bytes()).hexdigest())
+        yield
+
+
+def test_utilisation_weighting_unknowns_cpu_and_duplicate_attempts(tmp_path):
+    def save(name,**kw):
+        path=tmp_path/(name+'.summary.json');path.write_text(json.dumps(kw));return str(path)
+    first=save('one',gpus=1,wall_s=10,mean_util=80,min_window_mean=70,seconds_below_70=2,telemetry_complete=True)
+    second=save('two',gpus=2,wall_s=20,mean_util=50,min_window_mean=40,seconds_below_70=10,telemetry_complete=True)
+    cpu=save('cpu',gpus=0,wall_s=30,mean_util=None,min_window_mean=None,seconds_below_70=None,telemetry_complete=True)
+    r=report.utilisation([dict(family='KCR',summaries=[first,second,cpu])])['KCR']
+    assert r==dict(jobs=3,gpus=3,mean_util=56.,worst_window=40,seconds_below_70=12)
+    assert report.utilisation([dict(family='core',summaries=[cpu])])['core']['mean_util'] is None
+    r=report.utilisation([dict(family='KCR',summaries=[first,str(tmp_path/'missing')])])['KCR']
+    assert r['jobs']==2 and r['mean_util'] is None and r['gpus'] is None
+    assert report.utilisation([dict(family='SP',roots=[str(tmp_path/'absent')])])['SP']['mean_util'] is None
+    orphan=tmp_path/'interrupted.jsonl';orphan.touch()
+    result=report.utilisation([dict(family='KCR',roots=[str(tmp_path)])])['KCR']
+    assert result['jobs']==4 and result['mean_util'] is None
+    invalid=tmp_path/'bad.summary.json';invalid.write_text('[]')
+    assert report.utilisation([dict(family='PD',summaries=[str(invalid)])])['PD']['gpus'] is None
+    with pytest.raises(ValueError,match='duplicate'):report.utilisation([dict(family='KCR',summaries=[first,first])])
+    with pytest.raises(ValueError,match='family'):report.utilisation([dict(family='private-host',summaries=[])])
+
+
+def test_utilisation_part3_roundtrip_supplements_privacy_and_limits(tmp_path):
+    source=tmp_path/'telemetry';source.mkdir()
+    summary=dict(job='private-job-99123456789',gpu_uuids=['GPU-private'],gpus=2,wall_s=10,
+        mean_util=65.123456,min_window_mean=40.123456,seconds_below_70=7.123456,telemetry_complete=True)
+    (source/'one.summary.json').write_text(json.dumps(summary))
+    parts=report.report(dict(utilisation=[dict(family='KCR',roots=[str(source)])]),tmp_path/'text',tag='kit-test',commit=COMMIT)
+    assert 3<=len(parts)<=4
+    texts=[p.read_text() for p in parts];combined=''.join(texts)
+    line='T|UTIL|KCR|1|2|65.12|40.12|7.123'
+    assert line in texts[2] and 'GPU-private' not in combined and '99123456789' not in combined
+    assert all(len(t)<=12000 and all(len(v)<=90 for v in t.splitlines()) for t in texts)
+    parsed=transport.parse_parts([mangle(t) for t in texts])
+    assert parsed['utilisation']['KCR']['mean_util']==65.12
+    assert parsed['utilisation']['KCR']['independent_reverification']=='UNVERIFIED'
+    full=list((tmp_path/'text/full').glob('RETURN-TEXT-*.md'))
+    supplement=next(p for p in full if line in p.read_text())
+    merged=transport.parse_parts([mangle(supplement.read_text())],base=parsed)
+    assert merged['utilisation']==parsed['utilisation']
+    with pytest.raises(ValueError,match='utilisation conflict'):
+        transport.parse_parts([supplement.read_text().replace('65.12','65.13')],base=parsed)
+
+
+def test_utilisation_exhaustive_essential_scope_keeps_four_part_budget(essential,tmp_path):
+    raw,_=essential
+    raw=dict(raw,utilisation={family:dict(jobs=123,gpus=456,mean_util=75.1234,worst_window=51.2345,seconds_below_70=12345.678)
+        for family in report.UTIL_FAMILIES})
+    parts=transport.write_parts(tmp_path/'text',raw,'kit-test',COMMIT)
+    assert len(parts)<=4
+    texts=[p.read_text() for p in parts]
+    assert all(len(t)<=12000 for t in texts)
+    parsed=transport.parse_parts([mangle(t) for t in texts])
+    assert set(parsed['utilisation'])==set(report.UTIL_FAMILIES)
+
+
 def test_actual_release_identity_overrides_stale_export_label(tmp_path):
     """A v4 checkout must not repeat a v3 publisher's stale identity label."""
     kit=tmp_path/'kit';kit.mkdir()
@@ -190,7 +264,7 @@ def test_structural_damage_is_reported_even_with_advisory_checksums(small):
 def logical_rows(text):
     """Recover the writer's logical rows without making transport assumptions."""
     raw=''.join(text.splitlines()[1:-1])
-    prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE))'
+    prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE|UTIL))'
     return [r for r in re.split('(?='+prefix+')',raw) if r]
 
 
@@ -280,7 +354,7 @@ def test_numeric_looking_private_key_is_never_printed():
 
 def test_public_jobs_resolve_from_essential_ops_without_private_manifest(tmp_path):
     labels,digest=transport.job_inventory()
-    name='PD-101';assert name in labels
+    name='PD-101-train';assert name in labels
     manifest=tmp_path/'manifest.local.json';manifest.write_text(json.dumps(dict(tasks=[dict(id=name)])))
     state=tmp_path/'state';state.mkdir();(state/(name+'.json')).write_text('{"status":"DONE"}')
     rows,_=report.job_summary([dict(family='PD',manifest=str(manifest),state=str(state))])

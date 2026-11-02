@@ -89,3 +89,20 @@ scoring work, by assignment and arm/seed. Missing load/score/receipt timings are
 Measured lower totals exceeding 24 hours carry WALL-TIME RISK even if other timings are missing.
 Timing never gates a result. PD timing is separate. No paid or remote execution is performed by
 these wrappers.
+
+## Allocation split (v6)
+
+`SP-verify-pools`, `SP-prepare-*`, `SP-length` and `SP-read` request
+`--nodes=1 --gpus=0 --cpus-per-task=8`. They may share a host with GPU jobs.
+Each preparation row performs owner adaptation, parent discovery, durable
+binding and model hashing on CPU. The combined entry runs node verification
+before CPU preparation. Preserve its receipt and canonical pair-aware report.
+
+`SP-panel-*` requests `--nodes=1 --gpus=1 --cpus-per-task=8`, after its complete
+CPU preparation row. It checks immutable prepared file metadata and expiry,
+uses its one allocated GPU lease and scores every ready entry of the assignment
+serially. Missing/changed input exits immediately; rerun CPU preparation before
+admission. No node-wide lock excludes other inference or CPU jobs. Existing
+hardware uniqueness, parent occupancy and UUID/environment pairing still apply.
+The runner records utilisation through `util_watch.py`; unchanged serial scoring
+requires measurement before assuming it meets the rolling 70% threshold.

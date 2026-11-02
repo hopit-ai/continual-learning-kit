@@ -55,6 +55,30 @@ def prepare(a):
                 'Tier A/B scoring UUID/environment differs from reviewed decisions')
 
 
+def effective_calls(package):
+    """Re-score retained/reused contrast inputs in this job; historical ruling stays intact."""
+    result=list(package['calls'])
+    for call in [*package.get('retained_calls',[]),*package.get('reused_calls',[])]:
+        value=dict(call)
+        import re
+        value['score_set']=re.sub(r'-s[0-9]+-','-s'+str(package['seed'])+'-',call['score_set'])
+        if not any(c['score_set']==value['score_set'] for c in result):result.append(value)
+    return result
+
+
+def ref_for(doc,call):
+    if call['checkpoint'] in doc['rescore_refs']:return doc['rescore_refs'][call['checkpoint']]
+    def candidates(value):
+        if isinstance(value,dict):
+            if value.get('model') and isinstance(value.get('identity'),dict):yield value
+            for v in value.values():yield from candidates(v)
+        elif isinstance(value,list):
+            for v in value:yield from candidates(v)
+    found=[r for r in candidates(doc) if r.get('identity',{}).get('model_file_hashes')==call['model_hashes']]
+    if not found:raise NotReady('same-job retained checkpoint unavailable in native binding')
+    return found[0]
+
+
 def score(a):
     from kit import m2_score
     doc=binding(a.out,a.standin);packages=[p for p in doc['packages'] if p['id']==a.package]
@@ -64,10 +88,10 @@ def score(a):
     if not (root/'scoring-assignment.json').exists():shutil.copyfile(a.out/'scoring-assignment.json',root/'scoring-assignment.json')
     with scope('return1.'+package['id'],package['seed']):
         proof=assignment.active(root,a.gpu,a.standin)
-        require(proof['uuid']==package['assigned_gpu_uuid'] and proof['environment']==package['compatible_environment'], 'UNVERIFIED: return-1 off-assignment')
-        for index,call in enumerate(package['calls']):
+        require(proof.get('allocation_job') or proof['uuid']==package['assigned_gpu_uuid'] and proof['environment']==package['compatible_environment'],'UNVERIFIED: return-1 off-assignment')
+        for index,call in enumerate(effective_calls(package)):
             if a.call is not None and a.call!=index:continue
-            ref=doc['rescore_refs'][call['checkpoint']]
+            ref=ref_for(doc,call)
             from kit.m2_bind import tier_a_base
             observed=checked_model(ref,a.standin,base=tier_a_base(call))
             require(a.standin or observed['model_file_hashes']==call['model_hashes'],'wrong return-1 checkpoint export')
@@ -93,7 +117,7 @@ def read(source,standin):
             require(meta['protocol']==doc['protocol'],'UNVERIFIED: rescoring protocol changed')
             proof=meta['assignment']
             require(proof['family']=='return1.'+package['id'] and proof['seed']==package['seed'] and
-                proof['uuid']==package['assigned_gpu_uuid'] and proof['environment']==package['compatible_environment'],'UNVERIFIED: rescoring assignment changed')
+                (proof.get('allocation_job') or proof['uuid']==package['assigned_gpu_uuid'] and proof['environment']==package['compatible_environment']),'UNVERIFIED: rescoring assignment changed')
             require(meta['step']==call['step'] and meta['panel']==call['panel_set'],'rescoring call changed')
             require(call['score_set']==f"scores/{meta['arm']}-s{meta['seed']}-k{meta['step']}-{meta['panel']}",'score folder arm/seed/step differs')
             require(standin or meta['model']['model_file_hashes']==call['model_hashes'],'rescoring export changed')
@@ -113,7 +137,25 @@ def read(source,standin):
             if set(cells)!=set(panels) or any(len(cells[p])!=1147 if p=='finqa' else cells[p]!=expected[p] for p in panels):
                 missing.append(dict(package=package['id'],call=index,reason='panel coverage incomplete'));continue
             verified.append(dict(package=package['id'],call=index))
+    extra_verified=[]
     for package in doc['packages']:
+        originals=[json.loads(files['packages/'+package['id']+'/'+c['score_set']+'/m2-identity.json'])['assignment']
+            for c in package['calls'] if 'packages/'+package['id']+'/'+c['score_set']+'/m2-identity.json' in files]
+        jobs={p.get('allocation_job') for p in originals}
+        if jobs-{None}:
+            require(len(jobs)==1,'UNVERIFIED-HARDWARE: return-1 mixed allocation jobs')
+            for index,call in enumerate(effective_calls(package)[len(package['calls']):],len(package['calls'])):
+                prefix='packages/'+package['id']+'/'+call['score_set']+'/'
+                if prefix+'m2-identity.json' not in files:
+                    missing.append(dict(package=package['id'],extra_call=index));continue
+                meta=json.loads(files[prefix+'m2-identity.json']);assignment.verify(meta,files['scoring-assignment.json'])
+                require(meta['assignment']['allocation_job'] in jobs and
+                    all(meta['assignment'][k]==originals[0][k] for k in ('uuid','environment','family','seed')),
+                    'UNVERIFIED-HARDWARE: retained/reused score from another job')
+                require(meta['panel']==call['panel_set'] and meta['step']==call['step'] and
+                    (standin or meta['model']['model_file_hashes']==call['model_hashes']),'retained/reused fresh checkpoint changed')
+                extra_verified.append(dict(package=package['id'],call=index))
+            continue
         for call in package.get('retained_calls',[]):
             root='retained/'+package['id']+'/'
             required=[call['identity_path'],call['companion_path'],call['score_set']+'/scores.csv',call['score_set']+'/manifest.json']
@@ -134,7 +176,7 @@ def read(source,standin):
             require(meta['assignment']['family']=='return1.'+source['id'] and meta['assignment']['uuid']==package['assigned_gpu_uuid'] and meta['assignment']['environment']==package['compatible_environment'],'reused source assignment differs')
             require(standin or meta['model']['model_file_hashes']==call['model_hashes'],'reused checkpoint differs')
             require(call['score_set']==f"scores/{meta['arm']}-s{meta['seed']}-k{meta['step']}-{meta['panel']}",'reused folder differs')
-    return dict(status='PENDING' if missing else 'COMPLETE',verified=verified,missing=missing,enabled_tier_b=doc['enable_tier_b'],
+    return dict(status='PENDING' if missing else 'COMPLETE',verified=verified,extra_verified=extra_verified,missing=missing,enabled_tier_b=doc['enable_tier_b'],
         decisions_sha256=doc['decisions_sha256'],technical_synthetic=standin)
 
 

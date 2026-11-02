@@ -1,4 +1,4 @@
-# PD v2 — final-registration implementation
+# PD — right-sized jobs and the prospective scorer amendment
 
 Seeds are exactly 101–103. This isolated tier never trains a chain, writes to
 replay, extends core checkpoint retention, or blocks core execution. SP excludes
@@ -12,8 +12,7 @@ smoke; scientific preparation and scientific measurement remain pending.
 PD-101/102/103 are **DEFERRED** unless node-local finalization matches the pinned
 approved preparation, the committed owner topic approval is present, and
 node-side inventory, custodian and original-chain checks succeed. `pd_node.py`
-enforces these gates before GPU discovery with a clear DEFERRED message/exit 3.
-Failures during or after distributed launch return exit 1 with `error_type`.
+enforces these gates in the CPU `prep` phase before any GPU job. Missing or invalid prerequisites return PENDING/exit 3; distributed failures leave incomplete evidence and require a clean whole-seed restart.
 Do not substitute SMOKE-SCOPE inputs or ask
 the operator to make our-side topic/exclusion decisions.
 
@@ -168,40 +167,78 @@ final. Never substitute another route or replay arm. Verify every live tensor
 and original receipt before loading. Reject missing/unexpected/mismatched loaded
 weights and require the prescribed eager attention and SiLU architecture.
 
-Inside the operator's eight-H100 allocation, use this plain-script step:
+The input plan supplies the `scientific` paths from scientific/plan-inputs.template.json, plus
+`preparation`, `seed`, `checkpoints`, `send_binding`, local `tokenizer`,
+`exports[START]` with original `directory` and `receipt`, and the qualified
+`smoke_receipt`. Keep the plan and all source checkpoints outside PD_STATE.
+The numerical core and its preparation/smoke hashes remain unchanged; the new
+orchestration has a separate `split_job_sha256` frozen in the CPU receipt and
+independent reader anchors.
+
+Submit the following phases as **separate jobs**, in order, for each seed.
+`PLAN` and `PD_STATE` are operator-local placeholders. The same node-local state
+must remain accessible: every phase checks the preparation hostname. CPU jobs
+may share that host with GPU jobs. Schedule dependencies without an allocation;
+never run these commands consecutively inside one GPU allocation.
+
+| Task suffix (each seed 101–103) | nodes | GPUs | CPUs | May share node | Dependency |
+|---|---:|---:|---:|---|---|
+| prep | 1 | 0 | 8 | yes | completed scientific preparation/verification |
+| pre | 1 | 1 | 8 | yes | afterok prep |
+| train | 1 | 8 | 32 | yes, CPU work only; no shared GPUs | afterok pre |
+| finalize | 1 | 0 | 16 | yes | afterok train |
+| post | 1 | 1 | 8 | yes | afterok finalize |
+| collect | 1 | 0 | 4 | yes | afterany post |
+| read (all seeds) | 1 | 0 | 4 | yes | afterany all collect jobs |
+
+Portable rows are in `job-resources.json` and `pd_jobs.resource_inventory()`;
+`resource_rows(seed)` supplies each seed's six phases.
+Use these sbatch resource arguments (add the site's partition/account, node
+constraint and dependency yourself):
 
 ```sh
-python kit/pd_node.py --plan PLAN --bound-plan BOUND_PLAN --out PD_STATE --score-visible-index 0
+# One independent submission per line; append the matching phase command.
+sbatch --nodes=1 --gpus=0 --cpus-per-task=8  ... # prep
+sbatch --nodes=1 --gpus=1 --cpus-per-task=8  ... # pre
+sbatch --nodes=1 --gpus=8 --cpus-per-task=32 ... # train
+sbatch --nodes=1 --gpus=0 --cpus-per-task=16 ... # finalize
+sbatch --nodes=1 --gpus=1 --cpus-per-task=8  ... # post
+sbatch --nodes=1 --gpus=0 --cpus-per-task=4  ... # collect / all-seed read
 ```
 
-`CUDA_VISIBLE_DEVICES` must contain the allocation's eight distinct device tokens,
-as supplied by Slurm. `--score-visible-index` selects a visible slot 0–7 in that
-list. The wrapper translates it to the inherited allocation token, discovers the
-physical UUID and environment digest in a CUDA-isolated subprocess, then freezes
-`score_device=GPU-<UUID>` and `scoring_gpu_identity` into BOUND_PLAN before calling
-`launch_ranks`. Using the stable UUID keeps every scorer on that same physical
-GPU even with a reordered/subset allocation. Do not type a UUID or environment
-digest by hand. The parent stays CUDA cold and preserves the full allocation
-for all eight training ranks.
+Each submitted script invokes exactly one phase:
 
-BOUND_PLAN and its default BOUND_PLAN.receipt.json supervisor receipt must be
-fresh destinations outside PD_STATE and original source exports. The wrapper
-refuses an existing nonempty state tree and never changes PLAN or source weights.
-The wrapper is outside the five Python modules and taxonomy hashed by
-`code_identity()`; its own SHA256 is bound separately in the runtime plan.
-The qualified core remains byte-for-byte unchanged.
+```sh
+python -I kit/pd_node.py --phase prep     --plan PLAN --out PD_STATE
+python -I kit/pd_node.py --phase pre      --plan PLAN --out PD_STATE
+python -I kit/pd_node.py --phase train    --plan PLAN --out PD_STATE
+python -I kit/pd_node.py --phase finalize --plan PLAN --out PD_STATE
+python -I kit/pd_node.py --phase post     --plan PLAN --out PD_STATE
+python -I kit/pd_node.py --phase collect  --plan PLAN --out PD_STATE
+```
 
-The input plan supplies the `scientific` paths from scientific/plan-inputs.template.json, plus:
-- `preparation`, `seed`, `checkpoints`, `send_binding`, local `tokenizer`;
-- `exports[START]` with original local `directory` and `receipt`;
-- a qualified bound `smoke_receipt` (the sealed `receipts["smoke.json"]` from
-  the passed smoke return, with the same core code hash), optional `returned_pools`, and optional
-  measured `gpu_rate_per_hour` for explicit cost calculation.
+The GPU phases require exactly 1/8/1 allocated whole GPUs in
+`CUDA_VISIBLE_DEVICES`, respectively; reordered/subset numeric selectors and
+whole-GPU UUIDs are supported, MIG is refused. They run through
+`python -I kit/util_watch.py --out PD_STATE/PHASE-util.jsonl -- COMMAND`;
+missing watcher or prerequisites means immediate PENDING. Only allocated GPUs
+are leased, nonblocking, by UUID in the host-wide `/tmp/kit-gpu-leases`
+directory; there is no node-wide PD lock. Training owns all eight of its GPUs.
+Use `pd_node.py` as the public entry; `pd_jobs.py` worker/rank modes are internal.
+The old `--bound-plan` whole-seed entry is retired and fails closed.
 
-The dedicated scorer is a fresh process restricted to that one physical GPU.
-All starts and all curve points for a seed use the same assignment/environment.
-Other seeds may use different assigned GPUs. Original source snapshots stay
-outside PD state and are never deleted.
+The pre job scores all three starts and freezes E_s with a hash receipt before
+training (at least 64 common errors). Training never invokes a scorer. The post
+job scores update 0 again and all 15 curve points serially on its one physical
+GPU/environment. **Only its 18 cells define the reported curve.** The pre job
+may have used a different physical GPU. Compare each start's two update-0
+summed score vectors on the frozen E_s: agreement >=99%, with every disagreement's
+top-two summed-score margin strictly <1e-3 in both executions. The receipt and
+reader recompute this rule and report full agreement/disagreement details.
+Failure marks that seed UNVERIFIED; all registered cells remain visible.
+A near-tie reload may produce nonzero post-job update-0 accuracy on E_s; retain
+it in the curve and require base final minus initial improvement >=10 points.
+Never reselect E_s from the post-job scores or combine scores across post jobs.
 
 Each fork freshly reloads its bound source, RNG and AdamW: beta=(0.9,0.95),
 epsilon=1e-8, decay zero, clipping 1, constant LR 1e-5, 40 nonzero updates.
@@ -225,39 +262,54 @@ and `CUBLAS_WORKSPACE_CONFIG=:4096:8` before CUDA initialization are mandatory.
 Unsupported kernels fail correctness qualification. There is no teacher, EMA,
 replay, LR search or automatic retry.
 
-## Streaming exports and restart rule
+## Immutable spool, CPU export and restart rule
 
-Use a separate PD state tree/volume with 256-GiB working quota and >=320-GiB
-initial free-space preflight. Every run requires an empty PD tree. Source
-snapshots cannot overlap it.
+A seed has three forks and five post-update checkpoints per fork: **15 exports**
+(45 across three seeds). All sources stay outside the fresh, isolated PD tree.
+CPU prep checks all scientific gates, byte hashes, token IDs/masks and tokenizer,
+then freezes compact training/scoring inputs. No dataset acquisition occurs.
 
-At updates 5/10/20/30/40 gather full FP32 state to CPU, convert floating tensors
-to BF16 exactly as the core export helper does, retain nonfloating tensors and
-release the FP32 gather. Training masters remain FP32. Export into one pending
-slot, hash tensor bytes once and record `export_dtype=bfloat16` and
-`master_dtype=float32` in the export receipt. Atomically rename the pending
-directory to the scoring slot on the same PD filesystem. The isolated scorer
-hashes actual tensors/receipt once before loading, then returns a sealed live-load
-proof bound to the checkpoint. Completion checks that proof and retains sealed
-tensor/receipt/score verification before removing the scoring slot. There are
-45 exports across nine forks; no copy or repeated completion hashes are needed.
-A failed live verification preserves the scoring slot and blocks advancement.
-Deletion guards reject sources and every non-owned target.
+At updates 5/10/20/30/40, gather full FP32 state to CPU and make a detached BF16
+copy of every floating tensor, copying nonfloating buffers too. This snapshot
+is never mutated. A bounded asynchronous writer saves a native `state.pt` and
+configuration, hashes them and atomically renames the complete snapshot. Ranks
+continue training while the previous snapshot saves; only checkpoint boundaries
+can wait for that job's own writer to bound host memory. There is no scoring
+callback, scorer subprocess or wait for another job. The final native save is
+part of training; no HF conversion, publication or collection runs there.
 
-**A failed fork restarts its whole seed from update 0 in a clean PD tree.** No resume state,
-optimizer/RNG generation, resume API or automatic retry remains. An operator
-starts a fresh tree after failure; the implementation never deletes an old run
-or source to make room. Disk/full-job failure leaves unfinished evidence PENDING
-and never touches core. A late failure therefore repeats all three forks and
-all 18 scoring cells for that same registered seed, at additional GPU-hour cost.
-The final review's PD M1 correction supersedes the stale resume-state wording;
-the manager must update the canonical registration outside this builder's files.
+The 0-GPU finalize job verifies all 15 native snapshots, constructs models on
+CPU/meta, and calls the unchanged BF16 HF export helper with those exact states.
+It writes tensor hashes, the original live-load proof inputs and checkpoint
+identities. A spool completion receipt is published only after every export
+exists. The post job refuses missing/incomplete spools before CUDA discovery.
+Its unchanged likelihood/diagnostic functions hash and live-load each export,
+then retain a sealed proof and scores **before** deleting that HF export and
+its redundant native snapshot. A missing/wrong live-load proof preserves both.
+Original checkpoints are never deleted. CPU collect rechecks scientific closure
+and publishes `seed-evidence.verified.json`; failed reload agreement remains
+UNVERIFIED there and in the amended reader.
 
-The node supervisor now retains a generic PENDING launch-failure receipt outside
-the clean PD tree. The qualified core swallows node rank RuntimeError details,
-so the wrapper cannot honestly distinguish a rank OOM from a deterministic-op
-failure. Detailed M4 rank classification stays deferred until an explicitly
-authorized core change and requalification; no cause is invented.
+Storage is deliberately conservative: reserve `15 * checkpoint_bound` native
+bytes plus the same HF bytes, plus 64 GiB headroom. `checkpoint_bound` is the
+larger of 18 GiB and the largest bound source tensor inventory's actual byte
+size. Thus the usual per-seed spool bound is **540 GiB**, requiring **604 GiB
+free at CPU preparation** (1,812 GiB for three simultaneous seed trees on one
+filesystem). Each written checkpoint is checked against its bound. The old
+256-GiB quota/320-GiB free check belonged to the retired one-slot streaming path.
+At roughly 8B BF16 parameters the weights alone are about 15 GiB per checkpoint,
+or about 450 GiB for both copies of all 15 points; actual sizes/config/shards
+are measured on the node. Reserve disk capacity for concurrent seeds at the
+scheduler/storage level: a free-space observation does not reserve disk blocks.
+Host RAM must fit the existing full FP32 gather plus one BF16 snapshot; a new
+snapshot waits for the previous writer rather than growing a queue.
+
+**A failed phase restarts its whole seed from update 0 in a fresh tree.**
+No optimizer/RNG resume, phase retry or automatic retry is introduced. Keep
+failed trees, watcher logs and timing receipts for cost accounting. Never remove
+a failed tree or original source automatically to make room. The pre/training/
+export/post directories and completion receipts reject reuse. Disk or job
+failure leaves unfinished PD PENDING and never touches core.
 
 Schema `pd-checkpoint-score-manifest-v2` contains nine logical original starts
 and 45 curve-export identities, plus 54 score identities. Scores bind summed
@@ -270,13 +322,13 @@ under JSON export/reload of integer update keys.
 ## Reader and reporting
 
 Merge exactly three `seed-evidence.json` records with
-`pd_read.collect_seed_evidence()`, or pass `{seed_records: [...]}` to:
-`python kit/pd_read.py --evidence EVIDENCE --exports ORIGINAL_RESOLVERS --trusted ANCHORS --out REPORT`.
+`pd_jobs_read.collect_seed_evidence()`, or pass `{seed_records: [...]}` to:
+`python -I kit/pd_jobs_read.py --evidence EVIDENCE --exports ORIGINAL_RESOLVERS --trusted ANCHORS --out REPORT`.
 
 Resolvers cover only the nine preserved source identities, each with complete
 `directory`, `tensors` and `receipt`. Independently frozen anchors supply
 `send_binding_sha256`, `preparation_sha256`, `code_sha256`,
-`smoke_receipt_sha256`, `candidate_supersets_sha256`, all eligible
+`smoke_receipt_sha256`, `candidate_supersets_sha256`, `split_job_sha256`, all eligible
 `evaluation_ids`, and `exposure_sha256[SEED]`. Compute expected exposure before
 measurement using the frozen rows, `seed_batches()` and `exposure_receipt()`.
 Missing return verification is INCOMPLETE; mismatches are UNVERIFIED.
@@ -337,11 +389,12 @@ GPU-hours. Gather/export and transfer/scoring idle charges include all reserved
 ranks. Per-fork serial scoring >24 hours is WALL-TIME RISK, never a pass gate.
 Optional rate inputs compute monetary costs; absence stays unmeasured.
 
-The measured attempt-3 scoring rate supersedes the historical 41–84 H100 GPU-h
-forecast: the revised three-seed request is 222–264 GPU-h and 9.23–10.98 wall
-hours per seed, including all eight reserved ranks during serial scoring.
-See docs/phase3/pd-reprice-20261029.md for source timings, formulas, idle-rank
-charges and remaining training/export allowances. The approved 1,800 GPU-h tier
+The right-sized estimate is **63–98 H100 GPU-h for three seeds**, replacing
+the previous 222–264 GPU-h allowance. It includes 21 one-GPU scores per seed
+(three pre-training plus 18 post-training), eight-GPU training/native saves and
+the retained startup allowances. Forecast per-seed GPU wall time is about
+10.53–12.34 hours across its separate allocations, plus unmeasured CPU phases
+and queue time. See docs/phase3/pd-reprice-20261029.md for formulas and limits. The approved 1,800 GPU-h tier
 allowance includes PD <=264 GPU-h; it is not launch authority. No scientific outcome is
 claimed by technical smoke or CPU fixtures.
 

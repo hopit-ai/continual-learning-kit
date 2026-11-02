@@ -8,6 +8,18 @@ import shutil
 
 
 def job(a):
+    if a.action=='p2-feasibility':
+        a.arm='p'
+        from kit import m2_train
+        if m2_train.run_prepared(a):return
+        from kit.x_common import context
+        from kit.x_p import calibration
+        from kit.x_p2_feasibility import ensure
+        from types import SimpleNamespace as NS
+        doc=context(a.out,a.standin)
+        if doc.get('p_variant')!='p2-l2-init':return
+        ensure(NS(**dict(vars(a),arm='p')),doc,calibration(a.out,doc))
+        return
     if a.action=='pool-source':
         from kit.m2_paths import local
         for name in ('next-inputs','replay','hellaswag'):
@@ -71,8 +83,10 @@ def job(a):
 
 
 def configure(p):
+    p.add_argument('--domain',choices=DOMAINS if 'DOMAINS' in globals() else ('ifeval','gsm8k','arc','finqa'));p.add_argument('--measurement',choices=('before','after','reduce'))
     p.add_argument('--scope',choices=('broad','full'),default='full')
-    p.add_argument('--action',choices=('pool-source','nomination','m10','x-probes','tier2-measure','x-stage-check'),required=True)
+    p.add_argument('--action',choices=('p2-feasibility','pool-source','nomination','m10','x-probes','tier2-measure','x-stage-check'),required=True)
+    p.add_argument('--sdpo',type=Path);p.add_argument('--tokenizer')
     p.add_argument('--source',type=Path);p.add_argument('--durable',type=Path)
     p.add_argument('--seed',type=int,choices=SEEDS);p.add_argument('--arm');p.add_argument('--step',type=int)
     p.add_argument('--phase',choices=('train','score'),default='score')

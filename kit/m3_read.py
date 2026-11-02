@@ -16,6 +16,7 @@ import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import json
 import math
+import os
 from kit.m3_schedule import ARMS, SEEDS, STAGES
 
 TWO_SIDED_T = 4.302653
@@ -50,6 +51,10 @@ class Missing(KeyError):
     pass
 
 
+class MissingExport(Missing):
+    pass
+
+
 class Pending(KeyError):
     pass
 
@@ -69,11 +74,13 @@ class Table:
     """cells[(arm, seed, stage, step, panel)] = dict(metrics={metric: points}, items={metric: {qid: 0/1}}, uuid, environment,
     format_failures={metric: count}, output_tokens, correct, tolerant={metric: points}, pending=reason or None)."""
 
-    def __init__(self, cells):
-        self.cells = cells; self.used = set()
+    def __init__(self, cells, exports=None):
+        self.cells = cells; self.used = set(); self.exports = exports or {}
 
     def cell(self, arm, seed, stage, step, metric):
         key = ('base', seed, STAGES[0], 0, PANEL_OF[metric]) if arm == 'base' else (arm, seed, stage, step, PANEL_OF[metric])
+        if self.exports.get(json.dumps([arm, seed, stage, step]), {}).get('status') == 'MISSING-EXPORT':
+            raise MissingExport(key + (metric,))
         if key not in self.cells or metric not in self.cells[key]['metrics']: raise Missing(key + (metric,))
         if self.cells[key].get('pending'): raise Pending(key + (self.cells[key]['pending'],))
         self.used.add((key, metric)); return self.cells[key]
@@ -136,6 +143,20 @@ def identity_failures(table, assignment):
         if cell.get('uuid') != expected['uuid'] or cell.get('environment') != expected['environment']:
             failures.append(dict(cell=list(key), reason='off-assignment constituent'))
         if cell.get('identity_error'): failures.append(dict(cell=list(key), reason=cell['identity_error']))
+    native={}
+    for key,cell in table.cells.items():
+        if cell.get('allocation_job') and cell.get('method')!='REFERENCE-SCORED':
+            native.setdefault(key[1],set()).add((cell.get('uuid'),cell.get('environment'),cell['allocation_job']))
+    for seed,identities in native.items():
+        if len(identities)!=1:failures.append(dict(cell=['seed',seed],reason='UNVERIFIED-HARDWARE: mixed allocation jobs'))
+    reference={}
+    for key,cell in table.cells.items():
+        if cell.get('method')=='REFERENCE-SCORED' and cell.get('allocation_job'):
+            reference.setdefault(key[1],set()).add((cell.get('uuid'),cell.get('environment'),cell.get('allocation_job')))
+        if cell.get('attempt_scored') and not all(cell.get(k) for k in ('uuid','environment','allocation_job')):
+            failures.append(dict(cell=list(key),reason='UNVERIFIED-HARDWARE: missing allocation identity'))
+    for seed,identities in reference.items():
+        if len(identities)!=1:failures.append(dict(cell=['seed',seed],reason='UNVERIFIED-HARDWARE: mixed reference allocation jobs'))
     return failures
 
 
@@ -147,7 +168,9 @@ def optional(table, functions, challenger, control):
     out = {}
     for name, fn in functions.items():
         try: out[name] = paired(table, fn, challenger, control)
-        except (Missing, Pending) as exc: out[name] = dict(status='PENDING', missing=[str(x) for x in exc.args[0]])
+        except (Missing, Pending) as exc:
+            out[name] = dict(status='INCOMPLETE', missing=[str(x) for x in exc.args[0]],
+                             note='MISSING-EXPORT' if isinstance(exc, MissingExport) else 'missing scored constituent')
     return out
 
 
@@ -157,6 +180,8 @@ def contrast(table, name, failures, pending):
     result = dict(name=name, challenger=challenger, control=control, role='descriptive; no admission bars' if descriptive else 'decision-bearing')
     blocked = sorted({p for p in pending if p in (challenger, control)})
     if blocked: return dict(result, label='PENDING', reason='arm PENDING: ' + ','.join(blocked))
+    corrupt=[f for f in failures if f['reason'].startswith('UNVERIFIED: corrupt allocation attempt:')]
+    if corrupt:return dict(result,label='UNVERIFIED',reason=corrupt)
     table.used = set()
     try:
         primary = paired(table, lambda arm, s: table.primary(kind, arm, s), challenger, control)
@@ -166,18 +191,18 @@ def contrast(table, name, failures, pending):
     except Pending as exc:
         return dict(result, label='PENDING', reason='constituent pending ' + json.dumps([str(x) for x in exc.args[0]]))
     used_seeds = {key[1] for key, _ in table.used}
-    bad = [f for f in failures if f['cell'][1] in used_seeds and f['cell'][0] in (challenger, control, 'base')]
+    bad=[f for f in failures if f['cell'][0]=='seeds' or f['cell'][1] in used_seeds and f['cell'][0] in (challenger,control,'base','seed')]
     from kit.ref_guard import check, METHOD
     guard_proof = check([dict(panel=metric, seed=key[1], _guard_method=table.cells[key].get('method', 'KIT-SCORED'),
                              _guard_uuid=table.cells[key].get('uuid'), _guard_environment=table.cells[key].get('environment'),
-                             _guard_hardware_error=table.cells[key].get('hardware_error'))
+                             _guard_hardware_error=table.cells[key].get('hardware_error'),_guard_job=table.cells[key].get('allocation_job'))
                          for key, metric in table.used if metric in ('knowledge', 'hellaswag')])
     if guard_proof['status'] != 'COMPLETE':
         return dict(result, label=guard_proof['status'], reason=guard_proof['reason'])
     if guard_proof.get('method'): result['method'] = METHOD
     diagnostics = optional(table, table.diagnostics(), challenger, control)
     for value in guards.values(): value['sensitivity'] = sensitivity(value['sd'])
-    if bad: return dict(result, label='UNVERIFIED', reason=bad[:5])
+    if bad:return dict(result,label='UNVERIFIED-HARDWARE' if any('UNVERIFIED-HARDWARE' in f['reason'] for f in bad) else 'UNVERIFIED',reason=bad[:5])
     if descriptive: return dict(result, label='DESCRIPTIVE', primary=primary, guards=guards, diagnostics=diagnostics)
     diffs = primary['values']
     bars = dict(mean_at_least_2=primary['mean'] >= MIN_BENEFIT, lower_bound_positive=primary['lower'] > 0, positive_3_of_3=all(d > 0 for d in diffs))
@@ -263,10 +288,10 @@ def strict_letter(table):
     return sum(c.get('format_failures', {}).get('knowledge_strict', 0) for c in table.cells.values())
 
 
-def analyse(cells, assignment, pending=(), receipts=None):
+def analyse(cells, assignment, pending=(), receipts=None, exports=None):
     """pending: arms whose pools are unavailable. receipts: {(arm, seed, stage): status}; FAIL is an identity failure,
     anything but PASS (INCOMPLETE until the 8B eight-H100 preflight passes) leaves the arm PENDING."""
-    table = Table(cells)
+    table = Table(cells, exports)
     pending = set(pending)
     failures = identity_failures(table, assignment)
     for (arm, seed, stage), status in (receipts or {}).items():
@@ -279,6 +304,8 @@ def analyse(cells, assignment, pending=(), receipts=None):
                 package_bars={arm: package_bars(table, arm) for arm in ARMS}, serving={arm: serving(table, arm) for arm in ARMS},
                 strict_letter_knowledge_format_failures=strict_letter(table),
                 identity_failures=failures, pending_arms=sorted(pending),
+                missing_intermediate_exports={str(seed): sum(v['status']=='MISSING-EXPORT' for k,v in (exports or {}).items()
+                    if json.loads(k)[1]==seed and json.loads(k)[3] in (10,20,30)) for seed in SEEDS},
                 rules='Unmet valid bars = INCONCLUSIVE (incumbent unchanged); missing = PENDING; identity failure = UNVERIFIED. '
                       'K-C0 and CR-G are separate prospective decisions, not a family-wide claim; CR-C0/G-C0 are descriptive.')
 
@@ -455,47 +482,71 @@ def load_cells(out, standin=False):
     from kit.m3_score import resolve, ASSIGNMENT
     from kit import m2_assignment
     out = Path(out); raw = (out / ASSIGNMENT).read_bytes(); doc = json.loads(raw)
-    if not standin and len({v['uuid'] for v in doc['assignments'].values()}) < len(SEEDS):
-        raise ValueError('scientific assignment lacks three dedicated physical GPUs')
     cells = {}
+    from kit.lane_evidence import latest_attempt
+    workspaces={};attempt_errors={}
+    for seed in SEEDS:
+        try:workspaces[seed]=latest_attempt(out/'scoring-jobs'/('M3-rescore-'+str(seed)))
+        except (OSError,ValueError,KeyError,TypeError) as error:
+            workspaces[seed]=None;attempt_errors[seed]=str(error)
+
     units = [('base', s, STAGES[0], 0) for s in SEEDS] + [(a, s, st, k) for a in ARMS for s in SEEDS for st in STAGES for k in STEPS]
     for arm, seed, stage, step in units:
         for panel in SCORED_PANELS:
-            root = resolve(out, arm, seed, stage, step, panel)
-            if root is None: continue
-            frozen_files(root)
-            cell = dict(metrics={}, items={}, format_failures={}, tolerant={}, output_tokens=0, correct=0, pending=None)
+            parent=out/'scoring-jobs'/('M3-rescore-'+str(seed))
+            workspace=workspaces[seed]
+            if seed in attempt_errors or os.environ.get('KIT_V6A') and workspace is None:continue
+            # Once nonce attempts exist, never fill a partial lane from old units.
+            if workspace is None and parent.exists() and any(p.is_dir() and len(p.name)==32 and all(c in '0123456789abcdef' for c in p.name) for p in parent.iterdir()):continue
             try:
-                meta = json.loads((root / 'm3-identity.json').read_text())
-                if bool(meta.get('technical_synthetic')) != standin: raise ValueError('synthetic score provenance differs')
-                m2_assignment.verify(meta, raw)
-                proof = meta['assignment']
-                if proof['seed'] != seed or proof['family'] != 'm3': cell['identity_error'] = 'foreign family/seed'
-                cell.update(uuid=proof['uuid'], environment=proof['environment'])
-                if panel in ('hellaswag', 'knowledge-ll'):
-                    from kit.m3_score import validation_status
-                    cell['validation_notes'] = []
-                    cell['validation_sha256'] = validation_status(out, panel, seed, standin=standin, notes=cell['validation_notes'])
-                    if cell['validation_sha256'] is None: cell['pending'] = 'likelihood validation not PASS (base + C0 s101 stage-1 final)'
-            except Exception as exc:
-                cell['identity_error'] = 'UNVERIFIED: ' + str(exc)
-            with (root / 'scores.csv').open(newline='') as stream: rows = list(csv.DictReader(stream))
-            groups = {}
-            for r in rows:
-                metric = panel if panel != 'general-v1' else ('knowledge_strict' if r['panel'] == 'knowledge' else r['panel'])
-                if panel == 'knowledge-ll': metric = 'knowledge'
-                groups.setdefault(metric, []).append(r)
-            for metric, values in groups.items():
-                cell['metrics'][metric] = 100 * sum(int(r['correct']) for r in values) / len(values)
-                cell['items'][metric] = {r['question_id']: int(r['correct']) for r in values}
-                cell['format_failures'][metric] = sum(int(r.get('incorrect_format') or 0) for r in values)
-                if values and values[0].get('tolerant_correct') not in (None, ''):
-                    cell['tolerant'][metric] = 100 * sum(int(r['tolerant_correct']) for r in values) / len(values)
-                cell['output_tokens'] += sum(int(r.get('output_tokens') or 0) for r in values)
-                cell['correct'] += sum(int(r['correct']) for r in values)
-            cells[(arm, seed, stage, step, panel)] = cell
+                root = resolve(workspace or (parent if (parent/'scores').exists() else out), arm, seed, stage, step, panel)
+                if root is None: continue
+                frozen_files(root)
+                cell = dict(metrics={}, items={}, format_failures={}, tolerant={}, output_tokens=0, correct=0, pending=None,
+                            attempt_scored=workspace is not None or not standin or bool(os.environ.get('KIT_V6A')))
+                try:
+                    meta = json.loads((root / 'm3-identity.json').read_text())
+                    if bool(meta.get('technical_synthetic')) != standin: raise ValueError('synthetic score provenance differs')
+                    m2_assignment.verify(meta, raw)
+                    proof = meta['assignment']
+                    if proof['seed'] != seed or proof['family'] != 'm3': cell['identity_error'] = 'foreign family/seed'
+                    cell.update(uuid=proof['uuid'], environment=proof['environment'],allocation_job=proof.get('allocation_job'))
+                    if workspace is not None and proof.get('allocation_job')!=workspace.name:
+                        cell['identity_error']='UNVERIFIED-HARDWARE: attempt nonce differs'
+                    if proof.get('allocation_job'):cell['reference_assignment']={k:proof[k] for k in ('node','uuid','environment')}
+                    if panel in ('hellaswag', 'knowledge-ll'):
+                        from kit.m3_score import validation_status
+                        cell['validation_notes'] = []
+                        cell['validation_sha256'] = validation_status(out, panel, seed, standin=standin, notes=cell['validation_notes'])
+                        if cell['validation_sha256'] is None: cell['pending'] = 'likelihood validation not PASS (base + C0 s101 stage-1 final)'
+                except Exception as exc:
+                    cell['identity_error'] = 'UNVERIFIED: ' + str(exc)
+                with (root / 'scores.csv').open(newline='') as stream: rows = list(csv.DictReader(stream))
+                groups = {}
+                for r in rows:
+                    metric = panel if panel != 'general-v1' else ('knowledge_strict' if r['panel'] == 'knowledge' else r['panel'])
+                    if panel == 'knowledge-ll': metric = 'knowledge'
+                    groups.setdefault(metric, []).append(r)
+                for metric, values in groups.items():
+                    cell['metrics'][metric] = 100 * sum(int(r['correct']) for r in values) / len(values)
+                    cell['items'][metric] = {r['question_id']: int(r['correct']) for r in values}
+                    cell['format_failures'][metric] = sum(int(r.get('incorrect_format') or 0) for r in values)
+                    if values and values[0].get('tolerant_correct') not in (None, ''):
+                        cell['tolerant'][metric] = 100 * sum(int(r['tolerant_correct']) for r in values) / len(values)
+                    cell['output_tokens'] += sum(int(r.get('output_tokens') or 0) for r in values)
+                    cell['correct'] += sum(int(r['correct']) for r in values)
+                cells[(arm, seed, stage, step, panel)] = cell
+            except (OSError,ValueError,KeyError,TypeError) as error:
+                attempt_errors[seed]=str(error)
     from kit.ref_guard import records, local_files, METHOD
-    for meta, rows in records(local_files(out), standin):
+    reference_files=local_files(out,attempt_errors=attempt_errors)
+    reference_records=[]
+    for seed in SEEDS:
+        marker='-s'+str(seed)+'-k'
+        view={k:v for k,v in reference_files.items() if not k.startswith('reference-scores/') or marker in k}
+        try:reference_records.extend(records(view,standin))
+        except (OSError,ValueError,KeyError,TypeError) as error:attempt_errors[seed]=str(error)
+    for meta, rows in reference_records:
         if meta['family'] != 'm3': raise ValueError('foreign reference family in M3 root')
         panel = meta['panel']; metric = 'knowledge' if panel == 'knowledge-ll' else panel
         proof = meta['assignment']
@@ -504,8 +555,13 @@ def load_cells(out, standin=False):
         cells[key] = dict(metrics={metric: 100 * sum(values.values()) / len(values)}, items={metric: values},
                           format_failures={}, tolerant={}, output_tokens=0, correct=sum(values.values()), pending=None,
                           uuid=proof['uuid'], environment=proof['environment'], method=METHOD,
-                          hardware_error=meta.get('_hardware_error'),
+                          hardware_error=meta.get('_hardware_error'),allocation_job=proof.get('allocation_job'),
+                          attempt_scored=not standin or bool(os.environ.get('KIT_V6A')) or (out/'reference-attempts'/'m3'/str(meta['seed'])).exists(),
                           reference_assignment={k: proof[k] for k in ('node', 'uuid', 'environment')})
+    for seed,error in attempt_errors.items():
+        expected=doc['assignments'].get(f'm3|{seed}',{})
+        cells[('seed',seed,'',0,'attempt')]=dict(metrics={},uuid=expected.get('uuid'),
+            environment=expected.get('environment'),identity_error='UNVERIFIED: corrupt allocation attempt: '+error)
     return cells, doc['assignments']
 
 
@@ -526,7 +582,14 @@ def read_job(a):
                 from kit.m3_train import validate_stage_receipt
                 try: receipts[(arm, seed, stage)] = validate_stage_receipt(a.out, arm, seed, stage)['status']
                 except Exception: receipts[(arm, seed, stage)] = 'INCOMPLETE'
-    result = analyse(cells, assignment, pending, None if a.standin else receipts)
+    from kit.lane_evidence import latest_attempt
+    exports = {}
+    for seed in SEEDS:
+        try: workspace = latest_attempt(a.out / 'scoring-jobs' / f'M3-rescore-{seed}')
+        except (OSError, ValueError, KeyError, TypeError): workspace = None
+        ready = (workspace / 'scoring-ready.local.json') if workspace else a.out / 'scoring-ready' / f'M3-rescore-{seed}.local.json'
+        if ready.is_file(): exports.update(json.loads(ready.read_text()).get('exports', {}))
+    result = analyse(cells, assignment, pending, None if a.standin else receipts, exports)
     manifest = a.out / 'm3-launch.json'
     tasks = load_manifest(manifest)['tasks'] if manifest.exists() else []
     calls = sum(1 for t in tasks if t['kind'] == 'score-family' for c in t['commands'] if '--panel-set' in c)

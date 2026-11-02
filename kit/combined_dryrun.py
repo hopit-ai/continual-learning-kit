@@ -62,12 +62,15 @@ def bridge(args):
     from contextlib import ExitStack
     context=c.load(os.environ['COMBINED_CPU_CONTEXT']);doc=c.load(context['manifest']);s=doc['settings']
     ident=context['id'];scenario=context.get('scenario','pass');count=Counter()
+    args=[a for a in args if a != '-I']
     target=Path(args[0]).name
     def leaf(command, **kwargs):
         count['scientific_children_stood_in']+=1
         if scenario=='broad-pending' and ident=='M3-broad': return NS(returncode=3)
         if scenario=='tier-failure': return NS(returncode=7)
         if ident=='M3-init':m3_manifest.init_root(s['kcr_root'],core_submitted=True)
+        if ident=='SP-verify-pools' or ident.startswith('SP-prepare-'):
+            c.write(Path(s['sp_root'])/'pool-verification.json',dict(technical_synthetic=True))
         return NS(returncode=0)
     with ExitStack() as stack:
         stack.enter_context(patch.object(sys,'argv',[args[0],*args[1:]]))
@@ -103,7 +106,13 @@ def bridge(args):
             stack.enter_context(patch.object(m3_manifest.socket,'gethostname',return_value='tier-fixture'))
             stack.enter_context(patch.object(m3_manifest.subprocess,'run',side_effect=leaf))
             result=m3_manifest.main(args[1:])
+        elif target in ('ref_score_job.py','report_text.py','pd_jobs_read.py'):
+            result=leaf(args).returncode
         elif target=='sp_manifest.py':
+            from contextlib import nullcontext
+            stack.enter_context(patch.dict(os.environ,UTIL_WATCH_ACTIVE='1'))
+            stack.enter_context(patch.object(m3_manifest,'allocated_gpus',return_value=['CPU-STANDIN']))
+            stack.enter_context(patch.object(m3_manifest,'allocation_reservation',side_effect=lambda *a,**kw:nullcontext()))
             original=sp_manifest.run
             def run(*a,**kw):return original(*a,**kw,runner=leaf)
             original_sub=sp_manifest.substitute
@@ -115,19 +124,11 @@ def bridge(args):
             result=sp_manifest.main(args[1:])
         elif target=='pd_node.py':
             from kit import pd_node as pd
-            stack.enter_context(patch.dict(os.environ,CUDA_VISIBLE_DEVICES='0,1,2,3,4,5,6,7'))
-            stack.enter_context(patch.object(pd.smoke,'smoke_gates',return_value={'status':'QUALIFIED'}))
-            # Synthetic qualification is local to this process, never a real receipt.
-            plans=Path(s['pd_plans'][ident.split('-')[1]])
-            value=c.load(plans);value['smoke_receipt']['code_sha256']=pd.probe.code_identity();c.write(plans,value)
-            uuid='00000000-0000-0000-0000-000000000001'
-            stack.enter_context(patch.object(pd.smoke,'discover_scoring_gpu',return_value=dict(uuid=uuid,devices=[uuid],environment='a'*64)))
-            def launch(*a,**kw):
+            def phase(*a,**kw):
                 count['scientific_children_stood_in']+=1
-                if scenario=='tier-failure':raise RuntimeError('CPU injected distributed failure')
-            stack.enter_context(patch.object(pd.probe,'launch_ranks',side_effect=launch))
-            try:result=pd.main()
-            except RuntimeError:result=7
+                return 7 if scenario=='tier-failure' else 0
+            stack.enter_context(patch.object(pd,'run_phase',side_effect=phase))
+            result=pd.main()
         else:raise AssertionError('unexpected wrapper child '+target)
     c.write(Path(context['record']),dict(id=ident,result=result,counts=dict(count),technical_synthetic=True))
     return result
@@ -157,11 +158,13 @@ def run(root):
         elif group=='preflight':command=[str(shim),str(c.KIT/'combined_preflight.py'),'--settings-json',json.dumps(s),'--node',row['node']]
         elif group=='kcr':command=['bash',str(c.KIT/'jobs/message3/run-task.sh'),ident]
         elif group=='sp':command=['bash',str(c.KIT/'jobs/message3-sp/run-task.sh')];env['TASK']=ident
+        elif group in ('reference','report'):
+            command=[str(shim), *row['commands'][0][1:]]
+        elif row.get('pd_phase')=='read':
+            command=[str(shim),str(c.KIT/'pd_jobs_read.py'),'--evidence','CPU-STANDIN','--exports','CPU-STANDIN','--trusted','CPU-STANDIN','--out','CPU-STANDIN']
         else:
             seed=str(row['seed']);pdroot=Path(s['pd_root']);pdroot.mkdir(parents=True,exist_ok=True)
-            suffix='-failed' if scenario=='tier-failure' else ''
-            command=[str(shim),str(c.KIT/'pd_node.py'),'--plan',s['pd_plans'][seed],
-                '--bound-plan',str(pdroot/(seed+suffix+'.json')),'--out',str(pdroot/(seed+suffix))]
+            command=[str(shim),str(c.KIT/'pd_node.py'),'--phase',row['pd_phase'],'--plan',s['pd_plans'][seed],'--out',str(pdroot/('seed-'+seed))]
         done=subprocess.run(command,env=env,capture_output=True,text=True)
         with (root/'wrappers.log').open('a') as log:log.write(ident+' '+scenario+' exit='+str(done.returncode)+'\n'+done.stdout+done.stderr)
         result=c.load(record) if record.exists() else dict(id=ident,result=done.returncode,counts={})
@@ -172,7 +175,7 @@ def run(root):
     by_id={r['id']:r for r in rows}
     coretasks=c.load(s['core_manifest'])['tasks']
     coreorder=[t for t in coretasks if t['id'].startswith('PF-node-')]+[t for t in coretasks if not t['id'].startswith('PF-node-')]
-    ordered=[by_id[t['id']] for t in coreorder]+[r for r in rows if r['group']=='preflight']+[r for r in rows if r['group'] in ('kcr','sp','pd')]
+    ordered=[by_id[t['id']] for t in coreorder]+[r for r in rows if r['group']=='preflight']+[r for r in rows if r['group'] in ('kcr','sp','pd','reference','report')]
     for row in ordered:
         result=invoke(row);results.append(result)
         if result['wrapper_exit']!=0 or result['result']!=0:raise AssertionError(result)
@@ -190,7 +193,7 @@ def run(root):
     assert all(m3_manifest.status(s['kcr_root'],i)['status']=='PENDING' for i in expected)
     assert all(m3_manifest.status(s['kcr_root'],t['id'])['status']=='DONE' for t in c.load(s['kcr_manifest'])['tasks'] if t.get('arm') in ('C0','K'))
     # Failure in each tier family has no path to the already completed core trees.
-    failure_rows=[next(r for r in rows if r['id']==i) for i in ('M3-K-101-finqa-train','PD-101','SP-length')]
+    failure_rows=[next(r for r in rows if r['id']==i) for i in ('M3-K-101-finqa-train','PD-101-train','SP-length')]
     failures=[invoke(r,'tier-failure') for r in failure_rows]
     assert [f['wrapper_exit'] for f in failures]==[1,7,0],failures
     assert c.load(Path(s['sp_root'])/'state/SP-length.json')['status']=='FAILED'

@@ -14,11 +14,58 @@ import contextlib
 import io
 import json
 import math
+import os
 import subprocess
 import tempfile
 import traceback
 from types import SimpleNamespace as NS
 from kit.text_return import FAMILIES, SCHEMA, canonical, write_parts, job_inventory
+
+UTIL_FAMILIES=(*FAMILIES,'core','preflight','REF')
+
+
+def utilisation(specs):
+    """Local attempt summaries only; public output contains fixed family names/numbers.
+
+    Mean activity is weighted by allocated GPU-seconds. Below-threshold seconds
+    are summed job-seconds, not GPU-seconds. Missing attempts stay unknown.
+    """
+    groups=defaultdict(list,{family:[] for family in UTIL_FAMILIES});seen=set()
+    for spec in specs:
+        family=spec['family']
+        if family not in UTIL_FAMILIES:raise ValueError('unknown utilisation family')
+        groups[family]
+        paths=[Path(p) for p in spec.get('summaries',[])]
+        for root in spec.get('roots',[]):
+            root=Path(root);found=set(root.rglob('*.summary.json'))
+            # A killed watcher cannot finalize its summary. Keep the attempt
+            # unknown instead of silently reporting only successful telemetry.
+            found.update(p.with_suffix('.summary.json') for p in root.rglob('*.jsonl') if not p.name.endswith('.phases.jsonl'))
+            paths.extend(sorted(found))
+        for path in paths:
+            resolved=path.resolve()
+            if resolved in seen:raise ValueError('duplicate utilisation attempt')
+            seen.add(resolved)
+            try:
+                r=read(path)
+                if not isinstance(r,dict):raise ValueError('invalid utilisation summary')
+                def valid(k):return isinstance(r.get(k),(int,float)) and not isinstance(r[k],bool) and math.isfinite(r[k]) and r[k]>=0
+                if not all(valid(k) for k in ('gpus','wall_s')) or r['gpus']!=int(r['gpus']) or r.get('telemetry_complete') is not True:raise ValueError('invalid allocation')
+                if r['gpus'] and (
+                    not all(valid(k) for k in ('mean_util','min_window_mean','seconds_below_70')) or
+                    max(r['mean_util'],r['min_window_mean'])>100 or r['seconds_below_70']>r['wall_s']):raise ValueError('incomplete telemetry')
+            except (OSError,ValueError,KeyError,TypeError):r=None
+            groups[family].append(r)
+    result={}
+    for family,attempts in sorted(groups.items()):
+        complete=bool(attempts) and all(r is not None for r in attempts)
+        gpu_jobs=[r for r in attempts if r and r['gpus']]
+        weight=sum(r['gpus']*r['wall_s'] for r in gpu_jobs)
+        result[family]=dict(jobs=len(attempts),gpus=sum(r['gpus'] for r in attempts) if complete else None,
+            mean_util=sum(r['mean_util']*r['gpus']*r['wall_s'] for r in gpu_jobs)/weight if complete and weight else None,
+            worst_window=min(r['min_window_mean'] for r in gpu_jobs) if complete and gpu_jobs else None,
+            seconds_below_70=sum(r['seconds_below_70'] for r in gpu_jobs) if complete and gpu_jobs else None)
+    return result
 
 
 def read(path): return json.loads(Path(path).read_text())
@@ -264,10 +311,14 @@ def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000
                 except Exception as exc:
                     r={'_reader_status':'UNVERIFIED','_warning':'READER_ERROR','warning_count':1,'_local_exception':type(exc).__name__+': '+str(exc)}
                 results.append(r)
-            readers[family]=results or [{'_reader_status':'DEFERRED' if family=='4A' else 'PENDING','_warning':'NOT_CONFIGURED'}]
+            readers[family]=results or [{'_reader_status':'DEFERRED' if family=='4A' or inputs.get('_mode')=='v6a' else 'PENDING','_warning':'NOT_CONFIGURED'}]
     jobs,private_jobs=job_summary(inputs.get('jobs',[]))
     if not jobs: jobs=['J|core|unknown|PENDING','J|KCR|unknown|PENDING','J|PD|unknown|PENDING','J|SP|unknown|PENDING']
-    full=dict(schema=SCHEMA,technical_synthetic=standin,readers=readers,accounting=accounting(readers),jobs=jobs)
+    full=dict(schema=SCHEMA,technical_synthetic=standin,readers=readers,accounting=accounting(readers),jobs=jobs,
+              utilisation=utilisation(inputs.get('utilisation',[])))
+    if inputs.get('_mode')=='v6a':
+        from kit.v6_infra import activate_v6a
+        full['infrastructure_authority']=activate_v6a()
     # S collector costs are node-local input measurements, not bootstrap samples.
     tag,commit=kit_identity(tag,commit)
     paths=write_parts(out,full,tag,commit,jobs,max_chars,full_detail=full_detail)

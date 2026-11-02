@@ -18,12 +18,27 @@ def require(ok, reason):
     if not ok: raise ValueError(reason)
 
 
-def local_files(out):
+def local_files(out,attempt_errors=None):
     out = Path(out)
-    return {str(p.relative_to(out)): p.read_bytes() for p in out.rglob('*')
+    files={str(p.relative_to(out)): p.read_bytes() for p in out.rglob('*')
             if p.is_file() and (p.suffix in ('.json', '.csv') or p == out / 'hellaswag/panel.jsonl') and
             (p.is_relative_to(out / 'reference-scores') or p.name in (ASSIGNMENT, 'binding.json', 'm2-identity.json') or
              p == out / 'hellaswag/panel.jsonl' or p == out / 'inputs/base.json' or p.name.startswith('export-'))}
+    from kit.lane_evidence import latest_attempt
+    for family in (out/'reference-attempts').glob('*'):
+        for seed in family.glob('*'):
+            try:chosen=latest_attempt(seed)
+            except (OSError,ValueError,KeyError,TypeError) as error:
+                if attempt_errors is None:raise
+                attempt_errors[int(seed.name)]=str(error);chosen=None
+            # A partial new attempt must not expose legacy cells as a completed
+            # v6a lane, but completed earlier nonces remain valid for audit/reuse.
+            marker='-s'+seed.name+'-k'
+            files={k:v for k,v in files.items() if not (k.startswith('reference-scores/'+family.name+'/') and marker in k)}
+            if chosen:
+                for path in (chosen/'reference-scores').rglob('*'):
+                    if path.is_file():files[str(path.relative_to(chosen))]=path.read_bytes()
+    return files
 
 
 def records(files, standin=None):
@@ -45,6 +60,8 @@ def records(files, standin=None):
             require(child in manifest and sha(files[prefix + child]) == manifest[child], 'reference constituent hash changed')
         try: verify(meta, files[ASSIGNMENT])
         except Exception as error: meta['_hardware_error'] = str(error)
+        if 'allocation_attempt' in meta and meta['assignment'].get('allocation_job')!=meta['allocation_attempt']:
+            meta['_hardware_error']='UNVERIFIED-HARDWARE: reference attempt nonce differs'
         proof = meta['assignment']
         require(proof['family'] == meta['family'] + '.' + meta['panel'] and proof['seed'] == meta['seed'], 'foreign reference family/seed')
         unit = meta['arm'] if meta['family'] != 'm3' or meta['arm'] == 'base' else meta['arm'] + '.' + meta['stage']
@@ -88,6 +105,7 @@ def native_files(files):
     be partial because failed validation stopped their identity tail. Keep the
     original files in the archive; only exclude them from this validation view.
     """
+    files={name:value for name,value in files.items() if not name.startswith('reference-history/')}
     if not any(name.startswith('reference-scores/') for name in files): return files
     superseded = set()
     for meta, _ in records(files):
@@ -141,7 +159,7 @@ def overlay(rows, files, standin=None, family=None):
             proof = meta['assignment']
             r.update(correct=lookup[r['question_id']]['correct'], format_free_correct=lookup[r['question_id']]['correct'],
                      _guard_method=METHOD, _guard_uuid=proof['uuid'], _guard_environment=proof['environment'],
-                     _guard_family=meta['family'], _guard_hardware_error=meta.get('_hardware_error'))
+                     _guard_family=meta['family'], _guard_job=proof.get('allocation_job'), _guard_hardware_error=meta.get('_hardware_error'))
     return rows
 
 
@@ -160,7 +178,11 @@ def validate_model(meta, files):
             expected = json.loads(files[f'runs/{arm}-s{seed}-{stage}/export-{step}.json'])
     elif 'binding.json' in files:
         doc = json.loads(files['binding.json'])
-        if meta['family'] == 'core':
+        if meta['family']=='reprobe':
+            from kit.m2_reprobe import REPAIR
+            require(doc.get('purpose')==REPAIR,'reference re-probe binding differs')
+            expected=doc['starts']['base' if arm=='base' else 'finqa-sibling:'+str(seed)]['identity'] if step==0 else json.loads(files[f'runs/{arm}-s{seed}/export-{step}.json'])
+        elif meta['family'] == 'core':
             if arm == 'base': expected = doc['starts']['base']['identity']
             elif arm.startswith('finqa-'): expected = doc['starts'][f'{arm}:{seed}']['identity']
             elif arm.startswith('standalone-'): expected = doc['comparators'][f'{arm}:{seed}']['identity']
@@ -194,12 +216,12 @@ def check(rows):
     for r in rows:
         panel = r['panel']; method = r.get('_guard_method', 'KIT-SCORED')
         methods.setdefault(panel, set()).add(method)
-        hardware.setdefault((int(r['seed']), panel), set()).add((r.get('_guard_uuid'), r.get('_guard_environment')))
+        hardware.setdefault((int(r['seed']), panel), set()).add((r.get('_guard_uuid'), r.get('_guard_environment'),r.get('_guard_job')))
     if len(set().union(*methods.values())) > 1:
         return dict(status='PENDING', reason='MIXED-SCORERS')
     for key, values in hardware.items():
         reference = methods[key[1]] == {METHOD}
-        if len(values) > 1 or reference and any(not uuid or not env for uuid, env in values):
+        if len(values) > 1 or reference and any(not uuid or not env for uuid, env, job in values):
             return dict(status='UNVERIFIED-HARDWARE', reason='one GPU/environment required per (seed, panel)')
     if any(r.get('_guard_method') != METHOD for r in rows):
         return dict(status='PENDING', reason='REFERENCE-SCORED required for decision checkpoint guards')

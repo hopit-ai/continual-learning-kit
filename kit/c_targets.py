@@ -97,7 +97,8 @@ class Teacher(t.VLLMGenerator):
             max_num_seqs=32, gpu_memory_utilization=.90, seed=27101, enforce_eager=True,
             attention_config={'backend':'FLASH_ATTN'}, gdn_prefill_backend='triton')
         self.tokenizer = self.engine.get_tokenizer()
-        self.reload_timing = dict(seconds=time.monotonic()-started)
+        from kit.inference_lifecycle import engine_kwargs
+        self.reload_timing = dict(seconds=time.monotonic()-started,**engine_kwargs({'gpu_memory_utilization':.90}))
 
 
 def synthetic_rows():

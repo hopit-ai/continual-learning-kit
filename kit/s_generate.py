@@ -56,14 +56,18 @@ def job(a):
     checkpoint = spec['nodes'][a.incoming]['checkpoint']
     identity = model(checkpoint, a.standin)
     require(identity == doc['identities'][a.incoming], 'incoming checkpoint changed')
-    from kit.m2_handoff import scoring_identity
-    scoring_identity(a.out, a.gpu, a.standin)
-    os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, V4_PHASE0_INFERENCE='0', KIT_DETERMINISTIC='1')
+    finalize=getattr(a,'finalize',False)
+    if not finalize:
+        from kit.m2_handoff import scoring_identity
+        scoring_identity(a.out,a.gpu,a.standin)
+        if not a.standin:a.gpu=os.environ.get('CUDA_VISIBLE_DEVICES',a.gpu)
+        os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu,V4_PHASE0_INFERENCE='0',KIT_DETERMINISTIC='1')
     generator = tok = None
-    if not a.standin:
+    if not a.standin and not finalize:
         from transformers import AutoTokenizer
         tok = AutoTokenizer.from_pretrained(__import__('kit.m2_paths',fromlist=['local']).local(checkpoint['model']), local_files_only=True)
-    for domain in domains_for(spec, a.incoming):
+    for domain in domains_for(spec,a.incoming):
+        if getattr(a,'domain',None) and a.domain!=domain:continue
         root = a.out/'own'/a.incoming/domain
         inputs = dict(incoming=identity, audit_sha256=sha(a.out/'audit.json'), partition_sha256=sha(a.out/'frozen/manifest.json'),
                       registration_sha256=sha(RESOURCE), technical_synthetic=a.standin)
@@ -73,9 +77,20 @@ def job(a):
             print('SKIP own:', a.incoming, domain)
             continue
         start = time.monotonic()
+        if finalize:
+            parts=[read(root/'parts'/(part+'.json')) for part in ('train','monitor')]
+            for part,proof in zip(('train','monitor'),parts):
+                require(proof['inputs']==inputs and proof['sha256']==sha(root/(part+'.jsonl')),'own-response part changed')
+            files={part+'.jsonl':sha(root/(part+'.jsonl')) for part in ('train','monitor')}
+            atomic(root/'cost.json',dict(seconds=sum(p['seconds'] for p in parts),gpu_hours=sum(p['gpu_hours'] for p in parts),technical_synthetic=a.standin))
+            bind(root/'manifest.json',dict(inputs,files=files,train_n=len(rows(root/'train.jsonl')),monitor_n=len(rows(root/'monitor.jsonl')),
+                selected_digests={part:digest(rows(root/(part+'.jsonl'))) for part in ('train','monitor')},
+                no_replenishment=True,decoding=dict(seed=0,temperature=0,top_p=1,thinking=False,max_tokens=2048)))
+            continue
         frozen = partitions(a.out, domain)
         files = {}
-        for part, count in (('train', 128), ('monitor', 64)):
+        for part,count in (('train',128),('monitor',64)):
+            if getattr(a,'part',None) and a.part!=part:continue
             accepted = []
             for row in frozen[part]:
                 path = root/'raw'/part/(digest(row['id'])+'.json')
@@ -105,6 +120,10 @@ def job(a):
             target = root/(part+'.jsonl')
             write_rows(target, accepted)
             files[target.name] = sha(target)
+        if getattr(a,'part',None):
+            atomic(root/'parts'/(a.part+'.json'),dict(inputs=inputs,sha256=files[a.part+'.jsonl'],seconds=time.monotonic()-start,
+                gpu_hours=0 if a.standin else (time.monotonic()-start)/3600))
+            continue
         atomic(root/'cost.json', dict(seconds=time.monotonic()-start, gpu_hours=0 if a.standin else (time.monotonic()-start)/3600,
                                       technical_synthetic=a.standin))
         bind(root/'manifest.json', dict(inputs, files=files, train_n=len(rows(root/'train.jsonl')), monitor_n=len(rows(root/'monitor.jsonl')),
@@ -114,7 +133,9 @@ def job(a):
 
 
 def configure(p):
-    p.add_argument('--incoming', required=True)
+    p.add_argument('--incoming',required=True)
+    p.add_argument('--domain',choices=DOMAINS);p.add_argument('--part',choices=('train','monitor'))
+    p.add_argument('--finalize',action='store_true')
     p.add_argument('--gpu', default='0')
 if __name__ == '__main__':
     raise SystemExit(entry(job, configure))

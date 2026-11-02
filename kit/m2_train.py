@@ -10,6 +10,118 @@ import subprocess
 import time
 
 
+def defer_exports():return os.environ.get('M2_EXECUTION_PHASE')=='gpu'
+
+
+def preparing():return os.environ.get('M2_EXECUTION_PHASE')=='stage'
+
+
+def prepared_path(a):
+    # Physical device selection is supplied only at GPU admission.
+    from kit.m2_assignment import digest
+    keys=('stage','configuration','trajectory','arm','seed','phase','end','incoming','domain')
+    return Path(a.out).parent/'.gpu-work'/(digest({k:str(getattr(a,k)) for k in keys if hasattr(a,k)})+'.json')
+
+
+def prepare_training(a,command,env,run,outputs,*,resolve=None):
+    if resolve is not None:
+        with (run/'resolved-config.yaml').open('w') as output,(run/'resolved-config.err').open('w') as error:
+            done=subprocess.run(resolve,cwd=a.sdpo,env=dict(env,CUDA_VISIBLE_DEVICES=''),stdout=output,stderr=error)
+        require(done.returncode==0 and (run/'resolved-config.yaml').stat().st_size>0,'trainer config did not resolve')
+    overrides={k:v for k,v in env.items() if os.environ.get(k)!=v}
+    atomic(prepared_path(a),dict(command=command,env=overrides,cwd=str(a.sdpo) if getattr(a,'sdpo',None) else None,
+        run=str(run),outputs=[str(p) for p in outputs]))
+
+
+def run_prepared(a):
+    if not defer_exports() or a.standin:return False
+    path=prepared_path(a)
+    if not path.is_file():raise NotReady('CPU training preparation missing')
+    value=json.loads(path.read_text());run=Path(value['run'])
+    completed=path.with_suffix('.done.json')
+    if completed.exists():
+        require(json.loads(completed.read_text())['prepared_sha256']==s.file_hash(path),'completed training preparation changed')
+        require(all(Path(name).exists() for name in value['outputs']),'completed native checkpoint missing')
+        return True
+    env=dict(os.environ,**value['env']);env.update(CUDA_VISIBLE_DEVICES=os.environ['CUDA_VISIBLE_DEVICES'],M2_EXECUTION_PHASE='gpu')
+    started=time.monotonic()
+    atomic(run/'started.json',dict(prepared_sha256=s.file_hash(path)))
+    try:done=subprocess.run(value['command'],cwd=value['cwd'],env=env)
+    finally:
+        seconds=time.monotonic()-started
+        atomic(run/'training-costs'/f'{time.time_ns()}.json',dict(kind='training_job',gpu_hours=8*seconds/3600,seconds=seconds,technical_synthetic=False,includes='native GPU process only; CPU staging/export separate'))
+    atomic(run/'trainer-exit.json',dict(returncode=done.returncode,seconds=time.monotonic()-started))
+    if done.returncode:raise subprocess.CalledProcessError(done.returncode,value['command'])
+    for name in value['outputs']:
+        target=Path(name)
+        require(target.exists() and (not target.is_dir() or any(target.iterdir())),'native checkpoint missing: '+name)
+    atomic(path.with_suffix('.done.json'),dict(prepared_sha256=s.file_hash(path)))
+    return True
+
+
+def published_training(a):
+    if os.environ.get('M2_EXECUTION_PHASE')!='publish' or a.standin:return False
+    path=prepared_path(a);done=path.with_suffix('.done.json')
+    require(done.is_file() and json.loads(done.read_text())['prepared_sha256']==s.file_hash(path),'native training completion pending')
+    return True
+
+
+def queue_export(out,kind,**values):
+    """A local immutable postprocessing request; never an export receipt."""
+    from kit.m2_assignment import digest
+    value=dict(kind=kind,**values)
+    bind(Path(out)/'.cpu-exports'/(digest(value)+'.json'),value)
+
+
+def finish_exports(out):
+    """Called only by the zero-GPU publication row, after all writers exit."""
+    from types import SimpleNamespace as NS
+    requests=sorted((Path(out)/'.cpu-exports').glob('*.json'))
+    values=[(path,json.loads(path.read_text())) for path in requests]
+    values.sort(key=lambda item:item[1]['kind'] in ('x-finish','tier2-finish'))
+    for path,value in values:
+        run=Path(value['run']) if 'run' in value else None
+        kind=value['kind']
+        if kind=='m2-stage':
+            from kit.v4_sft import complete_export
+            for step in STEPS[1:]:
+                export=run/f'hf-step{step}'
+                if value['standin']:
+                    atomic(run/f'export-{step}.json',dict(technical_synthetic=True,step=step,model=value['models'][str(step)]))
+                else:
+                    checkpoint=run/('sdft' if value['family']=='D' else 'train')/f'global_step_{step}'
+                    if value['family']=='D':checkpoint/='actor'
+                    if not complete_export(export):subprocess.run([value['python'],'-m','verl.model_merger','merge','--backend','fsdp','--local_dir',str(checkpoint),'--target_dir',str(export)],cwd=value['sdpo'],env=dict(os.environ,CUDA_VISIBLE_DEVICES=''),check=True)
+                    require(complete_export(export),'incomplete merged export')
+                    bind(run/f'export-{step}.json',identity(export))
+            atomic(run/'summary.json',value['summary'])
+            bind(run/'manifest.json',files_manifest(run,value['names'],technical_synthetic=value['standin']))
+            bind(run/'complete.json',dict(complete=True))
+        elif kind=='x-export':
+            from kit.x_train import export
+            export(run,value['step'],NS(out=Path(out),standin=value['standin'],arm=value['arm'],seed=value['seed'],trainer_python=value['python'],sdpo=value['sdpo']),dict(os.environ,CUDA_VISIBLE_DEVICES=''))
+        elif kind=='x-finish':
+            bind(run/'summary.json',value['summary'])
+            bind(run/'manifest.json',files_manifest(run,value['names'],technical_synthetic=value['standin']))
+            bind(run/'complete.json',dict(complete=True))
+        elif kind=='tier2-finish':
+            from kit.x_tier2_train import finish
+            finish(run,value['frozen'],value['scheduled'],value['audit'],value['standin'],value['p2'])
+        elif kind=='probe-export':
+            from kit.p3b_common import identity as export_identity
+            work=Path(value['work'])
+            hashes={'config.json':s.file_hash(work/'hf-probe/config.json')} if value['standin'] else export_identity(work/'hf-probe')['model_file_hashes']
+            atomic(work/'export.json',dict(model_file_hashes=hashes))
+        elif kind=='broad-finish':
+            from kit.next_pools import finish
+            finish(Path(value['root']),value['standin'],value['accepted'],value['verdicts'],value['seconds'])
+        elif kind=='math-targets':
+            from kit.m2_targets import finish
+            finish(Path(value['root']),value['standin'],value['seconds'])
+        else:raise CorrectnessStop('unknown CPU export operation')
+        path.unlink()
+
+
 def command(a, recipe, model, data, run):
     from kit.m2_paths import local
     model=local(model)
@@ -32,7 +144,7 @@ def job(a):
     started = time.monotonic(); a._training_cost_root = None
     try: return stage(a)
     finally:
-        if a._training_cost_root is not None:
+        if a._training_cost_root is not None and os.environ.get('M2_EXECUTION_PHASE') not in ('stage','publish'):
             atomic(a._training_cost_root / f'{time.time_ns()}.json', dict(kind='training_job',
                 gpu_hours=8*(time.monotonic()-started)/3600,
                 completed=(a._training_cost_root.parent / 'complete.json').exists(),technical_synthetic=False,
@@ -40,6 +152,7 @@ def job(a):
 
 
 def stage(a):
+    if run_prepared(a):return
     doc = binding(a.out, a.standin)
     if a.stage=='math' and a.trajectory=='sibling' and doc['hard_math']=='QUALIFIES':
         durable_admission(a.out,doc,a.durable)
@@ -102,9 +215,14 @@ def stage(a):
             from kit.c_sim import Tokenizer
             converted, token_counts = convert(task, Tokenizer(), a.stage)
             for step in STEPS[1:]:
-                atomic(run / f'export-{step}.json',dict(technical_synthetic=True,step=step,
+                if not defer_exports():atomic(run / f'export-{step}.json',dict(technical_synthetic=True,step=step,
                     model=f'message2-standin:{observed["binding_sha256"]}:{arm}:s{a.seed}:k{step}'))
             atomic(run / 'summary.json', dict(**observed, seconds=0, gpu_hours=0, scheduled_tokens=token_counts))
+            if defer_exports():
+                queue_export(a.out,'m2-stage',run=str(run),standin=True,
+                    models={str(k):f'message2-standin:{observed["binding_sha256"]}:{arm}:s{a.seed}:k{k}' for k in STEPS[1:]},
+                    summary=dict(**observed,seconds=0,gpu_hours=0,scheduled_tokens=token_counts),names=['summary.json']+[f'export-{k}.json' for k in STEPS[1:]])
+                return
         else:
             a._training_cost_root = run / 'training-costs'
             require(a.sdpo is not None and a.tokenizer, 'pinned SDPO and tokenizer required')
@@ -125,7 +243,16 @@ def stage(a):
             cmd, resolve, env = command(a, recipe, incoming['model'], data, run)
             bind(run / 'command.json', cmd)
             family = recipe[0] if recipe != 'answer-only' else 'F'
+            if preparing():
+                if not completed_training(run,family,40):
+                    if (run/'started.json').exists():
+                        kept=run/'partials'/str(time.time_ns());kept.mkdir(parents=True)
+                        for name in ('sdft','train','metrics.jsonl','started.json','trainer-exit.json','resolved-config.yaml','resolved-config.err'):
+                            if (run/name).exists():(run/name).rename(kept/name)
+                prepare_training(a,cmd,env,run,[run/('sdft' if family=='D' else 'train')/f'global_step_{k}'/('actor' if family=='D' else '.') for k in STEPS[1:]],resolve=resolve)
+                return
             if not completed_training(run, family, 40):
+                if published_training(a):raise NotReady('native checkpoint has incomplete optimizer dose; CPU publication cannot train')
                 if (run / 'started.json').exists():
                     kept = run / 'partials' / str(time.time_ns()); kept.mkdir(parents=True)
                     for name in ('sdft','train','metrics.jsonl','started.json','trainer-exit.json','resolved-config.yaml','resolved-config.err'):
@@ -139,6 +266,15 @@ def stage(a):
                 atomic(run / 'trainer-exit.json', dict(returncode=done.returncode, seconds=time.monotonic()-clock))
                 if done.returncode: raise subprocess.CalledProcessError(done.returncode, cmd)
                 if not completed_training(run, family, 40): raise NotReady('final checkpoint missing; interruption evidence retained')
+            if defer_exports():
+                for step in STEPS[1:]:
+                    checkpoint_path=run/('sdft' if family=='D' else 'train')/f'global_step_{step}'
+                    if family=='D':checkpoint_path/='actor'
+                    require(checkpoint_path.is_dir() and any(checkpoint_path.iterdir()),'native checkpoint missing')
+                seconds=json.loads((run/'trained.json').read_text())['seconds']
+                queue_export(a.out,'m2-stage',run=str(run),standin=False,family=family,python=a.trainer_python,sdpo=str(a.sdpo),
+                    summary=dict(**observed,seconds=seconds,gpu_hours=8*seconds/3600 if seconds is not None else None,scheduled_tokens=token_counts),names=['summary.json']+[f'export-{k}.json' for k in STEPS[1:]])
+                return
             from kit.v4_sft import complete_export
             for step in STEPS[1:]:
                 export = run / f'hf-step{step}'

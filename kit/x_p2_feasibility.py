@@ -119,6 +119,8 @@ def ensure(a,doc,calibration):
         cmd,_,env=m2_train.command(args,'D+replay',incoming(doc,a.seed)['model'],data,run)
         cmd=runtime(env,cmd,mode='train',batch=a.out/'p2'/f's{a.seed}',run=run,anchor=doc['p2_anchor']['model'],seed=a.seed,value=calibration['coefficient']['value'])
         cmd=runtime_identity(env,cmd,root/'identity.json',expected)
+        if m2_train.published_training(a):
+            atomic(run/'process-exit.json',dict(returncode=0))
         if run.exists():
             if (run/'process-exit.json').exists():
                 require(read(run/'process-exit.json')['returncode']==0,'completed disposable process failed; no retry')
@@ -131,6 +133,9 @@ def ensure(a,doc,calibration):
         for r,value in enumerate(measured):
             require(value['rank']==r,'X4 resource rank missing');check_rank(value,dict(expected,calibration_sha256=None),read(SETTINGS),measurement=True)
         validate_geometry([v['geometry'] for v in measured],8)
+        if m2_train.preparing():
+            m2_train.prepare_training(a,cmd,env,run,[run/'sdft/global_step_40/actor'])
+            return False
         start=time.monotonic()
         try:
             try:

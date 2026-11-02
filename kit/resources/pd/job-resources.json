@@ -1,0 +1,265 @@
+{
+  "schema": "pd-job-resources-v1",
+  "rows": [
+    {
+      "id": "PD-101-prep",
+      "phase": "prep",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-101-pre",
+      "phase": "pre",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-101-prep"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-101-train",
+      "phase": "train",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-101-pre"
+      ],
+      "gpu_sharing": false
+    },
+    {
+      "id": "PD-101-finalize",
+      "phase": "finalize",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 16,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-101-train"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-101-post",
+      "phase": "post",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-101-finalize"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-101-collect",
+      "phase": "collect",
+      "seed": 101,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 4,
+      "may_share_node": true,
+      "dependency": "afterany",
+      "requires": [
+        "PD-101-post"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-102-prep",
+      "phase": "prep",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-102-pre",
+      "phase": "pre",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-102-prep"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-102-train",
+      "phase": "train",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-102-pre"
+      ],
+      "gpu_sharing": false
+    },
+    {
+      "id": "PD-102-finalize",
+      "phase": "finalize",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 16,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-102-train"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-102-post",
+      "phase": "post",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-102-finalize"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-102-collect",
+      "phase": "collect",
+      "seed": 102,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 4,
+      "may_share_node": true,
+      "dependency": "afterany",
+      "requires": [
+        "PD-102-post"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-103-prep",
+      "phase": "prep",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-103-pre",
+      "phase": "pre",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-103-prep"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-103-train",
+      "phase": "train",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-103-pre"
+      ],
+      "gpu_sharing": false
+    },
+    {
+      "id": "PD-103-finalize",
+      "phase": "finalize",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 16,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-103-train"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-103-post",
+      "phase": "post",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "dependency": "afterok",
+      "requires": [
+        "PD-103-finalize"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-103-collect",
+      "phase": "collect",
+      "seed": 103,
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 4,
+      "may_share_node": true,
+      "dependency": "afterany",
+      "requires": [
+        "PD-103-post"
+      ],
+      "gpu_sharing": null
+    },
+    {
+      "id": "PD-read",
+      "phase": "read",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 4,
+      "may_share_node": true,
+      "requires": [
+        "PD-101-collect",
+        "PD-102-collect",
+        "PD-103-collect"
+      ],
+      "dependency": "afterany"
+    }
+  ]
+}

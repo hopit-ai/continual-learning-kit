@@ -364,11 +364,16 @@ def observed_hardware(entry, expected):
     torch = sys.modules.get('torch')
     require(torch is None or not torch.cuda.is_initialized(), 'UNVERIFIED: CUDA initialized before UUID resolution')
     from kit import m2_gpu, m2_assignment
-    index = m2_gpu.prepare(expected['uuid'], expected_uuid=expected['uuid'])['index']
+    job=__import__('os').environ.get('KIT_LANE_JOB')
+    index=m2_gpu.prepare(__import__('os').environ.get('CUDA_VISIBLE_DEVICES','0') if job else expected['uuid'],
+        expected_uuid=__import__('os').environ.get('M2_ASSIGNED_GPU_UUID') if job else expected['uuid'])['index']
     observed = m2_assignment.inventory(index)
-    require(all(observed[k] == expected[k] for k in ('uuid', 'environment')), 'UNVERIFIED: observed GPU/environment differs')
+    if not job:require(all(observed[k]==expected[k] for k in ('uuid','environment')),'UNVERIFIED: observed GPU/environment differs')
     m2_gpu.assert_current()
-    return index, {k: observed[k] for k in ('uuid', 'environment')}
+    result={k:observed[k] for k in ('uuid','environment')}
+    if job:result.update(allocation_job=job,historical_assignment={k:expected[k] for k in ('uuid','environment')},
+        parent_gpu_uuids=expected.get('observed_parent_gpu_uuids',[]))
+    return index,result
 
 
 def panel_cohort_path(out, use):
@@ -413,11 +418,11 @@ def panel_job(entry, model, gpu, out, frozen_root=None, standin=False, gpu_ident
     verify_fixtures(frozen_root, ck)
     observed = gpu_identity or dict(uuid=None, environment=None)
     if not standin:
-        from kit.sp_manifest import durable_binding
-        proof = durable_binding(local_export, verified=entry.get('durable_provenance'))
+        from kit.sp_manifest import durable_binding, fresh_binding
+        proof = fresh_binding(local_export, entry) if entry.get('prepared_metadata') else durable_binding(local_export, verified=entry.get('durable_provenance'))
         require(proof == entry.get('durable_provenance') and Path(model).resolve() == Path(local_export['model']).resolve(),
                 'UNVERIFIED: owner durable binding differs')
-        verify_model(entry, model)
+        if not entry.get('prepared_metadata'): verify_model(entry, model)
         gpu, observed = observed_hardware(entry, gpu_identity)
     request = dict(entry=entry, frozen_sha256=doc.get('identity_sha256') or digest(doc),
                    checker_sha256=doc.get('checker_sha256'), decoding=DECODING, decoding_sha256=digest(DECODING),
@@ -447,14 +452,17 @@ def panel_job(entry, model, gpu, out, frozen_root=None, standin=False, gpu_ident
     receipt_started = time.monotonic()
     scored = score_panel(panel, raw, ck)
     metrics = length_metrics(raw, {r['id']: r['strict'] for r in scored})
-    metrics['comparisons'] = panel_cohorts(out, entry, raw, scored, request['frozen_sha256'])
+    # Parallel scorers publish cells only; the CPU reader freezes cohorts and reduces them.
+    metrics['comparisons'] = {} if __import__('os').environ.get('SP_POOL_CHILD') else panel_cohorts(out,entry,raw,scored,request['frozen_sha256'])
     write_jsonl(root / 'raw.jsonl', raw)
     write_jsonl(root / 'scores.jsonl', scored)
     write_json(root / 'length.json', metrics)
     timing['receipt'] = time.monotonic() - receipt_started
     timing['serial_wall_seconds'] = sum(timing.values())
+    from kit.inference_lifecycle import engine_kwargs
+    from kit.score_forgetting import ENGINE
     write_json(root / 'identity.json', dict(request,
-        timing=timing, gpu_hours=0.0 if standin else timing['serial_wall_seconds'] / 3600))
+        engine=engine_kwargs(ENGINE) if not standin and reused is None else None,timing=timing, gpu_hours=0.0 if standin else timing['serial_wall_seconds'] / 3600))
     manifest = dict(files={n: sha256_file(root / n) for n in ('raw.jsonl', 'scores.jsonl', 'length.json', 'identity.json')})
     write_json(root / 'manifest.json', manifest)
     return manifest

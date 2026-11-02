@@ -6,6 +6,7 @@ import subprocess
 import sys
 from types import SimpleNamespace as NS
 import pytest
+from kit_authority import sealed_v6_authority
 from kit import math_hard_teacher as h, math_hard_teacher_read as reader
 from kit.beds import math_screen as maths
 
@@ -57,7 +58,7 @@ def test_frozen_registration_and_amendment_are_bound_separately():
 
 
 @pytest.mark.skipif(not (ROOT / 'docs/phase3').is_dir(), reason='research repository copy only')
-def test_kit_copies_are_the_repository_registration_and_amendment():
+def test_kit_copies_are_the_repository_registration_and_amendment(sealed_v6_authority):
     docs = ROOT / 'docs/phase3'
     assert (docs / 'hard-math-screen-preregistration-20261020.md').read_bytes() == (h.M / 'registration.md').read_bytes()
     assert (docs / 'hard-math-screen-amendment-1-20261020.md').read_bytes() == (h.M / 'amendment-1.md').read_bytes()
@@ -66,9 +67,9 @@ def test_kit_copies_are_the_repository_registration_and_amendment():
     assert 'hard-math-screen-result-20261020.md' in (h.M / 'amendment-1.md').read_text()
 
 
-def test_tampered_resources_stop_before_generation(tmp_path, monkeypatch):
+def test_tampered_resources_stop_before_generation(tmp_path, monkeypatch, sealed_v6_authority):
     """Relocation retains exact runtime-update pins; data/code tampering still fails."""
-    from kit import m2_runtime
+    from kit import m2_runtime, v6_infra
     kit = tmp_path / 'kit'
     shutil.copytree(h.M, kit / 'resources/math-hard-teacher')
     for name in ('beds/math_screen.py', 'second_task_screen.py', 'v4_teacher.py'):
@@ -79,6 +80,10 @@ def test_tampered_resources_stop_before_generation(tmp_path, monkeypatch):
     shutil.copy(h.KIT / 'resources/m2/runtime-updates.json', kit / 'resources/m2/runtime-updates.json')
     shutil.copy(Path(m2_runtime.__file__), kit / 'm2_runtime.py')
     monkeypatch.setattr(m2_runtime, '__file__', str(kit / 'm2_runtime.py'))
+    # Relocate the same sealed D10 authority, without changing its exact pairs.
+    (kit / 'resources/v6').mkdir(parents=True)
+    shutil.copy(h.KIT / 'resources/v6/infrastructure-update.json', kit / 'resources/v6/infrastructure-update.json')
+    monkeypatch.setattr(v6_infra, 'ROOT', tmp_path)
     monkeypatch.setattr(h, 'KIT', kit); monkeypatch.setattr(h, 'M', kit / 'resources/math-hard-teacher')
     assert len(h.frozen()['panel']) == 200
     implementation = kit / 'second_task_screen.py'

@@ -16,7 +16,7 @@ def devices():
 
 
 def gpu_index(uuid):
-    rows=devices();matches=[index for index,value in rows.items() if value==uuid]
+    rows=allocated_devices();matches=[index for index,value in rows.items() if value==uuid]
     require(len(matches)==1,'assigned GPU UUID not visible before staging')
     index=matches[0]
     allowed=os.environ.get('CUDA_VISIBLE_DEVICES')
@@ -26,8 +26,29 @@ def gpu_index(uuid):
     return index
 
 
+def allocated_devices(rows=None):
+    """CUDA tokens mapped to measured NVML UUIDs, including cgroup ordinals."""
+    rows=devices() if rows is None else rows
+    allowed=os.environ.get('CUDA_VISIBLE_DEVICES')
+    if allowed is None:return rows
+    tokens=allowed.split(',')
+    scheduler=os.environ.get('SLURM_STEP_GPUS') or os.environ.get('SLURM_JOB_GPUS')
+    if scheduler:
+        physical=scheduler.split(',')
+        if len(physical)==len(tokens):
+            mapped=[rows.get(v,v if v in rows.values() else None) for v in physical]
+            if all(mapped):return dict(zip(tokens,mapped))
+            # NVML may itself be restricted and renumbered by ConstrainDevices.
+            if len(rows)==len(tokens):return dict(zip(tokens,rows.values()))
+    result={token:rows.get(token,token if token in rows.values() else None) for token in tokens}
+    if all(result.values()):return result
+    if len(rows)==len(tokens) and all(token.isdigit() for token in tokens):
+        return dict(zip(tokens,rows.values()))
+    require(False,'allocated GPU UUIDs unavailable')
+
+
 def prepare(gpu, expected_uuid=None):
-    rows=devices()
+    rows=allocated_devices()
     uuid=expected_uuid or (gpu if str(gpu).startswith('GPU-') else rows.get(str(gpu)))
     require(uuid is not None,'unknown requested GPU')
     index=gpu_index(uuid)

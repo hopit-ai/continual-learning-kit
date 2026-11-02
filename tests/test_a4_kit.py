@@ -8,6 +8,7 @@ import subprocess
 import sys
 from types import SimpleNamespace as NS
 import pytest
+from kit_authority import sealed_v6_authority
 from kit import a4_common as c, a4_bind, a4_sim, a4_score, a4_ledger, a4_memory, a4_train, a4_read, a4_run, a4_collect
 from kit.c_sim import Tokenizer
 
@@ -56,7 +57,7 @@ def test_bind_c_rule_and_resumption(tmp_path,recipe):
 def test_registered_cost_formula(hours,expected):assert a4_bind.ceiling(hours)==expected
 
 
-def test_scientific_slice_and_legacy_pins():
+def test_scientific_slice_and_legacy_pins(sealed_v6_authority):
     legacy=json.loads((c.KIT/'resources/next/legacy-sha256.json').read_text())
     assert len(legacy)==53
     for name,digest in legacy.items():c.check(c.KIT/name,digest)
@@ -69,6 +70,18 @@ def test_scientific_slice_and_legacy_pins():
     for line in (c.RES/'SHA256SUMS').read_text().splitlines():
         digest,name=line.split();c.check(c.RES/name,digest)
     assert 'Registration final' in (c.RES/'registration.md').read_text()
+
+
+@pytest.mark.parametrize('seal', [None, '0' * 64])
+def test_legacy_code_pin_refuses_absent_or_wrong_operator_seal(sealed_v6_authority, monkeypatch, seal):
+    legacy=json.loads((c.KIT/'resources/next/legacy-sha256.json').read_text())
+    path=c.KIT/'eval_bed.py'; expected=legacy['eval_bed.py']
+    assert c.s.file_hash(path)!=expected
+    c.check(path,expected)  # exact D10 pair succeeds with the supplied seal
+    if seal is None:monkeypatch.delenv('KIT_V6_AUTHORITY_SHA')
+    else:monkeypatch.setenv('KIT_V6_AUTHORITY_SHA',seal)
+    with pytest.raises(c.CorrectnessStop,match='input hash differs'):
+        c.check(path,expected)
 
 
 def test_no_feedback_until_all_arms_sealed(tmp_path):

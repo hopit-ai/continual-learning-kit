@@ -20,6 +20,8 @@ def implementation():
 
 
 def context(out, standin):
+    from kit.v6_infra import activate
+    activate(out)
     registration()  # S registration/analysis bytes remain untouched.
     doc = read(out/'binding.json')
     require(doc['technical_synthetic'] is standin, 'technical_synthetic requires --standin')
@@ -47,7 +49,7 @@ def checkpoint(out, doc, arm, seed, step):
         require(arm!='p' or doc.get('p_variant')=='p2-l2-init','closed P variant cannot supply a stage-start checkpoint')
         return incoming(doc,seed)
     root = out/'runs'/f'x-{arm}-s{seed}'
-    require((root/f'export-{step}.json').exists(), 'export pending')
+    if not (root/f'export-{step}.json').exists():raise m.NotReady('export pending')
     return dict(model=str(root/f'hf-step{step}'), receipt=str(root/f'export-{step}.json'))
 
 

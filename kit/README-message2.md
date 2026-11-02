@@ -219,21 +219,71 @@ exits 3 when a prerequisite is pending; identity refusal is UNVERIFIED (exit 2).
 Use one local NVMe `LOCAL_ROOT` per node, a common durable root, and isolated
 `LOCAL_ROOT/<task>/out` trees. M, S and X tasks never share a writable tree.
 Reducers assemble verified snapshots; only the M9 reducer may commit admission.
-Never train and score concurrently on the same full-node allocation. Different
-scoring families may use separate assigned GPUs concurrently; each family is
-serial on its assigned GPU. In particular, distributing one contrast's panels
+Eight-rank training leases its eight allocated GPUs and does not share them.
+Scoring families lease their one allocated GPU and may share a host with other
+allocations. Each complete lane records one actual UUID and allocation job identity for all its checkpoints. In particular, distributing one contrast's panels
 across GPUs is forbidden even when all GPUs reproduce the same aggregate FinQA.
+
+The generated resource requests are authoritative for every core row:
+
+| Family | Partner sbatch resource line | Sharing |
+|---|---|---|
+| INPUTS, PF-node/PF-ARC, M/S/X preparation, nomination, reducers, collectors | `--nodes=1 --gpus-per-node=0 --cpus-per-task=4` | May share the frozen host |
+| Every GPU task's `-stage` and publication row | `--nodes=1 --gpus-per-node=0 --cpus-per-task=8` | Same host/local root as its GPU row |
+| M3b, M/R/RA/S/X scoring and own-response generation | `--nodes=1 --gpus-per-node=1 --cpus-per-task=8` | Only its GPU is leased |
+| M5 hard-MATH teacher | `--nodes=1 --gpus-per-node=2 --cpus-per-task=8` | Only its two GPUs are leased |
+| M/R/X training, S10/X9 probes, X4 calibration, P2 qualification | `--nodes=1 --gpus-per-node=8 --cpus-per-task=32` | Does not share its eight GPUs |
+
+GPU tasks now form `TASK-stage` (CPU staging), `TASK-gpu` (productive GPU work),
+and `TASK` (CPU export/publication). The original scientific task ID names the
+publication snapshot; consumers depend on that ID. Submit the CPU publication
+with `afterany` so interrupted native state can be preserved; consumers still
+require its complete snapshot. Staging and publication take no GPU leases.
+Training tokenisation, schedules and parquet/config preparation finish on CPU.
+Native checkpoints are verified present before GPU exit; HF merges, probe HF
+exports, hashes and durable tar publication happen after GPU release. Missing
+local staging exits PENDING immediately; requeue staging on the same host.
+
+Scoring staging resolves every checkpoint before admission and freezes
+`LOCAL_ROOT/TASK/lane-commands.json` (`message2-lane-commands.v1`): ordered
+`commands` argv arrays, one checkpoint × panel group each, plus CPU `reducers`.
+The GPU task executes this ordered list through `lane_pool.py --concurrency 3`
+on its one allocated UUID, inside one utilisation watcher. CPU publication runs
+the reducers after every command completes. Incoming and adaptive frontiers
+remain separate jobs; each comparison re-scores its own earlier checkpoints.
+Complete comparison rows feed nomination, admission and final readback. Historical
+RA retained/reused inputs are freshly scored in the same package job. The
+scheduler need not reproduce a historical UUID. See [v6 allocation lanes](util70-integration.md)
+for per-row command counts, added calls, identities, costs and remaining risks.
+
+Every GPU row must run through the wrapper owner's `python -I kit/util_watch.py
+--out <telemetry>/util.jsonl -- <command...>` integration. Native saves, model
+startup, unchanged HF references and scorer teardown still need rolling-window
+telemetry; right-sizing alone does not establish 70% activity. Do not allocate
+GPUs to wait for dependencies or to run CPU publication. A CPU staging result
+with no runnable work (a registered deferred/skip branch) needs no GPU submission.
+
+Prospective v6 code pins are generated at integration using
+`python -I scripts/v6_infra_authority.py --base <reviewed-ref> --out
+kit/resources/v6/infrastructure-update.json`. Its schema is in
+`resources/v6/infrastructure-update.schema.json`. The authority lists exact old
+pin → new code byte pairs and forbids amendments to data/registrations. Its SHA256
+is bound into new M2 protocols, S bindings and frozen launch documents; X binds
+that scoring protocol too. Existing sends with a different authority refuse to
+run. Historical resource pins, registrations and send-binding expected files are
+never regenerated. These changes require a new send binding and launch freeze
+from the node's own archives; do not overwrite an old frozen launch.
 
 The first send job group is mandatory, using the same send and frozen manifest:
 
 1. After INPUTS and launch/assignment freezing, submit **PF-node-0 ... PF-node-(N-1)**
-   as exclusive whole-node jobs on their matching slots, before any other job on
-   that node. Each runs both-runtime rapidfuzz checks and the trainer dataset import
+   as CPU-only jobs (one node, zero GPUs) on their matching slots, before any
+   other job on that node. Each runs both-runtime rapidfuzz checks and the trainer dataset import
    check from README-partner (NumPy/PyArrow/datasets/verl), then actual filesystem/options
-   and functional flock, sysfs NVMe controller transports (all PCIe), all allocated
-   GPU UUID-to-index mappings and child torch UUID assertions. Environment
-   fingerprints and all assigned GPUs must match the frozen authority. This is
-   also the required partner-stack mapping smoke, not an extra partner message.
+   and functional flock and sysfs NVMe controller transports (all PCIe). At the
+   start of each productive GPU job, parallel child probes assert the allocated
+   UUIDs and environment against the frozen authority, then save a PASS receipt
+   before any scientific command. No standalone GPU preflight allocation is used.
 2. Submit **PF-ARC** as the first preparation job on its deterministic slot after
    that node's preflight. It invokes `next_pools.py --prepare-candidates-only` on
    the real staged A/B/FinQA/replay/ancestry inputs and pinned cached sources.
@@ -294,12 +344,14 @@ slot order, and `tasks`. Each task contains:
 
 - `id`: a unique safe stage/arm/seed identifier; `row`: its M/S/X row.
 - `kind`: `prepare`, `train-stage`, `score-family`, `reduce-admission` or `collect`.
+- `resources`: `nodes=1`, `gpus` in 0/1/2/8, positive `cpus`, and `share_node`.
+- `execution_phase`, `workspace_task`: the CPU/GPU/publication local handoff.
 - `commands`: a fixed list of argv arrays for one selected row, executed serially.
   A single `command` argv is also accepted for hand-written diagnostic jobs.
 - `requires`: completed snapshot task IDs; `overlay`: dependencies to assemble
   into this stage's writable view (identical files only; conflicts stop).
 - `family`, `seed`: required for scoring. The node wrapper maps the assignment's
-  GPU UUID to its PCI-ordered numeric index before staging. Pass `{score_gpu}`
+  GPU UUID to its PCI-ordered numeric index at GPU admission. Pass `{score_gpu}`
   to leaf `--gpu`/`--score-gpu`; leaf scorers preserve that prepared index.
 - `barriers`: durable prerequisite names; `commit_barrier` on the owning reducer.
   M10 needs M9. X1 needs M9, M10 disposition and S6. Tier 2 needs X12.
@@ -360,8 +412,12 @@ puts `M7-101-train` on slot 2; M9 and core collection belong to slot 7. In
 separate partner-owned sbatch jobs, execute the selected IDs on their slots:
 
 ```bash
-bash "$KIT/jobs/message2-v2/train-stage.sh" --task M7-101-train --node-slot 2/8
-bash "$KIT/jobs/message2-v2/score-family.sh" --task M7-101-score --node-slot 3/8
+bash "$KIT/jobs/message2-v2/prepare.sh" --task M7-101-train-stage --node-slot 2/8
+bash "$KIT/jobs/message2-v2/train-stage.sh" --task M7-101-train-gpu --node-slot 2/8
+bash "$KIT/jobs/message2-v2/prepare.sh" --task M7-101-train --node-slot 2/8
+bash "$KIT/jobs/message2-v2/prepare.sh" --task M7-101-score-stage --node-slot 3/8
+bash "$KIT/jobs/message2-v2/score-family.sh" --task M7-101-score-gpu --node-slot 3/8
+bash "$KIT/jobs/message2-v2/prepare.sh" --task M7-101-score --node-slot 3/8
 bash "$KIT/jobs/message2-v2/reduce-admission.sh" --task M9 --node-slot 7/8
 bash "$KIT/jobs/message2-v2/collect.sh" --task M-core-collect --node-slot 7/8
 ```
@@ -374,10 +430,13 @@ for a requeue. No GPU UUID is reassigned when a node is unavailable.
 **One-node example:** freeze one hostname and its eight physical GPUs, then
 use the same task commands with `--node-slot 0/1`. The dependency graph,
 assignments, three-seed completeness and distinct fresh controls are identical.
-The partner serialises training against scoring in that allocation.
+The partner submits separate allocations: eight GPUs for training, one per scoring
+lane, two for the teacher, and zero for staging/publication. CPU allocations stay
+on the frozen host so local handoffs remain reachable.
 
-Each job copies each required tar once, verifies SHA256 and every member,
-unpacks locally, and publishes a full-state tar plus checksum. A verified tar
+CPU staging copies each required tar once, verifies SHA256 and every member,
+and unpacks locally. The GPU job consumes that local handoff. CPU publication
+merges/exports and publishes a full-state tar plus checksum. A verified tar
 is installed before its atomic CURRENT pointer; interrupted uploads leave no
 new pointer. Completed snapshots and admission commits are immutable. TERM is
 forwarded to the child's process group, followed by a partial full-state
@@ -537,7 +596,7 @@ The M9 save commits the admission before any sibling MATH scoring or training.
 The sibling row and direct sibling trainer require durable CURRENT to hold the
 same `admission.json` SHA256 as local OUT; missing or different evidence stops.
 
-Full-node stages use eight GPUs serially. Teacher targets use TP2 in a gap;
+Training stages request eight GPUs. Teacher targets request two GPUs for TP2;
 scoring is deterministic, eager, batch invariant, greedy, thinking off, 2,048
 response tokens, on one physical GPU. Raw answers/token IDs/finish reasons,
 software/GPU identities, attempts, exclusions and actual costs stay durable.
@@ -778,12 +837,11 @@ are labelled `technical_synthetic` throughout.
   nodes must correspond to these same original exports. Other recipes are
   scored for the added job but never enter the primary Screen S statistic.
 
-Run S rows serially within their own job shell. S3/S4 may proceed alongside
-the independent continuation when a separate scoring GPU is allocated.
-S5–S10 require their own allocation and must not share the continuation's
-allocation or GPUs. S10 requires an exclusive eight-GPU node, including its
-scoring and cleanup. Use the same inference environment, host and
-physical scoring GPU for every Screen S scoring operation; changes stop.
+Use the explicit S manifest jobs. Preparation, freezing, exports and cleanup
+request zero GPUs; S4/S7/S8–S10 scoring lanes request one assigned GPU; S10
+probe training requests eight GPUs, released before CPU export and scoring.
+Independent allocations may share the host; training does not share its GPUs.
+Keep each Screen S family/seed on its frozen host, UUID and inference environment.
 Job start/TERM/end use the existing durable handoff and process-group wrapper.
 Use a fresh shell for this block (the M-row wrapper has its own readonly roots).
 Set `KIT` to the kit directory, `FINQA` to the original FinQA scoring data,
@@ -979,7 +1037,8 @@ immutable `global_step_10` prefix. Three fresh controls
 (`x-control-s101` … `x-control-s103`) are shared by all challengers.
 
 Use a fresh shell and the existing job-start/restore/identity/process-group
-wrapper. Keep writers serial; the eight-GPU training/probe node is exclusive.
+wrapper. Keep each task's writers serial; eight-GPU training/probes do not share
+their GPUs. CPU follow-ups and one-GPU scoring use separate allocations.
 X1 binds the core `m2-scoring-machine.json`. Every scoring operation uses the
 same inference environment, host and physical scoring GPU as the core. A mismatch
 leaves every mixed X/core bar `PENDING_CROSS_MACHINE`. X-only paired bars retain
@@ -1535,11 +1594,11 @@ before P2's PASS, absent receipts and changed receipt hashes block P2.
 
 ## Fix round 1: assignments, validation and failure handling
 
-Use whole-node scoring allocations, e.g. `sbatch --exclusive --nodelist=<assigned-node>`;
-alternatively run that node's family processes inside its one exclusive allocation.
-A one-GPU Slurm allocation may give the wrong physical GPU. Before any restore,
-the runner checks hostname and allocation-visible UUID, maps UUID to its physical
-index with `CUDA_DEVICE_ORDER=PCI_BUS_ID`, and passes the index to the scorers.
+Use `sbatch --nodes=1 --gpus-per-node=1 --cpus-per-task=8 --nodelist=<assigned-node>`
+for a scoring lane. Check the scheduler assigned the frozen physical UUID; an
+off-assignment allocation exits UNVERIFIED and cannot silently change devices.
+CPU staging retains hostname checks. GPU admission checks allocation size and UUID,
+then maps it with `CUDA_DEVICE_ORDER=PCI_BUS_ID` and asserts the actual device.
 Each inference/NLL process asserts its actual torch device-0 UUID. The manager's
 one-H100 ARC Modal check exercises this same mapping/assertion path; run the
 prepared one-GPU smoke on the partner stack before send as well.

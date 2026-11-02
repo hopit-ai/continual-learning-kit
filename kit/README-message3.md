@@ -26,10 +26,10 @@ output tree. The partner submits each plain job with his own sbatch. Seeds 101-1
 
 ## Submission order
 
-1. Submit **every message-2 core job first**. The tier never uses core nodes or GPUs: list them in
+1. Submit **every message-2 core job first**. Inference may share core hosts on separate allocated GPUs; list core hardware in
    `message2_nodes` (settings) and in the inventory (`message2_nodes`, `message2_assignment`).
 2. `bash $KIT/jobs/message3/build.sh` (CPU): initialise the separate M3 root, build the manifest,
-   print the isolation proof (pass `M2_MANIFEST` to check task and node disjointness).
+   print the isolation proof (pass `M2_MANIFEST` to check task/state isolation).
 3. `bash $KIT/jobs/message3/run-task.sh M3-init` records that core jobs are submitted. Every other
    task stays PENDING (exit 75) until this record exists.
 4. `M3-bind-inputs` (CPU) binds the same B and C directories message 2 uses, read in place:
@@ -44,24 +44,26 @@ output tree. The partner submits each plain job with his own sbatch. Seeds 101-1
    Missing seed schedules or obsolete M3 union/shuffle freezes fail preparation; use a fresh M3 root.
 5. `M3-pools-shared` freezes instruction inputs independently; `M3-schedules` freezes C0/K's FinQA
    and ContractNLI schedules. Run `M3-bind-base`, `M3-assign`, then per seed `M3-base-<seed>`.
-   Separately run `M3-contract` and `M3-finqa-replay` (CPU), then `M3-broad` (one GPU),
+   Separately run `M3-contract` and `M3-finqa-replay` (CPU), then `M3-broad-prepare` (CPU), `M3-broad` (one GPU),
+   `M3-broad-finish` (CPU),
    `M3-pools` and `M3-schedules-coverage` (CPU). Broad preparation failures leave G/CR PENDING;
    C0/K continue. The FinQA replay materialization reverifies bound B targets and excludes panels
    before broad candidate selection; the broad job requires this materialized input.
 6. Set `host_reservation_bytes` to the actual
-   whole-node RAM reservation, then submit `M3-preflight-C0`, `M3-preflight-K`, `M3-preflight-G`
-   and `M3-preflight-CR` on allowed idle whole nodes. Each produces its own contract-bound
+   host RAM reservation. Run `M3-preflight-ARM-inputs` on CPU, then submit `M3-preflight-C0`, `M3-preflight-K`, `M3-preflight-G`
+   and `M3-preflight-CR` on allowed idle eight-GPU allocations. The CPU input row produces its contract-bound
    `preflight-inputs/<arm>/manifest.json` and node plan from the frozen stage-2 legal schedules.
    Four complete converted updates retain replay masks/positions and use the audited longest
    legal row as task input on every task position. Length comes from the hash-frozen schedule
    audit. No hard-MATH targets or earlier scientific training are needed for qualification.
    A passing `preflight/<arm>.json` gates only that arm; failed work is archived by the preflight
    runner. Timing is recorded, never gated. Do not weaken resume equality after a failed check.
-7. Chains: `M3-<arm>-<seed>-<stage>-train` (8 GPUs, a node of its own) then
-   `M3-<arm>-<seed>-<stage>-score` (the seed's assigned GPU). Stages are serial; independent
-   arm/seed chains may run concurrently on separate M3 nodes. No training/scoring overlap on a node.
+7. Chains: CPU `*-prepare`, `M3-<arm>-<seed>-<stage>-train` (8 GPUs), CPU `*-export`, then
+   `M3-<arm>-<seed>-<stage>-score` (one scheduler-allocated GPU, K=3 commands). Stages are serial; independent
+   arm/seed chains may run concurrently on separate M3 nodes. Never share an eight-rank training allocation's GPUs.
    **Stages 1-2 never wait for hard-MATH targets.**
-8. When the first chain reaches stage 3, submit `M3-math-targets` then `M3-schedules-math`.
+8. When the first chain reaches stage 3, run `M3-math-resolve` on CPU. Submit `M3-math-targets`
+   only for fallback generation, then CPU `M3-math-ready` and `M3-schedules-math`.
    If core's M5 has durably committed `targets-math` (the frozen 500-item Level-5 pool under the
    registered 3D bounded protocol), it is copied read-only with its snapshot hash; otherwise the
    identical protocol runs here on two GPUs (seeds 27101-27104, temperatures 0/.3/.6/.8, 2,560
@@ -69,7 +71,7 @@ output tree. The partner submits each plain job with his own sbatch. Seeds 101-1
    seeds, not training seeds; scientific training seeds remain 101–103. `targets-math-source.json` records which path ran.
    It never waits on core. C0/K stage-3 trains require `M3-schedules-math`; G/CR require
    `M3-schedules-coverage-math`. Shared and coverage schedules have independent immutable freezes.
-9. After `M3-C0-101-finqa-train`: `M3-fv-<seed>` and `M3-kv-<seed>` validate the HellaSwag and
+9. After `M3-C0-101-finqa-export`: `M3-fv-<seed>` and `M3-kv-<seed>` validate the HellaSwag and
    knowledge likelihood scorers on the frozen base and C0's stage-1 final (seed 101), 100/100
    agreement with the independent reference on each seed's GPU. Until a seed passes, its
    likelihood scores are PENDING in the reader.
@@ -91,13 +93,11 @@ output tree. The partner submits each plain job with his own sbatch. Seeds 101-1
   exclusions; missing/mismatched evidence blocks affected training. PD/SP must bind this universe.
 
 `run-task.sh` exits 0 (DONE), 75 (PENDING) or 1 (FAILED) and records state under `$M3_OUT/state/` only.
-Every GPU job checks the executing hostname against allowed/core-held nodes and obtains a
-node-local exclusive reservation spanning all commands. Hostnames are compared by the short
-name before the first dot, for both socket and inherited platform inventories. Request a
-**whole-node allocation**: the `/tmp` reservation coordinates M3 jobs only; it cannot reserve
-resources against unrelated scheduler jobs sharing the node. The inherited lock survives launcher
-termination while its child remains alive. A fresh launch also refuses nodes with active GPU work.
-Direct scientific CLI execution enforces the same manifest and reservation.
+Every GPU job checks its configured hostname and takes nonblocking leases only
+on its allocated physical GPUs, through child exit. CPU tasks take no GPU lock.
+A fresh GPU launch refuses active work on its allocated GPUs; activity on other
+GPUs is allowed. Direct scientific entry points enforce the same manifest and
+allocation leases. Scheduler requests must match each row's resource fields.
 
 Submission/start/end timestamps and every failed attempt are retained. In a scheduler job,
 submission time is read from the scheduler; `M3_SUBMITTED_AT` may instead carry the epoch
@@ -192,3 +192,48 @@ amends only the technical unanimous-choice validation gate. Both scorers' top-tw
 gaps must be strictly below 0.001 nats/token on every disagreement, otherwise
 PENDING. Frozen character-normalised scores/choices stay unchanged; pinned CPU
 length vectors supply the token-unit validation diagnostics. No automatic retry.
+
+## Right-sized allocations (v6)
+
+The combined runbook's resource rules supersede earlier allocation wording.
+Inference/CPU jobs may share hosts with core, using separate state and allocated
+GPU leases. Never allocate eight GPUs for a serial scorer. Every manifest row
+states `gpus`, `nodes=1`, `cpus` and `share_node`.
+
+- CPU preparation, assignment, pools, schedules, binders and readers: 0 GPUs,
+  8 CPUs, node sharing allowed.
+- `M3-broad-prepare` / `M3-broad` / `M3-broad-finish`: 0 / 1 / 0 GPUs.
+- `M3-math-resolve`: 0 GPUs. Copy committed targets before GPU admission. If
+  resolution says generate, `M3-math-targets` uses 2 GPUs; then run
+  `M3-math-ready` on CPU. For a copy, skip the teacher job entirely.
+- `M3-preflight-ARM-inputs`: 0 GPUs; `M3-preflight-ARM`: 8 GPUs, 32 CPUs.
+- Each stage: `*-prepare` (0), `*-train` (8), `*-export` (0), `*-score` (1).
+  CPU export owns HF merging, hashing and publication. Training doses and native
+  checkpoint saves remain unchanged. Training owns all eight allocated GPUs.
+- Base scoring and likelihood validations: 1 GPU, 8 CPUs. Preserve one pinned
+  UUID per seed across every arm, checkpoint and native panel. Never wait for
+  checkpoints holding GPUs; missing inputs exit PENDING immediately.
+- Reference guards: one 1-GPU lane per seed/panel, CPU assignment/preparation and
+  reporting. See the combined inventory's explicit `REF-*` rows.
+
+GPU runners use `util_watch.py`. No unchanged single-GPU scorer is guaranteed to
+exceed the site's rolling 70% requirement; qualify with measured telemetry.
+
+For completed partner training, CPU `*-export` rows verify existing complete
+exports without retraining. Then `M3-rescore-SEED` scores base and every arm's
+incoming/final generated panels in one job on the seed's pinned GPU. HellaSwag
+and knowledge guards use the separate reference panel lanes; failed native
+likelihood validations remain failed. Do not relocate only part of a lane.
+
+Every native score/validation/rescore row has a preceding CPU `*-ready` row.
+It verifies every model and receipt before GPU admission. GPU scoring rechecks
+file metadata and uses that proof in the inherited scorers, preserving their
+model identities, engine configurations, outputs and likelihood numerics.
+
+The final `M3-rescore-SEED` job now scores 198 registered checkpoint/panel cells,
+including fresh incoming checkpoints, across all four arms on one GPU. CPU ready
+jobs create isolated scoring workspaces. The reader uses the final seed workspaces,
+checks actual UUID distinctness across seeds, and labels mixed/reused hardware
+UNVERIFIED-HARDWARE. Historical assignments remain provenance; they are not a GPU
+selection request. See [v6 allocation lanes](util70-integration.md) for added calls
+and allocation-cost accounting.

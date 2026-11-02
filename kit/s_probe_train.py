@@ -93,8 +93,14 @@ def main():
         state = net.state_dict()
     if rank == 0:
         a.output.mkdir(parents=True, exist_ok=True)
-        net.module.save_pretrained(a.output, state_dict=export_state(state), safe_serialization=True)
-        tok.save_pretrained(a.output)
+        if os.environ.get('M2_EXECUTION_PHASE')=='gpu':
+            # An immutable training checkpoint; CPU publication performs the HF export.
+            torch.save(export_state(state),a.output.parent/'native-probe.pt')
+            net.module.config.save_pretrained(a.output)
+            tok.save_pretrained(a.output)
+        else:
+            net.module.save_pretrained(a.output,state_dict=export_state(state),safe_serialization=True)
+            tok.save_pretrained(a.output)
         atomic(a.output.parent/'training-receipt.json', dict(updates=4, batch=32, lrs=[0., 1e-6, 2e-6, 3e-6],
                schedule_sha256=sha(a.schedule), reduction='mean of response token means; EOS inclusive', seed=a.seed, metrics=metrics))
     dist.barrier()

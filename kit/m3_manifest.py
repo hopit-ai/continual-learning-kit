@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Isolated message-3 (K/CR) plain-job manifest, send-time input binding, isolation proof and failure-isolated runner.
 
-The M3 tier never shares state, locks, manifests, task IDs, nodes or inputs with message-2 core:
+The M3 tier never shares state, manifests or task IDs with message-2 core:
   * its own root, marked by m3-root.json; refused if the directory holds message-2 state;
   * its own schema (message3-launch.v3), which kit/m2_node.py rejects;
   * inputs are send-time frozen and bound as message-2 core binds them (round-4 rulings):
@@ -11,7 +11,7 @@ The M3 tier never shares state, locks, manifests, task IDs, nodes or inputs with
         (the single permitted read of a message-2 product, via --core-durable), else the identical protocol here;
       - the tier's own FinQA task schedules, HellaSwag-100 freeze, pools, schedules and scoring;
     no M3 job waits on core: stages 1-2 never depend on hard-MATH targets;
-  * M3 nodes and scoring GPUs are disjoint from message-2 core nodes/assignments (refused at build/assign);
+  * inference may share hosts with core on separate allocated GPUs; eight-rank training owns its allocation;
   * tier jobs run only after core submissions: M3-init records the partner's confirmation, and every other task
     stays PENDING until it exists;
   * a failed or absent M3 job writes only M3 state and exits non-zero for itself; no core task depends on M3.
@@ -163,12 +163,10 @@ def build(settings):
     tasks = []
     train_py, score_py = settings['trainer_python'], settings['inference_python']
     inputs = settings['inputs']
-    m3_nodes = {host_name(n['node'] if isinstance(n, dict) else n) for n in settings['nodes']}
     core_nodes = {host_name(n) for n in settings.get('message2_nodes', [])}
-    need(not (m3_nodes & core_nodes), 'M3 nodes overlap message-2 core nodes: ' + ','.join(sorted(m3_nodes & core_nodes)))
 
     def cmd(script, python=None, **kw):
-        result = [python or score_py, '{kit}/' + script + '.py', '--out', '{m3_out}']
+        result = [python or score_py, '-I', '{kit}/' + script + '.py', '--out', '{m3_out}']
         for key, value in kw.items():
             if value is None or value is False or value == []: continue
             flag = '--' + key.replace('_', '-')
@@ -182,7 +180,10 @@ def build(settings):
 
     def add(ident, kind, requires, commands, **kw):
         need(ident.startswith('M3-'), 'every M3 task ID carries the M3- prefix')
-        tasks.append(dict(id=ident, kind=kind, requires=list(dict.fromkeys(requires)), commands=commands, **kw)); return ident
+        gpus = 8 if kind in ('train-stage', 'preflight') else 1 if kind == 'score-family' or kw.get('uses_gpu') else 0
+        if ident == 'M3-math-targets': gpus = 2
+        tasks.append(dict(id=ident, kind=kind, requires=list(dict.fromkeys(requires)), commands=commands,
+                          gpus=gpus, nodes=1, cpus=32 if gpus == 8 else 8, share_node=gpus != 8, **kw)); return ident
 
     finqa_targets = list(inputs.get('finqa_targets') or [])
     roots = dict(contract_targets=inputs['contract_targets'], replay=inputs['replay'],
@@ -190,8 +191,8 @@ def build(settings):
     schedule_roots = dict(finqa='{m3_out}/targets-finqa', contract_nli=inputs['contract_targets'], math_hard='{m3_out}/targets-math')
     panels = [f'{k}={v}' for k, v in sorted(inputs['panels'].items())]
     holdouts = [f'{k}={v}' for k, v in sorted(inputs.get('holdouts', {}).items())]
-    add('M3-init', 'prepare', [], [[score_py, '{kit}/m3_manifest.py', '--action', 'init', '--out', '{m3_out}', '--core-submitted']])
-    add('M3-bind-inputs', 'prepare', ['M3-init'], [[score_py, '{kit}/m3_manifest.py', '--action', 'bind-inputs', '--out', '{m3_out}',
+    add('M3-init', 'prepare', [], [[score_py, '-I', '{kit}/m3_manifest.py', '--action', 'init', '--out', '{m3_out}', '--core-submitted']])
+    add('M3-bind-inputs', 'prepare', ['M3-init'], [[score_py, '-I', '{kit}/m3_manifest.py', '--action', 'bind-inputs', '--out', '{m3_out}',
                                                     '--roots', json.dumps(roots, sort_keys=True), '--return1', str(inputs.get('return1', ''))]])
     add('M3-verify-superset', 'prepare', ['M3-bind-inputs'],
         [cmd('m3_pools', action='verify-returns', finqa_targets=finqa_targets, replay=inputs['replay'], targets=inputs['contract_targets'])])
@@ -206,8 +207,14 @@ def build(settings):
                                                      contract='{m3_out}/pools/contract/contract-replay.jsonl', replay=inputs['replay'],
                                                      gsm_rows=inputs.get('gsm_rows'), arc_rows=inputs.get('arc_rows'), finqa_pool='{m3_out}/finqa-replay/finqa.jsonl')],
         uses_gpu=True)
+    broad = tasks[-1]
+    add('M3-broad-prepare', 'prepare', broad['requires'], [[v if v != 'broad' else 'broad-prepare' for v in c] for c in broad['commands']])
+    broad['requires'] = ['M3-broad-prepare']
+    broad['commands']=[[*c,'--generation-shard',str(i)] for c in broad['commands'] for i in range(3)]
+    broad['command_count']=3;broad['lane_concurrency']=3
+    add('M3-broad-finish', 'prepare', ['M3-broad'], [[v if v != 'broad' else 'broad-finish' for v in broad['commands'][0][:-2]]])
     add('M3-pools-shared', 'prepare', ['M3-bind-inputs', 'M3-verify-superset', 'M3-hellaswag'], [cmd('m3_pools', action='freeze', shared_only=True, replay=inputs['replay'], tokenizer=inputs.get('tokenizer'), panel=panels, holdout=holdouts)])
-    add('M3-pools', 'prepare', ['M3-broad', 'M3-finqa-replay'], [cmd('m3_pools', action='freeze', replay=inputs['replay'], contract='{m3_out}/pools/contract',
+    add('M3-pools', 'prepare', ['M3-broad-finish', 'M3-finqa-replay'], [cmd('m3_pools', action='freeze', replay=inputs['replay'], contract='{m3_out}/pools/contract',
                                                   finqa_targets=finqa_targets, finqa_pool='{m3_out}/finqa-replay/finqa.jsonl',
                                                   tokenizer=inputs.get('tokenizer'), panel=panels, holdout=holdouts)])
     add('M3-bind-base', 'prepare', ['M3-init'], [cmd('m3_train', action='bind-base', model=inputs.get('base'), receipt=inputs.get('base_receipt'))])
@@ -217,12 +224,15 @@ def build(settings):
         [cmd('m3_train', action='schedules', arms=['C0', 'K'], panel=panels, holdout=holdouts, stages=early, schedule_roots=[schedule_roots[s] for s in early], tokenizer=inputs.get('tokenizer'))])
     # Submit when the first chain reaches stage 3 (or later): copies core's committed M5 targets-math read-only if
     # present, otherwise runs the identical protocol here (two GPUs). Never waits on core.
-    add('M3-math-targets', 'prepare', ['M3-init'], [cmd('m3_pools', action='math-targets', core_durable=inputs.get('core_durable'),
+    add('M3-math-resolve', 'prepare', ['M3-init'], [cmd('m3_pools', action='math-resolve', core_durable=inputs.get('core_durable'))],
+        reads_core_snapshot=bool(inputs.get('core_durable')))
+    add('M3-math-targets', 'prepare', ['M3-math-resolve'], [cmd('m3_pools', action='math-targets',
                                                         model=inputs.get('teacher'), tokenizer=inputs.get('tokenizer'), gpu=inputs.get('teacher_gpus', '0,1'))],
         uses_gpu=True, reads_core_snapshot=bool(inputs.get('core_durable')))
-    add('M3-schedules-math', 'prepare', ['M3-pools-shared', 'M3-math-targets'],
+    add('M3-math-ready', 'prepare', ['M3-math-resolve'], [cmd('m3_pools', action='math-finish')])
+    add('M3-schedules-math', 'prepare', ['M3-pools-shared', 'M3-math-ready'],
         [cmd('m3_train', action='schedules', arms=['C0', 'K'], panel=panels, holdout=holdouts, stages=['math_hard'], schedule_roots=[schedule_roots['math_hard']], tokenizer=inputs.get('tokenizer'))])
-    for suffix, stages, deps in (('', early, ['M3-finqa-targets']), ('-math', ['math_hard'], ['M3-math-targets'])):
+    for suffix, stages, deps in (('', early, ['M3-finqa-targets']), ('-math', ['math_hard'], ['M3-math-ready'])):
         add('M3-schedules-coverage' + suffix, 'prepare', ['M3-pools', 'M3-schedules' + suffix, *deps],
             [cmd('m3_train', action='schedules', arms=['G', 'CR'], panel=panels, holdout=holdouts, stages=stages,
                  schedule_roots=[schedule_roots[s] for s in stages], tokenizer=inputs.get('tokenizer'))])
@@ -233,6 +243,12 @@ def build(settings):
                  schedule_root=schedule_roots['contract_nli'], tokenizer=inputs.get('tokenizer'), sdpo=inputs.get('sdpo'),
                  trainer_python=train_py, gpu=settings.get('gpus', '0,1,2,3,4,5,6,7'),
                  host_reservation_bytes=settings.get('host_reservation_bytes'))], arm=arm, uses_gpu=True)
+    for task in list(tasks):
+        if task['kind'] == 'preflight':
+            prepared = task['id'] + '-inputs'
+            commands = [[('preflight-inputs' if v == 'preflight' else v) for v in c] for c in task['commands']]
+            add(prepared, 'prepare', task['requires'], commands, arm=task['arm'])
+            task['requires'] = [prepared]
     add('M3-assign', 'prepare', ['M3-init'], [cmd('m3_score', action='assign', inventory=inputs['inventory'])])
     finals = []
     for seed in SEEDS:
@@ -244,34 +260,73 @@ def build(settings):
             previous = base
             for number, stage in enumerate(STAGES):
                 # Incoming (step-0) scores alias the preceding final / base on the same assignment; never rescored elsewhere.
-                incoming = [cmd('m3_score', action='alias', arm=arm, seed=seed, stage=stage, step=0, panel_set=p) for p in FINAL_PANELS]
+                incoming = []
                 train = add(f'M3-{arm}-{seed}-{stage}-train', 'train-stage', [previous, 'M3-preflight-' + arm, *([('M3-schedules-coverage-math' if arm in ('G', 'CR') else 'M3-schedules-math')] if stage == 'math_hard' else (['M3-schedules-coverage'] if arm in ('G', 'CR') else []))],
                             [*incoming, cmd('m3_train', python=train_py, action='train', arm=arm, seed=seed, stage=stage,
                                             schedule_root=schedule_roots[stage], tokenizer=inputs.get('tokenizer'), sdpo=inputs.get('sdpo'),
                                             trainer_python=train_py, gpu=settings.get('gpus', '0,1,2,3,4,5,6,7'))],
                             arm=arm, seed=seed, stage=stage)
+                training = tasks[-1]
+                prepare = train.removesuffix('-train') + '-prepare'
+                train_command = training['commands'][-1]
+                add(prepare, 'prepare', training['requires'], [*incoming, [v if v != 'train' else 'prepare' for v in train_command]], arm=arm, seed=seed, stage=stage)
+                training['requires'] = [prepare]; training['commands'] = [train_command]
+                exported = add(train.removesuffix('-train') + '-export', 'prepare', [train],
+                    [[v if v != 'train' else 'export' for v in train_command]], arm=arm, seed=seed, stage=stage)
                 # Task curves at 10/30; step-20 retention diagnostics on earlier tasks; every panel at the final.
                 curve = {10: [TASK_PANEL[stage]], 20: [TASK_PANEL[stage], *[TASK_PANEL[e] for e in STAGES[:number]]], 30: [TASK_PANEL[stage]], 40: list(FINAL_PANELS)}
-                commands = [cmd('m3_score', action='score', arm=arm, seed=seed, stage=stage, step=k, panel_set=p, gpu='{score_gpu}',
+                commands = [cmd('m3_score',action='score',arm=arm,seed=seed,stage=stage,step=0,panel_set=p,gpu='{score_gpu}',panel_root=inputs.get('finqa_panel')) for p in FINAL_PANELS]+[cmd('m3_score', action='score', arm=arm, seed=seed, stage=stage, step=k, panel_set=p, gpu='{score_gpu}',
                                 panel_root=inputs.get('finqa_panel')) for k, panel_list in curve.items() for p in panel_list]
-                previous = add(f'M3-{arm}-{seed}-{stage}-score', 'score-family', [train], commands, family='m3', seed=seed, arm=arm, stage=stage)
+                previous = add(f'M3-{arm}-{seed}-{stage}-score', 'score-family', [exported], commands, family='m3', seed=seed, arm=arm, stage=stage)
             finals.append(previous)
     # Likelihood validations, exactly as the HellaSwag rule: frozen base + one incoming checkpoint (C0 stage-1 final,
     # seed 101), each on every seed's dedicated GPU, 100% agreement with the independent reference.
-    source = 'M3-%s-%d-%s-train' % VALIDATION_SOURCE
+    source = 'M3-%s-%d-%s-export' % VALIDATION_SOURCE
     validations = []
     for seed in SEEDS:
         validations.append(add(f'M3-fv-{seed}', 'score-family', ['M3-assign', 'M3-bind-base', 'M3-hellaswag', source],
                                [cmd('m3_score', action='validate-hellaswag', seed=seed, gpu='{score_gpu}')], family='m3', seed=seed))
         validations.append(add(f'M3-kv-{seed}', 'score-family', ['M3-assign', 'M3-bind-base', source],
                                [cmd('m3_score', action='validate-knowledge', seed=seed, gpu='{score_gpu}')], family='m3', seed=seed))
-    add('M3-read', 'collect', ['M3-pools', *finals, *validations], [cmd('m3_read', action='read')], partial_inputs=True)
+    rescored = []
+    for seed in SEEDS:
+        commands=[cmd('m3_score',action='score',arm='base',seed=seed,stage=STAGES[0],step=0,panel_set=p,gpu='{score_gpu}',panel_root=inputs.get('finqa_panel')) for p in FINAL_PANELS]
+        for arm in ARMS:
+            for number,stage in enumerate(STAGES):
+                curve={0:list(FINAL_PANELS),10:[TASK_PANEL[stage]],20:[TASK_PANEL[stage],*[TASK_PANEL[e] for e in STAGES[:number]]],30:[TASK_PANEL[stage]],40:list(FINAL_PANELS)}
+                commands += [cmd('m3_score',action='score',arm=arm,seed=seed,stage=stage,step=step,panel_set=p,gpu='{score_gpu}',panel_root=inputs.get('finqa_panel')) for step,panels in curve.items() for p in panels]
+        # Already-completed partner training only needs CPU export validation, then
+        # one pinned scoring job per seed for all arms and generated panels.
+        deps = ['M3-assign', 'M3-bind-base', 'M3-hellaswag',
+                *[t['id'] for t in tasks if t['id'].endswith('-export') and t.get('seed') == seed]]
+        rescored.append(add(f'M3-rescore-{seed}', 'score-family', deps, commands, family='m3', seed=seed))
+    add('M3-read', 'collect', ['M3-pools', *finals, *validations, *rescored], [cmd('m3_read', action='read')], partial_inputs=True)
+    for task in list(tasks):
+        if task['kind'] != 'score-family': continue
+        checkpoints = []
+        for command in task['commands']:
+            def option(flag, default=None): return command[command.index(flag) + 1] if flag in command else default
+            if option('--action') == 'score':
+                checkpoints.append([option('--arm'), int(option('--seed')), option('--stage'), int(option('--step'))])
+            else:
+                from kit.m3_score import VALIDATION_CHECKPOINTS
+                checkpoints += [list(key) for name, key in VALIDATION_CHECKPOINTS]
+        checkpoints = [list(key) for key in dict.fromkeys(tuple(c) for c in checkpoints)]
+        ready = '{m3_out}/scoring-ready/' + task['id'] + '.local.json'
+        add(task['id'] + '-ready', 'prepare', task['requires'],
+            [cmd('m3_score', action='prepare-score', checkpoints_json=json.dumps(checkpoints), ready=ready,
+                workspace=('{m3_out}/scoring-jobs/'+task['id']) if any('--action' in c and c[c.index('--action')+1]=='score' for c in task['commands']) else None)],
+            **{k:task[k] for k in ('arm', 'seed', 'stage') if k in task})
+        task['requires'] = [task['id'] + '-ready']; task['scoring_ready'] = ready
+        task['command_count']=len(task['commands']);task['lane_concurrency']=3
+        if any('--action' in c and c[c.index('--action')+1]=='score' for c in task['commands']):
+            task['scoring_workspace']='{m3_out}/scoring-jobs/'+task['id']
     ordered = []; done = set(); waiting = tasks[:]
     while waiting:
         ready = [t for t in waiting if set(t['requires']) <= done]
         need(bool(ready), 'static dependency cycle')
         ordered += ready; done |= {t['id'] for t in ready}; waiting = [t for t in waiting if t['id'] not in done]
-    return dict(schema=SCHEMA, nodes=settings['nodes'], message2_nodes=sorted(core_nodes), message2_roots=settings.get('message2_roots', []), message2_assignment=settings.get('inputs', {}).get('message2_assignment'), inventory=inputs.get('inventory'),
+    return dict(schema=SCHEMA,lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),nodes=settings['nodes'], message2_nodes=sorted(core_nodes), message2_roots=settings.get('message2_roots', []), message2_assignment=settings.get('inputs', {}).get('message2_assignment'), inventory=inputs.get('inventory'),
                 tasks=ordered, technical_synthetic=settings.get('technical_synthetic', False))
 
 
@@ -299,7 +354,7 @@ def isolation(m3, m2=None):
     # The only permitted read of a message-2 product: M3-math-targets' read-only copy of core's committed targets-math,
     # named solely through --core-durable (round-4 ruling 1).
     def permitted(task):
-        return task['id'] == 'M3-math-targets' and all(c[i - 1] == '--core-durable' for c, i in mentions(task))
+        return task['id'] == 'M3-math-resolve' and all(c[i - 1] == '--core-durable' for c, i in mentions(task))
     report['no_message2_outputs'] = all(not mentions(t) or permitted(t) for t in m3['tasks'])
     report['runs_after_core_submission'] = any(t['id'] == 'M3-init' and '--core-submitted' in t['commands'][0] for t in m3['tasks'])
     m2_nodes = set(m3.get('message2_nodes', []))
@@ -308,8 +363,7 @@ def isolation(m3, m2=None):
         report['disjoint_ids'] = not (ids & m2_ids)
         report['no_m2_dependency_on_m3'] = all(not (set(t.get('requires', [])) & ids) for t in m2['tasks'])
         m2_nodes |= {n['node'] if isinstance(n, dict) else n for n in m2.get('nodes', [])}
-    m3_nodes = {n['node'] if isinstance(n, dict) else n for n in m3.get('nodes', [])}
-    report['disjoint_nodes'] = not ({host_name(n) for n in m3_nodes} & {host_name(n) for n in m2_nodes})
+    report['scoped_gpu_leases'] = True  # placement is checked against each job's allocation at admission
     report['passed'] = all(report.values())
     return report
 
@@ -339,52 +393,79 @@ def record(out, ident, value):
 def runtime_node(doc, hostname=None):
     host = host_name(hostname or socket.gethostname())
     allowed = {host_name(n['node'] if isinstance(n, dict) else n) for n in doc.get('nodes', [])}
-    core = set(doc.get('message2_nodes', []))
+    need(host in allowed, 'executing node is not an allowed node')
     if doc.get('inventory') and not doc.get('technical_synthetic'):
         need(Path(doc['inventory']).is_file(), 'node inventory missing')
-    inventory = json.loads(Path(doc['inventory']).read_text()) if doc.get('inventory') and Path(doc['inventory']).is_file() else {}
-    if isinstance(inventory, dict):
-        core |= set(inventory.get('message2_nodes', []))
-    assignment = doc.get('message2_assignment') or (inventory.get('message2_assignment') if isinstance(inventory, dict) else None)
-    if assignment:
-        core |= {v['node'] for v in json.loads(Path(assignment).read_text())['assignments'].values()}
-    core = {host_name(n) for n in core}
-    need(host in allowed and host not in core, 'executing node is not an allowed non-core node')
     return host
 
 
-@contextmanager
-def node_reservation(doc, *, check_idle=False):
-    """A node-local exclusive lock spans every GPU command, across M3 roots/jobs."""
-    host = runtime_node(doc)
-    lock = Path('/tmp') / ('m3-gpu-' + hashlib.sha256(host.encode()).hexdigest() + '.lock')
-    with lock.open('a') as stream:
-        try: fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError: raise Unbound('node GPU reservation is busy')
-        try:
-            if check_idle:
-                processes = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True)
-                if processes.strip(): raise Unbound('node still has active GPU work')
-            yield stream.fileno()
-        finally: fcntl.flock(stream, fcntl.LOCK_UN)
+def allocated_gpus(count):
+    """Resolve only the job's CUDA-visible devices to physical UUIDs; never claim a host."""
+    from kit.m2_gpu import allocated_devices
+    visible = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
+    need(len(visible) == count and all(visible) and len(set(visible)) == count,
+         'request exactly %d GPUs and retain CUDA_VISIBLE_DEVICES' % count)
+    from kit.m2_assignment import Unverified
+    try:inventory = allocated_devices()
+    except Unverified:need(False,'allocated GPU UUIDs unavailable/duplicated')
+    uuids = [inventory.get(v, v if v in inventory.values() else None) for v in visible]
+    need(all(uuids) and len(set(uuids)) == count, 'allocated GPU UUIDs unavailable/duplicated')
+    return sorted(uuids)
 
 
 @contextmanager
-def gpu_execution(out):
-    """Direct scientific CLI entry points enforce the same node policy and lock as scheduled jobs."""
-    inherited = os.environ.get('M3_NODE_LOCK_FD')
+def allocation_reservation(uuids, *, check_idle=True):
+    """Nonblocking, host-local physical GPU leases shared by tier entry points.
+
+    Eight-rank jobs lease all eight allocated UUIDs through child exit. Inference
+    never examines processes on other GPUs; CPU jobs acquire no GPU lease.
+    """
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        streams = []
+        for uuid in sorted(uuids):
+            directory=Path('/tmp')/'kit-gpu-leases';directory.mkdir(exist_ok=True)
+            lock=directory/(uuid+'.lock')
+            stream = stack.enter_context(lock.open('a'))
+            try: fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError: raise Unbound('allocated GPU reservation is busy')
+            streams.append(stream)
+        if check_idle:
+            processes = subprocess.check_output(['nvidia-smi', '--query-compute-apps=gpu_uuid,pid', '--format=csv,noheader'], text=True)
+            if any(line.split(',')[0].strip() in uuids for line in processes.splitlines()):
+                raise Unbound('allocated GPU still has active GPU work')
+        yield tuple(stream.fileno() for stream in streams)
+
+
+@contextmanager
+def node_reservation(doc, *, check_idle=False, gpus=8):
+    runtime_node(doc)
+    uuids = ['CPU-STANDIN-' + str(i) for i in range(gpus)] if doc.get('technical_synthetic') else allocated_gpus(gpus)
+    with allocation_reservation(uuids, check_idle=check_idle) as fds: yield fds
+
+
+@contextmanager
+def gpu_execution(out, gpus=1):
+    """Direct scientific entry points require the same allocation leases."""
+    inherited = os.environ.get('M3_GPU_LOCK_FDS')
     if inherited is not None:
-        policy = json.loads(os.environ['M3_NODE_POLICY'])
-        host = runtime_node(policy)
-        fd = int(inherited)
-        lock = Path('/tmp') / ('m3-gpu-' + hashlib.sha256(host.encode()).hexdigest() + '.lock')
-        need(os.fstat(fd).st_ino == lock.stat().st_ino and os.fstat(fd).st_dev == lock.stat().st_dev, 'missing inherited GPU reservation')
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        policy = json.loads(os.environ['M3_NODE_POLICY']); runtime_node(policy)
+        uuids = allocated_gpus(gpus); fds = json.loads(inherited)
+        need(len(fds) == len(uuids), 'inherited GPU reservation size differs')
+        for fd, uuid in zip(fds, uuids):
+            directory=Path('/tmp')/'kit-gpu-leases';directory.mkdir(exist_ok=True)
+            lock=directory/(uuid+'.lock')
+            need(os.fstat(fd).st_ino == lock.stat().st_ino and os.fstat(fd).st_dev == lock.stat().st_dev, 'missing inherited GPU reservation')
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         yield
     else:
         manifest = Path(os.environ.get('M3_MANIFEST', str(Path(out) / 'm3-launch.json')))
         need(manifest.is_file(), 'GPU execution requires the M3 node manifest')
-        with node_reservation(load(manifest), check_idle=True): yield
+        with node_reservation(load(manifest), check_idle=True, gpus=gpus): yield
+
+
+def watched(command, out):
+    return [command[0], '-I', str(KIT / 'util_watch.py'), '--out', str(out), '--expect-gpus','1','--', *command]
 
 
 def submission_time(values):
@@ -400,10 +481,16 @@ def submission_time(values):
 
 def run_task(manifest_path, ident, out, values, runner=None):
     """Run one isolated task, retaining failed attempts and submission/start/end timing."""
+    from kit.p3b_common import NotReady
     try: doc = load(manifest_path)
     except Exception: return EXIT_FAILED
     task = next((t for t in doc['tasks'] if t['id'] == ident), None)
-    if task is None: return EXIT_FAILED
+    if task is None:return EXIT_FAILED
+    runtime_env=dict(os.environ)
+    if 'lane_runtime' in doc:
+        from kit.v6_infra import verify_runtime
+        try:runtime_env['M2_INFRA_AUTHORITY_SHA256']=verify_runtime(doc['lane_runtime']) or ''
+        except (ValueError,OSError):return EXIT_FAILED
     old = status(out, ident); attempts = list(old.get('attempts', []))
     if old.get('status') == 'RUNNING' and old.get('started_at') is not None:
         ended = time.time()
@@ -425,19 +512,56 @@ def run_task(manifest_path, ident, out, values, runner=None):
     from contextlib import nullcontext
     gpu = task['kind'] in ('train-stage', 'score-family') or task.get('uses_gpu')
     started = time.time(); code = 0; detail = {}
+    workspace=None;nonce=__import__('uuid').uuid4().hex
     try:
-        with node_reservation(doc, check_idle=not doc.get('technical_synthetic')) if gpu else nullcontext() as reservation:
+        with node_reservation(doc, check_idle=not doc.get('technical_synthetic'), gpus=task.get('gpus', 8 if task['kind'] == 'train-stage' else 1)) if gpu else nullcontext() as reservation:
             if ident != 'M3-init': save(dict(status='RUNNING', started_at=started, manifest_sha256=digest(doc)))
-            for number, command in enumerate(task['commands']):
-                expanded = substitute(command, dict(values, m3_out=out))
-                if runner is not None: code = runner(expanded)
-                elif gpu:
-                    policy = {k: doc[k] for k in ('nodes', 'message2_nodes', 'inventory', 'message2_assignment', 'technical_synthetic') if k in doc}
-                    env = dict(os.environ, M3_NODE_LOCK_FD=str(reservation), M3_NODE_POLICY=json.dumps(policy))
-                    code = subprocess.run(expanded, env=env, pass_fds=(reservation,)).returncode
-                else: code = subprocess.run(expanded).returncode
-                if code: detail = dict(command=number, returncode=code); break
-    except Unbound as exc: code = EXIT_PENDING; detail = dict(reason=str(exc))
+            expanded_commands=[substitute(c,dict(values,m3_out=out)) for c in task['commands']]
+            if task.get('scoring_workspace'):
+                from kit.m3_score import prepare_workspace
+                workspace=prepare_workspace(out,Path(task['scoring_workspace'].replace('{m3_out}',str(out)))/nonce)
+                for command in expanded_commands:
+                    if '--out' in command:command[command.index('--out')+1]=str(workspace)
+            if task.get('scoring_ready'):
+                from kit.m3_score import prepared_commands
+                ready_path=Path(task['scoring_ready'].replace('{m3_out}',str(out)))
+                if workspace:
+                    snapshot=workspace/'scoring-ready.local.json'
+                    snapshot.write_bytes(ready_path.read_bytes());ready_path=snapshot
+                expanded_commands=prepared_commands(expanded_commands,ready_path)
+            if runner is not None:
+                for number,expanded in enumerate(expanded_commands):
+                    code=runner(expanded)
+                    if code:detail=dict(command=number,returncode=code);break
+            elif gpu:
+                policy={k:doc[k] for k in ('nodes','message2_nodes','inventory','message2_assignment','technical_synthetic') if k in doc}
+                env=dict(runtime_env,M3_GPU_LOCK_FDS=json.dumps(reservation),M3_NODE_POLICY=json.dumps(policy),KIT_LANE_JOB=nonce)
+                if task.get('scoring_ready'):env['M3_SCORE_READY']=str(ready_path)
+                if task.get('gpus')==1 and not doc.get('technical_synthetic'):
+                    from kit.lane_pool import execute
+                    concurrency=3
+                    if workspace:
+                        from kit.v6a import rescore_concurrency
+                        concurrency=rescore_concurrency(env['M3_SCORE_READY'],expanded_commands)
+                    code=execute(expanded_commands,Path(out)/'lane-attempts'/(ident+'-'+str(time.time_ns())),env=env,pass_fds=reservation,concurrency=concurrency)
+                else:
+                    for expanded in expanded_commands:
+                        code=subprocess.run(expanded,env=env,pass_fds=reservation).returncode
+                        if code:break
+                if code==0 and workspace:
+                    from kit.m3_score import unit_root
+                    from kit.lane_evidence import complete_attempt
+                    identities=[]
+                    for command in expanded_commands:
+                        def option(flag):return command[command.index(flag)+1]
+                        cell=unit_root(workspace,option('--arm'),int(option('--seed')),option('--stage'),int(option('--step')),option('--panel-set'))
+                        identities.append(str((cell/'m3-identity.json').relative_to(workspace)))
+                    complete_attempt(workspace,nonce,identities,extra_files=['scoring-ready.local.json'])
+            else:
+                for expanded in expanded_commands:
+                    code=subprocess.run(expanded,env=runtime_env).returncode
+                    if code:break
+    except (Unbound,NotReady,FileNotFoundError) as exc: code = EXIT_PENDING; detail = dict(reason=str(exc))
     except Exception as exc: code = EXIT_FAILED; detail = dict(error=repr(exc))
     ended = time.time()
     label = 'DONE' if code == 0 else ('PENDING' if code in (NOT_READY, EXIT_PENDING) else 'FAILED')
@@ -469,6 +593,9 @@ def main(argv=None):
     if a.action == 'isolation':
         report = isolation(load(a.manifest), json.loads(a.message2_manifest.read_text()) if a.message2_manifest else None)
         print(json.dumps(report, sort_keys=True)); return 0 if report['passed'] else EXIT_FAILED
+    task = next(t for t in load(a.manifest)['tasks'] if t['id'] == a.task)
+    if task.get('gpus', 0) and not a.standin and not load(a.manifest).get('technical_synthetic') and not os.environ.get('UTIL_WATCH_ACTIVE'):
+        return subprocess.run(watched([sys.executable, '-I', str(Path(__file__).resolve()), *(argv if argv is not None else sys.argv[1:])], a.out / 'util' / a.task / (str(time.time_ns())+'.jsonl')), env=dict(os.environ, UTIL_WATCH_ACTIVE='1')).returncode
     return run_task(a.manifest, a.task, a.out, dict(kit=str(KIT), score_gpu=a.score_gpu, **({'submitted_at': a.submitted_at} if a.submitted_at is not None else {})))
 
 

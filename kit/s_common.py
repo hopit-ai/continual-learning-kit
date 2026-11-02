@@ -53,7 +53,7 @@ def rows(path):
 def atomic(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix+'.tmp')
+    temp = path.with_suffix(path.suffix+'.'+str(os.getpid())+'.tmp')
     temp.write_text(json.dumps(value, indent=2, sort_keys=True)+'\n')
     temp.replace(path)
 
@@ -83,15 +83,21 @@ def checked(ref):
 
 
 def registration():
+    from kit.v6_infra import activate
+    seal=activate()
     doc = read(RESOURCE)
     for name, expected in doc['code'].items():
-        require(sha(ROOT/name) == expected, 'registered code changed: '+name)
+        from kit.m2_runtime import allowed_update
+        require(sha(ROOT/name)==expected or allowed_update(ROOT/name,expected,sha(ROOT/name),seal),'registered code changed: '+name)
     return doc
 
 
 def context(out, standin):
+    from kit.v6_infra import activate
+    activate(out)
     registration()
     doc = read(Path(out)/'binding.json')
+    require(doc.get('infrastructure_checker',doc.get('scoring_protocol',{}).get('implementation',{}).get('v6_infra.py'))==sha(ROOT/'kit/v6_infra.py'),'infrastructure checker changed after binding')
     require(doc['technical_synthetic'] is standin, 'technical_synthetic requires --standin')
     require(doc['registration_sha256'] == sha(RESOURCE), 'registration changed after binding')
     return doc

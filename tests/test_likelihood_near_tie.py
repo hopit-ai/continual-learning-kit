@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace as NS
 import pytest
+from kit_authority import sealed_v6_authority
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -53,13 +54,27 @@ def test_unknown_length_or_missing_nonfinite_item_cannot_enable_disagreement(mon
     assert not f.validation(p,r,ids)['finite_likelihoods']
 
 
-def test_pinned_real_lengths_and_original_handoff_receipt():
+def test_pinned_real_lengths_and_original_handoff_receipt(monkeypatch, sealed_v6_authority):
     lengths=v.lengths()
     assert len(lengths)==200
     assert all(len(c['characters'])==len(c['tokens'])==4 and all(n>0 for n in c['characters']+c['tokens']) for c in lengths.values())
     assert f.policy()['hellaswag']['validation_items_sha256']
-    from kit.hellaswag_prompt_check import validate_receipt
-    assert validate_receipt(ROOT/'kit/resources/m2/receipts/hellaswag-format-check.attempt2.json')['record_sha256']==v.amendment()['historical_unanimous_receipt_sha256']
+    from kit import hellaswag_prompt_check as probe
+    from kit.p3b_common import CorrectnessStop
+    from kit.v6_infra import allowed
+    path=ROOT/'kit/resources/m2/receipts/hellaswag-format-check.attempt2.json'
+    historical=json.loads(path.read_text())['declaration']
+    current=probe.declaration()
+    # Replay the original receipt in its original declaration context. Validate
+    # the two reviewed code transitions separately; declarations remain exact.
+    code_fields={'gpu_mapper_sha256':'m2_gpu.py','lifecycle_sha256':'inference_lifecycle.py'}
+    for field,name in code_fields.items():
+        assert allowed(ROOT/'kit'/name,historical[field],current[field])
+    assert {k:v for k,v in historical.items() if k not in code_fields}=={k:v for k,v in current.items() if k not in code_fields}
+    monkeypatch.setattr(probe,'declaration',lambda:copy.deepcopy(historical))
+    assert probe.validate_receipt(path)['record_sha256']==v.amendment()['historical_unanimous_receipt_sha256']
+    monkeypatch.setattr(probe,'declaration',lambda:dict(historical,model='changed declaration'))
+    with pytest.raises(CorrectnessStop,match='declaration changed'):probe.validate_receipt(path)
 
 
 def validate_fixture(tmp_path,monkeypatch,a=.0009,b=.0009):

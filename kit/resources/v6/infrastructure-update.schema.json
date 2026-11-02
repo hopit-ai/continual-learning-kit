@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prospective v6 infrastructure authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "statement", "files"],
+  "properties": {
+    "schema": {"const": "v6-infrastructure-update.v1"},
+    "statement": {"const": "scientific definitions unchanged"},
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "pinned_sha256", "new_sha256", "reason"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^(kit|scripts)/(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.(py|sh)$"},
+          "pinned_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "new_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

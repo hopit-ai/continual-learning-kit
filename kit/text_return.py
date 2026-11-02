@@ -465,9 +465,24 @@ def erow(family,record,names,mapping):
     return 'E|'+'|'.join(fields)
 
 
+def utilisation_rows(full):
+    rows=[]
+    if full.get('utilisation'):
+        rows=['T|UTIL|family|jobs|gpus|mean_util|worst_window|seconds_below_70']
+    for family,r in sorted(full.get('utilisation',{}).items()):
+        if family not in (*FAMILIES,'core','preflight','REF'):raise ValueError('unknown utilisation family')
+        values=[r[k] for k in ('jobs','gpus','mean_util','worst_window','seconds_below_70')]
+        for i,v in enumerate(values):
+            numeric(v,integer=i<2)
+            if v is not None and (v<0 or i in (2,3) and v>100):raise ValueError('invalid utilisation value')
+        rows.append('T|UTIL|'+family+'|'+'|'.join(canonical(rounded(v)) for v in values))
+    return rows
+
+
 def operation_rows(full,public,names,mapping):
     """Public measurements and coded warnings; never echo free-form reasons."""
     rows=['T|JOB-INVENTORY|'+job_inventory()[1], 'T|JOBS|family|public-job-index-or-u-local-ordinal|completion']+full.get('jobs',[])
+    rows += utilisation_rows(full)
     rows += ['T|COSTS|recorded-process-GPU-hours-only|missing-allocation-or-idle-is-unknown',
         'T|TIER-ALLOWANCE|1800|KCR<=1400|PD<=264|SP<=216|warning-only']
     rows += list(metric_rows('ACCOUNTING',rounded(public['ACCOUNTING'])))
@@ -553,8 +568,15 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
              'T|TECHNICAL-STANDIN' if full.get('technical_synthetic') else 'T|NODE-READERS',
              'RESULTS-SHA256 ' + digest,
              'T|DECISIONS|family|comparison|verdict|estimate|lower|upper|seeds-in-registered-direction|guard-failures']
+    if full.get('infrastructure_authority'):
+        if not re.fullmatch('[0-9a-f]{64}',full['infrastructure_authority']):raise ValueError('invalid infrastructure authority')
+        first.insert(0,'T|AUTH|'+full['infrastructure_authority'])
     first += ['T|SCOPE|'+','.join(sorted(k for k in public if k!='ACCOUNTING'))]
     first += [drow(rounded(d)) for d in verdicts]
+    for i, r in enumerate(full['readers']['KCR']):
+        family = 'KCR' if len(full['readers']['KCR']) == 1 else 'KCR'+str(i+1)
+        for seed, count in sorted(r.get('missing_intermediate_exports', {}).items()):
+            first.append(f'W|{family}|MISSING-EXPORT-seed-{seed}|{count}')
     first += ['T|JOB-INVENTORY|'+job_inventory()[1], 'T|JOBS|family|public-job-index-or-u-local-ordinal|completion'] + list(jobs or full.get('jobs',[]))
     details = ['T|METRICS|family|comparison|seed|metric-pointer=value']
     for family, r in public.items(): details.extend(metric_rows(family, rounded(r)))
@@ -563,6 +585,7 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
                 'T|WARNINGS|wall-time-over-24h-and-unmeasured-timings-in-warning_summary',
                 'T|WARNINGS|PARTNER-COMPUTED|independent-reverification=UNVERIFIED',
                 'T|CHECKSUM-SCOPE|transcription-and-truncation-only|no-authentication']
+    details += utilisation_rows(full)
     for family in sorted(public):
         count=sum(v for k,v in mapping['dropped_unknown_numeric'].items() if k.split('/')[0]==family)
         if count:details.append(f'W|{family}|UNKNOWN_NUMERIC_DROPPED|{count}')
@@ -598,7 +621,7 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     endpoint_rows=['T|ENDPOINTS|family|endpoint|P-primary-G-guard-I-rule-input|seeds101-103|mean|sample-SD|lower|upper|seeds-in-registered-direction|n|bar|method',
         'T|ENDPOINTS|4A-keeps-five-seeds101-105|months2-6-kept-separately|KCR-upper-symmetric-derived']
     for rows in endpoint_by_key.values():endpoint_rows.extend(rows)
-    ops=operation_rows(dict(readers={},jobs=full.get('jobs',[])),public,names,mapping)
+    ops=operation_rows(dict(readers={},jobs=full.get('jobs',[]),utilisation=full.get('utilisation',{})),public,names,mapping)
     footer=ops[-3:];ops=ops[:-3]
     for rows in operations_by_key.values():ops.extend(rows)
     drops={}
@@ -669,7 +692,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
             own=(tag,commit)
             if identity is not None and identity!=own:raise ValueError('mixed kit identities')
             identity=own
-            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE))'
+            prefix=r'(?:RESULTS-SHA256|(?:D|R|E|W|J)\|(?:M|X|S|KCR|PD|SP|4A|ACCOUNTING|core|preflight)[0-9]*\||T\|(?:AUTH|KIT|PART|MODE|FULL-SET|COUNTS|SCOPE|ENDPOINTS|PARTNER-COMPUTED|TECHNICAL-STANDIN|NODE-READERS|DECISIONS|JOB-INVENTORY|JOBS|METRICS|COSTS|TIER-ALLOWANCE|WARNINGS|CHECKSUM-SCOPE|UTIL))'
             rows=[v for v in re.split('(?='+prefix+')',raw) if v];restored=[]
             for row in rows:
                 if row.startswith('RESULTS-SHA256'):row='RESULTS-SHA256 '+row[len('RESULTS-SHA256'):]
@@ -722,7 +745,7 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     if not supplement_only and not _single_part:
         if 1 not in parts:raise ValueError('missing part 1')
         if missing and not(part1_only and set(parts)=={1}):raise ValueError('missing parts: '+','.join(map(str,missing)))
-    verdicts=[];metrics={};jobs=[];endpoints={};warnings=[];results_hash=None;inventory_hash=None
+    verdicts=[];metrics={};jobs=[];endpoints={};warnings=[];results_hash=None;inventory_hash=None;utilisation={};seen_util=set();authority=None
     seen_metric=set();seen_job=set();seen_warning=set();seen_decisions={};scopes={}
     for mode in ('ESSENTIAL','FULL'):
         for k,rows in sorted(sets.get(mode,{}).items()):
@@ -798,6 +821,18 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
                     numeric(int(f[3]),integer=True)
                     if row not in seen_warning:
                         warnings.append(annotate(dict(family=f[1],code=f[2],count=int(f[3]),provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_warning.add(row)
+                elif f[:2]==['T','UTIL']:
+                    if f==['T','UTIL','family','jobs','gpus','mean_util','worst_window','seconds_below_70']:continue
+                    if len(f)!=8 or f[2] not in (*FAMILIES,'core','preflight','REF'):raise ValueError('invalid utilisation record')
+                    values=[json.loads(v) for v in f[3:]]
+                    for i,v in enumerate(values):
+                        numeric(v,integer=i<2)
+                        if v is not None and (v<0 or i in (2,3) and v>100):raise ValueError('invalid utilisation value')
+                    if (mode,f[2]) in seen_util:raise ValueError('duplicate utilisation family')
+                    seen_util.add((mode,f[2]))
+                    record=annotate(dict(zip(('jobs','gpus','mean_util','worst_window','seconds_below_70'),values),family=f[2],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED'))
+                    if f[2] in utilisation:record=merge_record(utilisation[f[2]],record,'utilisation')
+                    utilisation[f[2]]=record
                 elif f[:2]==['T','JOB-INVENTORY']:
                     if inventory_hash is not None and inventory_hash!=f[2]:raise ValueError('mixed job inventories')
                     inventory_hash=f[2]
@@ -805,6 +840,10 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
                     if len(f)!=4 or f[3] not in ('DONE','FAILED','PENDING'):raise ValueError('invalid job record')
                     if row not in seen_job:
                         jobs.append(annotate(dict(family=f[1],job=f[2],status=f[3],provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')));seen_job.add(row)
+                elif f[:2]==['T','AUTH']:
+                    if len(f)!=3 or not re.fullmatch('[0-9a-f]{64}',f[2]):raise ValueError('invalid authority header')
+                    if authority is not None and authority!=f[2]:raise ValueError('mixed authority headers')
+                    authority=f[2]
                 elif f[0]!='T' or f[1] not in {'KIT','PART','MODE','FULL-SET','COUNTS','ENDPOINTS','PARTNER-COMPUTED','TECHNICAL-STANDIN','NODE-READERS','DECISIONS','JOBS','METRICS','COSTS','TIER-ALLOWANCE','WARNINGS','CHECKSUM-SCOPE'}:
                     raise ValueError(f'part {k}: unknown or damaged record')
     for mode,scope in scopes.items():
@@ -828,13 +867,14 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
         content=[[row for row in full_parts[k] if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))] for k in range(1,reference[0]+1)]
         if sha(canonical([sha(canonical(chunk)) for chunk in content]))!=reference[1]:
             checksum_status['FULL-SET']='TRANSCRIPTION-UNVERIFIED'
-    result=dict(schema=SCHEMA,kit_tag=identity[0],kit_commit=identity[1],mode=main,complete=not missing,missing_parts=missing,results_sha256=results_hash,job_inventory_sha256=inventory_hash,decisions=verdicts,metrics=metrics,jobs=jobs,endpoints=endpoints,warnings=warnings,
+    result=dict(schema=SCHEMA,kit_tag=identity[0],kit_commit=identity[1],mode=main,complete=not missing,missing_parts=missing,results_sha256=results_hash,job_inventory_sha256=inventory_hash,decisions=verdicts,metrics=metrics,jobs=jobs,endpoints=endpoints,warnings=warnings,utilisation=utilisation,
         full_part_count=reference[0] if reference else counts.get('FULL'),full_set_sha256=reference[1] if reference else None,
         received_full_parts=sorted(full_parts),part_checksums=checksum_status,
         # Retain verified part hashes to reject conflicting/repeated later text.
         full_part_hashes={str(k):sha('\n'.join(rows)+'\n') for k,rows in full_parts.items()},
         full_content_hashes={str(k):sha(canonical([row for row in rows if not row.startswith(('T|KIT|','T|PART|','T|MODE|','T|FULL-SET|','T|COUNTS|'))])) for k,rows in full_parts.items()},
         provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
+    if authority:result['infrastructure_authority']=authority
     if base is not None:
         if not supplement_only:raise ValueError('base accepts FULL supplements only')
         result=merge_supplement(base,result)
@@ -863,6 +903,9 @@ def merge_supplement(base, supplement):
         metrics[key]=merge_record(metrics[key],v,'metric') if key in metrics else v
     result['metrics']=metrics
     result['warnings']=base['warnings']+[w for w in supplement['warnings'] if w not in base['warnings']]
+    result['utilisation']=dict(base.get('utilisation',{}))
+    for key,v in supplement.get('utilisation',{}).items():
+        result['utilisation'][key]=merge_record(result['utilisation'][key],v,'utilisation') if key in result['utilisation'] else v
     # FULL's job summary is identical to the ESSENTIAL summary, not extra jobs.
     if supplement['jobs'] and [without_transcription(v) for v in supplement['jobs']]!=[without_transcription(v) for v in base['jobs']]:raise ValueError('supplement job conflict')
     return result

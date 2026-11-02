@@ -40,10 +40,14 @@ def analyse(rows, doc, admitted=None, repeats=10000):
         for seed in SEEDS:
             a=get(ref,seed,refstep,p) or (get(ref,101,refstep,p) if doc['technical_synthetic'] else None); b=get(arm,seed,step,p)
             if a and b: pairs.append(dict(seed=seed,**paired(a,b,'correct',repeats,p=='test')))
-        return dict(seeds=pairs,seed_bound=bound([r['change'] for r in pairs],3))
+        result=dict(seeds=pairs,seed_bound=bound([r['change'] for r in pairs],3))
+        from kit.lane_evidence import hardware_status
+        hardware=hardware_status([r for (a,seed,k,panel),g in groups.items() if panel==p and (a,k) in ((arm,step),(ref,refstep)) for r in g.values()])
+        if hardware:result.update(status=hardware)
+        return result
     def bar(arm,step,ref,refstep,p,margin,strict=False):
         c=contrast(arm,step,ref,refstep,p)
-        result=dict(**c,margin=margin,status=status(c['seed_bound'],margin,strict))
+        result=dict(c,margin=margin,status=c.get('status') or status(c['seed_bound'],margin,strict))
         if p in ('knowledge','hellaswag'):
             from kit.ref_guard import apply, METHOD
             cells=[r for (a,seed,k,panel),group in groups.items() if panel==p and
@@ -114,6 +118,7 @@ def analyse(rows, doc, admitted=None, repeats=10000):
             if p=='math_hard' and base_mean is None:
                 outcome='PENDING';label='PENDING_BASE'
             elif p=='math_hard' and outcome=='PASS' and final['mean']<=base_mean: label='RECOVERY'
+            if incoming.get('status') or base_gain.get('status'):outcome=label='UNVERIFIED-HARDWARE'
             acquisition[task]=dict(status=outcome,label=label,positive_seeds=positives,from_incoming=incoming,from_base=base_gain,
                                    final_seed_bound=final,measured_base=base_mean,threshold=69.7 if p=='test' else 6)
         retention={}

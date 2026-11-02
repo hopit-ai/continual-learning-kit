@@ -5,6 +5,7 @@ import sys
 if __package__ in (None,''): sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kit.m2_common import *
 from kit.m2_gpu import prepared_index
+from kit.util_phase import mark
 from kit.c_score import legal_scores, COLUMNS
 from kit.p3b_score import write_csv
 from types import SimpleNamespace as NS
@@ -45,6 +46,7 @@ def items_for(panel, standin, panel_root=None):
 
 
 def job(a):
+    mark('score-prepare')
     doc=binding(a.out,a.standin)
     from kit.m2_handoff import scoring_identity
     gpu=scoring_identity(a.out,a.gpu,a.standin)
@@ -67,6 +69,7 @@ def job(a):
             print('SKIP:',root.name); return
         print('RESUME connected identity tail:',root.name)
     if not complete:
+        mark('score')
         if a.panel_set=='hellaswag':
             from kit.next_hellaswag import score
             args=NS(**vars(a)); args.model=source['model']; args.checkpoint_receipt=Path(source['receipt']) if source.get('receipt') else None
@@ -128,6 +131,7 @@ def job(a):
             write_csv(root/'scores.csv',[{k:r.get(k,'') for k in COLUMNS} for r in rows],COLUMNS)
             atomic(root/'cost.json',dict(kind='scoring',gpu_hours=0 if a.standin else (time.monotonic()-started)/3600,technical_synthetic=a.standin))
             atomic(root/'manifest.json',files_manifest(root,['scores.csv','cost.json','raw/responses.jsonl']))
+    mark('score-publication')
     canonical_scores(root)
     if a.panel_set=='hellaswag':
         from kit import m2_format as formatting

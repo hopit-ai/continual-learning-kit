@@ -136,7 +136,12 @@ def require_validation(out,proof):
     path=validation_name(out,proof)
     if not path.exists():raise NotReady('format-free HellaSwag technical validation pending')
     value=json.loads(path.read_text())
-    require(value['policy_sha256']==s.file_hash(POLICY) and value['assignment']==proof,'likelihood validation identity changed')
+    validated=value['assignment']
+    if proof.get('allocation_job'):
+        assignment.verify(dict(assignment=validated),(out/'scoring-assignment.json').read_bytes())
+        compatible=all(validated[k]==proof[k] for k in ('family','seed','environment','assignment_sha256'))
+    else:compatible=validated==proof
+    require(value['policy_sha256']==s.file_hash(POLICY) and compatible,'likelihood validation identity changed')
     if value['status']!='PASS':raise NotReady('HellaSwag likelihood implementation validation failed; affected decisions PENDING')
     return s.file_hash(path)
 
@@ -174,7 +179,13 @@ def job(a):
             bind(path,updated)
         return
     checks=[]
+    part_root=path.parent/'parts'/path.stem
     for name,ref in sorted(refs.items()):
+        if getattr(a,'checkpoint',None) and a.checkpoint!=name:continue
+        part=part_root/(s.digest(name)+'.json')
+        if getattr(a,'read_only',False):
+            value=json.loads(part.read_text());require(value['identity']==identity,'validation checkpoint identity changed')
+            checks.append(value['check']);continue
         checked_model(ref,a.standin,base=name=='base')
         try:
             if a.standin:
@@ -186,6 +197,10 @@ def job(a):
                 reference=hellaswag_reference.score(str(local(ref['model'])),rows,str(local(doc['starts']['base']['model'])))
             checks.append(dict(checkpoint=name,**validation(production,reference,[r['id'] for r in rows]),production=production,reference=reference))
         except TechnicalInvalid as error:checks.append(dict(checkpoint=name,status='PENDING',error=type(error).__name__+': '+str(error)))
+    if getattr(a,'checkpoint',None):
+        require(a.checkpoint in refs and len(checks)==1,'unknown validation checkpoint')
+        bind(part_root/(s.digest(a.checkpoint)+'.json'),dict(identity=identity,check=checks[0]))
+        return
     bind(path,dict(identity,status='PASS' if all(c['status']=='PASS' for c in checks) else 'PENDING',checks=json_finite(checks),
                    declaration=declared,technical_synthetic=a.standin,validation_rule=RULE))
 
@@ -212,5 +227,6 @@ def letter_valid(rows,arms=None):
 
 
 def configure(p):
+    p.add_argument('--checkpoint');p.add_argument('--read-only',action='store_true')
     p.add_argument('--seed',type=int,choices=SEEDS,required=True);p.add_argument('--gpu',default='0')
 if __name__=='__main__':raise SystemExit(entry(job,configure,'format-validation-{seed}'))

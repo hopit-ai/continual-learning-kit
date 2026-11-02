@@ -183,18 +183,20 @@ def cmd_generate(args) -> int:
     engine = {**ENGINE, "max_model_len": PROMPT_BUDGET + cap} if args.max_new_tokens else dict(ENGINE)   # the default scoring is untouched
     if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
         engine["max_model_len"] = int(args.max_model_len)
+    from kit.inference_lifecycle import engine_kwargs
+    engine=engine_kwargs(engine)
     reload_started=datetime.now(timezone.utc).isoformat();reload_clock=time.monotonic()
     try:
         llm = LLM(model=str(model), enable_lora=False, **engine, **({"enforce_eager": True, "seed": 0} if eager else {}))
     except Exception as error:
         if os.environ.get('V4_TELEMETRY')=='1':
             from kit.v4_teacher import atomic_json
-            atomic_json(out/'engine-status.json',{'engine_ok':False,'configuration_ok':deterministic and engine['max_model_len']==12288,
+            atomic_json(out/'engine-status.json',{'engine':engine,'engine_ok':False,'configuration_ok':deterministic and engine['max_model_len']==12288,
                 'failure_type':'scoring_engine_start','error':str(error)})
         raise
     if os.environ.get('V4_TELEMETRY')=='1':
         from kit.v4_teacher import atomic_json
-        atomic_json(out/'engine-status.json',{'engine_ok':True,'configuration_ok':deterministic and engine['max_model_len']==12288})
+        atomic_json(out/'engine-status.json',{'engine':engine,'engine_ok':True,'configuration_ok':deterministic and engine['max_model_len']==12288})
     reload_seconds=time.monotonic()-reload_clock
     generate_started=datetime.now(timezone.utc).isoformat();generate_clock=time.monotonic()
     outputs = llm.generate(prompts, SamplingParams(n=1, **decoding))

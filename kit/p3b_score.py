@@ -39,7 +39,7 @@ def job(a):
     from kit.m2_assignment import active
     assignment=active(a.out,a.gpu,a.standin)
     receipt=a.checkpoint_receipt
-    base_start=a.arm=='base' or (a.step==0 and a.arm.startswith('standalone-'))
+    base_start=a.arm=='base' or (a.step==0 and a.arm.startswith('standalone-')) or getattr(a,'base_checkpoint',False)
     if not a.standin and not base_start:
         if receipt is None and a.model:
             parent=Path(a.model).parent

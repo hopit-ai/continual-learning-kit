@@ -125,7 +125,9 @@ def _tables(values, doc, support, inherited=(), repeats=10000, same_machine=True
         from kit.ref_guard import apply, METHOD
         generated = [r for r in relevant if r['panel'] == 'knowledge' and r.get('_guard_method') != METHOD]
         if generated and not letter_valid(generated):comparisons[challenger].update(status='PENDING',reason='FORMAT-CONFOUNDED',format_cells=letter_cells(generated))
-        apply(comparisons[challenger], relevant)
+        apply(comparisons[challenger],relevant)
+        from kit.lane_evidence import hardware_status
+        if hardware_status(relevant):comparisons[challenger].update(status='UNVERIFIED-HARDWARE',reason='contrast combines separate allocation jobs')
         if challenger=='p':
             secondary=[]
             for seed in SEEDS:
@@ -406,6 +408,8 @@ def reference_inherited(rows, files, family=None):
 
 def job(a):
     if a.action == 'tables':
+        from kit.lane_evidence import materialize
+        materialize(a.out)
         doc = context(a.out, a.standin)
         import shutil
         errors=a.out/'tier2/score-errors'
@@ -415,7 +419,10 @@ def job(a):
         for path in sorted((a.out/'scores').glob('*/scores.csv')):
             try:
                 m.frozen_files(path.parent)
-                with path.open() as f: own=list(csv.DictReader(f))
+                with path.open() as f:own=list(csv.DictReader(f))
+                identity=read(path.parent/'m2-identity.json').get('assignment') or {}
+                if identity.get('allocation_job'):
+                    for row in own:row.update(_allocation_job=identity['allocation_job'],_allocation_uuid=identity['uuid'],_allocation_environment=identity['environment'])
                 if path.parent.name.startswith('x-t2-'):
                     expected=path.parent.name.rsplit('-s',1)[0]
                     require(all(r['arm']==expected for r in own),'tier-2 CSV arm differs from its run directory')

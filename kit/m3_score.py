@@ -2,7 +2,7 @@
 """Message-3 scoring on one dedicated physical GPU per seed, shared by C0/K/G/CR, base and every incoming checkpoint.
 
 Actions (isolated M3 root only; never message-2's scoring-assignment.json or output tree):
-  assign              freeze m3-scoring-assignment.json from the M3 inventory, refusing core-held nodes/GPUs
+  assign              freeze m3-scoring-assignment.json from the M3 inventory, refusing core-held GPU UUIDs
   validate-hellaswag  format-free HellaSwag likelihood validation on this seed's assignment
   validate-knowledge  format-free knowledge likelihood validation on this seed's assignment
                       (both exactly as the HellaSwag rule: frozen base + one incoming checkpoint, C0 stage-1 final of
@@ -29,6 +29,7 @@ import re
 import time
 from contextlib import contextmanager
 from functools import wraps
+from kit.util_phase import mark
 
 FAMILY = 'm3'
 ASSIGNMENT = 'm3-scoring-assignment.json'
@@ -52,13 +53,12 @@ def unit_root(out, arm, seed, stage, step, panel):
 
 def build_assignment(nodes, message2_nodes=(), core_uuids=(), *, standin=False):
     """One dedicated GPU UUID/environment per seed; every arm and constituent of that seed scores there.
-    Nodes or GPUs held by message-2 core assignments are refused."""
+    GPU UUIDs held by message-2 core assignments are refused; hosts may be shared."""
     from kit.m3_manifest import host_name
     nodes = [dict(n, node=host_name(n['node'])) for n in nodes]
     message2_nodes = [host_name(n) for n in message2_nodes]
     require(nodes and all(n.get('node') and n.get('gpus') for n in nodes), 'M3 hardware inventory incomplete')
     require(len({n['node'] for n in nodes}) == len(nodes), 'duplicate node')
-    require(not ({n['node'] for n in nodes} & set(message2_nodes)), 'M3 scoring must not use message-2 core nodes')
     gpus = [(n['node'], n['gpus'][i]) for i in range(max(len(n['gpus']) for n in nodes)) for n in nodes if i < len(n['gpus'])]
     require(len({g['uuid'] for _, g in gpus}) == len(gpus), 'physical UUID appears twice')
     require(not ({g['uuid'] for _, g in gpus} & set(core_uuids)), 'M3 inventory contains a GPU held by a core assignment')
@@ -131,11 +131,13 @@ def resolved_gpu(a):
 
 @contextmanager
 def gpu_phase(a, kind, **identity):
+    mark(kind)
     start = time.time(); complete = False
     try:
         yield
         complete = True
     finally:
+        mark('score-publication')
         end = time.time()
         atomic(Path(a.out) / 'gpu-costs' / (str(time.time_ns()) + '.json'),
                dict(kind=kind, seed=a.seed, started_at=start, ended_at=end, wall_seconds=end-start,
@@ -333,15 +335,17 @@ def knowledge_production(model, rows, tokenizer_path):
     finally: shutdown_since(mark)
 
 
-def knowledge_reference(model, rows, tokenizer_path):
+def knowledge_reference(model, rows, tokenizer_path, runtime=None):
     """Independent sequential HF reference: own parse of the frozen panel rows, explicit token log-softmax reduction."""
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from kit.m2_gpu import assert_current
     assert_current()
     raw = {r['id']: r for r in t.read_jsonl(GENERAL) if r['panel'] == 'knowledge'}
-    tok = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
-    net = AutoModelForCausalLM.from_pretrained(model, local_files_only=True, torch_dtype=torch.bfloat16).to('cuda').eval()
+    if runtime is None:
+        tok = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
+        net = AutoModelForCausalLM.from_pretrained(model, local_files_only=True, torch_dtype=torch.bfloat16).to('cuda').eval()
+    else:tok,net=runtime
     records = []
     try:
         with torch.inference_mode():
@@ -358,8 +362,9 @@ def knowledge_reference(model, rows, tokenizer_path):
                     values.append(sum(float(logp[j - 1, ids[j]].item()) for j in range(len(context_ids), len(ids))) / len(option))
                 records.append(dict(id=row['id'], scores=values, selected=max(range(4), key=lambda i: (values[i], -i))))
     finally:
-        del net
-        torch.cuda.empty_cache()
+        if runtime is None:
+            del net
+            torch.cuda.empty_cache()
     return records
 
 
@@ -400,9 +405,96 @@ def score_knowledge(a, root, source, proof, unit, base_model):
 
 # ----------------------------------------------------------------------------- scoring
 
+@contextmanager
+def prepared_identity(source, observed, standin):
+    """Reuse CPU-verified identities inside inherited scorers; scoring stays unchanged."""
+    from kit import p3b_score, next_hellaswag
+    if standin or not os.environ.get('M3_SCORE_READY'):
+        yield; return
+    original_identity, original_checkpoint = p3b_score.identity, next_hellaswag.checkpoint
+    def identity(model, role=None, receipt=None):
+        require(Path(model).resolve() == Path(source['model']).resolve(), 'prepared identity model differs')
+        require((str(receipt) if receipt else None) == (source.get('receipt') if not source['base'] else None), 'prepared identity receipt differs')
+        return observed
+    def checkpoint(model, receipt, standin=False, base=False):
+        require(source['base'] or base or receipt is not None, 'checkpoint receipt required')
+        require('failed-v3' not in Path(model).parts and not {'resets', 'recoveries'} & set(Path(model).parts), 'excluded checkpoint')
+        return identity(model, receipt=receipt)
+    p3b_score.identity, next_hellaswag.checkpoint = identity, checkpoint
+    try: yield
+    finally: p3b_score.identity, next_hellaswag.checkpoint = original_identity, original_checkpoint
+
+
+def prepare_scoring(a):
+    """CPU-only complete model/receipt hashing for a ready serial scoring lane."""
+    from kit.ref_score_job import model_metadata
+    from kit.m3_train import export_present
+    checkpoints = json.loads(a.checkpoints_json); prepared = {}; exports = {}; missing = []
+    for arm, seed, stage, step in checkpoints:
+        key = json.dumps([arm, seed, stage, step])
+        try: present = export_present(a.out, arm, seed, stage, step)
+        except (NotReady, FileNotFoundError): present = False
+        exports[key] = dict(status='PRESENT' if present else 'MISSING-EXPORT', required=step not in (10, 20, 30))
+        if not present:
+            if step not in (10, 20, 30): missing.append(key)
+    if missing:
+        atomic(a.ready, dict(checkpoints={}, exports=exports, status='PENDING'))
+        raise NotReady('required exports missing: ' + ', '.join(missing))
+    for arm, seed, stage, step in checkpoints:
+        key = json.dumps([arm, seed, stage, step])
+        if exports[key]['status'] != 'PRESENT': continue
+        source, observed = checked(a.out, arm, seed, stage, step, a.standin)
+        prepared[key] = dict(source=source, observed=observed,
+            metadata=None if a.standin else model_metadata(source, observed))
+    atomic(a.ready, dict(checkpoints=prepared, exports=exports, status='READY'))
+    workspace=getattr(a,'workspace',None)
+    if workspace:
+        # This is only an attempt parent. Actual scores always live in a fresh
+        # nonce child created by the allocation, so CPU readiness is repeatable.
+        Path(workspace).mkdir(parents=True,exist_ok=True)
+
+
+def prepared_commands(commands, ready):
+    """Select from the CPU-fixed presence inventory, never from score results."""
+    doc = json.loads(Path(ready).read_text())
+    if doc.get('status') == 'PENDING': raise NotReady('required exports missing at CPU preparation')
+    if 'exports' not in doc: return commands  # pre-amendment ready files include every checkpoint
+    selected = []
+    for command in commands:
+        def option(flag): return command[command.index(flag) + 1]
+        if '--step' not in command: selected.append(command); continue
+        key = json.dumps([option('--arm'), int(option('--seed')), option('--stage'), int(option('--step'))])
+        item = doc['exports'].get(key)
+        require(item is not None, 'command outside CPU-prepared lane')
+        if item['status'] == 'PRESENT':
+            require(key in doc['checkpoints'], 'present checkpoint was not CPU-verified')
+            selected.append(command)
+        else:
+            require(not item['required'], 'required checkpoint missing from CPU-prepared lane')
+    return selected
+
+
+def prepare_workspace(out, workspace):
+    workspace=Path(workspace);workspace.mkdir(parents=True,exist_ok=False)
+    for name in ('m3-root.json',ASSIGNMENT,'inputs','runs','hellaswag','format-validation'):
+        source=Path(out)/name
+        if source.exists():(workspace/name).symlink_to(source.resolve(),target_is_directory=source.is_dir())
+    return workspace
+
+
 def checked(out, arm, seed, stage, step, standin):
     """Verify the (possibly moved) export against its training receipt before scoring it."""
     from kit.m3_train import record
+    ready = os.environ.get('M3_SCORE_READY')
+    if ready and not standin:
+        from kit.ref_score_job import model_metadata
+        path = Path(ready)
+        if not path.exists(): raise NotReady('CPU scoring preparation missing')
+        key = json.dumps([arm, seed, stage, step]); prepared = json.loads(path.read_text())['checkpoints']
+        require(key in prepared, 'checkpoint outside the CPU-prepared scoring lane')
+        item = prepared[key]
+        require(model_metadata(item['source'], item['observed']) == item['metadata'], 'prepared scoring checkpoint changed')
+        return item['source'], item['observed']
     source = record(out, arm, seed, stage, step)
     if standin: return source, dict(technical_synthetic=True, model=source['model'], model_file_hashes=source['identity'].get('model_file_hashes'))
     from kit.p3b_common import identity
@@ -512,12 +604,14 @@ def score_job(a):
         panel_sha = json.loads((root / 'identity.json').read_text()).get('panel_sha256') if (root / 'identity.json').exists() else None
     elif a.panel_set in ('finqa', 'general-v1'):
         from kit.p3b_score import job as score
-        score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, panel_set=a.panel_set, model=model, gpu=a.gpu, standin=a.standin,
-                 checkpoint_receipt=receipt, panel_root=a.panel_root, package_a=None))
+        with prepared_identity(source, observed, a.standin):
+            score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, panel_set=a.panel_set, model=model, gpu=a.gpu, standin=a.standin,
+                     checkpoint_receipt=receipt, panel_root=a.panel_root, package_a=None,base_checkpoint=source['base']))
         panel_sha = json.loads((root / 'identity.json').read_text())['panel_sha256']
     elif a.panel_set == 'hellaswag':
         from kit.next_hellaswag import score
-        score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, model=model, gpu=a.gpu, standin=a.standin, checkpoint_receipt=receipt))
+        with prepared_identity(source, observed, a.standin):
+            score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, model=model, gpu=a.gpu, standin=a.standin, checkpoint_receipt=receipt))
         panel_sha = frozen_files(a.out / 'hellaswag').get('panel_sha256')
     else: panel_sha = generate_scores(a, a.panel_set, source, root, unit)
     if a.panel_set == 'hellaswag':
@@ -567,12 +661,13 @@ def job(a):
     from contextlib import nullcontext
     from kit.m3_manifest import gpu_execution
     with gpu_execution(a.out) if not a.standin and a.action in ('score', 'validate-hellaswag', 'validate-knowledge') else nullcontext():
-        return {'assign': assign_job, 'validate-hellaswag': validate_hellaswag,
+        return {'prepare-score': prepare_scoring, 'assign': assign_job, 'validate-hellaswag': validate_hellaswag,
                 'validate-knowledge': validate_knowledge, 'score': score_job, 'alias': alias_job}[a.action](a)
 
 def configure(p):
-    p.add_argument('--action', choices=('assign', 'validate-hellaswag', 'validate-knowledge', 'score', 'alias'), required=True)
-    p.add_argument('--inventory', type=Path)
+    p.add_argument('--action', choices=('prepare-score', 'assign', 'validate-hellaswag', 'validate-knowledge', 'score', 'alias'), required=True)
+    p.add_argument('--workspace',type=Path)
+    p.add_argument('--inventory', type=Path); p.add_argument('--ready', type=Path); p.add_argument('--checkpoints-json')
     p.add_argument('--arm', choices=('base', *plan.ARMS)); p.add_argument('--seed', type=int, choices=plan.SEEDS)
     p.add_argument('--stage', choices=plan.STAGES, default=plan.STAGES[0]); p.add_argument('--step', type=int, choices=(0, 10, 20, 30, 40), default=0)
     p.add_argument('--panel-set', choices=PANELS); p.add_argument('--gpu', default='0'); p.add_argument('--panel-root', type=Path)

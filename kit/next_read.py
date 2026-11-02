@@ -186,7 +186,12 @@ def analyse(rows,repeats=10000,acquisition='math_screen'):
                 auc_questions.append(dict(seed=seed,question_bootstrap_95=question_bootstrap(list(values.values()),repeats)))
         result = dict(candidate=candidate,control=control,endpoints=endpoints,question_pairs=pairs,auc_question_pairs=auc_questions,gain_question_pairs=gain_questions,survival_question_pairs=survival_pairs)
         from kit.ref_guard import apply
-        return apply(result, [r for r in rows if r['arm'] in ('v4-'+candidate, 'v4-'+control)])
+        relevant=[r for r in rows if r['arm'] in ('v4-'+candidate,'v4-'+control)]
+        apply(result,relevant)
+        from kit.lane_evidence import hardware_status
+        hardware=hardware_status(relevant)
+        if hardware:result.update(status=hardware,reason='contrast combines separate allocation jobs')
+        return result
     for candidate,control in [('broad','generic'),('earlier','generic'),('both','broad'),('both','generic')]:comparisons.append(contrast(candidate,control))
     broad=comparisons[0];earlier=comparisons[2] if benefit(broad['endpoints']['math']) and all(protects(broad['endpoints'][p]) for p in ('survival','hellaswag',('gain' if acquisition == 'contract_nli' else 'gain_auc'),acquisition)) else comparisons[1]
     def nominated(c,primary,other):

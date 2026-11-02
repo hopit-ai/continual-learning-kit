@@ -63,6 +63,35 @@ def run_root(out, arm, seed, stage):
     return out / 'runs' / f'{arm}-s{seed}-{stage}'
 
 
+def export_files(run):
+    """Verify surviving run files; pruned diagnostic receipts are optional."""
+    from kit.p3b_common import check
+    path = Path(run) / 'manifest.json'
+    if not path.is_file(): raise NotReady('missing freeze: ' + str(run))
+    doc = json.loads(path.read_text())
+    for name, expected in doc['files'].items():
+        child = Path(run) / name
+        if name in ('export-10.json', 'export-20.json', 'export-30.json') and not child.exists(): continue
+        if not child.is_file(): raise NotReady('missing required run file: ' + str(child))
+        check(child, expected)
+    return doc
+
+
+def export_present(out, arm, seed, stage, step):
+    """CPU presence only, independent of all scores; identities are checked later."""
+    if arm == 'base' or (stage == plan.STAGES[0] and step == 0):
+        source = base_record(out); model = Path(source['model']); hashes = source['identity']['model_file_hashes']
+    elif step == 0:
+        return export_present(out, arm, seed, plan.STAGES[plan.STAGES.index(stage) - 1], 40)
+    else:
+        run = run_root(out, arm, seed, stage)
+        if not (run / 'complete.json').is_file(): return False
+        path = run / f'export-{step}.json'
+        if not path.is_file(): return False
+        hashes = json.loads(path.read_text())['model_file_hashes']; model = run / f'hf-step{step}'
+    return model.is_dir() and all((model / name).is_file() for name in hashes)
+
+
 def record(out, arm, seed, stage, step):
     """Checkpoint for (arm, seed, stage, step). Step 0 of a stage is the arm's preceding final (base for stage 1)."""
     require(step in STEPS, 'unregistered step')
@@ -71,7 +100,8 @@ def record(out, arm, seed, stage, step):
     if step == 0: return record(out, arm, seed, plan.STAGES[plan.STAGES.index(stage) - 1], 40)
     root = run_root(out, arm, seed, stage)
     if not (root / 'complete.json').exists(): raise NotReady('stage not complete: ' + root.name)
-    frozen_files(root)
+    export_files(root)
+    if not (root / f'export-{step}.json').is_file(): raise NotReady(f'missing export-{step}: ' + root.name)
     receipt = json.loads((root / f'export-{step}.json').read_text())
     return dict(model=str(root / f'hf-step{step}'), receipt=str(root / f'export-{step}.json'), identity=receipt, base=False)
 
@@ -345,7 +375,9 @@ def prepare_preflight(a):
 
 def preflight_job(a):
     from kit.m3_smoke import run_preflight
-    node = prepare_preflight(a)
+    node = a.out / 'preflight-inputs' / a.arm / 'node-plan.json'
+    if not node.exists(): raise NotReady('run CPU preflight-inputs first')
+    contract.validate_preflight_inputs(node.parent / 'manifest.json', arm=a.arm, stage=a.stage, root=a.out)
     forwarded = dict(CUDA_VISIBLE_DEVICES=a.gpu, PYTHONPATH=str(KIT.parent) + ':' + str(a.sdpo.resolve()),
                      SDPO_DIR=str(a.sdpo.resolve()), QWEN3_8B_TOKENIZER=str(a.tokenizer),
                      HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', HF_DATASETS_OFFLINE='1')
@@ -412,7 +444,7 @@ def receipt_path(out, arm, seed, stage):
 def validate_stage_receipt(out, arm, seed, stage):
     """Open and validate the actual hash-frozen scientific receipt, including its base identity."""
     run = run_root(Path(out), arm, seed, stage)
-    manifest = frozen_files(run)
+    manifest = export_files(run)
     path = receipt_path(out, arm, seed, stage)
     require(path.name in manifest['files'], 'scientific receipt not frozen in run manifest')
     receipt = contract.validate_receipt(json.loads(path.read_text()))
@@ -479,7 +511,8 @@ def training_action(run, arm, seed, stage):
     return 'start', None
 
 
-def train_job(a):
+def prepare_stage(a):
+    """CPU-only schedule validation, tokenisation, parquet and incoming aliases."""
     from kit.m3_pools import load, pool_root
     from kit.m3_score import unit_root, PANELS
     arm, seed, stage = a.arm, a.seed, a.stage
@@ -513,68 +546,125 @@ def train_job(a):
                     frozen_base_files_sha256=base_files,
                     ema='incoming-initialised .99/.01', interface=names(), technical_synthetic=a.standin)
     bind(a.out / 'identities' / (run.name + '.json'), observed)
-    if (run / 'complete.json').exists():
-        frozen_files(run)
-        if not a.standin: validate_stage_receipt(a.out, arm, seed, stage)
-        print('SKIP:', run.name); return
+    converted, tokens = convert(schedule, task, pools, tokenizer, arm, stage)
+    require(len(converted) == plan.UPDATES * geometry['global_rows'], 'converted rows differ from 40 x global rows')
+    if not a.standin:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        data.mkdir(parents=True, exist_ok=True)
+        if not (data / 'manifest.json').exists():
+            for part, rows in (('train', converted), ('val', converted[:geometry['global_rows']]), ('test', converted[:1])):
+                pq.write_table(pa.Table.from_pylist(rows), data / (part + '.parquet'))
+            atomic(data / 'manifest.json', files_manifest(data, ['train.parquet', 'val.parquet', 'test.parquet'], rows=len(converted)))
+        frozen_files(data)
+    from kit.ref_score_job import model_metadata
+    metadata = None if a.standin else dict(incoming=model_metadata(incoming, incoming['identity']), base=model_metadata(base, base['identity']),
+        data=model_metadata(dict(model=str(data)), dict(model_file_hashes={name:None for name in ('train.parquet', 'val.parquet', 'test.parquet')})))
+    bind(run / 'prepared.json', dict(observed=observed, scheduled_tokens=tokens, incoming=incoming, base=base, metadata=metadata,
+                                   data_manifest_sha256=None if a.standin else s.file_hash(data / 'manifest.json')))
+    action, checkpoint = ('start', None) if a.standin else training_action(run, arm, seed, stage)
+    atomic(run / 'launch.json', dict(action=action, checkpoint=str(checkpoint) if checkpoint else None,
+           prepared_sha256=s.file_hash(run / 'prepared.json')))
+
+
+def prepared_stage(a):
+    run = run_root(a.out, a.arm, a.seed, a.stage); path = run / 'prepared.json'
+    if not path.exists(): raise NotReady('run the CPU stage preparation first')
+    prepared = json.loads(path.read_text())
+    require(prepared['observed'] == json.loads((a.out / 'identities' / (run.name + '.json')).read_text()), 'prepared stage identity differs')
+    data = a.out / 'data' / run.name
+    if not a.standin:
+        require(s.file_hash(data / 'manifest.json') == prepared['data_manifest_sha256'], 'prepared data manifest differs')
+        from kit.ref_score_job import model_metadata
+        metadata = dict(incoming=model_metadata(prepared['incoming'], prepared['incoming']['identity']), base=model_metadata(prepared['base'], prepared['base']['identity']),
+            data=model_metadata(dict(model=str(data)), dict(model_file_hashes={name:None for name in ('train.parquet', 'val.parquet', 'test.parquet')})))
+        require(metadata == prepared['metadata'], 'CPU-prepared stage files changed')
+    return run, data, prepared
+
+
+def train_job(a):
+    """GPU allocation ends with the native trainer; exports are a CPU follow-up."""
+    run, data, prepared = prepared_stage(a)
+    arm, seed, stage = a.arm, a.seed, a.stage
+    observed = prepared['observed']; geometry = observed['geometry']; base = prepared['base']; incoming = prepared['incoming']
+    if (run / 'native-complete.json').exists(): return
     started = time.monotonic()
     try:
-        converted, tokens = convert(schedule, task, pools, tokenizer, arm, stage)
-        require(len(converted) == plan.UPDATES * geometry['global_rows'], 'converted rows differ from 40 x global rows')
-        if a.standin:
-            for step in STEPS[1:]:
-                atomic(run / f'export-{step}.json', dict(technical_synthetic=True, step=step,
-                       model=f'm3-standin:{arm}:s{seed}:{stage}:k{step}', model_file_hashes={'config.json': s.digest([arm, seed, stage, step])}))
-            receipt = dict(status='INCOMPLETE', technical_synthetic=True)
-        else:
+        if not a.standin:
             require(len(set(a.gpu.split(','))) == 8, 'training uses eight distinct GPUs on one node')
             try: preflight = contract.load_preflight(a.out / contract.PREFLIGHT_TEMPLATE.format(arm=arm), arm)
             except ValueError as exc: raise NotReady(f'8B eight-H100 node preflight for {arm} not passing: {exc}') from exc
-            if preflight is None:
-                raise NotReady(f'8B eight-H100 node preflight receipt for {arm} missing; blocks only {arm} comparisons')
+            if preflight is None: raise NotReady('passing eight-H100 preflight required')
             require(a.sdpo is not None, 'pinned SDPO checkout required')
             revision = subprocess.check_output(['git', '-C', str(a.sdpo), 'rev-parse', 'HEAD'], text=True).strip()
             require(revision == '7c457fc1b1f636ae794eb0362ba37d4743b06fbc', 'wrong SDPO revision')
-            import pyarrow as pa
-            import pyarrow.parquet as pq
-            data.mkdir(parents=True, exist_ok=True)
-            if not (data / 'manifest.json').exists():
-                for part, rows in (('train', converted), ('val', converted[:geometry['global_rows']]), ('test', converted[:1])):
-                    pq.write_table(pa.Table.from_pylist(rows), data / (part + '.parquet'))
-                atomic(data / 'manifest.json', files_manifest(data, ['train.parquet', 'val.parquet', 'test.parquet'], rows=len(converted)))
-            frozen_files(data)
-            action, checkpoint = training_action(run, arm, seed, stage)
+            launch_path = run / 'launch.json'
+            if not launch_path.exists(): raise NotReady('CPU resume decision missing')
+            launch = json.loads(launch_path.read_text())
+            require(launch['prepared_sha256'] == s.file_hash(run / 'prepared.json'), 'launch preparation changed')
+            action, checkpoint = launch['action'], launch['checkpoint']
             cmd, env = command(a, arm, stage, incoming['model'], data, run, base, geometry, checkpoint if action == 'resume' else None)
             attempt = str(time.time_ns())
             bind(run / 'commands' / (attempt + '.json'), dict(action=action, command=cmd))
             if action != 'export':
                 if not (run / 'started.json').exists(): atomic(run / 'started.json', observed)
-                clock = time.monotonic()
-                done = subprocess.run(cmd, cwd=a.sdpo, env=env)
+                clock = time.monotonic(); done = subprocess.run(cmd, cwd=a.sdpo, env=env)
                 atomic(run / 'trainer-attempts' / (attempt + '.json'), dict(returncode=done.returncode, seconds=time.monotonic()-clock, action=action))
                 if done.returncode: raise subprocess.CalledProcessError(done.returncode, cmd)
-                require(native_checkpoint(run, arm, seed, stage).name == 'global_step_40', 'final complete native state missing')
-            receipt = contract.validate_receipt(json.loads(receipt_path(a.out, arm, seed, stage).read_text()))
-            require(receipt['status'] != 'FAIL', 'M3 trainer receipt FAIL')
-            require((receipt['arm'], receipt['seed'], contract.stage_number(receipt['stage']), receipt['profile']) ==
-                    (arm, seed, contract.stage_number(stage), 'scientific'), 'trainer receipt arm/seed/stage/profile differs')
-            require(receipt['frozen_base_files_sha256'] == base_files, 'trainer used a frozen base other than the bound inputs/base.json')
-            from kit.v4_sft import complete_export
-            for step in STEPS[1:]:
-                export = run / f'hf-step{step}'
-                if not complete_export(export):
-                    subprocess.run([a.trainer_python, '-m', 'verl.model_merger', 'merge', '--backend', 'fsdp', '--local_dir',
-                                    str(run / 'sdft' / f'global_step_{step}' / 'actor'), '--target_dir', str(export)], cwd=a.sdpo, env=env, check=True)
-                require(complete_export(export), 'incomplete merged export')
-                atomic(run / f'export-{step}.json', identity(export))
-        atomic(run / 'summary.json', dict(observed, scheduled_tokens=tokens, receipt_status=receipt['status'], seconds=time.monotonic() - started))
-        atomic(run / 'manifest.json', files_manifest(run, ['summary.json'] + ([] if a.standin else ['m3-receipt.json']) + [f'export-{k}.json' for k in STEPS[1:]], technical_synthetic=a.standin))
-        if not a.standin: validate_stage_receipt(a.out, arm, seed, stage)
-        atomic(run / 'complete.json', dict(complete=True, receipt_status=receipt['status']))
+                require((run / 'sdft/global_step_40/actor/m3-state.json').is_file(), 'final native state missing')
+        atomic(run / 'native-complete.json', dict(prepared_sha256=s.file_hash(run / 'prepared.json')))
     finally:
         atomic(run / 'training-costs' / f'{time.time_ns()}.json', dict(kind='m3_training', arm=arm, seed=seed, stage=stage,
                gpu_hours=0 if a.standin else 8 * (time.monotonic() - started) / 3600, wall_seconds=time.monotonic() - started,
-               completed=(run / 'complete.json').exists(), technical_synthetic=a.standin))
+               completed=(run / 'native-complete.json').exists(), technical_synthetic=a.standin))
+
+
+def export_job(a):
+    """CPU-only HF merges, model hashing and immutable publication."""
+    arm, seed, stage = a.arm, a.seed, a.stage
+    run = run_root(a.out, arm, seed, stage)
+    if (run / 'complete.json').exists():
+        exports = {}
+        for step in STEPS[1:]:
+            try: present = export_present(a.out, arm, seed, stage, step)
+            except NotReady: present = False
+            exports[str(step)] = 'PRESENT' if present else 'MISSING-EXPORT'
+        atomic(run / 'export-availability.local.json', dict(exports=exports))
+        if exports['40'] != 'PRESENT': raise NotReady('required final export missing: ' + run.name)
+        export_files(run)
+        if not a.standin: validate_stage_receipt(a.out, arm, seed, stage)
+        return
+    run, data, prepared = prepared_stage(a)
+    native = run / 'native-complete.json'
+    if not native.exists(): raise NotReady('native training is not complete')
+    require(json.loads(native.read_text())['prepared_sha256'] == s.file_hash(run / 'prepared.json'), 'native preparation changed')
+    started = time.monotonic(); observed = prepared['observed']
+    if a.standin:
+        for step in STEPS[1:]:
+            atomic(run / f'export-{step}.json', dict(technical_synthetic=True, step=step,
+                   model=f'm3-standin:{arm}:s{seed}:{stage}:k{step}', model_file_hashes={'config.json': s.digest([arm, seed, stage, step])}))
+        receipt = dict(status='INCOMPLETE', technical_synthetic=True)
+    else:
+        checkpoint = native_checkpoint(run, arm, seed, stage)
+        require(checkpoint is not None and checkpoint.name == 'global_step_40', 'final complete native state missing')
+        receipt = contract.validate_receipt(json.loads(receipt_path(a.out, arm, seed, stage).read_text()))
+        require(receipt['status'] != 'FAIL', 'M3 trainer receipt FAIL')
+        require((receipt['arm'], receipt['seed'], contract.stage_number(receipt['stage']), receipt['profile']) ==
+                (arm, seed, contract.stage_number(stage), 'scientific'), 'trainer receipt arm/seed/stage/profile differs')
+        require(receipt['frozen_base_files_sha256'] == observed['frozen_base_files_sha256'], 'trainer used a different frozen base')
+        from kit.v4_sft import complete_export
+        env = dict(os.environ, CUDA_VISIBLE_DEVICES='')
+        for step in STEPS[1:]:
+            export = run / f'hf-step{step}'
+            if not complete_export(export):
+                subprocess.run([a.trainer_python, '-I', '-m', 'verl.model_merger', 'merge', '--backend', 'fsdp', '--local_dir',
+                                str(run / 'sdft' / f'global_step_{step}' / 'actor'), '--target_dir', str(export)], cwd=a.sdpo, env=env, check=True)
+            require(complete_export(export), 'incomplete merged export')
+            atomic(run / f'export-{step}.json', identity(export))
+    atomic(run / 'summary.json', dict(observed, scheduled_tokens=prepared['scheduled_tokens'], receipt_status=receipt['status'], seconds=time.monotonic() - started))
+    atomic(run / 'manifest.json', files_manifest(run, ['summary.json'] + ([] if a.standin else ['m3-receipt.json']) + [f'export-{k}.json' for k in STEPS[1:]], technical_synthetic=a.standin))
+    if not a.standin: validate_stage_receipt(a.out, arm, seed, stage)
+    atomic(run / 'complete.json', dict(complete=True, receipt_status=receipt['status']))
 
 
 def job(a):
@@ -582,11 +672,14 @@ def job(a):
     require_m3_root(a.out)
     from contextlib import nullcontext
     from kit.m3_manifest import gpu_execution
-    with gpu_execution(a.out) if not a.standin and a.action in ('train', 'preflight') else nullcontext():
-        return {'bind-base': bind_base, 'schedules': schedules_job, 'train': train_job, 'preflight-inputs': prepare_preflight, 'preflight': preflight_job}[a.action](a)
+    if not a.standin and a.action in ('train', 'preflight'):
+        if not os.environ.get('CUDA_VISIBLE_DEVICES'): raise NotReady('allocated CUDA_VISIBLE_DEVICES required')
+        a.gpu = os.environ['CUDA_VISIBLE_DEVICES']
+    with gpu_execution(a.out, gpus=8) if not a.standin and a.action in ('train', 'preflight') else nullcontext():
+        return {'bind-base': bind_base, 'schedules': schedules_job, 'prepare': prepare_stage, 'train': train_job, 'export': export_job, 'preflight-inputs': prepare_preflight, 'preflight': preflight_job}[a.action](a)
 
 def configure(p):
-    p.add_argument('--action', choices=('bind-base', 'schedules', 'train', 'preflight-inputs', 'preflight'), required=True)
+    p.add_argument('--action', choices=('bind-base', 'schedules', 'prepare', 'train', 'export', 'preflight-inputs', 'preflight'), required=True)
     p.add_argument('--arm', choices=plan.ARMS); p.add_argument('--seed', type=int, choices=plan.SEEDS); p.add_argument('--stage', choices=plan.STAGES)
     p.add_argument('--schedule-root', type=Path); p.add_argument('--schedule-roots', type=Path, nargs='+')
     p.add_argument('--arms', nargs='+', choices=plan.ARMS)

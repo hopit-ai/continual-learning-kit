@@ -29,6 +29,7 @@ def environment(values):
 
 
 def stage(a):
+    if train.m2_train.run_prepared(a):return
     doc = context(a.out, a.standin)
     if (a.out/'scoring-assignment.json').exists():
         from kit.x_tier2 import tier1_return
@@ -114,6 +115,7 @@ def stage(a):
             bind(run/'boundaries'/f'k{end}'/'prefix.json',dict(update=end,total_training_steps=40,full_state=True,technical_synthetic=True))
     else:
         _production(a,doc,run,ref,p2,scheduled,start,end)
+        if train.m2_train.preparing():return
     if p2:
         width=1 if a.standin else 8
         check_ema_origin(run,ref,width)
@@ -144,6 +146,10 @@ def check_ema_origin(run,ref,width):
 
 def finish(run,frozen,scheduled,audit,standin,p2):
     """Idempotent finalisation, including a crash after the last segment marker."""
+    if train.m2_train.defer_exports():
+        train.m2_train.queue_export(run.parents[1],'tier2-finish',run=str(run),frozen=frozen,
+            scheduled=scheduled,audit=audit,standin=standin,p2=p2)
+        return
     bind(run/'summary.json',dict(frozen,schedule_sha256=digest(scheduled),slot_audit=audit))
     names=['identity.json','summary.json']+[f'export-{s}.json' for s in STEPS[1:]]
     names += [str(p.relative_to(run)) for p in sorted((run/'segments').glob('*.json'))]
@@ -240,15 +246,19 @@ def _production(a,doc,run,ref,p2,scheduled,start,end):
         env['X_TIER2_NATIVE']='1'
         cmd.append('+ray_kwargs.ray_init.runtime_env.env_vars.X_TIER2_NATIVE="1"')
     bind(run/f'command-{start}-{end}.json',cmd)
+    if m2_train.preparing():
+        retain_attempt(run,start)
+        m2_train.prepare_training(a,cmd,env,run,[run/'sdft'/f'global_step_{k}'/'actor' for k in STEPS[1:] if start<k<=end])
+        return
     # On requeue retain the exact saved starting boundary; partial outputs from
     # this segment are overwritten, never used to choose a shorter dose.
-    retain_attempt(run,start)
+    if not m2_train.published_training(a):retain_attempt(run,start)
     atomic(run/'started.json',dict(start=start,end=end,started_ns=time.time_ns()))
     began=time.monotonic()
     try:
-        subprocess.run(cmd,cwd=a.sdpo,env=env,check=True)
+        if not m2_train.published_training(a):subprocess.run(cmd,cwd=a.sdpo,env=env,check=True)
     finally:
-        atomic(run/'training-costs'/f'{time.time_ns()}.json',dict(gpu_hours=8*(time.monotonic()-began)/3600,
+        if not m2_train.published_training(a):atomic(run/'training-costs'/f'{time.time_ns()}.json',dict(gpu_hours=8*(time.monotonic()-began)/3600,
             seconds=time.monotonic()-began,start=start,end=end,technical_synthetic=False))
     if p2:segment_resources(a,doc,run,start,end)
     require((run/'sdft'/f'global_step_{end}'/'actor').is_dir(),'tier-2 segment dose incomplete')

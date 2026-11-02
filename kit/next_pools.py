@@ -106,71 +106,91 @@ def audit_generic(root, generic, panels, standin):
 
 
 def job(a):
-    frozen_next();require(',' not in a.gpu,'one generation GPU')
-    panel_doc=frozen_files(a.out/'hellaswag');require(panel_doc['technical_synthetic']==a.standin,'holdout type mismatch')
-    inputs=read_inputs(a.out,a.standin);root=a.out/'pools'
-    from kit.p3a_common import frozen,INPUTS
-    frozen(a.package_a,a.standin)
-    finqa=finqa_exclusions(t.read_jsonl(a.finqa_panel),a.standin)
-    panels=finqa+t.read_jsonl(KIT/'panels/general-v1.jsonl')+t.read_jsonl(a.out/'hellaswag/panel.jsonl')
-    math=t.read_jsonl(a.package_a/INPUTS/'prepared/math_screen/heldout.jsonl')
-    panels += [dict(id=r['id'],prompt=r['prompt']) for r in math]
-    from kit.c_common import panels as legal_panels
-    panels += [r for values in legal_panels().values() for r in values]
-    if not a.standin:require(len(math)==100,'all frozen MATH evaluations required')
-    base=checkpoint(inputs['base']['path'],inputs['base']['receipt'],a.standin,base=True)
-    if a.standin:
-        require(a.gsm_rows and a.arc_rows,'fixtures required')
-        gsm,arc=t.read_jsonl(a.gsm_rows),t.read_jsonl(a.arc_rows)
-        sources=dict(gsm8k=s.file_hash(a.gsm_rows),arc=s.file_hash(a.arc_rows))
+    if getattr(a,'use_prepared_candidates',False):
+        frozen_next();require(',' not in a.gpu,'one generation GPU')
+        root=a.out/'pools';manifest=json.loads((root/'candidate-manifest.json').read_text())
+        for name,checksum in manifest['files'].items():check(root/name,checksum)
+        provenance=json.loads((root/'inputs.json').read_text())
+        require(provenance['technical_synthetic'] is a.standin,'candidate type mismatch')
+        prepared=t.read_jsonl(root/'candidates.jsonl');inputs=read_inputs(a.out,a.standin)
+        earlier=t.read_jsonl(root/'earlier.jsonl');excluded=t.read_jsonl(root/'exclusions.jsonl')
         tokenizer=None
+        if not a.standin and getattr(a,'generation_shard',None) is None:
+            from transformers import AutoTokenizer
+            tokenizer=AutoTokenizer.from_pretrained(__import__('kit.m2_paths',fromlist=['local']).local(inputs['base']['path']),local_files_only=True)
     else:
-        require(not a.gsm_rows and not a.arc_rows,'real pools require pinned sources')
-        gsm,gh=download('openai/gsm8k',GSM,'main/train-')
-        arc,ah=download('allenai/ai2_arc',ARC,'ARC-Challenge/train-')
-        sources=dict(gsm8k=gh,arc=ah)
-        from transformers import AutoTokenizer
-        tokenizer=AutoTokenizer.from_pretrained(__import__('kit.m2_paths',fromlist=['local']).local(inputs['base']['path']),local_files_only=True)
-    earlier,proof=earlier_rows(a.finqa_targets,a.standin,tokenizer)
-    generic=t.read_jsonl(a.out/'replay/replay.jsonl')
-    audit_generic(root,generic,panels,a.standin)
-    earlier,excluded=exclude(earlier,panels+generic)
-    require(bool(earlier),'empty earlier-task pool; inputs incomplete')
-    prepared=[]
-    raw=candidates(gsm,arc)
-    for source in ('gsm8k','arc'):
-        ordered=sorted((r for r in raw if r['source']==source),key=lambda r:(t.sha('next-v4-broad-v1|'+source+'|'+r['order_id']),r['order_id']))
-        kept,ex=exclude(ordered,panels+generic+earlier+prepared,limit=1024)
-        prepared+=kept;excluded+=ex
-    provenance=dict(pool_protocol=POOL_PROTOCOL, arc_prompt=ARC_PROMPT, base=base,sources=sources,revisions=dict(gsm8k=GSM,arc=ARC),panels=s.digest(panels),
-        generic=s.file_hash(a.out/'replay/replay.jsonl'),earlier_receipts=proof,technical_synthetic=a.standin,
-        candidate_preparation=dict(fresh_exclusions_rerun=True,exclusions_sha256=s.digest(excluded),candidate_rows=len(prepared)))
-    bind(root/'inputs.json',provenance)
-    if (root/'manifest.json').exists():frozen_files(root);print('SKIP pools');return
-    write_rows(root/'candidates.jsonl',prepared);write_rows(root/'exclusions.jsonl',excluded)
-    write_rows(root/'earlier.jsonl',earlier)
-    if not a.standin:
-        from kit.arc_prompt_acceptance import validate_candidate_membership
-        try:acceptance=validate_candidate_membership(root/'candidates.jsonl')
-        except NotReady as error:
-            atomic(root/'arc-candidate-status.json',dict(status='PENDING',reason=str(error),no_replenishment=True))
-            raise
-        bind(root/'arc-candidate-acceptance.json',acceptance)
-        atomic(root/'arc-candidate-status.json',dict(status='PASS',**acceptance))
-    if getattr(a,'prepare_candidates_only',False):
-        atomic(root/'candidate-manifest.json',files_manifest(root,['inputs.json','candidates.jsonl','exclusions.jsonl','earlier.jsonl'],
-            pool_protocol=POOL_PROTOCOL,arc_prompt=ARC_PROMPT,technical_synthetic=a.standin,fresh_exclusions_rerun=True))
-        print('CPU candidates frozen; no model generation started');return
+        frozen_next();require(',' not in a.gpu,'one generation GPU')
+        panel_doc=frozen_files(a.out/'hellaswag');require(panel_doc['technical_synthetic']==a.standin,'holdout type mismatch')
+        inputs=read_inputs(a.out,a.standin);root=a.out/'pools'
+        from kit.p3a_common import frozen,INPUTS
+        frozen(a.package_a,a.standin)
+        finqa=finqa_exclusions(t.read_jsonl(a.finqa_panel),a.standin)
+        panels=finqa+t.read_jsonl(KIT/'panels/general-v1.jsonl')+t.read_jsonl(a.out/'hellaswag/panel.jsonl')
+        math=t.read_jsonl(a.package_a/INPUTS/'prepared/math_screen/heldout.jsonl')
+        panels += [dict(id=r['id'],prompt=r['prompt']) for r in math]
+        from kit.c_common import panels as legal_panels
+        panels += [r for values in legal_panels().values() for r in values]
+        if not a.standin:require(len(math)==100,'all frozen MATH evaluations required')
+        base=checkpoint(inputs['base']['path'],inputs['base']['receipt'],a.standin,base=True)
+        if a.standin:
+            require(a.gsm_rows and a.arc_rows,'fixtures required')
+            gsm,arc=t.read_jsonl(a.gsm_rows),t.read_jsonl(a.arc_rows)
+            sources=dict(gsm8k=s.file_hash(a.gsm_rows),arc=s.file_hash(a.arc_rows))
+            tokenizer=None
+        else:
+            require(not a.gsm_rows and not a.arc_rows,'real pools require pinned sources')
+            gsm,gh=download('openai/gsm8k',GSM,'main/train-')
+            arc,ah=download('allenai/ai2_arc',ARC,'ARC-Challenge/train-')
+            sources=dict(gsm8k=gh,arc=ah)
+            from transformers import AutoTokenizer
+            tokenizer=AutoTokenizer.from_pretrained(__import__('kit.m2_paths',fromlist=['local']).local(inputs['base']['path']),local_files_only=True)
+        earlier,proof=earlier_rows(a.finqa_targets,a.standin,tokenizer)
+        generic=t.read_jsonl(a.out/'replay/replay.jsonl')
+        audit_generic(root,generic,panels,a.standin)
+        earlier,excluded=exclude(earlier,panels+generic)
+        require(bool(earlier),'empty earlier-task pool; inputs incomplete')
+        prepared=[]
+        raw=candidates(gsm,arc)
+        for source in ('gsm8k','arc'):
+            ordered=sorted((r for r in raw if r['source']==source),key=lambda r:(t.sha('next-v4-broad-v1|'+source+'|'+r['order_id']),r['order_id']))
+            kept,ex=exclude(ordered,panels+generic+earlier+prepared,limit=1024)
+            prepared+=kept;excluded+=ex
+        provenance=dict(pool_protocol=POOL_PROTOCOL, arc_prompt=ARC_PROMPT, base=base,sources=sources,revisions=dict(gsm8k=GSM,arc=ARC),panels=s.digest(panels),
+            generic=s.file_hash(a.out/'replay/replay.jsonl'),earlier_receipts=proof,technical_synthetic=a.standin,
+            candidate_preparation=dict(fresh_exclusions_rerun=True,exclusions_sha256=s.digest(excluded),candidate_rows=len(prepared)))
+        bind(root/'inputs.json',provenance)
+        if (root/'manifest.json').exists():frozen_files(root);print('SKIP pools');return
+        write_rows(root/'candidates.jsonl',prepared);write_rows(root/'exclusions.jsonl',excluded)
+        write_rows(root/'earlier.jsonl',earlier)
+        if not a.standin:
+            from kit.arc_prompt_acceptance import validate_candidate_membership
+            try:acceptance=validate_candidate_membership(root/'candidates.jsonl')
+            except NotReady as error:
+                atomic(root/'arc-candidate-status.json',dict(status='PENDING',reason=str(error),no_replenishment=True))
+                raise
+            bind(root/'arc-candidate-acceptance.json',acceptance)
+            atomic(root/'arc-candidate-status.json',dict(status='PASS',**acceptance))
+        if getattr(a,'prepare_candidates_only',False):
+            atomic(root/'candidate-manifest.json',files_manifest(root,['inputs.json','candidates.jsonl','exclusions.jsonl','earlier.jsonl'],
+                pool_protocol=POOL_PROTOCOL,arc_prompt=ARC_PROMPT,technical_synthetic=a.standin,fresh_exclusions_rerun=True))
+            print('CPU candidates frozen; no model generation started');return
+    from kit.m2_train import preparing
+    if preparing():
+        checkpoint(inputs['base']['path'],inputs['base']['receipt'],a.standin,base=True)
+        return
     os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu,V4_PHASE0_INFERENCE='0')
     started=time.monotonic()
     generator=None;accepted=[];verdicts=[]
-    for row in prepared:
+    for index,row in enumerate(prepared):
+        if getattr(a,'generation_shard',None) is not None and index%3!=a.generation_shard:continue
         path=root/'raw'/(t.sha(row['id'])+'.json')
         if path.exists():output=json.loads(path.read_text())
+        elif getattr(a,'reduce_only',False):raise NotReady('broad generation incomplete')
         elif a.standin:output=dict(text=row['fake_response'],finish_reason='stop');atomic(path,output)
         else:
             if generator is None:generator=t.VLLMGenerator(inputs['base']['path'],2048,tensor_parallel_size=1,allow_batch_fallback=False)
             output=generator([dict(role='user',content=row['prompt'])],1,seed=0,temperature=0,top_p=1);atomic(path,output)
+        if getattr(a,'generation_shard',None) is not None:continue
         passed=output['finish_reason'] in ('stop','eos') and correct(row,output['text'])
         if passed and tokenizer is not None:
             from kit.v4_sft import encode_example
@@ -178,22 +198,36 @@ def job(a):
             except ValueError:passed=False
         verdicts.append(dict(id=row['id'],accepted=passed,response_sha256=s.file_hash(path)))
         if passed:accepted.append(dict(id=row['id'],prompt=row['prompt'],response=output['text'],source=row['source'],licence_notice=row['licence_notice']))
+    seconds=time.monotonic()-started
+    if getattr(a,'generation_shard',None) is not None:
+        atomic(root/('generation-'+str(a.generation_shard)+'.json'),dict(seconds=seconds,technical_synthetic=a.standin))
+        return
+    if getattr(a,'reduce_only',False):seconds=sum(json.loads((root/('generation-'+str(i)+'.json')).read_text())['seconds'] for i in range(3))
+    from kit.m2_train import defer_exports,queue_export
+    if defer_exports():
+        queue_export(a.out,'broad-finish',root=str(root),standin=a.standin,accepted=accepted,verdicts=verdicts,seconds=seconds)
+        return
+    finish(root,a.standin,accepted,verdicts,seconds)
+
+
+def finish(root,standin,accepted,verdicts,seconds):
     for source in ('gsm8k','arc'):
         pool=[r for r in accepted if r['source']==source]
         write_rows(root/(source+'.jsonl'),pool)
         require(bool(pool),'empty '+source+' pool; inputs incomplete; no replenishment')
     write_rows(root/'checks.jsonl',verdicts)
     atomic(root/'licences.json',NOTICES)
-    atomic(root/'cost.json',dict(kind='broad_preparation',gpu_hours=0 if a.standin else (time.monotonic()-started)/3600,technical_synthetic=a.standin))
+    atomic(root/'cost.json',dict(kind='broad_preparation',gpu_hours=0 if standin else seconds/3600,technical_synthetic=standin))
     freeze(root,['generic-exclusion-audit.json','inputs.json','candidates.jsonl','exclusions.jsonl','earlier.jsonl','gsm8k.jsonl','arc.jsonl','checks.jsonl','licences.json','cost.json']+
-        [str(p.relative_to(root)) for p in sorted((root/'raw').glob('*.json'))],a.standin,
+        [str(p.relative_to(root)) for p in sorted((root/'raw').glob('*.json'))],standin,
         pool_protocol=POOL_PROTOCOL, arc_prompt=ARC_PROMPT,
         disclosure='Broad is in-distribution for general-v1 maths and near-distribution for knowledge. HellaSwag is the only out-of-pool panel; ARC shares its letter-answer format. Checks verify final answers, not rationales.')
-    print('Pool rows:',len(accepted),'broad;',len(earlier),'earlier;',len(excluded),'excluded')
+    print('Pool rows:',len(accepted),'broad;',len(t.read_jsonl(root/'earlier.jsonl')),'earlier;',len(t.read_jsonl(root/'exclusions.jsonl')),'excluded')
 
 
 def configure(p):
-    p.add_argument('--prepare-candidates-only',action='store_true')
+    p.add_argument('--generation-shard',type=int,choices=range(3));p.add_argument('--reduce-only',action='store_true')
+    p.add_argument('--prepare-candidates-only',action='store_true');p.add_argument('--use-prepared-candidates',action='store_true')
     p.add_argument('--gpu',default='0');p.add_argument('--package-a',type=Path,required=True)
     p.add_argument('--finqa-panel',type=Path,required=True);p.add_argument('--finqa-targets',type=Path,nargs='+',required=True)
     p.add_argument('--gsm-rows',type=Path);p.add_argument('--arc-rows',type=Path)

@@ -37,29 +37,23 @@ def probe(local_root,durable,node,standin):
     locks=snapshots.flock_preflight(durable,nodes=len(launch['nodes']))
     from kit.next_blend import local_nvme
     nvme=local_nvme(local_root,False)
-    from kit.m2_gpu import devices,prepare,assert_current
-    observed=[];allocated=os.environ.get('CUDA_VISIBLE_DEVICES');old_uuid=os.environ.get('M2_ASSIGNED_GPU_UUID')
-    try:
-        inventory=devices()
-        # Check all GPUs the allocation exposes, including train-only GPUs.
-        for index,uuid in inventory.items():
-            if allocated is not None and index not in allocated.split(',') and uuid not in allocated.split(','):continue
-            if allocated is None:os.environ.pop('CUDA_VISIBLE_DEVICES',None)
-            else:os.environ['CUDA_VISIBLE_DEVICES']=allocated
-            mapping=prepare(index,uuid);assert_current()
-            hardware=assignment.inventory(mapping['index'])
-            for expected in authority['assignments'].values():
-                if expected['node']==node and expected['uuid']==uuid:assignment.require(hardware==expected,'node preflight assignment GPU/environment differs')
-            observed.append(dict(index=index,**hardware,uuid_asserted=True))
-        assignment.require(observed,'no allocated GPUs')
-        wanted={r['uuid'] for r in authority['assignments'].values() if r['node']==node}
-        assignment.require(wanted<={r['uuid'] for r in observed},'assigned UUID absent from node allocation')
-    finally:
-        for name,value in (('CUDA_VISIBLE_DEVICES',allocated),('M2_ASSIGNED_GPU_UUID',old_uuid)):
-            if value is None:os.environ.pop(name,None)
-            else:os.environ[name]=value
     return dict(status='PASS',node=node,technical_synthetic=False,assignment_sha256=assignment.sha(durable/'scoring-assignment.json'),
-        filesystem=locks,nvme=nvme,gpus=observed)
+        filesystem=locks,nvme=nvme,gpus=[],gpu_identity='DEFERRED_TO_PRODUCTIVE_JOB')
+
+
+def probe_allocated(devices,authority,node,standin=False):
+    """Assert CUDA identity in parallel children before any scientific command."""
+    from concurrent.futures import ThreadPoolExecutor
+    if standin:return [dict(index=index,node=node,uuid=uuid,uuid_asserted=True,technical_synthetic=True) for index,uuid in devices.items()]
+    def check(item):
+        index,uuid=item
+        env=dict(os.environ,CUDA_DEVICE_ORDER='PCI_BUS_ID',CUDA_VISIBLE_DEVICES=index,M2_ASSIGNED_GPU_UUID=uuid)
+        code='import sys; sys.path.insert(0,sys.argv[1]); from kit import m2_gpu as g,m2_assignment as a; g.assert_current(); import json; print(json.dumps(a.inventory(sys.argv[2])))'
+        result=subprocess.run([sys.executable,'-I','-c',code,str(Path(__file__).resolve().parents[1]),index],env=env,capture_output=True,text=True,timeout=300,check=True)
+        hardware=__import__('json').loads(result.stdout)
+        assignment.require(hardware['node']==node and hardware['uuid']==uuid,'allocated CUDA identity differs')
+        return dict(index=index,**hardware,uuid_asserted=True)
+    with ThreadPoolExecutor(max_workers=len(devices)) as pool:return list(pool.map(check,devices.items()))
 
 
 def job(a):

@@ -178,11 +178,13 @@ def paired_seeds(challenger, control, metric):
             unverified.append(seed)
             continue
         ga, gb = a.get('gpu_identity') or {}, b.get('gpu_identity') or {}
+        if a.get('hardware_status') or b.get('hardware_status') or (ga.get('allocation_job') or gb.get('allocation_job')) and ga.get('allocation_job')!=gb.get('allocation_job'):
+            unverified.append(seed);continue
         if not ga.get('uuid') or not ga.get('environment') or (ga.get('uuid'), ga.get('environment')) != (gb.get('uuid'), gb.get('environment')):
             unpaired.append(seed)
             continue
         diffs[seed] = metric(a) - metric(b)
-    result = (dict(status='UNVERIFIED', seeds=unverified, label=LABEL) if unverified else
+    result = (dict(status='UNVERIFIED-HARDWARE' if any(c.get('gpu_identity',{}).get('allocation_job') for c in [*challenger.values(),*control.values()]) else 'UNVERIFIED', seeds=unverified, label=LABEL) if unverified else
               dict(status='UNPAIRED-GPU', seeds=unpaired, label=LABEL) if unpaired else interval3(diffs))
     result['per_seed'] = diffs
     return result
@@ -274,10 +276,14 @@ def read_sidecar(sidecar, inventory=None):
             hardware = json.loads((Path(sidecar) / 'hardware.json').read_text())
             verify_seal(hardware)
             require(identity.get('hardware_sha256') == hardware['identity_sha256'] and
-                    identity.get('gpu_identity') == hardware['assignments'].get(entry['assignment']),
+                    (identity.get('gpu_identity',{}).get('historical_assignment') if identity.get('gpu_identity',{}).get('allocation_job') else identity.get('gpu_identity')) == hardware['assignments'].get(entry['assignment']),
                     'UNVERIFIED: returned hardware authority differs')
+        observed=identity.get('gpu_identity') or {}
+        hardware_status=None
+        if observed.get('allocation_job') and not identity.get('technical_synthetic') and observed.get('uuid') in set(hardware.get('historical_parent_gpu_uuids',hardware.get('parent_gpu_uuids',[])))|set(observed.get('parent_gpu_uuids',[])):
+            hardware_status='UNVERIFIED-HARDWARE'
         scored = read_jsonl(cell / 'scores.jsonl')
-        cells.append(dict(entry=identity['entry'], gpu_identity=identity['gpu_identity'], summary=summarise(scored),
+        cells.append(dict(hardware_status=hardware_status,entry=identity['entry'], gpu_identity=identity['gpu_identity'], summary=summarise(scored),
                           length=json.loads((cell / 'length.json').read_text()), scored=scored,
                           raw=read_jsonl(cell / 'raw.jsonl'),
                           frozen_sha256=identity.get('frozen_sha256'), decoding_sha256=identity.get('decoding_sha256'),
@@ -289,7 +295,13 @@ def family_tables(cells, inventory=None, sidecar=None):
     """Preserve stage/arm edges; frozen incoming populations precede descendant length analysis."""
     from kit import sp_score
     from kit.sp_manifest import gpu_key
-    tables, indexed = {}, {}
+    tables,indexed={},{}
+    by_uuid={}
+    for cell in cells:
+        gpu=cell.get('gpu_identity') or {}
+        if gpu.get('allocation_job'):by_uuid.setdefault(gpu.get('uuid'),set()).add(cell['entry'].get('assignment'))
+    for cell in cells:
+        if len(by_uuid.get((cell.get('gpu_identity') or {}).get('uuid'),set()))>1:cell['hardware_status']='UNVERIFIED-HARDWARE'
     def family_name(value):
         import re
         return re.sub(r'(return1\.[AB])10[123]$', r'\1', str(value))
@@ -319,6 +331,8 @@ def family_tables(cells, inventory=None, sidecar=None):
                 if use.get('role') not in ('base', 'incoming'):
                     if incoming is None:
                         row['gap_change'] = 'MISSING-INCOMING'
+                    elif cell.get('hardware_status') or incoming.get('hardware_status') or (cell['gpu_identity'].get('allocation_job') or incoming['gpu_identity'].get('allocation_job')) and cell['gpu_identity'].get('allocation_job')!=incoming['gpu_identity'].get('allocation_job'):
+                        row['gap_change']='UNVERIFIED-HARDWARE'
                     elif gpu_key(cell['gpu_identity']) != gpu_key(incoming['gpu_identity']) or gpu_key(cell['gpu_identity']) is None:
                         row['gap_change'] = 'UNPAIRED-GPU'
                     elif (cell.get('frozen_sha256'), cell.get('decoding_sha256')) != (incoming.get('frozen_sha256'), incoming.get('decoding_sha256')):

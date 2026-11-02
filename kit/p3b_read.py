@@ -205,11 +205,18 @@ def load(source):
         for record in json.loads(files['collect-manifest.json'])['files']:
             raw=files.get(record['path'])
             require(raw is not None and len(raw)==record['bytes'] and t.sha(raw)==record['sha256'],'returned evidence hash differs: '+record['path'])
-    selected=[(n,b) for n,b in files.items() if n.startswith('scores/') and n.endswith('/scores.csv')] if source.is_dir() else []
+    from kit.lane_evidence import select
+    files=select(files)
+    selected=[(n,b) for n,b in files.items() if n.startswith('scores/') and n.endswith('/scores.csv')]
     if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv.gz')]
-    if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv') and not n.startswith('reference-scores/')]
+    if not selected: selected=[(n,b) for n,b in files.items() if n.endswith('scores.csv') and not n.startswith(('reference-scores/','reference-history/'))]
     rows=[]
-    for n,b in selected: rows.extend(csv.DictReader(io.StringIO((gzip.decompress(b) if n.endswith('.gz') else b).decode())))
+    for n,b in selected:
+        own=list(csv.DictReader(io.StringIO((gzip.decompress(b) if n.endswith('.gz') else b).decode())))
+        identity=json.loads(files.get(n.rsplit('/',1)[0]+'/m2-identity.json',b'{}')).get('assignment') or {}
+        if identity.get('allocation_job'):
+            for row in own:row.update(_allocation_job=identity['allocation_job'],_allocation_uuid=identity['uuid'],_allocation_environment=identity['environment'])
+        rows.extend(own)
     if 'binding.json' in files or any(n.startswith('reference-scores/') for n in files):
         from kit.ref_guard import overlay
         scope = json.loads(files.get('binding.json', b'{}')).get('technical_synthetic')

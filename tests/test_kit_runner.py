@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 import pytest
+from kit_authority import sealed_v6_authority
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -161,7 +162,7 @@ def test_k0_campaign_matches_the_partner_instructions(work, monkeypatch):
     assert band["source"] == str(work / "runs" / "smoke-a1" / "metrics.jsonl")
 
 
-def test_no_kit_tool_reads_json_lines_with_splitlines():
+def test_no_kit_tool_reads_json_lines_with_splitlines(sealed_v6_authority):
     """str.splitlines() also breaks on the Unicode line separators (code points 0x2028, 0x2029, 0x85), which a model can
     write INSIDE an answer; the kit writes answers with ensure_ascii=False. One such character would split a record in two
     and crash the reader on the partner's machine. Found 20 September while reviewing the K3 beds.
@@ -177,6 +178,7 @@ def test_no_kit_tool_reads_json_lines_with_splitlines():
     amendment and name the original pin it replaces; all other pins stay exact.
     """
     import re as _re
+    import ast
     record = json.dumps({"response": "one" + chr(0x2028) + "two" + chr(0x85) + "three"}, ensure_ascii=False) + "\n"
     assert len(record.splitlines()) > 1 and len([x for x in record.split("\n") if x]) == 1      # the hazard, and the fix
     import hashlib
@@ -190,11 +192,23 @@ def test_no_kit_tool_reads_json_lines_with_splitlines():
     for path in sorted((ROOT / "kit").rglob("*.py")):
         name = str(path.relative_to(ROOT))
         if name in receipt_bound:
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == receipt_bound[name], name
+            from kit.v6_infra import allowed
+            observed = hashlib.sha256(path.read_bytes()).hexdigest()
+            assert observed == receipt_bound[name] or allowed(path, receipt_bound[name], observed), name
             continue
         for number, line in enumerate(path.read_text().split("\n"), 1):
             if ".splitlines()" in line and _re.search(r"json\.loads|responses|\.jsonl", line):
                 offenders.append("%s:%d" % (path.relative_to(ROOT), number))
+        # Catch multiline readers too: JSON decoding often follows the loop's
+        # splitlines() on a later line (e.g. telemetry phases and utility pools).
+        for node in ast.walk(ast.parse(path.read_text())):
+            if not isinstance(node, (ast.For, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):continue
+            iters=[node.iter] if isinstance(node,ast.For) else [g.iter for g in node.generators]
+            splits=any(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='splitlines'
+                       for value in iters for n in ast.walk(value))
+            loads=any(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name)
+                      and n.func.value.id=='json' and n.func.attr=='loads' for n in ast.walk(node))
+            if splits and loads:offenders.append("%s:%d" % (path.relative_to(ROOT),node.lineno))
     assert offenders == [], offenders
 
 

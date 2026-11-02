@@ -27,6 +27,13 @@ def signal(out, doc, seed, arm):
 
 
 def export(run, step, a, env):
+    if m2_train.defer_exports():
+        if not a.standin:
+            native=run/'sdft'/f'global_step_{step}'/'actor'
+            require(native.is_dir() and any(native.iterdir()),'native X checkpoint missing')
+        m2_train.queue_export(a.out,'x-export',run=str(run),step=step,standin=a.standin,arm=a.arm,seed=a.seed,
+            python=a.trainer_python,sdpo=str(a.sdpo) if a.sdpo else None)
+        return
     target = run/f'hf-step{step}'
     if a.standin:
         atomic(target/'config.json', dict(technical_synthetic=True, arm=a.arm, seed=a.seed, step=step))
@@ -90,6 +97,7 @@ def retain_interrupted(run, phase):
 
 
 def stage(a):
+    if m2_train.run_prepared(a):return
     doc = context(a.out, a.standin)
     from kit.x_p2_feasibility import contains_p2
     regularised=contains_p2(a,doc)
@@ -210,7 +218,11 @@ def stage(a):
         # Full controls/P/plasticity repeat identical stages after an interruption,
         # matching M's registered restart behavior; drift always reloads its prefix.
         bind(run/(a.phase+'-command.json'), cmd)
-        if a.phase != 'prefix' or not (run/'prefix.json').exists():
+        if m2_train.preparing():
+            retain_interrupted(run,a.phase)
+            m2_train.prepare_training(a,cmd,env,run,[run/'sdft'/f'global_step_{k}'/'actor' for k in ((10,) if a.phase=='prefix' else (10,20,30,40))])
+            return
+        if not m2_train.published_training(a) and (a.phase != 'prefix' or not (run/'prefix.json').exists()):
             retain_interrupted(run,a.phase)
             atomic(run/'started.json',dict(phase=a.phase,started_ns=time.time_ns()))
             start = time.monotonic()
@@ -232,9 +244,13 @@ def stage(a):
                 require(value['status']=='PASS' and value['student_checkpoint']==value['teacher_checkpoint']==ref['model'],
                         'P2 missing unchanged-incoming EMA assertion')
         for step in (10,20,30,40): export(run, step, a, env)
-    bind(run/'summary.json', dict(stage_identity, schedule_sha256=digest(scheduled), slot_audit=audit))
     names = ['identity.json','summary.json']+[f'export-{s}.json' for s in (10,20,30,40)]
     if regularised: names += [f'p2-rank{r}.json' for r in range(1 if a.standin else 8)]+ [f'ema-origin/rank{r}.json' for r in range(1 if a.standin else 8)]
+    summary=dict(stage_identity,schedule_sha256=digest(scheduled),slot_audit=audit)
+    if m2_train.defer_exports():
+        m2_train.queue_export(a.out,'x-finish',run=str(run),summary=summary,names=names,standin=a.standin)
+        return
+    bind(run/'summary.json',summary)
     bind(run/'manifest.json', m.files_manifest(run, names, technical_synthetic=a.standin))
     bind(run/'complete.json', dict(complete=True))
 

@@ -301,6 +301,7 @@ def cmd_generate(args, *, frozen_items=None) -> int:
     from vllm import SamplingParams
     from kit.inference_lifecycle import create_llm as LLM                                    # noqa: PLC0415
     import vllm                                                             # noqa: PLC0415
+    from kit.inference_lifecycle import engine_kwargs
     reload_started=datetime.now(timezone.utc).isoformat();reload_clock=time.monotonic()
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [render(tokenizer, item["prompt"]) if isinstance(item["prompt"], str) else render_messages(tokenizer, item["prompt"])
@@ -312,7 +313,8 @@ def cmd_generate(args, *, frozen_items=None) -> int:
     if args.max_model_len:                    # a budget audit scores two caps in ONE context, so the cap is the only thing that differs
         engine["max_model_len"] = int(args.max_model_len)
     from kit.v4_teacher import atomic_json
-    expected={**ENGINE,'max_model_len':12288}
+    engine=engine_kwargs(engine)
+    expected=engine_kwargs({**ENGINE,'max_model_len':12288})
     configuration_ok=all(engine.get(k)==v for k,v in expected.items()) and eager and batch_invariant
     try:
         llm = LLM(model=str(model), enable_lora=False, **engine, **({'enforce_eager': True, 'seed': 0} if eager else {}))

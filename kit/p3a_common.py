@@ -29,7 +29,15 @@ class NotReady(RuntimeError):
 
 def atomic(path, value):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    t.atomic_json(path, value)
+    from kit.v4_finqa_policy import protect_write
+    protect_write(path)
+    path=Path(path);temp=path.with_name(path.name+'.'+str(os.getpid())+'.tmp')
+    with temp.open('w') as stream:
+        json.dump(value,stream,ensure_ascii=False,indent=2,allow_nan=False);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+    os.replace(temp,path)
+    fd=os.open(path.parent,os.O_RDONLY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
 
 
 def check(path, expected):
@@ -174,7 +182,11 @@ def entry(job, configure, name):
         # Do not inherit campaign accounting or gates from a caller's environment.
         for key in ('V4_FINQA_CAMPAIGN', 'V4_PHASE0_MODE', 'V4_ALLOCATION_PLAN', 'KIT_V4_ARM', 'V4_BATCH_FALLBACK_CAUSE'):
             os.environ.pop(key, None)
-        try: job(a)
+        from kit.v6_infra import activate
+        try:
+            try:activate(a.out)
+            except ValueError as error:raise CorrectnessStop(str(error)) from error
+            job(a)
         except PolicyStop as exc: print("STOP: correctness:", exc); return 2
         except NotReady as exc: print('NOT READY:', exc); return 3
         except subprocess.CalledProcessError as exc:

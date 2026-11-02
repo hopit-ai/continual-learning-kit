@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -203,7 +204,7 @@ def planned_from_launch(launch):
     for task in launch['tasks']:
         for index, command in enumerate(task.get('commands', [])):
             o = options(command)
-            script = Path(str(command[1])).stem if len(command) > 1 else str(command[0])
+            script = next((Path(str(v)).stem for v in command[1:] if str(v).endswith('.py')), str(command[0]))
             action = o.get('action') if isinstance(o.get('action'), str) else None
             seed = _int(o.get('seed')) or _int(task.get('seed'))
             base = dict(source=source, task=task['id'], row=task.get('row'),
@@ -231,7 +232,7 @@ def planned_from_launch(launch):
                              arm=arm, step=step, panel=panel, resolution='static', conditional=arm in CONDITIONAL_ARMS,
                              comparison=arm)
                 entry['role'] = role_of(entry)
-                if script == 'm3_score' and action == 'alias':
+                if script=='m3_score' and (action=='alias' or action=='score' and step==0 and o['arm']!='base'):
                     stages = ('finqa', 'contract_nli', 'math_hard')
                     stage = stages.index(o['stage'])
                     target_arm = 'base' if stage == 0 else written_arm(script, o['arm'], base['family'], stages[stage - 1])
@@ -683,11 +684,12 @@ def build_sidecar(launches, inv, settings=None):
 
     def add(ident, after, commands, uses_gpu=False, **extra):
         tasks.append(dict(id=ident, kind='sp-sidecar', after=sorted(set(after)), dependency='afterany',
-                          commands=commands, writes='{sp}', uses_gpu=uses_gpu, blocks=[], **extra))
+                          commands=commands, writes='{sp}', uses_gpu=uses_gpu, blocks=[],
+                          gpus=1 if uses_gpu else 0, nodes=1, cpus=8, share_node=True, **extra))
         return ident
 
     pool_parents = [t for t in settings.get('pool_tasks', ('M-pools', 'R-broad', 'R-nominate', 'M3-pools')) if t in parent]
-    verify = add('SP-verify-pools', pool_parents, [[py, '{kit}/sp_manifest.py', 'verify-pools',
+    verify = add('SP-verify-pools', pool_parents, [[py, '-I', '{kit}/sp_manifest.py', 'verify-pools',
                                                     '--pools-spec', '{sp}/returned-pools.json',
                                                     '--out', '{sp}/pool-verification.json']])
     by_assignment = {}
@@ -695,28 +697,29 @@ def build_sidecar(launches, inv, settings=None):
         by_assignment.setdefault(e['assignment'], []).append(e)
     panels = []
     for assignment, entries in sorted(by_assignment.items()):
-        after, commands = [], []
+        after, commands, preparations = [], [], []
         for e in sorted(entries, key=lambda e: (min(({'base': 0, 'incoming': 1, 'final': 2}.get(u.get('role'), 3)
                                                     for u in e['uses']), default=3), e['entry_id'])):
             after += [planned[p]['task'] for p in e['planned_ids'] if planned.get(p, {}).get('task') in parent]
-            commands.append([py, '{kit}/jobs/message3-sp/durable_adapter.py', '--sources', '{owner_sources_file}',
+            preparations.append([py, '-I', '{kit}/jobs/message3-sp/durable_adapter.py', '--sources', '{owner_sources_file}',
                              '--entry-id', e['entry_id'], '--out', '{sp}'])
-            commands.append([py, '{kit}/sp_manifest.py', 'entry', '--inventory', '{sp}/inventory.json',
+            preparations.append([py, '-I', '{kit}/sp_manifest.py', 'entry', '--inventory', '{sp}/inventory.json',
                              '--entry-id', e['entry_id'], '--models', '{models_file}', '--input', '{inputs}',
                              '--out', '{sp}/entries/%s.json' % e['entry_id']])
-            commands.append([py, '{kit}/sp_score.py', 'panel', '--entry', '{sp}/entries/%s.json' % e['entry_id'],
+            commands.append([py, '-I', '{kit}/sp_score.py', 'panel', '--entry', '{sp}/entries/%s.json' % e['entry_id'],
                              '--model', '{model:%s}' % e['entry_id'], '--gpu', '{score_gpu}',
                              '--models', '{models_file}',
                              '--gpu-identity', '{gpu_identity:%s}' % assignment, '--out', '{sp}'])
         name = 'SP-panel-' + re.sub(r'[^A-Za-z0-9_.-]+', '-', assignment.split(':', 1)[-1])
-        panels.append(add(name, after, commands, uses_gpu=True, assignment=assignment,
-                          entries=[e['entry_id'] for e in entries]))
+        prepared = add(name.replace('SP-panel-', 'SP-prepare-'), [verify, *after], preparations, entries=[e['entry_id'] for e in entries])
+        panels.append(add(name, [prepared], commands, uses_gpu=True, assignment=assignment,
+                          entries=[e['entry_id'] for e in entries],command_count=len(commands),lane_concurrency=3))
     scorers = sorted({p['task'] for p in inv['planned'] if p.get('task') in parent})
-    length = add('SP-length', scorers, [[py, '{kit}/sp_manifest.py', 'length', '--inventory', '{sp}/inventory.json',
+    length = add('SP-length', scorers, [[py, '-I', '{kit}/sp_manifest.py', 'length', '--inventory', '{sp}/inventory.json',
                                          '--sp', '{sp}', '--input', '{inputs}']])
-    add('SP-read', [*panels, length, verify], [[py, '{kit}/sp_read.py', '--sidecar', '{sp}', '--inventory',
+    add('SP-read', [*panels, length, verify], [[py, '-I', '{kit}/sp_read.py', '--sidecar', '{sp}', '--inventory',
                                                 '{sp}/inventory.json', '--input', '{inputs}', '--out', '{sp}/tables']])
-    return dict(schema=SIDECAR_SCHEMA, parent_launch_sha256=[digest(l) for l in launches],
+    return dict(schema=SIDECAR_SCHEMA,lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),parent_launch_sha256=[digest(l) for l in launches],
                 inventory_sha256=inv['identity_sha256'], tasks=tasks)
 
 
@@ -1026,6 +1029,33 @@ def durable_binding(local, verified=None):
                 model_file_hashes=files)
 
 
+def prepared_metadata(local, entry):
+    """Cheap freshness witness for bytes fully verified in the CPU preparation row."""
+    paths = {name: Path(local['model']) / name for name in entry['model_file_hashes']}
+    for key in ('receipt', 'archive', 'owner_receipt', 'owner_manifest', 'owner_complete'):
+        if local.get(key): paths['@' + key] = Path(local[key])
+    if local.get('kind') == 'm3-export':
+        owner = Path(local['owner_receipt']).parent
+        paths.update({'@native-manifest': owner / 'manifest.json', '@native-complete': owner / 'complete.json'})
+    elif local.get('kind') == 'm2-snapshot':
+        archive = Path(local['archive'])
+        paths.update({'@archive-hash': archive.with_suffix('.tar.sha256'), '@archive-manifest-hash': archive.with_suffix('.tar.manifest.sha256')})
+    result = {}
+    for name, path in paths.items():
+        try: st = path.stat()
+        except FileNotFoundError as error: raise MissingInput('MISSING: prepared durable export file absent') from error
+        result[name] = [st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+    return result
+
+
+def fresh_binding(local, entry):
+    proof = entry['durable_provenance']
+    if proof.get('expires_at') is not None and time.time() >= proof['expires_at']:
+        raise MissingInput('MISSING: owner export expired after preparation')
+    require(prepared_metadata(local, entry) == entry['prepared_metadata'], 'UNVERIFIED: prepared export changed; rerun CPU preparation')
+    return proof
+
+
 def bind_runtime_entry(entry, inv, inputs, local):
     """Bind missing future identities after parents finish; coverage/entry IDs never change."""
     if entry.get('coverage_unknown'):
@@ -1040,8 +1070,12 @@ def bind_runtime_entry(entry, inv, inputs, local):
     expected = digest(proof['model_file_hashes'])
     require(not weights or weights == {expected}, 'UNVERIFIED: owner export differs from parent scores')
     require(not entry.get('weights_sha256') or entry['weights_sha256'] == expected, 'UNVERIFIED: bound export changed')
-    return dict(entry, weights_sha256=expected, model_file_hashes=proof['model_file_hashes'], weights_bound=True,
-                checkpoint_id=expected[:16], status='BOUND', durable_provenance=proof)
+    result = dict(entry, weights_sha256=expected, model_file_hashes=proof['model_file_hashes'], weights_bound=True,
+                  checkpoint_id=expected[:16], status='BOUND', durable_provenance=proof)
+    from kit.sp_score import verify_model
+    verify_model(result, local['model'])
+    result['prepared_metadata'] = prepared_metadata(local, result)
+    return result
 
 
 def substitute(arg, values, maps):
@@ -1055,7 +1089,7 @@ def substitute(arg, values, maps):
         if not bound_path.is_file():
             raise MissingInput('MISSING: immutable runtime entry proof absent')
         bound = json.loads(bound_path.read_text()); verify_seal(bound)
-        proof = durable_binding(found, verified=bound.get('durable_provenance'))
+        proof = fresh_binding(found, bound) if bound.get('prepared_metadata') else durable_binding(found, verified=bound.get('durable_provenance'))
         require(proof == bound.get('durable_provenance'), 'UNVERIFIED: frozen durable proof differs')
         return str(found['model'])
     def gpu(m):
@@ -1064,24 +1098,26 @@ def substitute(arg, values, maps):
             raise MissingInput('no frozen SP hardware authority')
         verify_seal(hardware)
         require(hardware.get('schema') == 'sp-hardware-v1', 'UNVERIFIED: wrong hardware authority schema')
-        assigned = [v.get('uuid') for v in hardware['assignments'].values()]
-        observed_parents = set(maps.get('observed_parent_gpu_uuids', []))
-        historical = set(hardware.get('historical_parent_gpu_uuids', hardware['parent_gpu_uuids']))
-        require(observed_parents <= historical, 'UNVERIFIED: parent hardware inventory omitted observed UUIDs')
-        if set(assigned) & historical:
-            if not maps.get('parent_inventories'):
-                raise MissingInput('fresh parent occupancy receipts required for released GPU reuse')
-            current_scope, current_held = parent_hardware(maps['parent_inventories'])
-            require(historical <= current_scope, 'UNVERIFIED: current parent hardware inventory incomplete')
-            require(not set(assigned) & current_held, 'UNVERIFIED: SP GPU currently held by a parent')
-        require(len(assigned) == len(set(assigned)) and not set(assigned) & set(hardware['parent_gpu_uuids']),
-                'UNVERIFIED: shared SP/parent physical GPU')
+        if not maps.get('allocation_scoring'):
+            assigned = [v.get('uuid') for v in hardware['assignments'].values()]
+            observed_parents = set(maps.get('observed_parent_gpu_uuids', []))
+            historical = set(hardware.get('historical_parent_gpu_uuids', hardware['parent_gpu_uuids']))
+            require(observed_parents <= historical, 'UNVERIFIED: parent hardware inventory omitted observed UUIDs')
+            if set(assigned) & historical:
+                if not maps.get('parent_inventories'):
+                    raise MissingInput('fresh parent occupancy receipts required for released GPU reuse')
+                current_scope, current_held = parent_hardware(maps['parent_inventories'])
+                require(historical <= current_scope, 'UNVERIFIED: current parent hardware inventory incomplete')
+                require(not set(assigned) & current_held, 'UNVERIFIED: SP GPU currently held by a parent')
+            require(len(assigned) == len(set(assigned)) and not set(assigned) & set(hardware['parent_gpu_uuids']),
+                    'UNVERIFIED: shared SP/parent physical GPU')
         found = hardware['assignments'].get(m.group(1))
         if not found or not found.get('uuid') or not found.get('environment'):
             raise MissingInput('no physical GPU identity for assignment ' + m.group(1))
         path = Path(values['{sp}']) / 'state' / 'gpu' / (re.sub(r'[^A-Za-z0-9_.-]+', '-', m.group(1)) + '.json')
         path.parent.mkdir(parents=True, exist_ok=True)
-        proof = dict(found, assignment=m.group(1), hardware_sha256=hardware['identity_sha256'])
+        proof=dict(found,assignment=m.group(1),hardware_sha256=hardware['identity_sha256'],
+            **(dict(observed_parent_gpu_uuids=maps.get('observed_parent_gpu_uuids',[])) if maps.get('allocation_scoring') else {}))
         freeze_inventory(path, seal(proof))
         return str(path)
     out = re.sub(r'\{model:([^}]+)\}', model, str(arg))
@@ -1116,26 +1152,51 @@ def run(sidecar, task_id, values, maps, inputs=(), runner=subprocess.run):
     """
     state = Path(values['{sp}']) / 'state'
     state.mkdir(parents=True, exist_ok=True)
-    record = dict(task=task_id, started=time.time(), commands=[])
+    record=dict(task=task_id,started=time.time(),commands=[])
+    runtime_env=dict(os.environ)
     try:
+        if 'lane_runtime' in sidecar:
+            from kit.v6_infra import verify_runtime
+            runtime_env['M2_INFRA_AUTHORITY_SHA256']=verify_runtime(sidecar['lane_runtime']) or ''
         task = next(t for t in sidecar['tasks'] if t['id'] == task_id)
         record['assignment'] = task.get('assignment')
-        if task.get('uses_gpu'):
+        if not task.get('uses_gpu'):
             maps = dict(maps, observed_parent_gpu_uuids=sorted({c['gpu_identity']['uuid'] for root in inputs for c in discover(root)
                                                               if gpu_key(c.get('gpu_identity'))}))
+        if task['id'].startswith('SP-prepare-'):
+            record['observed_parent_gpu_uuids'] = maps.get('observed_parent_gpu_uuids', [])
+            receipt = Path(values['{sp}']) / 'pool-verification.json'
+            if receipt.exists(): record['pool_verification_sha256'] = digest(json.loads(receipt.read_text()))
+        commands = task['commands']
+        if task.get('uses_gpu'):
+            prepared_path = state / (task['after'][0] + '.json')
+            if not prepared_path.exists(): raise MissingInput('CPU preparation receipt absent')
+            proof = json.loads(prepared_path.read_text())
+            if proof.get('status') != 'DONE': raise MissingInput('CPU preparation did not complete')
+            receipt = Path(values['{sp}']) / 'pool-verification.json'
+            if not receipt.exists() or proof.get('pool_verification_sha256') != digest(json.loads(receipt.read_text())):
+                raise MissingInput('CPU pool verification absent/changed')
+            maps=dict(maps,observed_parent_gpu_uuids=proof.get('observed_parent_gpu_uuids',[]),allocation_scoring=True)
+            commands = [[substitute(a, values, maps) for a in expand_inputs(raw, inputs)] for raw in commands]
+        if task.get('uses_gpu') and runner is subprocess.run:
+            from kit.lane_pool import execute
+            code=execute(commands,state/'lane-attempts'/(task_id+'-'+str(time.time_ns())),env=dict(runtime_env,SP_POOL_CHILD='1'))
+            record['commands']=[dict(entry_id=c[c.index('--entry')+1] if '--entry' in c else None,
+                status='DONE' if code==0 else 'MISSING-INPUT' if code in (3,75) else 'FAILED',returncode=code) for c in commands]
+            commands=[]
         prepared = True
-        for raw in task['commands']:
-            item = dict(script=Path(str(raw[1])).name if len(raw) > 1 else None)
+        for raw in commands:
+            item = dict(script=next((Path(str(v)).name for v in raw[1:] if str(v).endswith('.py')), None))
             if '--entry-id' in raw:
                 item['entry_id'] = raw[raw.index('--entry-id') + 1]
             elif '--entry' in raw:
                 item['entry_id'] = Path(raw[raw.index('--entry') + 1]).stem
             started = time.monotonic()
             try:
-                if len(raw) > 1 and str(raw[1]).endswith('/sp_score.py') and not prepared:
+                if len(raw) > 1 and any(str(v).endswith('/sp_score.py') for v in raw) and not prepared:
                     raise MissingInput('MISSING: this entry failed runtime binding')
                 command = [substitute(a, values, maps) for a in expand_inputs(raw, inputs)]
-                result = runner(command, check=False)
+                result=runner(command,check=False,**(dict(env=runtime_env) if runner is subprocess.run else {}))
                 item.update(status='DONE' if result.returncode == 0 else 'FAILED', returncode=result.returncode)
             except MissingInput as exc:
                 item.update(status='MISSING-INPUT', error=str(exc))
@@ -1143,10 +1204,12 @@ def run(sidecar, task_id, values, maps, inputs=(), runner=subprocess.run):
                 item.update(status='FAILED', error=type(exc).__name__)
             item['wall_seconds'] = time.monotonic() - started
             record['commands'].append(item)
-            if len(raw) > 2 and str(raw[1]).endswith('/sp_manifest.py') and raw[2] == 'entry':
+            if any(str(v).endswith('/sp_manifest.py') for v in raw) and 'entry' in raw:
                 prepared = item['status'] == 'DONE'
         statuses = {c['status'] for c in record['commands']}
         record['status'] = 'FAILED' if 'FAILED' in statuses else 'MISSING-INPUT' if 'MISSING-INPUT' in statuses else 'DONE'
+    except MissingInput as exc:
+        record['status'] = 'MISSING-INPUT'; record['error'] = str(exc)
     except StopIteration:
         record['status'] = 'FAILED'; record['error'] = 'unknown SP task'
     except Exception as exc:  # noqa: BLE001
@@ -1329,7 +1392,15 @@ def main(argv=None):
         values = {k: v for k, v in {'{kit}': a.kit, '{sp}': a.sp, '{score_gpu}': a.score_gpu,
                                   '{models_file}': a.models,
                                   '{owner_sources_file}': a.owner_sources or a.sp / 'owner-exports.local.json'}.items() if v is not None}
-        return run(load(a.sidecar), a.task, values, maps, a.input)
+        sidecar = load(a.sidecar); task = next(t for t in sidecar['tasks'] if t['id'] == a.task)
+        if task.get('uses_gpu'):
+            from kit.m3_manifest import allocated_gpus, allocation_reservation, watched
+            if not os.environ.get('UTIL_WATCH_ACTIVE'):
+                env = dict(os.environ, UTIL_WATCH_ACTIVE='1')
+                return subprocess.run(watched([sys.executable, '-I', str(Path(__file__).resolve()), *(argv if argv is not None else sys.argv[1:])], a.sp / 'util' / a.task / (str(time.time_ns())+'.jsonl')), env=env).returncode
+            with allocation_reservation(allocated_gpus(1)):
+                return run(sidecar, a.task, values, maps, a.input)
+        return run(sidecar, a.task, values, maps, a.input)
     if a.action == 'hardware':
         freeze_hardware(a.out, load(a.gpu_identities), [load(p) for p in a.parent_hardware])
         return 0

@@ -114,5 +114,7 @@ def job(a):
 def configure(p):
     p.add_argument('--action', choices=('audit', 'generate','reduce'), required=True)
     p.add_argument('--seed',type=int,choices=SEEDS)
+    p.add_argument('--domain',choices=DOMAINS);p.add_argument('--part',choices=('train','monitor'))
+    p.add_argument('--finalize',action='store_true')
     p.add_argument('--gpu', default='0')
 if __name__ == '__main__': raise SystemExit(entry(job, configure))

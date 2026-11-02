@@ -14,7 +14,7 @@ def measure(a,doc,arm,seed,step,adaptive):
     from kit.s_drift import nll
     from kit.m2_handoff import scoring_identity
     scoring_machine=scoring_identity(a.out,a.score_gpu,a.standin)
-    os.environ['CUDA_VISIBLE_DEVICES']=prepared_index(a.score_gpu,a.standin)
+    if getattr(a,'measurement',None)!='reduce':os.environ['CUDA_VISIBLE_DEVICES']=prepared_index(a.score_gpu,a.standin)
     target=a.out/'tier2/signals'/arm/f's{seed}'/f'k{step}.json'
     refs=[incoming(doc,seed),checkpoint(a.out,doc,arm,seed,step)]
     monitors={d:selected(a.out,f'b-s{seed}',d)['monitor'] for d in doc['domains']}
@@ -25,19 +25,30 @@ def measure(a,doc,arm,seed,step,adaptive):
         require(read(target)['inputs']==frozen,'tier-2 drift inputs changed')
         return
     began=time.monotonic()
-    if step==10:
-        baseline={d:nll(refs[0]['model'],values,a.standin,refs[0].get('receipt')) for d,values in monitors.items()}
+    measurement=getattr(a,'measurement',None)
+    part=a.out/'.lane-parts'/target.relative_to(a.out)
+    if measurement in ('before','after'):
+        index=('before','after').index(measurement);ref=refs[index]
+        for domain,values in monitors.items():
+            if getattr(a,'domain',None) and a.domain!=domain:continue
+            bind(part.with_suffix('.'+domain+'.'+measurement+'.json'),nll(ref['model'],values,a.standin,ref.get('receipt')))
+        return
+    def measured(index,domain,values):
+        if measurement=='reduce':return read(part.with_suffix('.'+domain+'.'+('before','after')[index]+'.json'))
+        return nll(refs[index]['model'],values,a.standin,refs[index].get('receipt'))
+    if step==10 or os.environ.get('KIT_LANE_JOB'):
+        baseline={d:measured(0,d,values) for d,values in monitors.items()}
     else:
         first=read(target.parent/'k10.json')
         require(first['inputs']['checkpoints'][0]==frozen['checkpoints'][0] and
             first['inputs']['targets']==frozen['targets'],'bound k10 baseline identity changed')
         baseline={d:first['measurements'][d][0] for d in monitors}
-    measurements={d:[baseline[d],nll(refs[1]['model'],values,a.standin,refs[1].get('receipt'))] for d,values in monitors.items()}
+    measurements={d:[baseline[d],measured(1,d,values)] for d,values in monitors.items()}
     raw={d:v[1]['token_mean']-v[0]['token_mean'] for d,v in measurements.items()}
     previous=read(target.parent/f'k{step-10}.json')['allocation_signal'] if adaptive and step>10 else None
     signal=ema(previous,raw) if adaptive else raw
     bind(target,dict(inputs=frozen,measurements=measurements,raw_drift=raw,allocation_signal=signal,
-        seconds=time.monotonic()-began,gpu_hours=0 if a.standin else (time.monotonic()-began)/3600))
+        seconds=time.monotonic()-began,gpu_hours=0 if a.standin or measurement=='reduce' else (time.monotonic()-began)/3600))
 
 
 def comparison(a,doc,name):

@@ -33,8 +33,8 @@ def inventory(gpu, standin=False):
     if standin:
         return dict(node=os.environ.get('M2_STANDIN_NODE','CPU-STANDIN'), uuid='CPU-STANDIN', environment='CPU-STANDIN')
     from kit import v4_teacher as t
-    return dict(node=platform.node(), uuid=subprocess.check_output(
-        ['nvidia-smi','-i',str(gpu),'--query-gpu=uuid','--format=csv,noheader'], text=True).strip(),
+    from kit.m2_gpu import allocated_devices
+    return dict(node=platform.node(), uuid=allocated_devices()[str(gpu)],
         environment=__import__('kit.second_task_screen',fromlist=['digest']).digest(dict(python=sys.executable, versions=t.runtime_versions())))
 
 
@@ -78,10 +78,32 @@ def active(out, gpu, standin, *, family=None, seed=None):
     require(family and seed is not None, 'explicit contrast family and seed required')
     doc=load(path);key=f'{family}|{int(seed)}'
     require(key in doc['assignments'], 'unassigned contrast '+key)
+    if os.environ.get('M2_EXECUTION_PHASE')=='publish':
+        result_path=Path(os.environ.get('M2_GPU_RESULT_FILE',''))
+        require(result_path.is_file() and sha(result_path)==os.environ.get('M2_GPU_RESULT_SHA256'),'CPU reducer lacks sealed GPU completion')
+        result=json.loads(result_path.read_text())
+        proof=result.get('scoring_assignment')
+        require(result['result']==0 and not result['interrupted'] and result['quiescent'] and proof is not None,'GPU lane incomplete')
+        verify(dict(assignment=proof),path.read_bytes())
+        require(proof['family']==family and proof['seed']==int(seed) and result['uuids']==[proof['uuid']],'CPU reducer lane changed')
+        return proof
+    job=os.environ.get('KIT_LANE_JOB')
     if not standin:
         from kit.m2_gpu import prepare
-        gpu=prepare(gpu,doc['assignments'][key]['uuid'])['index']
+        gpu=prepare(gpu,os.environ.get('M2_ASSIGNED_GPU_UUID') if job else doc['assignments'][key]['uuid'])['index']
     observed=inventory(gpu,standin)
+    if job:
+        require(len(job)==32 and all(c in '0123456789abcdef' for c in job),'invalid allocation job identity')
+        proof=dict(assignment_sha256=sha(path),family=family,seed=int(seed),**observed,
+            allocation_job=job,historical_assignment=doc['assignments'][key])
+        observation=os.environ.get('M2_ALLOCATION_PROOF')
+        if observation:
+            target=Path(observation)
+            if target.exists():require(json.loads(target.read_text())==proof,'UNVERIFIED-HARDWARE: allocation scoring environment changed')
+            else:
+                temporary=target.with_name(target.name+'.'+str(os.getpid())+'.tmp')
+                temporary.write_text(json.dumps(proof,sort_keys=True)+'\n');temporary.replace(target)
+        return proof
     require(observed == doc['assignments'][key], 'off-assignment scoring '+key)
     return dict(assignment_sha256=sha(path), family=family, seed=int(seed), **observed)
 
@@ -95,7 +117,14 @@ def verify(meta, assignment):
     doc=json.loads(assignment) if isinstance(assignment,(bytes,str)) else assignment
     expected=doc['assignments'].get(key)
     require(expected is not None, 'foreign family '+key)
-    require({k:proof.get(k) for k in ('node','uuid','environment')} == expected, 'off-assignment constituent '+key)
+    if proof.get('allocation_job'):
+        job=proof['allocation_job']
+        require(isinstance(job,str) and len(job)==32 and all(c in '0123456789abcdef' for c in job) and
+            proof.get('historical_assignment')==expected,'unbound allocation job '+key)
+        require(all(isinstance(proof.get(k),str) and proof[k] for k in ('node','uuid','environment')),'incomplete allocation hardware')
+        expected={k:proof[k] for k in ('node','uuid','environment')}
+    else:
+        require({k:proof.get(k) for k in ('node','uuid','environment')} == expected, 'off-assignment constituent '+key)
     gpu=meta.get('gpu_identity',proof)
     require(gpu.get('uuid')==expected['uuid'] and gpu.get('environment')==expected['environment'] and
             gpu.get('node',gpu.get('host',expected['node']))==expected['node'], 'constituent GPU/environment mismatch')
@@ -112,13 +141,19 @@ def cache_identity(out=None):
     path=path_for(out)
     if path is None: return None
     require(os.environ.get('M2_FAMILY') and os.environ.get('M2_FAMILY_SEED'), 'cache requires family/seed')
-    return dict(assignment_sha256=sha(path),family=os.environ['M2_FAMILY'],seed=int(os.environ['M2_FAMILY_SEED']))
+    return dict(assignment_sha256=sha(path),family=os.environ['M2_FAMILY'],seed=int(os.environ['M2_FAMILY_SEED']),
+        **(dict(allocation_job=os.environ['KIT_LANE_JOB']) if os.environ.get('KIT_LANE_JOB') else {}))
 
 
 def validate_files(files, *, require_assignment=False):
     """Validate available scores, aliases and NLL/probe evidence before reduction/collection/readback."""
     import gzip
-    files=dict(files)
+    from kit.lane_evidence import select
+    files=select(dict(files))
+    # Reference receipts carry their own frozen assignment. Validate those
+    # through ref_guard before checking the native assignment namespace.
+    from kit.ref_guard import native_files
+    files=native_files(files)
     for name,value in list(files.items()):
         if name.startswith('panel-scoring/') and name.endswith('/scores.csv.gz'):files[name[:-3]]=gzip.decompress(value)
     raw=files.get('scoring-assignment.json')
@@ -252,6 +287,8 @@ def validate_files(files, *, require_assignment=False):
                     require(source+'/'+child in files and hashlib.sha256(files[source+'/'+child]).hexdigest()==alias[field], 'stale alias '+name)
             if prefix+'/m2-identity.json' in files and source+'/m2-identity.json' in files:
                 require(verify(json.loads(files[prefix+'/m2-identity.json']),raw)==verify(json.loads(files[source+'/m2-identity.json']),raw), 'cross-assignment alias '+name)
+                left=json.loads(files[prefix+'/m2-identity.json'])['assignment'];right=json.loads(files[source+'/m2-identity.json'])['assignment']
+                require(left.get('allocation_job')==right.get('allocation_job'),'UNVERIFIED-HARDWARE: cross-job alias '+name)
     if 'measurements.json' in files:
         from kit.s_collect import recompute
         require(json.loads(files['measurements.json'])==recompute(files,binding),'Screen S measurements differ from checked constituents')
@@ -280,7 +317,7 @@ def build_inventory_assignment(nodes, return1=None, tier_b=False, screen_spec=No
             if package['tier']=='B' and not tier_b:continue
             locations=[n['node'] for n in nodes if any(g['uuid']==package['assigned_gpu_uuid'] for g in n['gpus'])]
             require(len(locations)<=1,'physical UUID appears on multiple nodes')
-            values[f"return1.{package['id']}|{package['seed']}"]=dict(node=locations[0] if locations else 'UNAVAILABLE',uuid=package['assigned_gpu_uuid'],environment=package['compatible_environment'])
+            values[f"return1.{package['id']}|{package['seed']}"]=dict(node=locations[0] if locations else nodes[(package['seed']-101)%len(nodes)]['node'],uuid=package['assigned_gpu_uuid'],environment=package['compatible_environment'])
     return dict(schema='message2-scoring-assignment.v2',assignments=values)
 
 

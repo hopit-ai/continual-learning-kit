@@ -10,7 +10,7 @@ import csv
 import subprocess
 
 
-def accuracy(out, ref, gpu, finqa, standin):
+def accuracy(out, ref, gpu, finqa, standin, score_panel=None, read_only=False):
     from kit.p3b_score import job as score
     identity = model(ref, standin)
     from kit.m2_assignment import cache_identity
@@ -19,7 +19,7 @@ def accuracy(out, ref, gpu, finqa, standin):
     # Only exact checkpoint identities share scoring work, including base across seeds.
     arm = 'screen-'+key
     folder = out/'panel-scoring'
-    for panel in ('general-v1', 'finqa'):
+    for panel in (() if read_only else (score_panel,) if score_panel else ('general-v1','finqa')):
         if standin:
             score(NS(out=folder, arm=arm, seed=101, step=20, panel_set=panel, model='standin',
                      checkpoint_receipt=None, panel_root=finqa, package_a=None, gpu=gpu, standin=True))
@@ -28,6 +28,7 @@ def accuracy(out, ref, gpu, finqa, standin):
             subprocess.run([sys.executable, str(ROOT/'kit/p3b_score.py'), '--out', str(folder), '--arm', arm,
                 '--seed', '101', '--step', '20', '--panel-set', panel, '--model', ref['model'],
                 '--checkpoint-receipt', ref['receipt'], '--panel-root', str(finqa), '--gpu', gpu], check=True)
+    if score_panel:return
     values = {}
     evidence = {};sources={};format_failures={}
     for panel in ('general-v1', 'finqa'):
@@ -62,19 +63,23 @@ def job(a):
         for slot in slots:
             if getattr(a,'slot',None) and slot['slot']!=a.slot:continue
             if proof:require(proof['family']=='s-inventory.'+slot['slot'],'UNVERIFIED: inventory scoring family mismatch')
-            bind(a.out/'v4-step20'/(slot['slot']+'.json'), accuracy(a.out, slot['checkpoint'], a.gpu, a.finqa, a.standin))
+            value=accuracy(a.out,slot['checkpoint'],a.gpu,a.finqa,a.standin,getattr(a,'score_panel',None),getattr(a,'read_only',False))
+            if value is not None:bind(a.out/'v4-step20'/(slot['slot']+'.json'),value)
         print('v4 step-20 scoring: 15 exports, FinQA + general-v1')
     else:
         stages=[c for c in spec['stages'] if getattr(a,'seed',None) is None or c['seed']==a.seed]
         if proof:require(proof['family']=='screen-s' and all(c['seed']==proof['seed'] for c in stages),'UNVERIFIED: Screen S family/seed mismatch')
         for ident in sorted({c['incoming'] for c in stages} | {c['checkpoints'][s] for c in stages for s in ('20', '40')}):
+            if getattr(a,'node',None) and a.node!=ident:continue
             ref = spec['nodes'][ident]['checkpoint']
             require(model(ref, a.standin) == doc['identities'][ident], 'panel checkpoint changed')
-            bind((a.out/'accuracy'/namespace if namespace else a.out/'accuracy')/(ident+'.json'), accuracy(a.out, ref, a.gpu, a.finqa, a.standin))
+            value=accuracy(a.out,ref,a.gpu,a.finqa,a.standin,getattr(a,'score_panel',None),getattr(a,'read_only',False))
+            if value is not None:bind((a.out/'accuracy'/namespace if namespace else a.out/'accuracy')/(ident+'.json'),value)
         print('Primary accuracy: all incoming, step-20 and step-40 boundaries')
 
 
 def configure(p):
+    p.add_argument('--node');p.add_argument('--score-panel',choices=('general-v1','finqa'));p.add_argument('--read-only',action='store_true')
     p.add_argument('--seed',type=int,choices=SEEDS);p.add_argument('--slot')
     p.add_argument('--action', choices=('v4-step20', 'boundaries'), required=True)
     p.add_argument('--finqa', type=Path)

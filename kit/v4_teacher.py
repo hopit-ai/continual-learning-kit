@@ -812,7 +812,9 @@ class VLLMGenerator:
             import datetime
             import torch.distributed.distributed_c10d as c10d
             c10d.default_pg_timeout=datetime.timedelta(seconds=18000);c10d.default_pg_nccl_timeout=datetime.timedelta(seconds=6000)
-        self.batch_policy={'attention_backend':'FLASH_ATTN','batch_invariant':True,'engine_starts':1,'enforce_eager':True,
+        from kit.inference_lifecycle import engine_kwargs
+        kwargs=engine_kwargs(kwargs)
+        self.batch_policy={'gpu_memory_utilization':kwargs['gpu_memory_utilization'],'attention_backend':'FLASH_ATTN','batch_invariant':True,'engine_starts':1,'enforce_eager':True,
                            'serial_equivalence_guaranteed':True,'regeneration_guaranteed':True}
         if os.environ.get('V4_PHASE0_INFERENCE')=='1':
             self.batch_policy.update(vllm='0.18.0',gdn_prefill_backend='triton')

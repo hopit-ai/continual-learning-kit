@@ -36,7 +36,10 @@ def main(argv=None) -> int:
     rendered = [render(tokenizer, row["prompt"]) for row in rows]
     if args.backend == "vllm":
         from vllm import LLM, SamplingParams                                # noqa: PLC0415
-        llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=0.85, max_model_len=2048)
+        sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
+        from kit.inference_lifecycle import engine_kwargs
+        engine=engine_kwargs(dict(dtype="bfloat16",gpu_memory_utilization=0.85,max_model_len=2048))
+        llm = LLM(model=args.model, **engine)
         answers = [o.outputs[0].text for o in llm.generate(rendered, SamplingParams(n=1, temperature=0.0, top_p=1.0, max_tokens=args.max_tokens))]
     else:
         import torch                                                        # noqa: PLC0415
@@ -54,6 +57,7 @@ def main(argv=None) -> int:
     empty = sum(not a.strip() for a in answers)
     stats = {"schema": "kit-repair-targets.v1", "targets": len(answers), "empty": empty, "median_chars": sorted(len(a) for a in answers)[len(answers) // 2],
              "model": args.model, "backend": args.backend}
+    if args.backend == "vllm":stats['engine']=engine
     Path(str(out) + ".stats.json").write_text(json.dumps(stats, indent=1, sort_keys=True))      # numbers a campaign bar can read
     print("wrote %d targets to %s (%d empty, median %d chars)" % (len(answers), out, empty, sorted(len(a) for a in answers)[len(answers) // 2]))
     return 0 if empty < len(answers) // 10 else 1

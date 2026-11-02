@@ -69,6 +69,10 @@ def measure(a,doc,seed):
     cmd=runtime(env,cmd,mode='measure',batch=batch,run=run,anchor=doc['p2_anchor']['model'],seed=seed)
     from kit.x_p2_feasibility import runtime_identity,identity
     cmd=runtime_identity(env,cmd,run/'node-identity.json',identity(a.out,doc,seed))
+    if m2_train.preparing():
+        retain_interrupted(run,'full')
+        m2_train.prepare_training(a,cmd,env,run,[batch/'actor-input.pt',*[batch/f'measure-r{r}.json' for r in range(8)]])
+        return
     bind(run/'command.json',cmd);retain_interrupted(run,'full')
     atomic(run/'started.json',dict(mode='measurement',seed=seed))
     start=time.monotonic()

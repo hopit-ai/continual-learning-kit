@@ -67,13 +67,13 @@ def build(settings):
     for index,node in enumerate(settings['nodes']):
         add(f'PF-node-{index}','prepare','PREFLIGHT',[],
             [cmd('m2_node_preflight',trainer_python=train_py,inference_python=score_py,durable='{durable}',local_root='{local}',node=node)],
-            overlay=[],preflight_slot=index,uses_gpu=True,required_outputs=['preflight/node.json'])
+            overlay=[],preflight_slot=index,required_outputs=['preflight/node.json'])
     add('PF-ARC','prepare','ARC-PREFLIGHT',['INPUTS'],
         [cmd('m2_stage',action='pool-source',source=settings['next_source']),
          cmd('next_pools',**dict(settings['pools'],prepare_candidates_only=True))],overlay=[],
         required_outputs=['pools/candidate-manifest.json'])
     add('M2','prepare','M2',['INPUTS'],[cmd('m2_bind',**settings['bind'])],overlay=[])
-    add('M3b','prepare','M3b',['INPUTS','PF-ARC'],[cmd('m2_stage',action='pool-source',source=settings['next_source']),cmd('next_pools',**settings['pools'])],overlay=[])
+    add('M3b','prepare','M3b',['INPUTS','PF-ARC'],[cmd('next_pools',**dict(settings['pools'],use_prepared_candidates=True,gpu='{score_gpu}'))],overlay=['PF-ARC'])
     add('M3','prepare','M3',['M2'],[cmd('m2_prepare',**dict(settings['prepare'],pool_free=True))],overlay=['M2'])
     add('M-pools','prepare','M3-pools',['M3','M3b'],[cmd('m2_prepare',**dict(settings['prepare'],pool_root='{input_M3b}/pools'))],overlay=['M3'])
     add('R0','prepare','RE-PROBE',['M-pools'],[cmd('m2_reprobe',action='prepare',message2='{input_M-pools}')],overlay=[])
@@ -180,11 +180,13 @@ def build(settings):
         pre=f'X-incoming-{seed}';commands=scored('x_score','pre',seed,(0,))+[invoke('x_references',seed=seed,gpu='{score_gpu}')]
         for arm in ('control','p','drift','plasticity'):commands+=scored('x_score',arm,seed,(0,))
         add(pre,'score-family','X5',['X4'],commands,family='x-tier1',seed=seed)
+        qual=f'P2-qualify-{seed}'
+        add(qual,'train-stage','P2-QUALIFY',[pre],[invoke('m2_stage',action='p2-feasibility',seed=seed,gpu=runtime.get('gpus','0,1,2,3,4,5,6,7'),trainer_python=train_py,sdpo=runtime.get('sdpo'),tokenizer=runtime.get('tokenizer'))],family='x-tier1',seed=seed,placement_id=f'X6-p-{seed}-train')
         # Independent incoming/domain probes are trained once, then assigned NLL.
         pt=f'X9-probes-{seed}-train';add(pt,'train-stage','X9',['X3'],[cmd('m2_stage',action='x-probes',seed=seed,phase='train',trainer_python=train_py,inference_python=score_py)],family='x-tier1',seed=seed)
         ps=f'X9-probes-{seed}-score';add(ps,'score-family','X9',[pt],[cmd('m2_stage',action='x-probes',seed=seed,phase='score',score_gpu='{score_gpu}',inference_python=score_py)],family='x-tier1',seed=seed)
         for arm,row in (('control','X5'),('p','X6'),('drift','X7'),('plasticity','X9')):
-            parent=[pre]+([ps] if arm=='plasticity' else [])
+            parent=[pre]+([ps] if arm=='plasticity' else [qual] if arm=='p' else [])
             tr=f'{row}-{arm}-{seed}-train'
             command=invoke('x_train',arm=arm,seed=seed,phase='prefix' if arm=='drift' else 'full',trainer_python=train_py)
             if arm=='p':command=invoke('x_run',action='p',seed=seed,mode='train',trainer_python=train_py,inference_python=score_py)
@@ -223,6 +225,38 @@ def build(settings):
                         final_measure=tr+'-measure40';add(final_measure,'score-family',row,[tr],[cmd('m2_stage',action='tier2-measure',arm=arm,seed=seed,step=40,gpu='{score_gpu}')],family=family,seed=seed,barriers=['X12']);tr=final_measure
                 final=tr+'-score';add(final,'score-family',row,[tr],scored('x_score',arm,seed,(10,20,30,40)),family=family,seed=seed,barriers=['X12']);second.append(final)
     add('X23','collect','X23',['X12',*second],[cmd('x_read',action='tables'),cmd('x_price',tier2=True),cmd('x_collect',archive='{out}/addon-extended-return.tar.gz')],partial_inputs=True)
+    # A scheduler chooses the physical GPU. Recompute every contrast input in
+    # these complete jobs, retaining early/frontier jobs as independent evidence.
+    for seed in SEEDS:
+        broad_id=f'R-compare-broad-{seed}'
+        full_id=f'R-compare-full-{seed}'
+        for ident,arms in ((broad_id,('generic','broad')),(full_id,('generic','broad','earlier','both'))):
+            commands=scored('m2_reprobe','base',seed,(0,),('panel',))
+            for arm in arms:commands+=scored('m2_reprobe',arm,seed,(0,10,20,30,40),('panel',))
+            add(ident,'score-family','RE-PROBE',[f'R-{arm}-{seed}-score' for arm in arms],
+                [[*c[:4],'--action','score',*c[4:]] for c in commands],family='reprobe',seed=seed)
+        for prefix,actions,deps,row in (
+            ('M8-compare',('legal-generic','legal-broad'),[f'M7-{seed}-score',f'M8-{seed}-score'],'M8'),
+            ('M9-compare',('legal-generic','legal-broad','legal-next'),[f'M9-{seed}-score',f'M8-compare-{seed}'],'M9'),
+            ('M-final-score',('legal-generic','legal-broad','legal-next','math-plain','math-sibling'),[f'M10-{seed}-score',f'M6-{seed}-score'],'M10')):
+            add(f'{prefix}-{seed}','score-family',row,deps,[mrun('boundaries',seed,'score'),*[mrun(action,seed,'score') for action in actions]],family='core',seed=seed,barriers=['M9'] if row=='M10' else [])
+        commands=scored('x_score','pre',seed,(0,))+[invoke('x_references',seed=seed,gpu='{score_gpu}')]
+        for arm in ('control','p','drift','plasticity'):commands+=scored('x_score',arm,seed,(0,10,20,30,40))
+        add(f'X-complete-{seed}','score-family','X12',[t for t in xfinal if f'-{seed}-' in t],commands,family='x-tier1',seed=seed)
+        for number,name in enumerate(COMPARISONS,15):
+            row='X'+str(number);family='x-tier2.'+name
+            commands=scored('x_score','pre',seed,(0,))+[invoke('x_references',seed=seed,gpu='{score_gpu}')]
+            for side in ('control','challenger'):commands+=scored('x_score',f't2-{name}-{side}',seed,(0,10,20,30,40))
+            add(f'{row}-complete-{seed}','score-family',row,[t for t in second if t.startswith(row+'-') and f'-{seed}-' in t],commands,family=family,seed=seed,barriers=['X12'])
+    for task in tasks:
+        if task['id']=='R-broad':task['requires']=['R0',*[f'R-compare-broad-{s}' for s in SEEDS]];task['evidence_from']=task['requires']
+        elif task['id'] in ('R-nominate','R-collect'):
+            task['requires']=['R0',*[f'R-compare-full-{s}' for s in SEEDS]];task['evidence_from']=task['requires']
+        elif task['id']=='M8-read':task['requires']=[f'M8-compare-{s}' for s in SEEDS];task['evidence_from']=task['requires']
+        elif task['id']=='M9':task['requires']=['M8-read',*[f'M9-compare-{s}' for s in SEEDS]];task['evidence_from']=task['requires']
+        elif task['id']=='M-core-collect':task['requires']=['M3',*[f'M-final-score-{s}' for s in SEEDS],'M9','M10'];task['evidence_from']=task['requires']
+        elif task['id']=='X12':task['requires']=[f'X-complete-{s}' for s in SEEDS];task['evidence_from']=task['requires']
+        elif task['id']=='X23':task['requires']=['X12',*[f'X{n}-complete-{s}' for n in range(15,21) for s in SEEDS]];task['evidence_from']=task['requires']
     validation_tasks={}
     for family,seed in sorted({(t['family'],t['seed']) for t in tasks if t['kind']=='score-family' and
             t['family'] in ('reprobe','core','x-tier1') or t['kind']=='score-family' and t.get('family','').startswith('x-tier2.')}):
@@ -242,13 +276,49 @@ def build(settings):
                     end=command[command.index('--end')+1] if '--end' in command else ('10' if phase=='prefix' else '40')
                     task['commands'].append(cmd('m2_stage',action='x-stage-check',arm=arm,seed=seed,phase='train',step=end))
         if task['id'] in ('M3b','M5') or task['row'] in ('S7','X3') and task['kind']=='prepare':task['uses_gpu']=True
+    # Preserve scientific IDs for the CPU publication. Staging and publication
+    # share its host-local tree; no archive restore/merge/upload holds GPUs.
+    import copy
+    split=[]
+    for task in tasks:
+        gpus=8 if task['kind']=='train-stage' else 1 if task['kind']=='score-family' or task['id']=='M3b' else 2 if task['id']=='M5' else 0
+        task['resources']=dict(nodes=1,gpus=gpus,cpus=32 if gpus==8 else 8 if gpus else 4,share_node=gpus!=8)
+        task['uses_gpu']=bool(gpus)
+        if gpus==1:
+            task['lane_concurrency']=3
+            task['expected_commands']='CPU-staged plan: len(commands); see lane-commands.json'
+            if task['row']=='S4':task['expected_commands']=2
+            elif task['id']=='M3b':task['expected_commands']=3
+            elif task['id'].startswith('R-compare-broad-'):task['expected_commands']=43
+            elif task['id'].startswith('R-compare-full-'):task['expected_commands']=81
+            elif task['id'].startswith('M8-compare-'):task['expected_commands']='62 if broad nominated; 45 otherwise'
+            elif task['id'].startswith('M9-compare-'):task['expected_commands']='up to 79, conditional earlier arm'
+            elif task['id'].startswith('M-final-score-'):task['expected_commands']='up to 119, frozen nomination/admission branches'
+            elif task['id'].startswith('X-complete-'):task['expected_commands']='63 with all four arms READY; disabled arms SKIP'
+            elif '-complete-' in task['id'] and task['row'].startswith('X'):task['expected_commands']='39 with both arms READY'
+            elif task['row']=='S7':task['expected_commands']=2*len(domains_for(spec,task['commands'][0][task['commands'][0].index('--incoming')+1]))
+            elif task['id'].startswith('RA'):
+                from kit.m2_rescore import effective_calls
+                package=next(p for p in decisions()['rescoring']['packages'] if 'R'+p['id']==task['id'])
+                task['expected_commands']=len(effective_calls(package))
+
+        if not gpus:split.append(task);continue
+        payload=copy.deepcopy(task)
+        for phase,suffix,kind,parents in (('stage','-stage','prepare',task['requires']),
+                ('gpu','-gpu',task['kind'],[task['id']+'-stage']),('publish','', 'prepare',[task['id']+'-gpu'])):
+            item=copy.deepcopy(task)
+            item.update(id=task['id']+suffix,kind=kind,requires=parents,execution_phase=phase,
+                workspace_task=task['id'],payload=payload,placement_kind=task['kind'],placement_id=task.get('placement_id',task['id']))
+            if phase!='gpu':item.update(resources=dict(nodes=1,gpus=0,cpus=8,share_node=True),uses_gpu=False)
+            split.append(item)
+    tasks=split
     ordered=[];waiting=tasks[:];done=set()
     while waiting:
         ready=[task for task in waiting if set(task['requires'])<=done]
         require(bool(ready),'static dependency cycle')
         ordered.extend(ready);done.update(task['id'] for task in ready)
         waiting=[task for task in waiting if task['id'] not in done]
-    return dict(schema='message2-launch.v2',nodes=settings['nodes'],node_preflight_tasks={node:f'PF-node-{index}' for index,node in enumerate(settings['nodes'])},tasks=ordered,technical_synthetic=settings.get('technical_synthetic',False))
+    return dict(schema='message2-launch.v2',lane_runtime=__import__('kit.v6_infra',fromlist=['runtime_identity']).runtime_identity(),resource_policy='allocated-gpus.v1',infrastructure_update=__import__('kit.v6_infra',fromlist=['identity']).identity(),nodes=settings['nodes'],node_preflight_tasks={node:f'PF-node-{index}' for index,node in enumerate(settings['nodes'])},tasks=ordered,technical_synthetic=settings.get('technical_synthetic',False))
 
 
 def main():

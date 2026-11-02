@@ -16,7 +16,8 @@ def job(a):
     def run(script, *args, python=None):
         cmd = [python or a.inference_python, str(ROOT/'kit'/script), '--out', str(a.out), *map(str,args)]
         if a.standin: cmd.append('--standin')
-        subprocess.run(cmd, check=True)
+        if getattr(a,'command_sink',None) is not None:a.command_sink.append(cmd)
+        else:subprocess.run(cmd,check=True)
     def scores(arm, seed, steps):
         if mode=='train':return
         for step in steps:

@@ -510,7 +510,10 @@ def test_sidecar_is_isolated_and_one_gpu_task_per_assignment():
     assert set(panel) == {'sp:reprobe-s101', 'sp:m3-s101', 'sp:core-s101', 'sp:x-tier1-s101',
                           'sp:x-tier2.cap-s101', 'sp:return1.A-s101'}
     assert all(t['uses_gpu'] for t in panel.values())
-    assert 'R-incoming-101' in panel['sp:reprobe-s101']['after'] and 'M3-K-101-finqa-score' in panel['sp:m3-s101']['after']
+    prepared = {t['id']: t for t in side['tasks']}
+    assert 'R-incoming-101' in prepared['SP-prepare-reprobe-s101']['after']
+    assert 'M3-K-101-finqa-score' in prepared['SP-prepare-m3-s101']['after']
+    assert panel['sp:m3-s101']['after'] == ['SP-prepare-m3-s101']
     assert all(t['dependency'] == 'afterany' and t['blocks'] == [] for t in side['tasks'])
     assert not any('{out}' in a for t in side['tasks'] for c in t['commands'] for a in c)
     with pytest.raises(ValueError, match='different launch'):
@@ -576,8 +579,7 @@ def test_run_never_fails_and_records_status(tmp_path):
     values['{models_file}'] = tmp_path / 'models.json'
     runner, calls = fake_runner(3)
     man.run(side, task['id'], values, {}, inputs=[tmp_path], runner=runner)
-    assert state(tmp_path, task['id'])['status'] == 'FAILED'
-    assert all(not c[1].endswith('sp_score.py') for c in calls)
+    assert state(tmp_path, task['id'])['status'] == 'MISSING-INPUT' and not calls
     runner, calls = fake_runner(0)
     man.run(side, 'SP-length', values, {}, runner=runner)
     assert state(tmp_path, 'SP-length')['status'] == 'MISSING-INPUT' and not calls
@@ -783,9 +785,10 @@ def test_review_2_4_real_producer_manifest_shapes(tmp_path, monkeypatch):
     coredoc = core.build(settings)
     planned, _ = man.planned_from_launch(m3doc)
     aliases = [p for p in planned if p['action'] == 'alias']
-    assert len(aliases) == 216 and all(p['family'] == 'm3' for p in aliases)
-    assert {p['seed'] for p in aliases} == {101, 102, 103}
-    assert all(p['task'].endswith('-train') for p in aliases)
+    assert not aliases
+    incoming=[p for p in planned if p['action']=='score' and p.get('step')==0 and p.get('arm')!='base']
+    assert len(incoming)>=216 and all(p['family']=='m3' and p.get('alias_target') for p in incoming)
+    assert {p['seed'] for p in incoming}=={101,102,103}
     from kit.m2_return1 import decisions
     inv = man.inventory([coredoc, m3doc], return1=decisions()['rescoring'])
     assert inv['sp_entries'] and all(not e['weights_bound'] for e in inv['sp_entries'])
@@ -1164,8 +1167,11 @@ def test_final_blocking4_plan_and_runtime_refresh_native_adapters():
     _, _, side = sidecar_pair()
     for task in side['tasks']:
         if task['uses_gpu']:
-            scripts = [Path(c[1]).name for c in task['commands']]
-            assert scripts == ['durable_adapter.py', 'sp_manifest.py', 'sp_score.py'] * len(task['entries'])
+            scripts = [Path(c[2]).name for c in task['commands']]
+            assert scripts == ['sp_score.py'] * len(task['entries'])
+            prepared = next(t for t in side['tasks'] if t['id'] == task['after'][0])
+            assert prepared['gpus'] == 0
+            assert [Path(c[2]).name for c in prepared['commands']] == ['durable_adapter.py', 'sp_manifest.py'] * len(task['entries'])
 
 
 def test_final_blocking4_missing_native_export_never_creates_checkpoint_or_stale_mapping(tmp_path):

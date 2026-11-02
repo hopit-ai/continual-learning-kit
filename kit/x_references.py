@@ -34,20 +34,25 @@ def job(a):
     from kit import m2_score
     values=[];files={}
     for arm,ref in refs.items():
+        if getattr(a,'reference_arm',None) and a.reference_arm!=arm:continue
         namespace=dict(m2_score.__dict__,binding=lambda out,standin:doc,
             record=lambda out,binding,arm,seed,step,ref=ref:ref)
         score=FunctionType(m2_score.job.__code__,namespace,'x_reference_score')
-        for panel in (m.PANEL_SETS if generated_only else (*m.PANEL_SETS,'hellaswag')):
+        for panel in (() if getattr(a,'read_only',False) else (a.panel_set,) if getattr(a,'panel_set',None) else m.PANEL_SETS if generated_only else (*m.PANEL_SETS,'hellaswag')):
             args=NS(out=root,arm=arm,seed=a.seed,step=0 if arm=='base' else 40,panel_set=panel,
                 gpu=a.gpu,standin=a.standin,panel_root=a.panel_root)
             score(args)
+    if getattr(a,'panel_set',None):return
     for path in sorted((root/'scores').glob('*/scores.csv')):
         with path.open() as stream:values.extend(csv.DictReader(stream))
         files[str(path.relative_to(root))]=sha(path)
+    if proof.get('allocation_job'):
+        for row in values:row.update(_allocation_job=proof['allocation_job'],_allocation_uuid=proof['uuid'],_allocation_environment=proof['environment'])
     bind(root/'rows.json',dict(assignment=proof,rows=values,files=files))
 
 
 def configure(p):
+    p.add_argument('--reference-arm');p.add_argument('--panel-set',choices=(*m.PANEL_SETS,'hellaswag'));p.add_argument('--read-only',action='store_true')
     p.add_argument('--generated-only', action='store_true', help='Generated denominators only; likelihood guards are scored separately by ref_score_job.py')
     p.add_argument('--seed',type=int,choices=SEEDS,required=True);p.add_argument('--gpu',default='0');p.add_argument('--panel-root',type=Path)
 if __name__=='__main__':raise SystemExit(entry(job,configure))

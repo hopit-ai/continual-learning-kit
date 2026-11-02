@@ -40,7 +40,8 @@ def validate_smoke(value,standin):
     require(value.get('passed') is True and all(value.get('assertions',{}).get(k,{}).get('status')=='PASS' for k in SMOKE_CHECKS),
         'P2 smoke failed or incomplete; defer without recalibration')
     from kit.p2_smoke import code_hashes
-    require(value.get('code_sha256')==code_hashes(),'P2 smoke code changed')
+    from kit.v6_infra import activate,compatible_files
+    require(compatible_files(value.get('code_sha256'),code_hashes(),activate()),'P2 smoke code changed')
     return value
 
 
@@ -58,6 +59,8 @@ def calibration(out,doc):
 
 
 def job(a):
+    from kit import m2_train
+    if a.action=='measure' and m2_train.run_prepared(a):return
     doc=context(a.out,a.standin)
     if doc.get('p_variant')=='disabled':print('SKIP P2: no enabled variant');return
     require(doc.get('p_variant')==VARIANT and a.action in ('measure','reduce'),'boundary P utility/replacement is closed; use P2 measure')
@@ -84,6 +87,7 @@ def job(a):
                 atomic(a.out/'dispositions/p.json',dict(status='DEFERRED',reason='X4 three-seed measurement incomplete'));return
             if getattr(a,'seed',None) is not None and seed!=a.seed:continue
             measure(a,doc,seed)
+            if m2_train.preparing():return
         batch=read(folder/'batch.json')
         require(batch['schema']=='rung-p2-first-batch.v1' and batch['variant']==VARIANT and
             sha(folder/'actor-input.pt')==batch['sha256'],'P2 missing bound rollout batch')

@@ -70,7 +70,8 @@ def check_stage_audit(path=None):
     require(path.is_file(),'attempt 3/4/5 requires passing CPU stage audit before reserving an attempt')
     value=json.loads(path.read_text())
     require(value.get('schema')=='p2-cpu-stage-audit.v1' and value.get('passed') is True,'CPU stage audit failed or missing')
-    require(value.get('code_sha256')==code_hashes(),'CPU stage audit code changed; rerun before attempt 3/4/5')
+    from kit.v6_infra import activate,compatible_files
+    require(compatible_files(value.get('code_sha256'),code_hashes(),activate()),'CPU stage audit code changed; rerun before attempt 3/4/5')
     require(value.get('test_sha256')==hashlib.sha256((ROOT/'tests/test_x_smoke_stage_audit.py').read_bytes()).hexdigest(),'CPU stage audit tests changed')
     require(set(value.get('stages',{}))=={'preparation','measure','control','p2','prefix','resume'} and
         all(r.get('batches')==4 and r.get('task_per_batch')==28 and r.get('replay_positions')==[8,16,24,32] for r in value['stages'].values()),

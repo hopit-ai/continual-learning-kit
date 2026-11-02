@@ -16,7 +16,8 @@ def job(a):
     def run(name,*args,python=None):
         cmd=[python or a.trainer_python,str(KIT/(name+'.py')),'--out',str(a.out),*map(str,args)]
         if a.standin: cmd.append('--standin')
-        subprocess.run(cmd,check=True)
+        if getattr(a,'command_sink',None) is not None:a.command_sink.append(cmd)
+        else:subprocess.run(cmd,check=True)
     def scores(arm,seed,step,panels):
         if mode=='train' or score_phase=='incoming' and step!=0 or score_phase=='final' and step==0:return
         for panel in panels:

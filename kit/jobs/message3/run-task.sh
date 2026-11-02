@@ -7,4 +7,11 @@ TASK="${1:?task id, e.g. M3-K-101-finqa-train}"
 # Keep the argv array nonempty: bash 3 treats an empty array as unset under -u.
 ARGS=(--action run --manifest "$M3_MANIFEST" --task "$TASK" --out "$M3_OUT")
 if [ -n "${M3_SUBMITTED_AT:-}" ]; then ARGS+=(--submitted-at "$M3_SUBMITTED_AT"); fi
-exec "${JOB_PY:-python3}" "$KIT/m3_manifest.py" "${ARGS[@]}" --score-gpu "${SCORE_GPU:-0}"
+# The combined wrapper already observes the complete allocation/child lifetime.
+if [ "${UTIL_WATCH_ACTIVE:-}" = 1 ]; then
+  exec "${JOB_PY:-python3}" -I "$KIT/m3_manifest.py" "${ARGS[@]}" --score-gpu "${SCORE_GPU:-0}"
+fi
+UTIL_ATTEMPT=$("${JOB_PY:-python3}" -I -c 'import time;print(time.time_ns())')
+export UTIL_JOB="$TASK"
+exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$M3_OUT/state/utilisation/$UTIL_ATTEMPT.jsonl" -- \
+  "${JOB_PY:-python3}" -I "$KIT/m3_manifest.py" "${ARGS[@]}" --score-gpu "${SCORE_GPU:-0}"

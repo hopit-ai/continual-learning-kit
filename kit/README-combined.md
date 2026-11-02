@@ -10,11 +10,38 @@ script submits, dispatches, polls or retries jobs. Seeds remain 101–103.
 Read the scientific instructions: [core M/S/X](README-message2.md),
 [K/CR](README-message3.md), [PD](resources/pd/README.md),
 [SP](jobs/message3-sp/README.md), and [SP node verification](resources/sp/NODE-VERIFY.md).
-Use the combined wrapper below for tier jobs so PD/SP get the same node exclusion
-as K/CR. Whole-node exclusive allocations are mandatory; all tier nodes must be
-outside the complete core-held node set, including train-only nodes. The combined
-node lock serializes K/CR, PD and SP on a shared tier node. Scheduler exclusivity
-must span the child process lifetime. No training/scoring overlap on a node.
+Use the combined wrapper for tier jobs. Request exactly the GPUs used by each
+job: partial-node allocations are allowed. CPU work requests zero GPUs and may
+share the same host to reach node-local storage. Keep all frozen hostname and
+UUID checks. Inference uses per-allocated-GPU leases; eight-rank training owns
+all eight GPUs of its allocation. Independent inference and CPU jobs may share
+hosts with core. There is no combined tier node lock or blanket node exclusion.
+
+Every GPU job runs through `util_watch.py`, writing `util.jsonl` under the local
+control root (standalone tier runners write under their own root). The site
+requires average activity above 70% over a rolling window across allocated GPUs.
+Right-sizing and eight participating ranks do not prove compliance. Measure each
+unchanged scorer, load/save gap and training shape before production admission.
+Do not change batches, doses, seeds, panels, losses or scorer settings to raise
+utilisation. Never poll for missing checkpoints while holding GPUs: exit PENDING.
+
+| Family | gpus | nodes | cpus | depends-on | sbatch resource line |
+|---|---|---|---|---|---|
+| CPU prep/export/read/report | 0 | 1 | 8 | frozen inputs | `--nodes=1 --gpus=0 --cpus-per-task=8` |
+| K/CR native score/validation | 1 | 1 | 8 | CPU ready proof, all checkpoints | `--nodes=1 --gpus=1 --cpus-per-task=8` |
+| Broad generation | 1 | 1 | 8 | CPU candidates | `--nodes=1 --gpus=1 --cpus-per-task=8` |
+| SP panel lane | 1 | 1 | 8 | CPU adapters/binding | `--nodes=1 --gpus=1 --cpus-per-task=8` |
+| Reference seed/panel lane | 1 | 1 | 8 | CPU ready proof | `--nodes=1 --gpus=1 --cpus-per-task=8` |
+| TP2 teacher fallback | 2 | 1 | 8 | CPU reuse decision = generate | `--nodes=1 --gpus=2 --cpus-per-task=8` |
+| Eight-rank train/qualification | 8 | 1 | 32 | CPU prepared data | `--nodes=1 --gpus=8 --cpus-per-task=32` |
+
+All requests use one node. CPU/inference rows may share a node; eight-rank rows
+may not share their GPUs. Add the frozen hostname constraint separately. Wait
+using scheduler dependencies outside allocations. Submit a scoring lane only
+when every checkpoint it will score exists. Keep every checkpoint of a native
+family/seed lane on its pinned UUID, and every reference seed/panel lane on its
+own pinned UUID. If relocating a lane, rescore the entire lane in one job;
+partial relocation remains UNVERIFIED-HARDWARE.
 
 The 1 November [near-tie validation amendment](resources/m2/likelihood-near-tie.md)
 applies to core and K/CR likelihood/reference validation. It preserves scores
@@ -103,11 +130,13 @@ validation stays PENDING, with no automatic retry.
    plain-D FinQA parents and C sequence-D ContractNLI step-40 finals, plus the
    pinned base registration. Follow the scientific README's exact receipt and
    checkpoint construction rules, then run `verify-node` before launch.
-   The node entry is
-   **pd_node.py**, which starts one whole seed in a clean PD tree. Scientific
-   preparation remains required. The revised PD request is **222–264 H100 GPU-h**
-   for all three seeds, within the approved tier component allowance. A late whole-seed
-   restart adds 73.86–87.87 GPU-h; record it against the tier allowance. No automatic retries.
+   The PD entry is `python -I kit/pd_node.py --phase PHASE --plan PLAN --out PD_STATE`.
+   Submit separate prep/pre/train/finalize/post/collect jobs with 0/1/8/0/1/0
+   GPUs; every job requests one node. Resource rows and exact sbatch arguments
+   are in [the PD runbook](resources/pd/README.md) and
+   `resources/pd/job-resources.json`. The estimate is now **63–98 H100 GPU-h**
+   for all three seeds, within the existing PD <=264 component allowance;
+   a whole-seed restart adds about 20.74–32.46 GPU-h plus CPU costs. No automatic retries.
 4. Create operator-local settings matching the example below; replace all
    placeholder locations/nodes. Keep settings, hardware and location maps local.
    All six state roots must be separate, non-nested trees. Use the native family
@@ -180,19 +209,13 @@ coverage and failed/restarted allocations remain additional measured charges.
 
 ## Submission order: first preflights, then core, then isolated tiers
 
-1. Submit `PF-node-*` as the first exclusive jobs on their frozen **core** slots,
-   with core's prepare wrapper through the combined entry below. INPUTS must
-   already be bundled. Then submit `PF-ARC` on its frozen slot after its node
-   preflight. No core job starts before its own node preflight; ARC failure leaves
-   broad-dependent work pending while pool-free/plain-D, S and core collection
-   proceed on healthy nodes, exactly as core's existing graph specifies.
-2. Submit every `PF-tier-*` as the first exclusive job on its listed **tier** node.
-   These jobs check rapidfuzz in both runtimes, NumPy/PyArrow/datasets/verl and
-   tier trainer/inference imports, readable cgroup current/peak/OOM counters, and
-   every allocated physical GPU UUID plus the inference environment and child
-   torch assertion. Missing counters/imports/UUIDs leave only that tier node
-   PENDING. The receipt binds settings and hardware bytes. These checks do not
-   replace the four K/CR arm qualifications, PD smoke or SP scientific exclusions.
+1. Follow the core manifest's resource fields and CPU preparation gates on its
+   frozen slots. INPUTS must already be bundled. ARC failure leaves only its
+   dependent work PENDING; independent branches and collection proceed.
+2. Submit `PF-tier-*` as **0-GPU CPU jobs** on their listed hosts. They check
+   runtime imports and readable cgroup counters and bind settings/hardware bytes.
+   Productive GPU jobs check only their allocated UUIDs before model use. These
+   checks do not replace K/CR qualifications, PD smoke or SP exclusions.
 3. Submit all **core M/R/RA/S/X jobs**, with the core manifest's dependencies and
    explicit `node_slot`. Keep independent collectors/partial reducers independent
    as documented by core. Never add a tier dependency to any core job. Use core's
@@ -203,27 +226,41 @@ coverage and failed/restarted allocations remain additional measured charges.
 python3 "$KIT/combined_send.py" core-submitted --manifest "$COMBINED_MANIFEST"
 ```
 
-5. Submit K/CR `M3-init` and the rest of its static graph on separate available
-   tier nodes. Stages 1–2 do not wait for hard-MATH targets. A broad PENDING leaves
-   only G/CR and their coverage preparation pending; C0/K continue. Stage 3 copies
-   a committed core target snapshot read-only if available, otherwise runs its
-   own registered two-GPU fallback without waiting on core. `M3-read` retains
-   partial evidence. Per-arm preflights remain mandatory before chain training.
-6. Submit PD-101, PD-102, PD-103 on allowed tier nodes via the combined wrapper,
-   after core-submitted and PF-tier on that node, one whole seed per eight-GPU allocation. Supply current already retained
-   source exports; no core retention extension or restore is requested for PD.
-7. Submit SP sidecars with **afterany** parent dependencies from `sidecar.json`.
-   Set `SP_INPUTS`, `SP_PARENT_HARDWARE`, `SP_OWNER_EXPORTS`/`SP_MODELS` and
-   `SP_HARDWARE` per its runbook. The combined wrapper checks node inventories
-   with the author's `node_verification.py run` **before every SP panel job**.
-   Missing inventories prevent scoring; complete overlap checks preserve every
-   pair and flag only affected pairs. SP-read also writes the canonical pair-aware
-   `verified-tables/` through the author's report adapter; preserve that report
-   with the raw results. The older `tables/` is an intermediate reader output.
-   Missing/deleted/expired exports remain missing. SP never restores, pins or
-   extends retention. Never make parent jobs depend on SP receipts or success.
+5. Submit K/CR CPU preparation first. For each stage the sequence is
+   `*-prepare` (0 GPUs), `*-train` (8), `*-export` (0), `*-score` (1).
+   Every scoring/validation row also has a CPU `*-ready` checkpoint proof row.
+   Exports merge/hash/publish on CPU after the GPU allocation ends. Each arm's
+   `M3-preflight-ARM-inputs` is CPU-only; `M3-preflight-ARM` uses eight GPUs.
+   Broad preparation/generation/finalisation requests 0/1/0 GPUs. A broad PENDING
+   leaves only G/CR dependent work pending; C0/K continue independently.
+   `M3-math-resolve` copies committed core targets on CPU if present. If its local
+   `math-resolution.json` says `copy`, omit `M3-math-targets`. Otherwise submit
+   that two-GPU teacher job, then `M3-math-ready` on CPU. The ready row never
+   waits; schedule it after the teacher for the fallback path. Stages 1–2 never
+   depend on this branch. Collectors retain partial evidence.
+6. For each PD seed, submit the six right-sized phases in the PD runbook after
+   core-submitted and the applicable node preparation. CPU prep requires at least
+   604 GiB free spool space per seed and binds the hostname; keep all phases on
+   that storage host. Pre scores freeze E_s; train saves native checkpoints;
+   CPU finalize builds complete exports; post re-scores update 0 plus every curve
+   point on one GPU; CPU collect retains closure and reload agreement. Supply
+   current already retained sources. The combined manifest contains all 19 PD
+   phase rows, including CPU `PD-read`; retired `PD-SEED` holders are absent.
+7. Submit SP sidecars with **afterany** dependencies from `sidecar.json`.
+   `SP-verify-pools` and each `SP-prepare-*` request zero GPUs. The combined entry
+   runs node verification before these CPU rows. Preparation runs adapters,
+   binding, complete model hashes and provenance checks before GPU admission.
+   `SP-panel-*` requests one GPU and checks the prepared files' freshness, then
+   scores the complete assignment through the K=3 lane pool. Missing exports exit immediately.
+   `SP-length`, `SP-read` and canonical pair-aware `verified-tables/` publication
+   are CPU jobs. Preserve the raw evidence and never extend parent retention.
+8. Submit `REF-FAMILY-assign` and `REF-FAMILY-SEED-prepare` on CPU after
+   restoring/binding the native family root. Submit each `REF-FAMILY-SEED`
+   only after all its checkpoints exist and CPU verification succeeds. It uses
+   one GPU for both panels of base/incoming/all finals, with K=3 concurrency. `REPORT-text` is a separate
+   zero-GPU afterany job; reference guards execute inside CPU readers/reporters.
 
-One selected row per operator-submitted allocation:
+One selected row per operator-submitted allocation, with its resource request:
 
 ```bash
 bash "$KIT/jobs/combined/run-task.sh" PF-node-0
@@ -231,7 +268,7 @@ bash "$KIT/jobs/combined/run-task.sh" PF-ARC
 bash "$KIT/jobs/combined/run-task.sh" PF-tier-0
 # Then core jobs on their frozen slots; after all core submissions, tier examples:
 bash "$KIT/jobs/combined/run-task.sh" M3-K-101-finqa-train
-bash "$KIT/jobs/combined/run-task.sh" PD-101
+# PD uses separate right-sized submissions from resources/pd/README.md.
 # Use actual SP-* task IDs from the generated inventory.
 ```
 
@@ -241,11 +278,35 @@ No exception changes another family's state. K/CR returns 0/75/1; PD failures st
 that seed; SP's underlying wrapper always exits zero and writes its state record.
 The combined SP pre-scoring inventory gate can return nonzero and still blocks
 no parent. Requeue manually with identical frozen inputs and each family's
-restart rules. For PD requeue, first move `seed-N` and `bound-N.json*`
-together to `pd_root/failed-<k>/`; then requeue into clean paths with the identical
-frozen input plan. Preserve the failed tree and supervisor PENDING receipts.
+restart rules. For PD, archive the entire failed PD_STATE tree, then restart
+all phases in a fresh tree with the identical frozen input plan. Preserve failed
+watcher logs, timing, agreement and PENDING receipts.
 Record failed allocation charges, queue, restore and transfer time.
 Return core evidence independently even when every tier is PENDING.
+
+### Utilisation watcher
+
+The combined and message-3 task wrappers run under `util_watch.py`, including
+CPU tasks with zero visible GPUs. Each attempt writes a fresh JSONL and adjacent
+`.summary.json` under `execution/utilisation` (core), `state/utilisation`
+(K/CR and SP), `seed-<seed>/utilisation` (PD), or `preflight/utilisation`
+(tier preflight), within that family's existing receipt root. Combined K/CR
+launches use one outer watcher. UUIDs and scheduler identities stay on the node.
+For other GPU entry points use
+`python -I "$KIT/util_watch.py" --out <fresh-path.jsonl> -- <command...>`.
+Defaults are `--interval 5 --window 300 --warn 75`. The watcher forwards signals,
+preserves child exit status, and warns without stopping or changing the work.
+It samples only the allocated CUDA/Slurm GPU set; unavailable telemetry is unknown.
+`UTIL_PHASE_FILE` is set for optional `kit.util_phase.mark(name)` markers.
+
+Add `"utilisation": [{"family": "KCR", "roots": ["<KCR-root>/state/utilisation"]}]`
+to the local report input map (repeat for available families; `summaries` accepts
+explicit summary paths). ESSENTIAL Part 3 and FULL include compact
+`T|UTIL|family|jobs|gpus|mean_util|worst_window|seconds_below_70` rows. Jobs counts
+observed attempts, GPUs sums allocated slots across attempts, and mean activity
+is weighted by GPU-seconds. Below-70 seconds sums rolling-window job-seconds.
+Missing/incomplete telemetry is `null`. CPU-only attempts have zero GPUs and
+null activity. See `docs/phase3/text-return-utilisation-20261102.md` for details.
 
 ## Returning results as text (current)
 
@@ -497,6 +558,8 @@ Include seeds 101–103, base (`arm: base`, step 0; M3 stage `finqa`), each inco
 (step 0), and each stage final (step 40). Paths/hashes come from native receipts.
 Use separate lists/roots per family (`m3`, `core`, `x-tier1`, `x-tier2.NAME`).
 
+For M3, run `M3-rescore-SEED-ready` on CPU, then `M3-rescore-SEED` in its
+one-GPU allocation. The manual generated-panel block below is for core/X.
 First re-run generated panels with the native scorer's exact configuration.
 Set `OUT`, `FAMILY`, `CHECKPOINTS`, `SEED`, `GPU`, `FINQA_PANEL_ROOT`,
 `KIT` (the kit directory), `REPORT_INPUTS` (your `report-inputs.local.json`),
@@ -510,10 +573,12 @@ the failed kit likelihood validation; HellaSwag/knowledge guards follow below.
 export OUT FAMILY CHECKPOINTS SEED GPU FINQA_PANEL_ROOT KIT
 if [[ "$FAMILY" == x-* ]]; then
     M2_ASSIGNMENT="$OUT/scoring-assignment.json" M2_FAMILY="$FAMILY" M2_FAMILY_SEED="$SEED" \
-      python3 "$KIT/x_references.py" --out "$OUT" --seed "$SEED" --gpu "$GPU" \
+      python3 -I "$KIT/util_watch.py" --out "$OUT/util/x-native-$SEED.jsonl" -- \
+      python3 -I "$KIT/x_references.py" --out "$OUT" --seed "$SEED" --gpu "$GPU" \
         --panel-root "$FINQA_PANEL_ROOT" --generated-only
 fi
-python3 - <<'PY'
+python3 -I "$KIT/util_watch.py" --out "$OUT/util/native-$SEED.jsonl" -- \
+  python3 - <<'PY'
 import json, os, subprocess, sys
 from pathlib import Path
 out, family = os.environ['OUT'], os.environ['FAMILY']
@@ -533,13 +598,41 @@ for c in json.load(open(os.environ['CHECKPOINTS'])):
                        M2_FAMILY=family, M2_FAMILY_SEED=str(c['seed'])))
 PY
 
-# Freeze reference assignments from the native UUID/environment authorities.
-python3 "$KIT/ref_score_job.py" --action assign --out "$OUT" --family "$FAMILY"
-for panel in hellaswag knowledge-ll; do
-    python3 "$KIT/ref_score_job.py" --action score --out "$OUT" --family "$FAMILY" \
-      --checkpoints "$CHECKPOINTS" --seed "$SEED" --panel "$panel" --gpu "$GPU"
-done
-python3 "$KIT/report_text.py" --inputs "$REPORT_INPUTS" --out "$TEXT_OUT"
+```
+
+Finish the native one-GPU allocation before the following CPU preparation.
+Prefer the explicit combined `REF-*` jobs. Set `reference_jobs` in local combined
+settings to a list of `{family, out, checkpoints, lane_assignment, requires}`:
+`out` is the restored native family root, `checkpoints` is its complete local
+list, and `requires` names existing combined checkpoint/export rows. Supply one
+entry per core, M3, X tier-1 and each X tier-2 contrast. Defaults are local
+`reference-FAMILY` roots requiring operator restoration; no restoration happens
+inside a GPU job. `lane_assignment` is optional reviewed v2 JSON with exactly
+`FAMILY.hellaswag|101` and `FAMILY.knowledge-ll|101` keys for seeds 101–103.
+Each value contains node, UUID and environment. The two panels may use distinct
+GPUs. Omitting this map preserves native UUIDs for both panels.
+
+CPU assignment/preparation (0 GPUs):
+
+```bash
+python3 -I "$KIT/ref_score_job.py" --action assign --out "$OUT" --family "$FAMILY" \
+  --lane-assignment "$REFERENCE_LANES"
+python3 -I "$KIT/ref_score_job.py" --action prepare --out "$OUT" --family "$FAMILY" \
+  --checkpoints "$CHECKPOINTS" --seed "$SEED" --panel "$PANEL"
+```
+
+Then one separate 1-GPU job for that complete `(family, seed, panel)` lane:
+
+```bash
+python3 -I "$KIT/ref_score_job.py" --action score --out "$OUT" --family "$FAMILY" \
+  --checkpoints "$CHECKPOINTS" --seed "$SEED" --panel "$PANEL" --gpu "$GPU"
+```
+
+The score entry automatically uses the utilisation watcher and allocation lease.
+Run the reporter only in its CPU allocation after scoring jobs finish:
+
+```bash
+python3 -I "$KIT/report_text.py" --inputs "$REPORT_INPUTS" --out "$TEXT_OUT"
 ```
 
 The assignment's UUID is verified at execution, independent of ordinal numbering;
@@ -548,3 +641,7 @@ one entry per (family, seed, panel), and can also be supplied from a reviewed na
 assignment with `--from-assignment`. Results use the reader's unit names under
 `reference-scores/`, with manifests, model identity, method, UUID/environment,
 likelihoods and cost. Native readers and M/X collectors retain these units.
+
+The [v6 allocation-lane integration](util70-integration.md) defines complete
+comparison jobs, allocation identities, command counts and added scoring costs.
+Every one-GPU row uses the shared lane pool inside exactly one watcher.

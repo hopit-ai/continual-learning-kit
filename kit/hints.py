@@ -321,6 +321,9 @@ def cmd_stuck(args) -> int:
                                              tokenize=False, add_generation_prompt=True,
                                              enable_thinking=False) for row in rows]
     engine = {**SAMPLING_ENGINE, "max_model_len": args.max_model_len or SAMPLING_ENGINE["max_model_len"]}
+    if str(HERE.parent) not in sys.path:sys.path.insert(0,str(HERE.parent))
+    from kit.inference_lifecycle import engine_kwargs
+    engine=engine_kwargs(engine)
     llm = LLM(model=str(model), **engine)
     started = time.monotonic()
     outputs = llm.generate(prompts, SamplingParams(n=args.attempts, temperature=args.temperature,

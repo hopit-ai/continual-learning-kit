@@ -37,8 +37,10 @@ def job(a):
     incoming = stage['incoming']
     checkpoints = {'0': incoming, **stage['checkpoints']}
     for domain in domains_for(doc['spec'], incoming):
+        if getattr(a,'domain',None) and a.domain!=domain:continue
         own = selected(a.out, incoming, domain)
         for step, ident in checkpoints.items():
+            if getattr(a,'step',None) is not None and a.step!=step:continue
             checkpoint = doc['spec']['nodes'][ident]['checkpoint']
             identity = model(checkpoint, a.standin)
             require(identity == doc['identities'][ident], 'scoring checkpoint changed')
@@ -62,6 +64,7 @@ def job(a):
 
 def configure(p):
     p.add_argument('--stage', required=True)
+    p.add_argument('--domain',choices=DOMAINS);p.add_argument('--step')
     p.add_argument('--gpu', default='0')
 if __name__ == '__main__':
     raise SystemExit(entry(job, configure))

@@ -381,18 +381,49 @@ def generate_math_targets(a, root):
         tokenizer = AutoTokenizer.from_pretrained(a.tokenizer, local_files_only=True)
         generator = t.VLLMGenerator(a.model, 2560, tensor_parallel_size=2, allow_batch_fallback=False)
     s.run_phase(items, root / 'teacher', generator, tokenizer, synthetic=a.standin)
+    atomic(root / 'cost.json', dict(kind='m3_math_targets', gpu_hours=0 if a.standin else 2 * (time.monotonic() - started) / 3600, technical_synthetic=a.standin))
+    atomic(root / 'generated.json', dict(inputs_sha256=s.file_hash(root / 'inputs.json')))
+    return dict(path='m3-fallback')
+
+
+def math_finish(a):
+    root = a.out / 'targets-math'
+    if (root / 'manifest.json').exists(): return math_ready(a)
+    if not (root / 'generated.json').exists(): raise NotReady('teacher generation missing')
+    require(json.loads((root / 'generated.json').read_text())['inputs_sha256'] == s.file_hash(root / 'inputs.json'), 'teacher input changed')
+    from kit.m2_common import hard_data, protocol
+    items = hard_data()['train_pool.jsonl']
     demos = t.read_jsonl(root / 'teacher/demonstrations.jsonl')
     if not demos: raise NotReady('zero accepted targets; training input undefined')
     lookup = {r['id']: r for r in items}
     rows = [dict(id=d['id'], prompt=t.student_messages(lookup[d['id']]), response=d['text'], gold=lookup[d['id']]['gold'], task='math_screen') for d in demos]
-    atomic(root / 'cost.json', dict(kind='m3_math_targets', gpu_hours=0 if a.standin else 2 * (time.monotonic() - started) / 3600, technical_synthetic=a.standin))
     from kit.p3b_common import cycle
     t.write_jsonl(root / 'pool.jsonl', rows); names = ['inputs.json', 'pool.jsonl', 'cost.json']
     for seed in plan.SEEDS:
         name = f'schedule-{seed}.jsonl'; t.write_jsonl(root / name, cycle(rows, seed, plan.UPDATES * plan.TASK_ROWS)); names.append(name)
     atomic(root / 'manifest.json', files_manifest(root, names, valid=len(rows), population=500, coverage=len(rows) / 500,
                                                   protocol=protocol(), technical_synthetic=a.standin))
-    return dict(path='m3-fallback', coverage=len(rows) / 500)
+    atomic(a.out / TARGETS_SOURCE, dict(path='m3-fallback', coverage=len(rows) / 500, technical_synthetic=a.standin,
+           decided_at=time.time(), core_durable_given=json.loads((a.out / 'math-resolution.json').read_text())['core_durable_given'],
+           targets_manifest_sha256=s.file_hash(root / 'manifest.json')))
+
+
+def math_resolve(a):
+    """Resolve the committed core copy on CPU before requesting a teacher allocation."""
+    root = a.out / 'targets-math'; decision = a.out / 'math-resolution.json'
+    if decision.exists(): return
+    source = core_targets(a.core_durable, root) if a.core_durable else None
+    if source is not None:
+        check_math_root(root, a.standin)
+        atomic(a.out / TARGETS_SOURCE, dict(source, decided_at=time.time(), core_durable_given=True,
+               technical_synthetic=a.standin, targets_manifest_sha256=s.file_hash(root / 'manifest.json')))
+    bind(decision, dict(mode='copy' if source else 'generate', core_durable_given=bool(a.core_durable), technical_synthetic=a.standin))
+
+
+def math_ready(a):
+    if not (a.out / 'targets-math/manifest.json').exists(): raise NotReady('teacher output absent; schedule CPU ready check after generation')
+    check_math_root(a.out / 'targets-math', a.standin)
+    require((a.out / TARGETS_SOURCE).is_file(), 'math target source receipt missing')
 
 
 def math_targets(a):
@@ -402,14 +433,11 @@ def math_targets(a):
     if (root / 'manifest.json').exists():
         check_math_root(root, a.standin); require(receipt.exists(), 'hard-MATH targets lack their source record'); print('SKIP: frozen M3 hard-MATH targets'); return
     require(not root.exists(), 'partial M3 hard-MATH targets present; move them aside before retrying')
-    source = core_targets(a.core_durable, root) if a.core_durable else None
-    if source is None:
-        root.mkdir(parents=True)
-        source = generate_math_targets(a, root)
-    check_math_root(root, a.standin)
-    atomic(receipt, dict(source, decided_at=__import__('time').time(), core_durable_given=bool(a.core_durable), technical_synthetic=a.standin,
-                         targets_manifest_sha256=s.file_hash(root / 'manifest.json')))
-    print('Hard-MATH targets frozen via', source['path'])
+    decision = a.out / 'math-resolution.json'
+    if not decision.exists(): raise NotReady('resolve committed target reuse on CPU first')
+    require(json.loads(decision.read_text())['mode'] == 'generate', 'CPU copy resolved; do not request teacher GPUs')
+    root.mkdir(parents=True)
+    source = generate_math_targets(a, root)
 
 
 # ----------------------------------------------------------------------------- SP candidate-prompt superset
@@ -650,7 +678,8 @@ def broad_candidates(gsm, arc, references):
 
 
 @costed_preparation('m3_broad_preparation', 1)
-def broad_job(a, generate=None):
+def broad_prepare(a):
+    """CPU exclusions and candidate freeze, before the one-GPU generator starts."""
     from kit.next_pools import correct, NOTICES as BROAD_NOTICES, GSM, ARC
     binding = arc_prompt(); root = a.out / 'pools/broad'
     if not a.standin:
@@ -675,24 +704,54 @@ def broad_job(a, generate=None):
     prepared, excluded = broad_candidates(gsm, arc, panels + others)
     bind(root / 'inputs.json', dict(arc=binding, sources=sources, revisions=dict(gsm8k=GSM, arc=ARC), panels=panel_ids, others=s.digest(others),
                                     technical_synthetic=a.standin, candidates=s.digest([r['id'] for r in prepared])))
-    if (root / 'manifest.json').exists(): frozen_files(root); print('SKIP broad'); return
     t.write_jsonl(root / 'candidates.jsonl', prepared); t.write_jsonl(root / 'exclusions.jsonl', excluded)
-    tokenizer = None; started = time.monotonic(); generator = None
+    atomic(root / 'prepared.json', files_manifest(root, ['inputs.json', 'candidates.jsonl', 'exclusions.jsonl']))
+
+
+def broad_job(a, generate=None):
+    root = a.out / 'pools/broad'
+    if not (root / 'prepared.json').exists(): raise NotReady('prepare broad candidates on CPU first')
+    prepared_manifest = json.loads((root / 'prepared.json').read_text())
+    for name, expected in prepared_manifest['files'].items():
+        require(s.file_hash(root / name) == expected, 'prepared broad input changed')
+    prepared = t.read_jsonl(root / 'candidates.jsonl'); started = time.monotonic(); generator = None
+    if not a.standin: os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, V4_PHASE0_INFERENCE='0')
+    for index,row in enumerate(prepared):
+        if getattr(a,'generation_shard',None) is not None and index%3!=a.generation_shard:continue
+        path = root / 'raw' / (t.sha(row['id']) + '.json')
+        if path.exists(): continue
+        if generate is not None: output = generate(row)
+        elif a.standin: output = dict(text=row['fake_response'], finish_reason='stop')
+        else:
+            if generator is None: generator = t.VLLMGenerator(a.model, 2048, tensor_parallel_size=1, allow_batch_fallback=False)
+            output = generator([dict(role='user', content=row['prompt'])], 1, seed=0, temperature=0, top_p=1)
+        atomic(path, output)
+    suffix='' if getattr(a,'generation_shard',None) is None else '-'+str(a.generation_shard)
+    atomic(root / ('cost'+suffix+'.json'), dict(kind='m3_broad_preparation', gpu_hours=0 if a.standin else (time.monotonic() - started) / 3600, technical_synthetic=a.standin))
+    atomic(root / ('generated'+suffix+'.json'), dict(prepared_sha256=s.file_hash(root / 'prepared.json')))
+
+
+def broad_finish(a):
+    from kit.next_pools import correct, NOTICES as BROAD_NOTICES
+    root = a.out / 'pools/broad'
+    if not (root/'generated.json').exists():
+        if not all((root/('generated-'+str(i)+'.json')).is_file() for i in range(3)):raise NotReady('broad generation missing')
+        parts=[json.loads((root/('generated-'+str(i)+'.json')).read_text()) for i in range(3)]
+        require(all(p['prepared_sha256']==s.file_hash(root/'prepared.json') for p in parts),'broad preparation changed')
+        costs=[json.loads((root/('cost-'+str(i)+'.json')).read_text()) for i in range(3)]
+        atomic(root/'cost.json',dict(kind='m3_broad_preparation',gpu_hours=sum(c['gpu_hours'] for c in costs),technical_synthetic=a.standin))
+        atomic(root/'generated.json',parts[0])
+    require(json.loads((root / 'generated.json').read_text())['prepared_sha256'] == s.file_hash(root / 'prepared.json'), 'broad preparation changed')
+    binding = json.loads((root / 'inputs.json').read_text())['arc']
+    tokenizer = None
     if not a.standin:
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(a.model, local_files_only=True)
-        os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu, V4_PHASE0_INFERENCE='0')
-    accepted = []; checks = []
+    prepared = t.read_jsonl(root / 'candidates.jsonl'); accepted = []; checks = []
     for row in prepared:
         path = root / 'raw' / (t.sha(row['id']) + '.json')
-        if path.exists(): output = json.loads(path.read_text())
-        else:
-            if generate is not None: output = generate(row)
-            elif a.standin: output = dict(text=row['fake_response'], finish_reason='stop')
-            else:
-                if generator is None: generator = t.VLLMGenerator(a.model, 2048, tensor_parallel_size=1, allow_batch_fallback=False)
-                output = generator([dict(role='user', content=row['prompt'])], 1, seed=0, temperature=0, top_p=1)
-            atomic(path, output)
+        if not path.exists(): raise NotReady('broad candidate output missing')
+        output = json.loads(path.read_text())
         passed = output['finish_reason'] in ('stop', 'eos') and correct(row, output['text'])
         if passed and tokenizer is not None:
             validate_encoding(tokenizer, [dict(role='user', content=row['prompt'])], output['text'])
@@ -701,12 +760,11 @@ def broad_job(a, generate=None):
                                         licence_notice=BROAD_NOTICES['gsm8k' if row['source'] == 'gsm8k' else 'arc']))
     for source in ('gsm8k', 'arc'): t.write_jsonl(root / (source + '.jsonl'), [r for r in accepted if r['domain'] == source])
     t.write_jsonl(root / 'checks.jsonl', checks)
-    atomic(root / 'cost.json', dict(kind='m3_broad_preparation', gpu_hours=0 if a.standin else (time.monotonic() - started) / 3600, technical_synthetic=a.standin))
     names = ['inputs.json', 'candidates.jsonl', 'exclusions.jsonl', 'gsm8k.jsonl', 'arc.jsonl', 'checks.jsonl', 'cost.json'] + \
         [str(p.relative_to(root)) for p in sorted((root / 'raw').glob('*.json'))]
     atomic(root / 'manifest.json', files_manifest(root, names, technical_synthetic=a.standin, pool_protocol=binding['pool_protocol'],
                                                   arc_prompt=binding['frozen_arc_prompt'], namespace=plan.NAMESPACE))
-    print('Broad accepted', len(accepted), 'of', len(prepared), 'candidates')
+
 
 
 # ----------------------------------------------------------------------------- freeze
@@ -867,11 +925,14 @@ def job(a):
             for index, folder in enumerate(a.finqa_targets or ()): bound_input(a.out, f'finqa_targets_{index}', folder)
     from contextlib import nullcontext
     from kit.m3_manifest import gpu_execution
-    with gpu_execution(a.out) if not a.standin and a.action in ('broad', 'math-targets') else nullcontext():
-        return {'finqa-replay': finqa_replay, 'finqa-targets': finqa_targets, 'math-targets': math_targets, 'contract': contract_job, 'broad': broad_job, 'freeze': freeze_job}[a.action](a)
+    if not a.standin and a.action in ('broad', 'math-targets'):
+        if not os.environ.get('CUDA_VISIBLE_DEVICES'): raise NotReady('allocated CUDA_VISIBLE_DEVICES required')
+        a.gpu = os.environ['CUDA_VISIBLE_DEVICES']
+    with gpu_execution(a.out, gpus=2 if a.action == 'math-targets' else 1) if not a.standin and a.action in ('broad', 'math-targets') else nullcontext():
+        return {'math-finish': math_finish, 'broad-prepare': broad_prepare, 'broad-finish': broad_finish, 'math-resolve': math_resolve, 'math-ready': math_ready, 'finqa-replay': finqa_replay, 'finqa-targets': finqa_targets, 'math-targets': math_targets, 'contract': contract_job, 'broad': broad_job, 'freeze': freeze_job}[a.action](a)
 
 def configure(p):
-    p.add_argument('--action', choices=('finqa-replay', 'finqa-targets', 'math-targets', 'contract', 'broad', 'freeze', 'superset', 'verify-returns'), required=True)
+    p.add_argument('--action', choices=('math-finish', 'broad-prepare', 'broad-finish', 'math-resolve', 'math-ready', 'finqa-replay', 'finqa-targets', 'math-targets', 'contract', 'broad', 'freeze', 'superset', 'verify-returns'), required=True)
     p.add_argument('--core-durable', type=Path, help="message-2 core durable root: read-only copy of its committed M5 targets-math")
     p.add_argument('--instruction-source', type=Path); p.add_argument('--finqa-source', type=Path)
     p.add_argument('--shared-only', action='store_true')
@@ -881,6 +942,7 @@ def configure(p):
     p.add_argument('--panel', action='append', help='NAME=PATH exclusion panel (repeat)')
     p.add_argument('--holdout', action='append', help='NAME=PATH frozen PD/SP/core holdout (repeat)')
     p.add_argument('--replay', type=Path); p.add_argument('--contract', type=Path); p.add_argument('--instruction', type=Path)
+    p.add_argument('--generation-shard',type=int,choices=range(3))
     p.add_argument('--finqa-pool', type=Path); p.add_argument('--finqa-targets', type=Path, nargs='+')
     p.add_argument('--gsm-rows', type=Path); p.add_argument('--arc-rows', type=Path)
 

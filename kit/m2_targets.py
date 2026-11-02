@@ -18,6 +18,8 @@ def job(a):
         require(len(set(a.gpu.split(',')))==2,'27B targets use two GPUs')
     bind(root/'inputs.json',observed)
     if (root/'manifest.json').exists(): frozen_files(root); print('SKIP: hard-MATH targets'); return
+    from kit.m2_train import preparing
+    if preparing():return
     os.environ.update(CUDA_VISIBLE_DEVICES=a.gpu,V4_PHASE0_INFERENCE='1')
     started=time.monotonic()
     if a.standin:
@@ -33,6 +35,16 @@ def job(a):
         tokenizer=AutoTokenizer.from_pretrained(a.tokenizer,local_files_only=True)
         generator=t.VLLMGenerator(a.model,2560,tensor_parallel_size=2,allow_batch_fallback=False)
     s.run_phase(items,root/'teacher',generator,tokenizer,synthetic=a.standin)
+    seconds=time.monotonic()-started
+    from kit.m2_train import defer_exports,queue_export
+    if defer_exports():
+        queue_export(a.out,'math-targets',root=str(root),standin=a.standin,seconds=seconds)
+        return
+    finish(root,a.standin,seconds)
+
+
+def finish(root,standin,seconds):
+    items=hard_data()['train_pool.jsonl']
     demos=t.read_jsonl(root/'teacher/demonstrations.jsonl')
     if not demos: raise NotReady('zero accepted targets; training input undefined')
     lookup={r['id']:r for r in items}
@@ -41,9 +53,9 @@ def job(a):
     t.write_jsonl(root/'pool.jsonl',rows); names=['inputs.json','pool.jsonl']
     for seed in SEEDS:
         name=f'schedule-{seed}.jsonl'; t.write_jsonl(root/name,cycle(rows,seed,1280)); names.append(name)
-    atomic(root/'cost.json',dict(kind='targets',gpu_hours=0 if a.standin else 2*(time.monotonic()-started)/3600,technical_synthetic=a.standin))
+    atomic(root/'cost.json',dict(kind='targets',gpu_hours=0 if standin else 2*seconds/3600,technical_synthetic=standin))
     atomic(root/'manifest.json',files_manifest(root,names,valid=len(rows),population=500,coverage=len(rows)/500,
-                                              protocol=protocol(),technical_synthetic=a.standin))
+                                              protocol=protocol(),technical_synthetic=standin))
 
 
 def configure(p):

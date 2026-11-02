@@ -11,14 +11,16 @@ CONFIGS = ('generic', 'broad', 'earlier', 'both')
 
 
 def protocol():
+    from kit.v6_infra import activate
+    infrastructure_update=activate()
     frozen = json.loads((M / 'freeze.json').read_text())
     for name, digest in frozen['files'].items(): check(M / name, digest)
     from kit.c_common import protocol as c_protocol
-    return dict(runtime_updates=s.file_hash(M/'runtime-updates.json'),resources=s.file_hash(M/'freeze.json'), c=c_protocol(),
+    return dict(infrastructure_update=infrastructure_update,runtime_updates=s.file_hash(M/'runtime-updates.json'),resources=s.file_hash(M/'freeze.json'), c=c_protocol(),
                 teacher_resources=s.file_hash(KIT/'resources/math-hard-teacher/SHA256SUMS'),
                 implementation={str(p.relative_to(KIT)):s.file_hash(p) for p in
                                 [*sorted(KIT.glob('m2_*.py')), *[KIT/name for name in
-                                 ('message2_dryrun.py','math_hard_teacher.py','math_hard_teacher_read.py',
+                                 ('v6_infra.py','lane_pool.py','lane_evidence.py','util_watch.py','message2_dryrun.py','math_hard_teacher.py','math_hard_teacher_read.py',
                                   'second_task_screen.py','message_handoff.py')]]})
 
 
@@ -46,6 +48,8 @@ def binding(out, standin):
     if not path.exists(): raise NotReady('message-2 binding pending')
     doc = json.loads(path.read_text())
     require(doc.get('technical_synthetic') is standin, 'synthetic binding mismatch; use --standin for technical_synthetic')
+    from kit.v6_infra import activate
+    activate(out)
     require(doc['protocol']==protocol(), 'message-2 protocol changed after binding')
     return doc
 

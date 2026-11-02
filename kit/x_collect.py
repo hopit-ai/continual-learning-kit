@@ -29,6 +29,8 @@ def load(path, standin=False):
 
 
 def job(a):
+    from kit.lane_evidence import materialize
+    materialize(a.out)
     # Collection is allowed after failed/unfinished rows too. Readiness is the
     # reader's responsibility; the durable trap remains available even pre-X1.
     document = read(a.out/'binding.json') if (a.out/'binding.json').exists() else None
@@ -49,7 +51,7 @@ def job(a):
     for path in sorted(a.out.rglob('*')):
         if not path.is_file() or path.is_symlink() or path == a.archive or path.name in ('.lock','collect-complete.json') or path.name.endswith('.tmp'): continue
         relative = str(path.relative_to(a.out))
-        if relative.startswith('return/'): continue
+        if relative.startswith(('return/','lane-evidence/')):continue
         second=relative.startswith(('tier2/','runs/x-t2-','scores/x-t2-'))
         if (path.name == 'cost.json' or '/training-costs/' in relative or relative.startswith(('signals/','tier2/signals/')) or
                 relative.startswith('probes/') and (path.name.startswith('receipt') or path.name=='training-cost.json')) and path.suffix == '.json':

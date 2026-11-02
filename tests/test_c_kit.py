@@ -7,6 +7,9 @@ import subprocess
 import sys
 from types import SimpleNamespace as NS
 import pytest
+from kit_authority import sealed_v6_authority
+
+pytestmark = pytest.mark.usefixtures('sealed_v6_authority')
 from kit import c_common as c, c_bind, c_targets, c_train, c_score, c_read, c_collect
 from kit.c_sim import Tokenizer, b_rows
 from kit.p3b_read import analyse as b_analyse

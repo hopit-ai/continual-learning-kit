@@ -917,7 +917,9 @@ def verify_frozen(root=RESOURCES):
     for name, expected in doc['files'].items():
         require(sha256_file(root / name) == expected, 'frozen SP file changed: ' + name)
     require(resource_hashes() == doc['resources'], 'SP resource bytes differ from frozen hashes')
-    require(code_hashes() == doc['code'], 'SP preparation/scoring code differs from frozen hashes')
+    from kit.v6_infra import compatible_files
+    require(compatible_files({'kit/'+name:value for name,value in doc['code'].items()},
+        {'kit/'+name:value for name,value in code_hashes().items()}),'SP preparation/scoring code differs from frozen hashes')
     if doc.get('node_verification') is not None:
         require(sha256_file(RESOURCES/'node_verification.py') == doc['node_verification_implementation_sha256'],
                 'node verification implementation changed')

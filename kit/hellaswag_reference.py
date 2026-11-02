@@ -25,13 +25,15 @@ def choose(scores):
     return max(range(4),key=lambda index:(scores[index],-index))
 
 
-def _score(model_path,items,tokenizer_path):
+def _score(model_path,items,tokenizer_path,runtime=None):
     import torch
     from transformers import AutoModelForCausalLM,AutoTokenizer
     from kit.m2_gpu import assert_current
     assert_current()
-    tok=AutoTokenizer.from_pretrained(tokenizer_path,local_files_only=True)
-    net=AutoModelForCausalLM.from_pretrained(model_path,local_files_only=True,torch_dtype=torch.bfloat16).to('cuda').eval()
+    if runtime is None:
+        tok=AutoTokenizer.from_pretrained(tokenizer_path,local_files_only=True)
+        net=AutoModelForCausalLM.from_pretrained(model_path,local_files_only=True,torch_dtype=torch.bfloat16).to('cuda').eval()
+    else:tok,net=runtime
     records=[]
     try:
         with torch.inference_mode():
@@ -49,8 +51,9 @@ def _score(model_path,items,tokenizer_path):
                     values.append(value/len(ending))
                 records.append(dict(id=row['id'],scores=values,selected=choose(values) if all(math.isfinite(v) for v in values) else None))
     finally:
-        del net
-        torch.cuda.empty_cache()
+        if runtime is None:
+            del net
+            torch.cuda.empty_cache()
     return records
 
 

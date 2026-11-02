@@ -106,7 +106,7 @@ def select_batch(pools, replay_pools=(), tokenizer=None, eligibility=None):
             raise ValueError('pool names must be unique, nonempty and contain no |')
         seen_pools.add(name)
         sources.append(dict(pool=name, sha256=sha(path)))
-        for line in Path(path).read_text().splitlines():
+        for line in Path(path).read_text().split('\n'):
             if not line.strip():
                 continue
             r = json.loads(line)

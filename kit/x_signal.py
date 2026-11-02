@@ -21,13 +21,15 @@ def job(a):
         from kit.s_probe import job as probe
         for seed in seeds:
             for domain in doc['domains']:
+                if getattr(a,'domain',None) and a.domain!=domain:continue
                 probe(type(a)(**dict(vars(a), incoming=f'b-s{seed}', domain=domain)))
         return
     from kit.m2_handoff import scoring_identity
     scoring_machine=scoring_identity(a.out, a.score_gpu, a.standin)
-    os.environ['CUDA_VISIBLE_DEVICES'] = prepared_index(a.score_gpu,a.standin)
+    if getattr(a,'measurement',None)!='reduce':os.environ['CUDA_VISIBLE_DEVICES']=prepared_index(a.score_gpu,a.standin)
     for seed in seeds:
         for domain in doc['domains']:
+            if getattr(a,'domain',None) and a.domain!=domain:continue
             path = a.out/'signals'/f's{seed}'/(domain+'.json')
             targets = selected(a.out, f'b-s{seed}', domain)['monitor']
             refs = [incoming(doc, seed), checkpoint(a.out, doc, 'drift', seed, 10)]
@@ -38,15 +40,23 @@ def job(a):
                 require(read(path)['inputs'] == inputs, 'frozen drift changed'); continue
             import time
             start = time.monotonic()
-            measurements = [nll(r['model'], targets, a.standin, r.get('receipt')) for r in refs]
+            measurement=getattr(a,'measurement',None)
+            part=a.out/'.lane-parts'/path.relative_to(a.out)
+            if measurement in ('before','after'):
+                index=('before','after').index(measurement);ref=refs[index]
+                bind(part.with_suffix('.'+measurement+'.json'),nll(ref['model'],targets,a.standin,ref.get('receipt')))
+                continue
+            measurements=([read(part.with_suffix('.'+name+'.json')) for name in ('before','after')] if measurement=='reduce' else
+                [nll(r['model'],targets,a.standin,r.get('receipt')) for r in refs])
             bind(path, dict(inputs=inputs, before=measurements[0], after=measurements[1],
                 drift=measurements[1]['token_mean']-measurements[0]['token_mean'],
-                seconds=time.monotonic()-start,gpu_hours=0 if a.standin else (time.monotonic()-start)/3600))
+                seconds=time.monotonic()-start,gpu_hours=0 if a.standin or measurement=='reduce' else (time.monotonic()-start)/3600))
 
 
 def configure(p):
     from kit.m2_select import configure as selectors
     selectors(p)
+    p.add_argument('--domain',choices=DOMAINS);p.add_argument('--measurement',choices=('before','after','reduce'))
     p.add_argument('--phase',choices=('all','train','score'),default='all')
     p.add_argument('--action', choices=('drift','plasticity'), required=True)
     p.add_argument('--score-gpu', default='0')

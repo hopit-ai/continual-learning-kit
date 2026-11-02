@@ -95,8 +95,8 @@ The original builder is deliberately unchanged: its hash is already in the
 approved package and changing it would change the manager's approved preparation
 identity. Pin enforcement lives outside both the frozen builder and the smoke's
 hashed core. `pd_node.py` independently rejects a plan whose fully validated
-preparation identity differs from the pin, before GPU discovery; its bound plan
-records the pin identity. Directly invoking the builder does not replace this gate.
+preparation identity differs from the pin in the CPU prep phase, before GPU
+discovery; the CPU preparation receipt records the pin identity. Directly invoking the builder does not replace this gate.
 
 The approved preparation remains `FROZEN_APPROVED_NODE_VERIFY_REQUIRED`, with
 truthful `global_inventory_complete: false` until node verification succeeds.
@@ -223,17 +223,18 @@ The additional source hashing has unmeasured CPU/I/O cost; it is not a timing ga
 Once every gate is complete, the operator's ordinary plain-script step is:
 
 ```sh
-python kit/pd_node.py --plan SEED_PLAN_JSON --bound-plan BOUND_PLAN_JSON \
-  --out PD_STATE --score-visible-index 0
+# Submit each phase as its own allocation; use resources from ../README.md.
+python -I kit/pd_node.py --phase prep --plan SEED_PLAN_JSON --out PD_STATE
+# Then separately: --phase pre (1 GPU), train (8), finalize (0), post (1), collect (0).
 ```
 
 No new sbatch wrapper, hostname, account or local source location is shipped.
 This document does not authorize a launch. It describes the final gated step.
 
-Preserve the complete PD tree and both `seed-evidence.json` (raw qualified-core
-output) and `seed-evidence.verified.json` (CPU sidecar carrying the common closed
-inventory/send-time custodian proof, with December re-check pending), bound plan
-and supervisor receipts. The reader
+Preserve the complete PD tree, `post/seed-evidence.json`,
+`seed-evidence.verified.json` (CPU sidecar carrying the common closed
+inventory/send-time custodian proof, with December re-check pending), and every
+phase receipt/watcher log. The amended `pd_jobs_read.py` reader
 consumes the three verified sidecars; all three must bind the same common
 closure inputs. No score, metric or denominator is changed by the sidecar.
 

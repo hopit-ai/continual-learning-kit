@@ -9,6 +9,8 @@ RECIPES = ('D', 'F', 'D+replay', 'F+replay')
 
 
 def frozen_next():
+    from kit.v6_infra import activate
+    activate()
     for line in (N / 'SHA256SUMS').read_text().splitlines():
         digest, name = line.split(maxsplit=1)
         check(KIT / name, digest)

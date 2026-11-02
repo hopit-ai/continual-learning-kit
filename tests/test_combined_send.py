@@ -17,13 +17,14 @@ def test_every_source_task_and_pd_seed_is_in_inventory(doc):
     tasks=doc['tasks']; ids={r['id'] for r in tasks}
     for key in ('core_manifest','kcr_manifest','sp_manifest'):
         assert {t['id'] for t in c.load(doc['settings'][key])['tasks']}<=ids
-    assert {'PD-101','PD-102','PD-103'}<=ids
+    assert {f'PD-{s}-{p}' for s in (101,102,103) for p in ('prep','pre','train','finalize','post','collect')}<=ids
+    assert 'PD-read' in ids and 'PD-101' not in ids
     assert '1,800 GPU-h' in c.inventory(doc)
     assert next(b for b in doc['budgets'] if b['component']=='K/CR')['gpu_h']==[786.297517,1387.157525]
     assert doc['total_gpu_h'] is None
     assert next(r for r in tasks if r['id']=='M-core-collect')['dependency']=='afterany'
     assert next(r for r in tasks if r['id']=='M3-read')['dependency']=='afterany'
-    assert next(b for b in doc['budgets'] if b['component']=='PD')['gpu_h']==[221.594915,263.620406]
+    assert next(b for b in doc['budgets'] if b['component']=='PD')['gpu_h']==[62.211758,97.382143]
     assert not any('/staged/' in line for line in c.inventory(doc).splitlines())
     core={r['id'] for r in tasks if r['group']=='core'}
     assert all(set(r['requires'])<=core for r in tasks if r['group']=='core')
@@ -31,7 +32,7 @@ def test_every_source_task_and_pd_seed_is_in_inventory(doc):
 
 def test_build_rejects_core_held_node_alias_and_nested_roots(doc):
     s=copy.deepcopy(doc['settings']);s['pd_nodes']=['core-fixture.cluster']
-    with pytest.raises(ValueError,match='core-held'):c.build(s)
+    assert c.build(s)['nodes']['pd']==['core-fixture']
     s=copy.deepcopy(doc['settings']);s['sp_root']=str(Path(s['core_local_root'])/'sp')
     with pytest.raises(ValueError,match='non-nested'):c.build(s)
 
@@ -57,7 +58,7 @@ def test_real_combined_core_dispatch_and_tier_submission_gate(doc):
     with patch.object(c.socket,'gethostname',return_value='core-fixture'):
         assert c.execute(doc,'M4-101',runner=runner)==0
         assert calls[-1][0]=='bash' and calls[-1][-2:]==['--node-slot','0/1']
-        with pytest.raises((ValueError,FileNotFoundError)):c.execute(doc,'PD-101',runner=runner)
+        with pytest.raises((ValueError,FileNotFoundError)):c.execute(doc,'PD-101-pre',runner=runner)
     with patch.object(c.socket,'gethostname',return_value='tier-fixture'):
         with pytest.raises(FileNotFoundError):c.execute(doc,'M3-init',runner=runner)
     assert len(calls)==1
@@ -66,15 +67,19 @@ def test_real_combined_core_dispatch_and_tier_submission_gate(doc):
 def test_combined_tier_gates_pd_node_and_sp_author_hooks(doc):
     doc=production(doc);ready(doc);s=doc['settings'];calls=[]
     def runner(command,**kw):calls.append(command);return NS(returncode=7)
-    with patch.object(c.socket,'gethostname',return_value='tier-fixture'):
+    from contextlib import nullcontext
+    with patch.object(c.socket,'gethostname',return_value='tier-fixture'), \
+         patch('kit.m3_manifest.allocated_gpus',return_value=['GPU-fixture']), \
+         patch('kit.m3_manifest.allocation_reservation',side_effect=lambda *a,**kw:nullcontext(())):
         assert c.execute(doc,'M3-init',runner=runner)==7
-        with pytest.raises(ValueError,match='allocation'):c.execute(doc,'PD-101',runner=runner)
-        s['pd_allocation_approved']=True;ready(doc)
-        assert c.execute(doc,'PD-101',runner=runner)==7
-        assert Path(calls[-1][1]).name=='pd_node.py'
+        assert c.execute(doc,'PD-101-pre',runner=runner)==7
+        assert 'pd_node.py' in ' '.join(calls[-1]) and 'util_watch.py' in ' '.join(calls[-1])
         panel=next(r['id'] for r in doc['tasks'] if r['id'].startswith('SP-panel-'))
         assert c.execute(doc,panel,runner=runner)==7
-        assert 'node_verification.py' in ' '.join(calls[-1]) and 'run' in calls[-1] and '--' in calls[-1]
+        assert 'util_watch.py' in ' '.join(calls[-1]) and 'node_verification.py' not in ' '.join(calls[-1])
+        prepare=panel.replace('SP-panel-', 'SP-prepare-')
+        assert c.execute(doc,prepare,runner=runner)==7
+        assert 'node_verification.py' in ' '.join(calls[-1]) and 'run' in calls[-1]
         assert c.execute(doc,'SP-read',runner=runner)==7
         assert 'report' in calls[-1] and calls[-1][-1].endswith('verified-tables')
         s['tier_send']['date']='2026-11-03'
@@ -155,7 +160,7 @@ def test_send_shared_base_needs_no_invented_export_receipt(tmp_path,monkeypatch,
 def test_kcr_shell_wrapper_handles_no_submission_timestamp_and_optional_timestamp(tmp_path):
     import os,subprocess,sys
     capture=tmp_path/'argv.json';shim=tmp_path/'python-shim'
-    shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
+    shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nif sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
     shim.chmod(0o755)
     env=dict(os.environ,KIT=str(c.KIT),M3_OUT=str(tmp_path/'m3'),M3_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
     env.pop('M3_SUBMITTED_AT',None)
@@ -216,11 +221,16 @@ def test_sp_report_success_does_not_erase_failed_sidecar(doc):
 def test_combined_shell_wrapper_invokes_selected_python(tmp_path):
     import os,subprocess,sys
     capture=tmp_path/'argv.json';shim=tmp_path/'job-python'
-    shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
+    shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nif sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
     shim.chmod(0o755)
     env=dict(os.environ,KIT=str(c.KIT),COMBINED_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
+    c.write(env['COMBINED_MANIFEST'],dict(tasks=[dict(id='M4-101',group='core')],
+        settings={k:str(tmp_path/k) for k in ('core_local_root','kcr_root','pd_root','sp_root','control_root')}))
     subprocess.run(['bash',str(c.KIT/'jobs/combined/run-task.sh'),'M4-101'],env=env,check=True)
-    assert c.load(capture)==[str(c.KIT/'combined_send.py'),'run','--manifest',env['COMBINED_MANIFEST'],'--task','M4-101']
+    args=c.load(capture)
+    assert args[:3]==['-I',str(c.KIT/'util_watch.py'),'--out']
+    assert Path(args[3]).parent==tmp_path/'core_local_root/execution/utilisation'
+    assert args[4:]==['--expect-gpus','0','--',str(shim),'-I',str(c.KIT/'combined_send.py'),'run','--manifest',env['COMBINED_MANIFEST'],'--task','M4-101']
 
 
 def test_combined_cli_gate_and_unexpected_errors_have_distinct_codes(doc,monkeypatch):

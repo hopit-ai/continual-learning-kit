@@ -20,6 +20,41 @@ class ChildCrash(RuntimeError):
 ACTIONS=('prepare','train-stage','score-family','reduce-admission','collect')
 
 
+def resources(task):
+    if 'resources' in task:return task['resources']
+    return task.get('resources',dict(nodes=1,gpus=8 if task['kind']=='train-stage' else 1 if task['kind']=='score-family' or task.get('uses_gpu') else 0,cpus=4,share_node=task['kind']!='train-stage'))
+
+
+def allocated_gpus(task,standin=False,expected=None):
+    count=resources(task)['gpus']
+    if not count:return {}
+    if standin:return {str(i):expected['uuid'] if expected and count==1 else 'CPU-STANDIN-'+str(i) for i in range(count)}
+    from kit.m2_gpu import devices
+    inventory=devices();visible=os.environ.get('CUDA_VISIBLE_DEVICES')
+    assignment.require(visible is not None,'GPU jobs require scheduler CUDA_VISIBLE_DEVICES')
+    tokens=visible.split(',');selected={i:u for i,u in inventory.items() if i in tokens or u in tokens}
+    assignment.require(len(tokens)==len(selected)==count,'allocation GPU count differs from resource request')
+    return selected
+
+
+def gpu_leases(local_root,devices):
+    """All-or-nothing nonblocking UUID leases; CPU jobs have no GPU lease."""
+    directory=Path('/tmp')/'kit-gpu-leases';directory.mkdir(exist_ok=True)
+    leases=[]
+    try:
+        for uuid in sorted(set(devices.values())):
+            assignment.require('/' not in uuid and uuid not in ('.','..'),'unsafe GPU UUID')
+            lease=(directory/(uuid+'.lock')).open('a');leases.append(lease)
+            fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        return leases
+    except BlockingIOError:
+        for lease in leases:lease.close()
+        raise snapshots.Pending('allocated GPU busy; supply sbatch dependencies')
+    except BaseException:
+        for lease in leases:lease.close()
+        raise
+
+
 def load_manifest(path):
     doc=json.loads(Path(path).read_text())
     assignment.require(doc.get('schema')=='message2-launch.v2','launch manifest schema')
@@ -33,7 +68,11 @@ def load_manifest(path):
         if task.get('commit_barrier')=='M9':assignment.require(task['kind']=='reduce-admission' and task.get('row')=='M9','only M9 reducer may commit admission')
         assignment.require(set(task.get('requires',[]))<=ids,'unknown prerequisite')
         assignment.require(task['id'] not in task.get('requires',[]),'self prerequisite')
-        if task['kind']=='score-family':
+        if doc.get('resource_policy'):
+            request=resources(task)
+            assignment.require('resources' in task and request['nodes']==1 and request['gpus'] in (0,1,2,8) and
+                isinstance(request['cpus'],int) and request['cpus']>0 and request['share_node'] is (request['gpus']!=8),'invalid explicit resources')
+        if task.get('placement_kind',task['kind'])=='score-family':
             assignment.require(task.get('family') and task.get('seed') is not None,'scorer requires family/seed')
         if task.get('partial_inputs'):assignment.require(task['kind'] in ('collect','reduce-admission'),'only reducers/collectors may refresh partial inputs')
         if task['id']=='M10' or task.get('row') in ('M10','X1'):
@@ -57,7 +96,7 @@ def bind_slots(doc,authority):
     assignment.require(n>0 and len(set(doc['nodes']))==n,'unique launch nodes required')
     assignment.require({v['node'] for v in authority['assignments'].values()}<=set(doc['nodes']),'assignment node absent from launch nodes')
     for task in doc['tasks']:
-        if task['kind']=='score-family':
+        if task.get('placement_kind',task['kind'])=='score-family':
             key=f"{task['family']}|{task['seed']}"
             assignment.require(key in authority['assignments'],'launch contains unassigned scoring families')
             index=doc['nodes'].index(authority['assignments'][key]['node'])
@@ -80,7 +119,7 @@ def assigned_task(task,i,n):
     # Training waves use a stable hash. Scoring tasks belong to their frozen node.
     import hashlib
     if 'preflight_slot' in task:return task['preflight_slot']==i
-    return int(hashlib.sha256(task['id'].encode()).hexdigest(),16)%n==i
+    return int(hashlib.sha256(task.get('placement_id',task['id']).encode()).hexdigest(),16)%n==i
 
 
 def barrier(durable,name,expected_assignment):
@@ -140,6 +179,8 @@ class TermState:
 
 def run_task(a):
     key=snapshots.safe_key(a.task)
+    task=next((t for t in load_manifest(a.manifest)['tasks'] if t['id']==key),{})
+    key=snapshots.safe_key(task.get('workspace_task',key))
     root=Path(a.local_root)/key;root.mkdir(parents=True,exist_ok=True)
     with (root/'.stage.lock').open('a') as lease:
         try:fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -150,6 +191,12 @@ def run_task(a):
 def _run_task(a,termination=None):
     wall_started=time.monotonic()
     doc=load_manifest(a.manifest);i,n=slot(a.node_slot)
+    if doc.get('resource_policy'):
+        from kit.v6_infra import bound
+        bound(doc.get('infrastructure_update'))
+    if 'lane_runtime' in doc:
+        from kit.v6_infra import verify_runtime
+        verify_runtime(doc['lane_runtime'])
     frozen=Path(a.durable)/'launch.json'
     if not frozen.exists():raise snapshots.Pending('launch manifest not durably frozen')
     doc=bind_slots(doc,assignment.load(Path(a.durable)/'scoring-assignment.json'))
@@ -160,14 +207,26 @@ def _run_task(a,termination=None):
     assignment.require(task['kind']==a.action,'task/action mismatch')
     assignment_path=Path(a.durable)/'scoring-assignment.json'
     assignments=assignment.load(assignment_path);assignment_sha=assignment.sha(assignment_path)
-    if task['kind']=='score-family':
+    if task.get('placement_kind',task['kind'])=='score-family':
         expected=assignments['assignments'][f"{task['family']}|{task['seed']}"]
         if expected['node'] not in doc['nodes']:raise snapshots.Pending('assigned scoring node unavailable')
         if doc['nodes'][i]!=expected['node']:return dict(status='NOT_THIS_SLOT',task=task['id'])
     elif not assigned_task(task,i,n):return dict(status='NOT_THIS_SLOT',task=task['id'])
     if not a.standin:
         assignment.require(assignment.platform.node()==doc['nodes'][i],'node-slot hostname differs before staging')
-        if task['kind']=='score-family':score_index=__import__('kit.m2_gpu',fromlist=['gpu_index']).gpu_index(expected['uuid'])
+        if not doc.get('resource_policy') and task['kind']=='score-family' and not task.get('execution_phase'):
+            __import__('kit.m2_gpu',fromlist=['gpu_index']).gpu_index(expected['uuid'])
+    if task.get('execution_phase') in ('gpu','publish'):
+        return run_staged(a,task,doc,assignments,assignment_sha,termination)
+    stage_task=task if task.get('execution_phase')=='stage' else None
+    if stage_task:task=task['payload']
+    failed=Path(a.local_root)/task['id']/'gpu-result.json'
+    recovery=stage_task and failed.exists() and (json.loads(failed.read_text())['result']!=0 or json.loads(failed.read_text())['interrupted'])
+    if stage_task and not recovery and (Path(a.local_root)/task['id']/'staged.json').exists():
+        try:
+            pointer=snapshots.read_pointer(a.durable,stage_task['id'],completed=True)
+            return dict(status='SKIP',task=stage_task['id'],snapshot=pointer['sha256'])
+        except snapshots.Pending:pass
     preflight=doc.get('node_preflight_tasks',{}).get(doc['nodes'][i])
     if preflight and task['id']!=preflight:
         try:
@@ -333,7 +392,7 @@ def _run_task(a,termination=None):
     replacements={'out':str(out),'local':str(root),'durable':str(a.durable),'kit':str(Path(__file__).resolve().parent),
         'python':sys.executable,**{'input_'+k:v for k,v in inputs.items()}}
     canonical[str(out)]='stage://'+task['id']
-    if task['kind']=='score-family':replacements['score_gpu']='0' if a.standin else score_index
+    if task['kind']=='score-family':replacements['score_gpu']='0' if a.standin else expected['uuid']
     else:replacements['score_gpu']=task.get('score_gpu','0')
     def argument(value):
         value=str(value).format_map(replacements)
@@ -346,11 +405,21 @@ def _run_task(a,termination=None):
                 materialize(Path(result),dependencies=dependencies,replica_root=Path(a.local_root)/'.replicas',durable=a.durable)
                 return result
         return value
+    if not a.standin and task.get('family') in ('core','reprobe','x-tier1') or not a.standin and task.get('family','').startswith('x-tier2.'):
+        from kit.lane_evidence import clear_view
+        if stage_task and task['kind']=='score-family':clear_view(out)
+    if not stage_task and (out/'lane-evidence').exists():
+        from kit.lane_evidence import materialize
+        materialize(out)
     commands=[[argument(arg) for arg in cmd] for cmd in task.get('commands',[task.get('command')])]
     snapshots.atomic(root/'dependencies.json',dependencies)
     snapshots.atomic(root/'path-map.json',path_map)
     snapshots.atomic(root/'canonical-roots.json',canonical)
     env=dict(os.environ)
+    from kit.v6_infra import identity
+    seal=identity()
+    if seal:env['M2_INFRA_AUTHORITY_SHA256']=seal
+    if not resources(stage_task or task)['gpus']:env['CUDA_VISIBLE_DEVICES']=''
     env.pop('M2_PATH_MAP',None);env.pop('M2_CANONICAL_ROOTS',None)
     env.update(CUDA_DEVICE_ORDER='PCI_BUS_ID',HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1',TRANSFORMERS_OFFLINE='1',M2_ASSIGNMENT=str(target),
         PYTHONPATH=str(Path(__file__).resolve().parents[1]),M2_PATH_MAP_FILE=str(root/'path-map.json'),
@@ -363,18 +432,51 @@ def _run_task(a,termination=None):
         env['M2_TECHNICAL_STANDIN']='1'
         for command in commands:
             if len(command)>1 and command[1].startswith(str(Path(__file__).resolve().parent)+'/') and '--standin' not in command:command.append('--standin')
+    if stage_task:
+        # Only CPU staging materialises the complete lane before GPU admission.
+        lane=None
+        if resources(task)['gpus']==1:
+            from kit.m2_lane import plan,stage
+            previous=dict(os.environ)
+            try:
+                os.environ.update(env)
+                if recovery and not a.standin:
+                    failed_proof=json.loads(failed.read_text()).get('scoring_assignment') or {}
+                    old_job=failed_proof.get('allocation_job')
+                    if old_job:
+                        import shutil
+                        scratch=out/'.lane-parts'
+                        if scratch.exists():shutil.rmtree(scratch)
+                        for path in out.rglob('*.json'):
+                            if 'lane-evidence' in path.relative_to(out).parts:continue
+                            try:value=json.loads(path.read_text())
+                            except (OSError,ValueError):continue
+                            if not isinstance(value,dict):continue
+                            proof=value.get('assignment') or (value.get('inputs') or {}).get('assignment') if isinstance(value.get('inputs',{}),dict) else value.get('assignment')
+                            if isinstance(proof,dict) and proof.get('allocation_job')==old_job:path.unlink()
+                lane=plan(commands,out,task,a.standin);stage(lane,a.standin)
+            except __import__('kit.p3a_common',fromlist=['NotReady']).NotReady as error:raise snapshots.Pending(str(error)) from error
+            finally:
+                os.environ.clear();os.environ.update(previous)
+            snapshots.atomic(root/'lane-commands.json',lane)
+        if task['kind']!='score-family' and not a.standin:
+            for command in commands:
+                if Path(command[1]).stem=='m2_stage' and '--action' in command and command[command.index('--action')+1]=='x-stage-check':continue
+                termination.spawn(command,env=dict(env,M2_EXECUTION_PHASE='stage',CUDA_VISIBLE_DEVICES=''),start_new_session=True)
+                result=termination.wait()
+                if result==3:raise snapshots.Pending('CPU training preparation pending')
+                if result:raise ChildCrash('CPU training preparation failed')
+        context=dict(task=task,commands=commands,lane=lane,prepared_work={str(p.relative_to(root)):assignment.sha(p) for p in (root/'.gpu-work').glob('*.json') if not p.name.endswith('.done.json')},gpu_skip=task['kind']=='train-stage' and not a.standin and not list((root/'.gpu-work').glob('*.json')),env={k:v for k,v in env.items() if k.startswith(('M2_','HF_','TRANSFORMERS_')) or k in ('CUDA_DEVICE_ORDER','PYTHONPATH')},parents=parents,parent_complete=parent_complete,
+            origins=origins,refresh_from=refresh_from,dependencies=dependencies,assignment=assignment_sha,
+            launch=assignment.sha(frozen),node=doc['nodes'][i],stage_task=stage_task['id'])
+        snapshots.atomic(root/'staged.json',context)
+        if recovery:snapshots.atomic(root/'retry-ready.json',dict(previous_result=assignment.sha(failed)))
+        ready=root/'ready';snapshots.atomic(ready/'ready.json',dict(task=task['id'],assignment=assignment_sha,context=assignment.sha(root/'staged.json')))
+        pointer=snapshots.publish(ready,a.durable,stage_task['id'],parents=parents,assignment=assignment_sha,complete=True)
+        return dict(status='COMPLETE',task=stage_task['id'],snapshot=pointer['sha256'])
     leases=[]
-    if task['kind'] in ('train-stage','score-family') or task.get('uses_gpu'):
-        mode=fcntl.LOCK_SH if task['kind']=='score-family' else fcntl.LOCK_EX
-        lease=(Path(a.local_root)/'.allocation.lock').open('a');leases.append(lease)
-        try:
-            fcntl.flock(lease,mode|fcntl.LOCK_NB)
-            if task['kind']=='score-family':
-                lease=(Path(a.local_root)/('.gpu-'+expected['uuid']+'.lock')).open('a');leases.append(lease)
-                fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        except BlockingIOError:
-            for lease in leases:lease.close()
-            raise snapshots.Pending('allocation/GPU busy; partner must supply sbatch dependencies')
+    devices=allocated_gpus(task,a.standin,expected if task['kind']=='score-family' else None)
+    leases=gpu_leases(a.local_root,devices)
     if task['kind']=='collect':capture_preflights(out,a.durable,doc,a.standin)
     started=time.monotonic();child=None;finished=False
     assignment.require(termination is not None,'early TERM controller required')
@@ -408,6 +510,9 @@ def _run_task(a,termination=None):
         if task.get('binding_sha256'):assignment.require(binding_sha==task['binding_sha256'],'task binding changed')
         try:
             snapshot_started=time.monotonic()
+            if (out/'lane-evidence').exists():
+                from kit.lane_evidence import clear_view
+                clear_view(out)
             pointer=snapshots.publish(out,a.durable,task['id'],parents=parents,
                 binding=binding_sha,assignment=assignment_sha,complete=finished and not interrupted and not unresolved and all(parent_complete.values()) and result==0,origins=origins,refresh_from=refresh_from,dependencies=dependencies,parent_complete=parent_complete,partial_inputs=task.get('partial_inputs',False))
             snapshots.atomic(Path(a.durable)/'timings'/task['id']/(pointer['sha256']+'.json'),dict(task=task['id'],snapshot=pointer['sha256'],
@@ -425,6 +530,134 @@ def _run_task(a,termination=None):
     __import__('shutil').rmtree(root/'inputs',ignore_errors=True)
     __import__('shutil').rmtree(out,ignore_errors=True)
     return dict(status='COMPLETE',task=task['id'],snapshot=pointer['sha256'])
+
+
+def run_staged(a,task,doc,authority,assignment_sha,termination):
+    """Consume a CPU-staged local tree; CPU follow-up alone publishes full bytes."""
+    key=task['workspace_task'];root=Path(a.local_root)/key;out=root/'out'
+    try:
+        old=snapshots.read_pointer(a.durable,key,completed=True)
+        return dict(status='SKIP',task=task['id'],snapshot=old['sha256'])
+    except snapshots.Pending:pass
+    if not (root/'staged.json').exists():raise snapshots.Pending('CPU staging missing on this host; requeue staging first')
+    context=json.loads((root/'staged.json').read_text());payload=context['task']
+    assignment.require(context['assignment']==assignment_sha and context['launch']==assignment.sha(Path(a.durable)/'launch.json') and
+        context['node']==doc['nodes'][slot(a.node_slot)[0]] and payload==task['payload'],'staged job identity changed')
+    staged=snapshots.read_pointer(a.durable,context['stage_task'],completed=True)
+    assignment.require(staged['assignment']==assignment_sha,'staging assignment changed')
+    ready=json.loads((root/'ready/ready.json').read_text())
+    assignment.require(ready['context']==assignment.sha(root/'staged.json'),'staged context changed')
+    for name,checksum in context.get('prepared_work',{}).items():assignment.require(assignment.sha(root/name)==checksum,'prepared training plan changed')
+    env=dict(os.environ,**context['env']);result_path=root/'gpu-result.json'
+    if task['execution_phase']=='gpu':
+        if result_path.exists():
+            previous=json.loads(result_path.read_text())
+            if previous['result']==0 and not previous['interrupted']:return dict(status='SKIP',task=task['id'])
+            if not a.standin:
+                retry=root/'retry-ready.json'
+                if not retry.is_file() or json.loads(retry.read_text())['previous_result']!=assignment.sha(result_path):raise snapshots.Pending('requeue CPU staging before a fresh complete GPU lane retry')
+        expected=authority['assignments'][f"{payload['family']}|{payload['seed']}"] if payload['kind']=='score-family' else None
+        devices=allocated_gpus(task,a.standin,expected);leases=gpu_leases(a.local_root,devices)
+        env.update(CUDA_VISIBLE_DEVICES=','.join(devices),M2_EXECUTION_PHASE='gpu')
+        if len(devices)==1 and not a.standin:
+            env.update(KIT_LANE_JOB=__import__('uuid').uuid4().hex,M2_ASSIGNED_GPU_UUID=next(iter(devices.values())),
+                M2_ALLOCATION_PROOF=str(root/('allocation-'+str(time.time_ns())+'.json')))
+        commands=__import__('copy').deepcopy([] if context.get('gpu_skip') else context['lane']['commands'] if context.get('lane') else context['commands'])
+        checks=[c for c in commands if len(c)>1 and Path(c[1]).stem=='m2_stage' and '--action' in c and c[c.index('--action')+1]=='x-stage-check']
+        commands=[c for c in commands if c not in checks]
+        for command in commands:
+            for flag in ('--gpu','--gpus','--teacher-gpu','--score-gpu'):
+                if flag in command:command[command.index(flag)+1]=','.join(devices) if flag not in ('--score-gpu',) else next(iter(devices))
+            if len(command)>1 and Path(command[1]).stem=='m2_run' and '--action' in command and command[command.index('--action')+1]=='targets':command+=['--teacher-gpu',','.join(devices)]
+        if len(devices)==1 and commands and not a.standin:
+            from kit.lane_pool import invocation
+            commands=[invocation(commands,root/'lane-attempts'/str(time.time_ns()))]
+        start=time.monotonic();result=0 if not commands else 3;finished=False
+        try:
+            from kit.m2_node_preflight import probe_allocated
+            proof=probe_allocated(devices,authority,context['node'],a.standin)
+            snapshots.atomic(out/'preflight'/('gpu-'+key+'.json'),dict(status='PASS',gpus=proof,assignment=assignment_sha,technical_synthetic=a.standin))
+            scoring_proof=None
+            if expected:
+                observed={k:proof[0][k] for k in ('node','uuid','environment')} if not a.standin else expected
+                scoring_proof=dict(assignment_sha256=assignment_sha,family=payload['family'],seed=payload['seed'],**observed)
+                if not a.standin:scoring_proof.update(allocation_job=env['KIT_LANE_JOB'],historical_assignment=expected)
+            for command in commands:
+                if termination.interrupted:break
+                try:termination.spawn(command,env=env,start_new_session=True)
+                except OSError as error:raise ChildCrash('failed to start GPU child') from error
+                result=termination.wait()
+                if result:break
+            finished=True
+        finally:
+            for lease in leases:lease.close()
+            if termination.child is not None and not termination.quiescent:raise ChildCrash('GPU child termination unconfirmed; CPU publication refused')
+            if expected and not a.standin and Path(env['M2_ALLOCATION_PROOF']).exists():
+                scoring_proof=json.loads(Path(env['M2_ALLOCATION_PROOF']).read_text())
+            snapshots.atomic(result_path,dict(result=result if finished else 4,interrupted=termination.interrupted,
+                commands=commands,seconds=time.monotonic()-start,uuids=list(devices.values()),quiescent=True,
+                scoring_assignment=scoring_proof if 'scoring_proof' in locals() else None))
+        if termination.interrupted or result in (3,75):raise snapshots.Pending('GPU task pending/interrupted; CPU follow-up may preserve partial state')
+        if result==2:raise assignment.Unverified('UNVERIFIED: GPU child refused identity')
+        if result:raise ChildCrash('GPU child failed; CPU follow-up must preserve partial state')
+        return dict(status='COMPLETE',task=task['id'],native_local=True)
+    env.update(CUDA_VISIBLE_DEVICES='',M2_EXECUTION_PHASE='publish')
+    if not result_path.exists():raise snapshots.Pending('GPU task has not exited; no CPU publication yet')
+    env.update(M2_GPU_RESULT_FILE=str(result_path),M2_GPU_RESULT_SHA256=assignment.sha(result_path))
+    saved_proof=json.loads(result_path.read_text()).get('scoring_assignment') or {}
+    if saved_proof.get('allocation_job'):env['KIT_LANE_JOB']=saved_proof['allocation_job']
+    result=json.loads(result_path.read_text());assignment.require(result['quiescent'],'GPU child still writing')
+    if result['result']==0 and not result['interrupted']:
+        for command in (context.get('lane') or {}).get('reducers',[]):
+            termination.spawn(command,env=env,start_new_session=True)
+            if termination.wait():raise snapshots.Pending('CPU lane reduction pending')
+        if payload['kind']=='train-stage' and not a.standin and not context.get('gpu_skip'):
+            for command in context['commands']:
+                if Path(command[1]).stem=='m2_stage' and '--action' in command and command[command.index('--action')+1]=='x-stage-check':continue
+                termination.spawn(command,env=env,start_new_session=True)
+                if termination.wait():raise snapshots.Pending('CPU training finalization pending')
+        from kit.m2_train import finish_exports
+        previous=dict(os.environ)
+        try:
+            os.environ.update(env)
+            finish_exports(out)
+        finally:
+            os.environ.clear();os.environ.update(previous)
+        for command in context['commands']:
+            if len(command)>1 and Path(command[1]).stem=='m2_stage' and '--action' in command and command[command.index('--action')+1]=='x-stage-check':
+                termination.spawn(command,env=env,start_new_session=True)
+                if termination.wait():raise snapshots.Pending('CPU stage completion check pending')
+    if result['result']==0 and not result['interrupted'] and not a.standin and payload['kind']=='score-family' and (payload.get('family') in ('core','reprobe','x-tier1') or payload.get('family','').startswith('x-tier2.')):
+        from kit.lane_evidence import archive
+        archive(out,key,payload['family'],payload['seed'])
+    complete=result['result']==0 and not result['interrupted'] and completed_outputs(out,payload)
+    snapshots.atomic(out/'execution'/(key+'.json'),dict(task=key,assignment=assignment_sha,result=result['result'],
+        child_wall_seconds=result['seconds'],gpu_uuids=result['uuids'],technical_synthetic=a.standin,gpu_hours=None))
+    termination.publishing=True
+    binding_sha=assignment.sha(out/'binding.json') if (out/'binding.json').exists() else payload.get('binding_sha256')
+    pointer=snapshots.publish(out,a.durable,key,parents=context['parents'],binding=binding_sha,assignment=assignment_sha,
+        complete=complete,origins=context['origins'],refresh_from=context['refresh_from'],dependencies=context['dependencies'],
+        parent_complete=context['parent_complete'],partial_inputs=False)
+    # This small CPU-published receipt makes the GPU row's completion durable.
+    snapshots.atomic(root/'gpu-receipt/result.json',result)
+    snapshots.publish(root/'gpu-receipt',a.durable,key+'-gpu',parents={context['stage_task']:staged['sha256']},assignment=assignment_sha,complete=complete)
+    if not complete:raise snapshots.Pending('partial GPU state published; requeue identical GPU task')
+    if payload.get('commit_barrier'):publish_barrier(a.durable,payload,out,pointer,assignment_sha)
+    __import__('shutil').rmtree(out)
+    return dict(status='COMPLETE',task=key,snapshot=pointer['sha256'])
+
+
+def watched_task(a):
+    task=next(t for t in load_manifest(a.manifest)['tasks'] if t['id']==a.task)
+    if resources(task)['gpus'] and not a.standin and not os.environ.get('UTIL_WATCH_ACTIVE'):
+        root=Path(a.local_root)/task.get('workspace_task',task['id'])
+        command=[sys.executable,'-I',str(Path(__file__).resolve()),*sys.argv[1:]]
+        code=subprocess.run([sys.executable,'-I',str(Path(__file__).with_name('util_watch.py')),
+            '--out',str(root/'utilisation'/(str(time.time_ns())+'.jsonl')),'--',*command]).returncode
+        if code==3:raise snapshots.Pending('GPU task pending')
+        if code:raise ChildCrash('watched GPU task failed')
+        return dict(status='COMPLETE',task=task['id'])
+    return run_task(a)
 
 
 def capture_preflights(out,durable,manifest,standin=False):
@@ -513,7 +746,7 @@ def main():
             freeze_manifest(a.manifest,a.durable)
             print('FROZEN launch and scoring assignment');return 0
         assignment.require(a.task is not None,'one explicit task selector required')
-        result=run_task(a);print(json.dumps(result,sort_keys=True));return 5 if result['status']=='NOT_THIS_SLOT' else 0
+        result=watched_task(a);print(json.dumps(result,sort_keys=True));return 5 if result['status']=='NOT_THIS_SLOT' else 0
     except ChildCrash as exc:print('CRASH:',exc);return 4
     except snapshots.Pending as exc:print('PENDING:',exc);return 3
     except (assignment.Unverified,ValueError,FileNotFoundError) as exc:print(str(exc));return 2

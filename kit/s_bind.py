@@ -109,7 +109,7 @@ def job(a):
     require(set(reg['panel_inventory']) <= set(panels), 'missing evaluation panel inventory')
     bind(a.out/'binding.json', dict(spec=spec, sources=read(a.sources), source_checks=sources,
         identities=identities, panels=panels, message2_sha256=sha(a.message2/'binding.json'),
-        registration_sha256=sha(RESOURCE), technical_synthetic=a.standin))
+        registration_sha256=sha(RESOURCE), infrastructure_checker=sha(ROOT/'kit/v6_infra.py'), infrastructure_update=__import__('kit.v6_infra',fromlist=['identity']).identity(), technical_synthetic=a.standin))
     print('Screen S bound: 12 stages, 7 incoming checkpoints; code frozen')
 
 

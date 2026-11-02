@@ -1,0 +1,1356 @@
+{
+  "files": [
+    {
+      "new_sha256": "3dc117417cb9ee466e7b512f76f777eed73caf34a468db2a08e10f7715adb170",
+      "path": "kit/c_targets.py",
+      "pinned_sha256": "1f99b605978611e8365267caca886321826d2913ccff17279b78f5703cb4361e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3dc117417cb9ee466e7b512f76f777eed73caf34a468db2a08e10f7715adb170",
+      "path": "kit/c_targets.py",
+      "pinned_sha256": "ca909566e5c097ad9f70219de051ce5d52c6f67502fe3f8bf03f4970e25b8f8a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1551b0d295fee0d237a7e4eaddea7df771c4096d48eb6471b2202bd0da6163bd",
+      "path": "kit/combined_dryrun.py",
+      "pinned_sha256": "c4ff6d80a56ef79b09c4d41537820a1daa57109d372627bfcfbf04af96e6788f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "6ec723a99703c1e2d037e6404671808e80a845575c728de4af06899bb82a3067",
+      "path": "kit/combined_preflight.py",
+      "pinned_sha256": "a273e3822ccfbe1aea30f3c5ca4a54bf0f5a8ff0350dce1da47eb1049b75fcfd",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f3abea26404711355f93755664ee7ec0a4a25b9f376f0c6164f39ecbb37e64e9",
+      "path": "kit/combined_send.py",
+      "pinned_sha256": "07f3f511386c4a4b0838ccf878b4600b4972bd0548e0cdceee99295412b82a97",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "d6e3454427654e8bb6044230fa7da3e3ed7b2590aa81f61da1c1991876b3bf4a",
+      "path": "kit/eval_bed.py",
+      "pinned_sha256": "95dd5a44fe299f25359b50ec267ecec494c5bd1153e8aff8f8f612562c0879ef",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "d6e3454427654e8bb6044230fa7da3e3ed7b2590aa81f61da1c1991876b3bf4a",
+      "path": "kit/eval_bed.py",
+      "pinned_sha256": "a4ca95de25f9e363f1f77bbe2310cc42c05f4f7b59469a53ee065c45d92eb49c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "d6e3454427654e8bb6044230fa7da3e3ed7b2590aa81f61da1c1991876b3bf4a",
+      "path": "kit/eval_bed.py",
+      "pinned_sha256": "d08bf12e5d5ba8ad49d3985e3af12f613f14f3f9c25bc008d9934c3ecba355d5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "d6e3454427654e8bb6044230fa7da3e3ed7b2590aa81f61da1c1991876b3bf4a",
+      "path": "kit/eval_bed.py",
+      "pinned_sha256": "e57656e55c04e109214170b2fb7ffd09e39f6a5f17e1c0a98f6d84bcf4107bba",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "d6e3454427654e8bb6044230fa7da3e3ed7b2590aa81f61da1c1991876b3bf4a",
+      "path": "kit/eval_bed.py",
+      "pinned_sha256": "f9b66ccbb0ff15028d4fcdaab744f8680af6f55185426cb34de7a6a784cc109d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "09f31c643d3faee6d9994e2409dfb480f0d6cb988a8b4dbf88547d81f3997922",
+      "path": "kit/hellaswag_reference.py",
+      "pinned_sha256": "2e18acd1f79ee96b9cdbfd551a31bf1175df52904c15442c6938249d3e7fa45a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "09f31c643d3faee6d9994e2409dfb480f0d6cb988a8b4dbf88547d81f3997922",
+      "path": "kit/hellaswag_reference.py",
+      "pinned_sha256": "9892a516f957a86169face53769e8dfb77497257fa3b1b60904694395e09a999",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "cc055bbc98de907a6522ff31349f05e5d59ceaa6a6fb0796856f0da518b0fb3b",
+      "path": "kit/hints.py",
+      "pinned_sha256": "544f950f710f29c28382aa193d31a2e28b9f4cd2f6601bfd28e31f8e587fd663",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "a79abeaa52f2b96caa64369454f1feb789d2ca7da9ad0baaaf6105eb6a49844d",
+      "path": "kit/inference_lifecycle.py",
+      "pinned_sha256": "9502f4110f08ee92baf2b69e26a5613799a8ac187a33bf366698f356bb9367a6",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "a79abeaa52f2b96caa64369454f1feb789d2ca7da9ad0baaaf6105eb6a49844d",
+      "path": "kit/inference_lifecycle.py",
+      "pinned_sha256": "dd6dd4401aaf8270969d43061a58ba520afd99f35b7ca8fccde41239ecdb9470",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "e17d6e9eb57741d8367e9d8e119a15a3825b5d7d238cf360a214c48c92321125",
+      "path": "kit/jobs/combined/run-task.sh",
+      "pinned_sha256": "077ec42cc9c7390fa910ebbc604a93662bb8bbb01e3f434ede6f852137733f4f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "a125f6899936b2ad1237572bb79a79c68e88c245fed40c311ae771c54eb70ff6",
+      "path": "kit/jobs/message3/run-task.sh",
+      "pinned_sha256": "fe324a94bd2305fd28acfe7f2c9d01816963dc2d63a6b7a02ed248adbacaa325",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "898995b5103d9e2917d29f17740a51a7e8b92b751d201eb8a1939932e6b3a57c",
+      "path": "kit/likelihood_validation.py",
+      "pinned_sha256": "3fdfad6174d0c4f12a1d1bc9da3a280eeea2567d367f6bb44796386cd49ea5ae",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "6c7f17dafb52796c2d78a6efc1c9919950220c6965c25a7f5a463366c683fbae",
+      "path": "kit/m2_assignment.py",
+      "pinned_sha256": "61fc1fa888fd73431008b01bdf54d4586d8c9681d5b7b684a13174632f19b68a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "6c7f17dafb52796c2d78a6efc1c9919950220c6965c25a7f5a463366c683fbae",
+      "path": "kit/m2_assignment.py",
+      "pinned_sha256": "7770d7993bafda47b056f91994198d4d9d61d1b54363e51b29bb43be81498ed5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "6c7f17dafb52796c2d78a6efc1c9919950220c6965c25a7f5a463366c683fbae",
+      "path": "kit/m2_assignment.py",
+      "pinned_sha256": "8ed028a4bc829bda0622256094e05c6b52ae0904bde255b6696dbce439dd88c2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "bdd6fd03dea61f40d5029a833cfaa2a21724d363c5f4ffd608403b527340eded",
+      "path": "kit/m2_collect.py",
+      "pinned_sha256": "20e8165b7ba93013fa964db11b3b829fe947e7c9203df6e780e1e4155c0dcd1d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "bdd6fd03dea61f40d5029a833cfaa2a21724d363c5f4ffd608403b527340eded",
+      "path": "kit/m2_collect.py",
+      "pinned_sha256": "894cb9d263cb3aedd117fc34444627cdda3537d4f125bbc7b28ff80a4d2dfce7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "bdd6fd03dea61f40d5029a833cfaa2a21724d363c5f4ffd608403b527340eded",
+      "path": "kit/m2_collect.py",
+      "pinned_sha256": "c613cb5b247af60f44677a958deaf43ab942976c6442e118882e01b5981b9c1b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "bdd6fd03dea61f40d5029a833cfaa2a21724d363c5f4ffd608403b527340eded",
+      "path": "kit/m2_collect.py",
+      "pinned_sha256": "d7f79a8d3eba7b01731d8398e62c1c75d6d0d0db88f2f410751f54709738b2e0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "272d7ac2eae16d4fc1729a10f5c03792ecc15ca7932c1839079a310f23ab02c2",
+      "path": "kit/m2_common.py",
+      "pinned_sha256": "06e522b37522e2570914df3c7102cfcd1d4649f19328f273b1b34be1839aed9b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "272d7ac2eae16d4fc1729a10f5c03792ecc15ca7932c1839079a310f23ab02c2",
+      "path": "kit/m2_common.py",
+      "pinned_sha256": "2ebadb12a0214e879599d6b84591db8d3bd44534268f9a158a09e7f68e5be69e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "272d7ac2eae16d4fc1729a10f5c03792ecc15ca7932c1839079a310f23ab02c2",
+      "path": "kit/m2_common.py",
+      "pinned_sha256": "a9b0943a031381ca7563c476912a2785e73d8d58f12fec3add28bb6c61b6e5fb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "272d7ac2eae16d4fc1729a10f5c03792ecc15ca7932c1839079a310f23ab02c2",
+      "path": "kit/m2_common.py",
+      "pinned_sha256": "fefd3350712fb5e5b75a19c3804e7f16c065b0bc7703d76ded35c799c027178b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "e69046a4756f382a2b010b04856827617710c7157980a650659193026c0be6ac",
+      "path": "kit/m2_format.py",
+      "pinned_sha256": "7c7524c0887ad643a15f59848e83f74f8c950dea0907dbfa54160f6b5b713b2f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "e69046a4756f382a2b010b04856827617710c7157980a650659193026c0be6ac",
+      "path": "kit/m2_format.py",
+      "pinned_sha256": "a63f23c7bf5b175dbf3d7367244f73a5758f8c1c058409a2ca2f8f5a9da77f27",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "e69046a4756f382a2b010b04856827617710c7157980a650659193026c0be6ac",
+      "path": "kit/m2_format.py",
+      "pinned_sha256": "e86c7bf1306af60a191dc1a3885c73f5bad555c9f0881163a2baedd566987d24",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f631d1fc8438eb9e8f1eb42bbad1e0c22f7dd78aa9a3e562328ce96e26337dfa",
+      "path": "kit/m2_gpu.py",
+      "pinned_sha256": "3611cff14db4e338e683909e1759f31d21478ac73ecd9aaee0c2029d93a7e7f9",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f631d1fc8438eb9e8f1eb42bbad1e0c22f7dd78aa9a3e562328ce96e26337dfa",
+      "path": "kit/m2_gpu.py",
+      "pinned_sha256": "c541b0482a224d76ed5716e7beb7a87ff6383491047f958fda2059f30be20b0a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2fe1349601a0c575c36a1960072d220fb13fd80308f4a09dff52f6d34c397ba4",
+      "path": "kit/m2_manifest.py",
+      "pinned_sha256": "1273046d83f9d30c6b07e30f365ad25097b83d5583784d88071ecc5164be6ada",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2fe1349601a0c575c36a1960072d220fb13fd80308f4a09dff52f6d34c397ba4",
+      "path": "kit/m2_manifest.py",
+      "pinned_sha256": "7775130e1a65291341959000d902d1652b7e1a39eedc892cf65d2792174aa93b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2fe1349601a0c575c36a1960072d220fb13fd80308f4a09dff52f6d34c397ba4",
+      "path": "kit/m2_manifest.py",
+      "pinned_sha256": "d2189b0a7a16c37970b7736be74f4628e5435805153eef700eaf42086df76749",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "549941cfe96a3505c3d16e55e4802cfe63141dc3d4d3047c6e7a5e03b18d799c",
+      "path": "kit/m2_node.py",
+      "pinned_sha256": "81e226fd23c80614a96e1ddf5533e9d60fea45b511da2cdc0b19ca5b31ff9902",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "549941cfe96a3505c3d16e55e4802cfe63141dc3d4d3047c6e7a5e03b18d799c",
+      "path": "kit/m2_node.py",
+      "pinned_sha256": "82c7bc3bab6dedb42916a86be12c4bea934dee08bf71b0ee08084fece5b677fb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "549941cfe96a3505c3d16e55e4802cfe63141dc3d4d3047c6e7a5e03b18d799c",
+      "path": "kit/m2_node.py",
+      "pinned_sha256": "a380e1a8df60a0f6dda78be968c57778b1d523cf1f3422d54fa5cca5426f2b0c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f40ba057fccb8ff9ac8eb210b3fbe95a60d507b9ee951e1d23c4276f9d68dfc",
+      "path": "kit/m2_node_preflight.py",
+      "pinned_sha256": "5116f3f36a8b1e2c16ef84d95ea58a44d6149f4f7d07443f3f82d73fb295d5f8",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f40ba057fccb8ff9ac8eb210b3fbe95a60d507b9ee951e1d23c4276f9d68dfc",
+      "path": "kit/m2_node_preflight.py",
+      "pinned_sha256": "cf8e9ceb919ac1c04ba4ca3649c7205fb42a0e36e08566220e5fd396d0e70dc7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "32e38b05b20f5e9403fffaaa05633eb3275abe148c2ae8b2ab7e7502b7115b75",
+      "path": "kit/m2_read.py",
+      "pinned_sha256": "3fd6cb38a545ef120634367b7a2e1afd9f3b4f144ecf5fd98bb9878b6e78dbf1",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "32e38b05b20f5e9403fffaaa05633eb3275abe148c2ae8b2ab7e7502b7115b75",
+      "path": "kit/m2_read.py",
+      "pinned_sha256": "c67204d545f19ecce830b67c47f8f4462dfbb5fda3e5e627494e171fb7361714",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "32e38b05b20f5e9403fffaaa05633eb3275abe148c2ae8b2ab7e7502b7115b75",
+      "path": "kit/m2_read.py",
+      "pinned_sha256": "dcc2974473b0288b2fa347c102fa3582d178ce1254484e7571058a92872b08f6",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "32e38b05b20f5e9403fffaaa05633eb3275abe148c2ae8b2ab7e7502b7115b75",
+      "path": "kit/m2_read.py",
+      "pinned_sha256": "de34deb732a2bd3feb9a113da90a368cc8b3d3cde4b255303fd783d8d499a23a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "509dc064c7d3ad0d1bdb78e2e8366eccd4aff72d4e850eec6a5ce56036ecbf2b",
+      "path": "kit/m2_rescore.py",
+      "pinned_sha256": "58f365ac8a8a493c5b1241e21931ac3edd902dcff7ec65f9f363b372f0b7c77f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "509dc064c7d3ad0d1bdb78e2e8366eccd4aff72d4e850eec6a5ce56036ecbf2b",
+      "path": "kit/m2_rescore.py",
+      "pinned_sha256": "70735f08dedfc522fa3c1d3be5e9af48ded0b486c3941afa998285293bde81e0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "509dc064c7d3ad0d1bdb78e2e8366eccd4aff72d4e850eec6a5ce56036ecbf2b",
+      "path": "kit/m2_rescore.py",
+      "pinned_sha256": "ad6a8ed6044c49655a84ac2e83d955254faed54e5304c5782839418088705865",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "978b35b9627ddd13c8fa3d036f2765d2ed22bcba110ca80d7aed4962f942ef78",
+      "path": "kit/m2_run.py",
+      "pinned_sha256": "6d8702f38cfca867fcf7be5ec69e47bb54403b28e9d2c5ca1915aa92afd6f359",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "978b35b9627ddd13c8fa3d036f2765d2ed22bcba110ca80d7aed4962f942ef78",
+      "path": "kit/m2_run.py",
+      "pinned_sha256": "6e0317bae8471f403ba68bb2e1f40eb85c2d28cf8dff340a8c9fa1daba3df9db",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3bd5fa466101ac0e677f51b94102df313935aa96bfc1bd91261c4cc8136c6f32",
+      "path": "kit/m2_runtime.py",
+      "pinned_sha256": "3af337a7d74195a31f6d74039402bfb6848f842e08ea8c8bdd2732ed7f4fbdf8",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "23b54235ccfbd40a3c1752da23eff76f70cf6bc8aa3c13d0734137d2d438f8e9",
+      "path": "kit/m2_score.py",
+      "pinned_sha256": "097371b99568dc8a8c22ef51c45ea0fdd3383bf55cc3a47056578618b3acbc1e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "23b54235ccfbd40a3c1752da23eff76f70cf6bc8aa3c13d0734137d2d438f8e9",
+      "path": "kit/m2_score.py",
+      "pinned_sha256": "4925ec6dc68f46aa0f2ff82c1a4db6f33c5a37ef623961fed98d2ca31ef29c2d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "23b54235ccfbd40a3c1752da23eff76f70cf6bc8aa3c13d0734137d2d438f8e9",
+      "path": "kit/m2_score.py",
+      "pinned_sha256": "58e1a6ab4b4b5550331b416781ab14f04fcb4493b73e547f01a30ceb40a5d8c4",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "23b54235ccfbd40a3c1752da23eff76f70cf6bc8aa3c13d0734137d2d438f8e9",
+      "path": "kit/m2_score.py",
+      "pinned_sha256": "fe80eb14c625750deae1413c82cc650898960034fa75604390be5f21d418e650",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b55d685975fe17e6d692d2f94b35e67e3230c008d734f11990b6b5b2f0163101",
+      "path": "kit/m2_stage.py",
+      "pinned_sha256": "e647ea546a349fb2aef7b687f570e70b5b97ae40e0d0488742bbf6b6d59059db",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b55d685975fe17e6d692d2f94b35e67e3230c008d734f11990b6b5b2f0163101",
+      "path": "kit/m2_stage.py",
+      "pinned_sha256": "e7fb4c0b1773fd2f49cac6f56b4e4927f63d6a0c87e0c1e6482fa064575f7198",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "257155e76acf35a9827b77df3785af9678f0e392b10c0fad8555317a3eaed189",
+      "path": "kit/m2_targets.py",
+      "pinned_sha256": "fe07c128956e4f3359fde661c5aef45ea81d6bce0cbaf7660b65687952c37b24",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "03c09359a94973ef1925d213f5c55c147b4ccdcdd14c4a6ca45edfa3c8a7e122",
+      "path": "kit/m2_train.py",
+      "pinned_sha256": "691ab8cd425b0f30d54c7faaa3e3e1846bd4d813b012f953cf173a76f8dab016",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "03c09359a94973ef1925d213f5c55c147b4ccdcdd14c4a6ca45edfa3c8a7e122",
+      "path": "kit/m2_train.py",
+      "pinned_sha256": "9d28bf5b91aead28e3a076fd251cb2feef87e786e2dcf64ea79bc1b4acd5e390",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "03c09359a94973ef1925d213f5c55c147b4ccdcdd14c4a6ca45edfa3c8a7e122",
+      "path": "kit/m2_train.py",
+      "pinned_sha256": "c1ee42ad354189ca44f0a7122855c916425190d9b0579f8feb3ff3cac070b9f1",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b74b667abf9e598edb86ffa17dcade4dc346e85cc387e6de2f8cd361ebfe43d5",
+      "path": "kit/m3_manifest.py",
+      "pinned_sha256": "1b172611b341cf43c42b96307525723f3ac299ca61b4f5f1a0d61e3706380ae7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b74b667abf9e598edb86ffa17dcade4dc346e85cc387e6de2f8cd361ebfe43d5",
+      "path": "kit/m3_manifest.py",
+      "pinned_sha256": "4f029e446a6322125eb798d38fb91002516698ecccb5812381203ea94d2e6241",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "decaf136a5ff63d4ea01f1dbd827f30c1cefd714aa9278b2312b21285082ddac",
+      "path": "kit/m3_pools.py",
+      "pinned_sha256": "88c478465c0da19623d6d23219e764f68ad5b42561d665c45424de6de3f6102b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "decaf136a5ff63d4ea01f1dbd827f30c1cefd714aa9278b2312b21285082ddac",
+      "path": "kit/m3_pools.py",
+      "pinned_sha256": "b38c504415f7a47e8ce2a27b47698d26ee9a8afdcfda039f8abb4ddb114521e4",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b429a18af025295477faf4fa5a83b35b11c51ab137284335e3ac6f61cc91e10",
+      "path": "kit/m3_read.py",
+      "pinned_sha256": "51037f545e2e2f34e1fe7786a3affe26d06f19332a310736d532e2d2f642940a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b429a18af025295477faf4fa5a83b35b11c51ab137284335e3ac6f61cc91e10",
+      "path": "kit/m3_read.py",
+      "pinned_sha256": "a63b0f42087aad9ddb62b682865b83b4e4afdfdef83c8ca53904b2ba6e9694fb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b429a18af025295477faf4fa5a83b35b11c51ab137284335e3ac6f61cc91e10",
+      "path": "kit/m3_read.py",
+      "pinned_sha256": "a9c006f484dfe952c7a76c588ab38d85bd03e8d129077ec1ef51a8e44a1c004b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "98cafcf2bf4b804d6117e2928207664b898dd014092dade3e5a98aa69714893d",
+      "path": "kit/m3_score.py",
+      "pinned_sha256": "55d71b3b34d9339b8d6b6d7ef4876a352ccbe42477eca173e3422d6454467446",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "98cafcf2bf4b804d6117e2928207664b898dd014092dade3e5a98aa69714893d",
+      "path": "kit/m3_score.py",
+      "pinned_sha256": "86ba0820ed20a68b98a4765383b23f1de17a465bd13bfa0c35261c4f92f52c7b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "05615b208316aa3013e1e3b055dd5b9f625b83d4235c3dd57e7412c15eb9c4b9",
+      "path": "kit/m3_train.py",
+      "pinned_sha256": "8ad4d9470fcb3bed679d8a06819c7f7a2565312c919c3669924e1ae574638f0a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "05615b208316aa3013e1e3b055dd5b9f625b83d4235c3dd57e7412c15eb9c4b9",
+      "path": "kit/m3_train.py",
+      "pinned_sha256": "bc938bdaa4d669c4d63f49878e9c01d0b3581d6d1d6d50809f4a67d8ed95a2ae",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "0b911503a8f1e8bde733c82473152e379d4dd2b47fcfdef0b3b401f8c1138a69",
+      "path": "kit/next_common.py",
+      "pinned_sha256": "4bfaa27b07c38cf9c0bcb004c4b7b00df1d8a1db0bc9456341171714f5a4c43d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "0b911503a8f1e8bde733c82473152e379d4dd2b47fcfdef0b3b401f8c1138a69",
+      "path": "kit/next_common.py",
+      "pinned_sha256": "a73066d5fd703be1d97254c6205ca8d62823a513059be723bb9f97d41872d0a2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "0b911503a8f1e8bde733c82473152e379d4dd2b47fcfdef0b3b401f8c1138a69",
+      "path": "kit/next_common.py",
+      "pinned_sha256": "f6430e0b265682f73d31fcbcd070f06f17dc78bd7fa0173ff70bc85ba6e47a88",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b92b3cb7dae1c093054b07df6a2b5f8f2383222005866d70cb8f4f8535549bc1",
+      "path": "kit/next_pools.py",
+      "pinned_sha256": "1bce91ac28fdcf4e458c3e72a62e99848e2e433164fedacad9b54c90674e5e11",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b92b3cb7dae1c093054b07df6a2b5f8f2383222005866d70cb8f4f8535549bc1",
+      "path": "kit/next_pools.py",
+      "pinned_sha256": "54e43a69718cbd189cf1e6af64f5da3cdff5f725bafbf398dee3ae182826887b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b92b3cb7dae1c093054b07df6a2b5f8f2383222005866d70cb8f4f8535549bc1",
+      "path": "kit/next_pools.py",
+      "pinned_sha256": "59b3ff18d0658b20824385292fef469454c881d596364cf2ac7a5e0c2c157acd",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b92b3cb7dae1c093054b07df6a2b5f8f2383222005866d70cb8f4f8535549bc1",
+      "path": "kit/next_pools.py",
+      "pinned_sha256": "a0469392bb1180808f098fac781861bb5b6ede5a31ac007f0ac1304a2c8e4227",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b92b3cb7dae1c093054b07df6a2b5f8f2383222005866d70cb8f4f8535549bc1",
+      "path": "kit/next_pools.py",
+      "pinned_sha256": "b33afab186f76ae231cc1a4bce4b3a15bbc2ddf0084f8fb1d6dca6041a331420",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "4e33e8a6c63538b490678ba8895d7aa4ccb89199625000f8798bd1b1e843dbff",
+      "path": "kit/next_read.py",
+      "pinned_sha256": "124fb5692306e6fddbbfb085e0a6f48a7f551548afc677233b48fcfbdaff987a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "4e33e8a6c63538b490678ba8895d7aa4ccb89199625000f8798bd1b1e843dbff",
+      "path": "kit/next_read.py",
+      "pinned_sha256": "34979780eb6b71d3a548f5a27c7b42c916bc14d74232c4e819d2b088c710cd96",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "4e33e8a6c63538b490678ba8895d7aa4ccb89199625000f8798bd1b1e843dbff",
+      "path": "kit/next_read.py",
+      "pinned_sha256": "704c1c8915e85ecc77ef9a69721cc1cb100e681d355019b47ac937235cde8d68",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "37fb4ea611612ccb295cc61968676548d36c5b72f16e91d10d75d58b7be41045",
+      "path": "kit/p3a_common.py",
+      "pinned_sha256": "042285bb8a2283f17d1c7b2fde0b3ae3e27cdbe6075445f40ea4bd93ff283cec",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "37fb4ea611612ccb295cc61968676548d36c5b72f16e91d10d75d58b7be41045",
+      "path": "kit/p3a_common.py",
+      "pinned_sha256": "1e8c9cc4f32d56026f23feae196d91eca331c649fb4fce610f7e7b3bcfbd48e0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "37fb4ea611612ccb295cc61968676548d36c5b72f16e91d10d75d58b7be41045",
+      "path": "kit/p3a_common.py",
+      "pinned_sha256": "29c204aa9be2e05a00e54ffc5481cf2d227a84b81fa5810ad590ec0169408f81",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "37fb4ea611612ccb295cc61968676548d36c5b72f16e91d10d75d58b7be41045",
+      "path": "kit/p3a_common.py",
+      "pinned_sha256": "9815a354c1db339a920055959a35cddbe94546d201c2553aa10c5f7627ebcdb2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "37fb4ea611612ccb295cc61968676548d36c5b72f16e91d10d75d58b7be41045",
+      "path": "kit/p3a_common.py",
+      "pinned_sha256": "c8b58a4b9ae27c93767e4da97a9d0a2d27c23b53542e394526636cf7a2c9d698",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "cb670f10d4ff239f70abb50685bd0e9247e2a9d076be9e7105633dc7f479da20",
+      "path": "kit/p3b_read.py",
+      "pinned_sha256": "505ced966992bd37f9f7aa95049327aefd08a2c60eef5f795321414980314231",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "cb670f10d4ff239f70abb50685bd0e9247e2a9d076be9e7105633dc7f479da20",
+      "path": "kit/p3b_read.py",
+      "pinned_sha256": "ba48c49dda3148ec930181d564a9f780f1e1873f4745f17ab370d7f86807a517",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "c2d243da289e2dcc540c0cded4925e17129475e24e70cdb6af367d6e2177903b",
+      "path": "kit/p3b_score.py",
+      "pinned_sha256": "0838040181465f8fa69409c99b474ff12a0267c2687f217276f27438a1eb1eb2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "c2d243da289e2dcc540c0cded4925e17129475e24e70cdb6af367d6e2177903b",
+      "path": "kit/p3b_score.py",
+      "pinned_sha256": "41578941d174d31ecc7a2809077fdb28f14582e7a76ef327b4ade777355c6309",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "c2d243da289e2dcc540c0cded4925e17129475e24e70cdb6af367d6e2177903b",
+      "path": "kit/p3b_score.py",
+      "pinned_sha256": "7545626e476a592f2755949c63ca4314e280b8496f2ad0ee3e79708c21cc205d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "c2d243da289e2dcc540c0cded4925e17129475e24e70cdb6af367d6e2177903b",
+      "path": "kit/p3b_score.py",
+      "pinned_sha256": "e03dc4d65574e8a35df11be5c8d89cf817fa9ad16d195b8c0c6b0e32fc2022ee",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3934a11406ec2d6e357c5fe06b0b0b1b19d14b6dbebf55e9173d1c6f99b05d1d",
+      "path": "kit/p_replace.py",
+      "pinned_sha256": "071b36d76ffa6a65e99499fae1459a6d6d5fb462b1bdf92b98dad47528fcdeaa",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3934a11406ec2d6e357c5fe06b0b0b1b19d14b6dbebf55e9173d1c6f99b05d1d",
+      "path": "kit/p_replace.py",
+      "pinned_sha256": "4f1d31b95d120b71972c6ff4302290f242fd5258d9f59d88c26b2b58f18b9448",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3934a11406ec2d6e357c5fe06b0b0b1b19d14b6dbebf55e9173d1c6f99b05d1d",
+      "path": "kit/p_replace.py",
+      "pinned_sha256": "b6bb0765addf8bc7b73d12b41bd74711d359fdcab23badae12f91408356e9c83",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2ac732c1ef508d378ec50eb44e56fa51964171c6afdd2ba2ea7c5c7b4c41441b",
+      "path": "kit/pd_node.py",
+      "pinned_sha256": "c246434d894f4ece7af2e43415c781ffcc1de2b6f22468b5905eeb22f9379f6a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "7ee2bf4fe81371c1177e26c41eaa0e54aa829d28bd22d1f699afc1c8ba626fc5",
+      "path": "kit/ref_guard.py",
+      "pinned_sha256": "e502e4a0991c218587451a079cff1f8974999f5c88f3faaed248c7f4576f61cf",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "a39c7e13a4208c0c3cb0f8f1aef89442a04be227021aa13a8b502ba387b819e0",
+      "path": "kit/repair/make_targets.py",
+      "pinned_sha256": "0377b6870a981251f6120cfcb25604abd7d268b1f869d501308106b9c2a86447",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "31bc45b8b3da710648c7eece72842e760057c5851d13085e7d8e9a1c4b4fc963",
+      "path": "kit/report_text.py",
+      "pinned_sha256": "ce1233a3f71b614c2025502207307993605fb216fa48bcffd9f68b602c90ae22",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "31bc45b8b3da710648c7eece72842e760057c5851d13085e7d8e9a1c4b4fc963",
+      "path": "kit/report_text.py",
+      "pinned_sha256": "d17c3aeacda529ca1dc9c53ff0264929c4f9a02fd00ec1ea70c7cfcf91b3bf2d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3c50505412bfec0b9df04eabd88e6d364c95185bf2dcedbbf0d522dcb5ba8db9",
+      "path": "kit/s_bind.py",
+      "pinned_sha256": "0d89130cadd9dc5079fd3acd008f785a06621f2a52c87f28f65b3e06cc3d49d3",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3c50505412bfec0b9df04eabd88e6d364c95185bf2dcedbbf0d522dcb5ba8db9",
+      "path": "kit/s_bind.py",
+      "pinned_sha256": "5a6d586640fae3a8a1ac632a9414325bb615c36232108572a3a5a7d51227b146",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3c50505412bfec0b9df04eabd88e6d364c95185bf2dcedbbf0d522dcb5ba8db9",
+      "path": "kit/s_bind.py",
+      "pinned_sha256": "d8db85d418b2deee778b27168102f1428846988952bfb1ae73bf0f1967a755c2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "3c50505412bfec0b9df04eabd88e6d364c95185bf2dcedbbf0d522dcb5ba8db9",
+      "path": "kit/s_bind.py",
+      "pinned_sha256": "da454b5463813780f7f3dd4d0b9095fd249ddfe32b2118a1d7292cf790c011f4",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "670b9b3d7af3c6221489abbf7cb3bf8561846f4b9dd7117112b880921bfd1f0d",
+      "path": "kit/s_common.py",
+      "pinned_sha256": "94f62b4ef8656f26b08c20fff95a7472708129d5d3215af11ccdadad87add7ef",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "670b9b3d7af3c6221489abbf7cb3bf8561846f4b9dd7117112b880921bfd1f0d",
+      "path": "kit/s_common.py",
+      "pinned_sha256": "9a3fa7f355c69bc22701565921ab43896a124f06dfa8f4e4f79755034e491b75",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "670b9b3d7af3c6221489abbf7cb3bf8561846f4b9dd7117112b880921bfd1f0d",
+      "path": "kit/s_common.py",
+      "pinned_sha256": "c93b9b210279d58b126de5df42f1418d150dddf1488cbbe7437a959d9ae7b3a9",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "670b9b3d7af3c6221489abbf7cb3bf8561846f4b9dd7117112b880921bfd1f0d",
+      "path": "kit/s_common.py",
+      "pinned_sha256": "e08672ffc6d28e62855e53db149c7680feadec3fb7e0f47d3d9f011f5b8a7ed7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f354fbce49d7ecad899b1765cec567c5ce17909a6ab41ca1925d1cb0e7fd8d9",
+      "path": "kit/s_drift.py",
+      "pinned_sha256": "3ad56ad6db0192e088b2e7fd7976c5f5d7a885481db1d2fdac38680ebef717e0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f354fbce49d7ecad899b1765cec567c5ce17909a6ab41ca1925d1cb0e7fd8d9",
+      "path": "kit/s_drift.py",
+      "pinned_sha256": "b7a09d88422af3546de9b048285b82bd110d1ca8d41748719e5bff6b087a3b45",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "71aad7ea24866fd75bfe6c6155486f87319b8804cead968708529149d5560364",
+      "path": "kit/s_generate.py",
+      "pinned_sha256": "03dfd31db3f32b09cc24b31cdaa1d198a7081bd4896c0a95526302833efe83a5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "71aad7ea24866fd75bfe6c6155486f87319b8804cead968708529149d5560364",
+      "path": "kit/s_generate.py",
+      "pinned_sha256": "ce8fc3acd524fc6597c45fda68e779f3366b146a57f1d6c0323d21c767e1b7a3",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2b092eab9b98b8c6755782aedd4b772bd63e9aed28f951434a212914c9b9d066",
+      "path": "kit/s_probe.py",
+      "pinned_sha256": "957702daa14d515bfce922cb735c248099ffb9d3c90e6ba70780066292c201cf",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2b092eab9b98b8c6755782aedd4b772bd63e9aed28f951434a212914c9b9d066",
+      "path": "kit/s_probe.py",
+      "pinned_sha256": "9cb9c3d753e761576ef7d5af024a64c92e9d0a60e73dba26f5edffe15bd84dbe",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2b092eab9b98b8c6755782aedd4b772bd63e9aed28f951434a212914c9b9d066",
+      "path": "kit/s_probe.py",
+      "pinned_sha256": "cf88d11baa57ee005cf79e1e89072ea782c181faf6b0ca64753094d805d44f5f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "487e0a2f5a25358110fb935a02ce148b72c5819a2eff060d65463f52160dbda3",
+      "path": "kit/s_probe_train.py",
+      "pinned_sha256": "3ddb7a6ddf0829344ba53f7138b36bc9235fde7dcf38c402583effb1dbedba63",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fdde43bd1716e530d2e0f5faf1d8c9cc1262afceea4ae234940c95ace8b37b0",
+      "path": "kit/s_score.py",
+      "pinned_sha256": "654ee7d3edce86bce49c586e84fafad8b875e62e3627d7cc6588576737f11367",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fdde43bd1716e530d2e0f5faf1d8c9cc1262afceea4ae234940c95ace8b37b0",
+      "path": "kit/s_score.py",
+      "pinned_sha256": "b318f355bca5a11b4bdfe3f0e680f847157d2acd680cd815f71f456dbe8bb3b4",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fdde43bd1716e530d2e0f5faf1d8c9cc1262afceea4ae234940c95ace8b37b0",
+      "path": "kit/s_score.py",
+      "pinned_sha256": "d065fe24b2ae6e0a7622624649aca5fbeb5784bca437a7518f81ee910dd0ab83",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b7b721677518931e758141548cae760ba227add8999aa4cf4c2f2aa0ac2d8fb",
+      "path": "kit/score_forgetting.py",
+      "pinned_sha256": "30c8d1f44cff85da90248e91e629016261c46071f9341be1b0246fb25d65aec5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b7b721677518931e758141548cae760ba227add8999aa4cf4c2f2aa0ac2d8fb",
+      "path": "kit/score_forgetting.py",
+      "pinned_sha256": "a81423506a1bea4a64b5c5445ce181068e58751f2f7cd65c7b0dc7523eb6bbfd",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "9b7b721677518931e758141548cae760ba227add8999aa4cf4c2f2aa0ac2d8fb",
+      "path": "kit/score_forgetting.py",
+      "pinned_sha256": "ea8ce37088fce4884ade000b3a70ca2d93574285b18c4dde965862c29bda6d53",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "4435323cb5bad3e6df5203b086294b4c3019b0024cfde556a79de03c5f651c97",
+      "path": "kit/sp_manifest.py",
+      "pinned_sha256": "b7711321e1883631f0e9b4a331fcb9a4d752ca4a3b52807d5f0698f0d1b32815",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f1a56a8299bc0a68c816107ea027fb854d1ade49cb5ad206d678bc4591d59cbc",
+      "path": "kit/sp_prepare.py",
+      "pinned_sha256": "67c20e6416b7f1e2dd000976b8d26123a9e72cb852274c1f45c7823634c2581c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f1a56a8299bc0a68c816107ea027fb854d1ade49cb5ad206d678bc4591d59cbc",
+      "path": "kit/sp_prepare.py",
+      "pinned_sha256": "e4e91c06597056b65a698327812c90783dcaf44781b8a67f5f0ef4b032b57b84",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8053a487488396d3f9a46163ccf377d7d15aa74b64c6596310616612ab9e229d",
+      "path": "kit/sp_read.py",
+      "pinned_sha256": "8933ee905fb1eb6cf87017db5a530197e10e22e9802e8da135595265ff798a4d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b0bd0beaf9f2c68234409ba5c0ca3ad5a948ca20769cd363378542ae1b7cec0a",
+      "path": "kit/sp_score.py",
+      "pinned_sha256": "c25e7789c633aeb35c59d7db75846c17eb788ffd2a7e80f69ea64bdbefcc8b0c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "b0bd0beaf9f2c68234409ba5c0ca3ad5a948ca20769cd363378542ae1b7cec0a",
+      "path": "kit/sp_score.py",
+      "pinned_sha256": "c5404f2585eb780a05c972251ddc361846e0cc90efeeeb114001aa17408121f2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "652a57583778dd4c108aad305431982867e112dee79db35e38a3e1f5caa27705",
+      "path": "kit/text_return.py",
+      "pinned_sha256": "024d0bdcdeaa384803d865028fb2102a40a029b8147e3f3a0edf1754a34e1033",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "652a57583778dd4c108aad305431982867e112dee79db35e38a3e1f5caa27705",
+      "path": "kit/text_return.py",
+      "pinned_sha256": "4fadcd624ffb87ab6a872c4229a52c54a837f6c27fcb480eb1c8fc8b99585773",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "652a57583778dd4c108aad305431982867e112dee79db35e38a3e1f5caa27705",
+      "path": "kit/text_return.py",
+      "pinned_sha256": "c40541a00c3f84f8915fc88959d6c48898b98045e4ba1527be69027ead9a970e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "53fc45a2797135e47162bf2a9643cf2bf3ea5db4b9dab1bc2edfd71b2eb1d097",
+      "path": "kit/v4_teacher.py",
+      "pinned_sha256": "518a7f633d6810755e62c4096c243a75af3568fb1d45f7dff401d8dbab3aad5f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "53fc45a2797135e47162bf2a9643cf2bf3ea5db4b9dab1bc2edfd71b2eb1d097",
+      "path": "kit/v4_teacher.py",
+      "pinned_sha256": "79959168df23dc93101dcdf2ae747e655718c11ad22b41f3c77b26be49d19bdb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "53fc45a2797135e47162bf2a9643cf2bf3ea5db4b9dab1bc2edfd71b2eb1d097",
+      "path": "kit/v4_teacher.py",
+      "pinned_sha256": "930f3c497b9921ef52ffb10f77256b442a82f887d49dca8ed74aa3ce45c0300b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "53fc45a2797135e47162bf2a9643cf2bf3ea5db4b9dab1bc2edfd71b2eb1d097",
+      "path": "kit/v4_teacher.py",
+      "pinned_sha256": "df2566ce8283948cf1b764c74e44d3a147203afbafca4a69a95752d3bdb57b02",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "53fc45a2797135e47162bf2a9643cf2bf3ea5db4b9dab1bc2edfd71b2eb1d097",
+      "path": "kit/v4_teacher.py",
+      "pinned_sha256": "fcb004e71787054dd3d61e62ffc9fa0efbb28673fad4ceefd7b2509827a4e7ea",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "2398994fa865c4d431e6f3c577393ec00ab9888799ee74920d762e903fd5d9da",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "32824c11d202bf670d65cf3f0e4126d5963bb21cf0f9afc6a5760b151d0b2f83",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "5e8a5dd8e1a90056fd09e79fae8b6a3f96dac38e5ae53d48b3a04ed8a58e3e5d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "80422027051f1f882680d72d20deb4f11fa3efc4d4ec38d494c6d95e010e5897",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "84048a66039b1f65db6960437f26cd84e8f84c572c251871b62910f93f931e13",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "89cb04c53ea718bc5022f0e9e7cf90242e5eae8ce5f8d0913b927ffb8c455213",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "9422d4dfb3190305afd215d61a04acb30837ee2edaaf9445d6a31032e01ecc52",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "997052f482ed6a0ae2e0880741f2d741d68f7c2f2226de8f49937bd447409867",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "a8cd06ecbf5f99bfc2757923b3bbc3153b6a2a8ce00bfa7f860057ec7aae0176",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "f73a47e24eb30241b1e8e803217c0da36be33f925a1e52ee5676ef697bcfb94f",
+      "path": "kit/x_collect.py",
+      "pinned_sha256": "c176a58f84e0436c02a45575199fa8185259d061b59f852d12a4cba069b5739f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "3bd84af2403219a61ce3d5186255f19e6f146053e0c3f4095229f9031d8e959a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "9bc805c3a587cf8f1a398c6db201dd26a94b3db83a6d64497ca268f443e7523b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "ac5d8e7430444936a337ed8fb5e0a64eadc027f931c8965fb287674b257e4c09",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "c8cf5bf481725d392efc3eb7e4050fb35a19a15028a71780dc45ea158da1b4a0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "d4e7a8381dde7950a25b7802a77a08218caa866cd5ef228f7c9149189ae8489a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "452e9256f884419e874f8611ad2904cab0ff0d58accf20ad3a8fea165340a1ef",
+      "path": "kit/x_common.py",
+      "pinned_sha256": "e188c28c3949c3abf99094e88a9c48f47044fd74fcbb44ae66659298ebd88602",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "218174061510b86f3c71dbf407193d9b8c868e35fed6217344e0ffcb58154538",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "32610ac44ad2daa844ca8fd7f29f4bfa8b48dc36b526132f9fdce4e758200521",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "35d792adbac4c040be83f25af46d26d676d3882d14a32c4bc4d18b3588bd05a8",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "3b57073199e50dcebbf737eac53a5644f2cc09bd8a6f7bb9aeb6174542c8219a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "3ee86488c3c6e13a6615517396e9b5f2791c05dae0985af9a8df0e5f130a313f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "7c303a683d51a33ae43a78bb868034fb1ca5fdbc35d7d6fc1df5dcc5b6fa105a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "e99e477a157b974b07bed2af9cb78f25cbcf97d97d2e0422754b0683d583bc31",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "ee16e88f153cc796cd7d816ce871511ba6d2b4ef3625252dcea8465069aa5d14",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "8e9f474d3c5a4a522fec4cbcd3b88e1d8b31e256ae8aad3dcca034cdd12a8718",
+      "path": "kit/x_p.py",
+      "pinned_sha256": "f078a4255dea2a0d7d42faeebb54150d1842cd2992cef8755c3ba569efe55ebb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ea192ec53bc9e35ce97821bd0228c375edf53f64fa11d3944f7bc8601c3d084b",
+      "path": "kit/x_p2_feasibility.py",
+      "pinned_sha256": "1f9a2a68c87f69a5a555dbf7a0c8f0dc77e3b879aa28b4cd911dc3bc2a56047a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ea192ec53bc9e35ce97821bd0228c375edf53f64fa11d3944f7bc8601c3d084b",
+      "path": "kit/x_p2_feasibility.py",
+      "pinned_sha256": "44ff3e301cc82cdbf07ef5ef98a44939002e5d271c19afada72bbd0c3ce04517",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ea192ec53bc9e35ce97821bd0228c375edf53f64fa11d3944f7bc8601c3d084b",
+      "path": "kit/x_p2_feasibility.py",
+      "pinned_sha256": "5801b53efa0e948f635d5088a273c7ad8339256427cb8b798ddd9d599d1596af",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ea192ec53bc9e35ce97821bd0228c375edf53f64fa11d3944f7bc8601c3d084b",
+      "path": "kit/x_p2_feasibility.py",
+      "pinned_sha256": "845864324f4a57f39a479ea203ae4c02f0a5129f381f4a950fd3de0bc1131b40",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ea192ec53bc9e35ce97821bd0228c375edf53f64fa11d3944f7bc8601c3d084b",
+      "path": "kit/x_p2_feasibility.py",
+      "pinned_sha256": "a4ff5c6bd5382a89f7a654820b98c4d7a41bb3875bba023f8a0385aa76282d3d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ad7aae9a13d692c4228135e47208ba4e1cd2b20e363d7c9f3c0c36a9cbd72022",
+      "path": "kit/x_p2_measure.py",
+      "pinned_sha256": "08cff8e4346125159688bfe676147328fe21af40d4b24de1e6a8772bea432d03",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ad7aae9a13d692c4228135e47208ba4e1cd2b20e363d7c9f3c0c36a9cbd72022",
+      "path": "kit/x_p2_measure.py",
+      "pinned_sha256": "2f2cd34d31a4f220a350f8a2d0cd61ec7ea83eb0e4447c8f25c6071a2ed9d641",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ad7aae9a13d692c4228135e47208ba4e1cd2b20e363d7c9f3c0c36a9cbd72022",
+      "path": "kit/x_p2_measure.py",
+      "pinned_sha256": "6c7b1abe351887436c72d6d724ae31bbfcdc0d2d7d4840f4e6dde447ef8f9c61",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "ad7aae9a13d692c4228135e47208ba4e1cd2b20e363d7c9f3c0c36a9cbd72022",
+      "path": "kit/x_p2_measure.py",
+      "pinned_sha256": "7b77ebf42882b47455df336a16507936edbc92b6939610db0c5ba179fd3e37b7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "0af4c190ab833d329d0d4a17d9726be874b8bd2a4ae6fbd738c040d9fc9b8c9e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "141d8c621ca8546cf19c444f2060d3187d73a123c9b0c8ce258710fff0c0d2c2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "17b870970c69e9a698d43bc8a77cc9a87f4cdd03412d14b95f5b6621388cea52",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "36922064dbe6742d1d8b8808a461b012986aca6ee815f653d70037c3ea9a46ac",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "60caace76fc775f538789a633a183f5af018175a002d7265259bbf05ab34d85e",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "638e9df7225385aa5d21139df8d13f6623771ce81152e0f9aa98039ba7d033c8",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "727011c789f59ad4e14daebdccb81b1491e0b422a665dc19cf9d052c9948554c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "79323a45c4c5c5c1924a26dfc8c8836117f2a06e1c8a0fa83f54fd08d593cff5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "970f2db7cb9204d25ff8145304376bce8daecdb9cebb56bf81cc7e2a6b4752db",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "892042f5cde9ddaf41ba920c71b36f53ef27da969967d1d352a756745944040c",
+      "path": "kit/x_read.py",
+      "pinned_sha256": "c5dbd5dc48295bd758581660ed417f4ae63cd659deeec462bb94cf0afb1a551f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "97b9fd2bab9206bc504f69af0fa3672cd07495f2cd537620494a526e840784bd",
+      "path": "kit/x_references.py",
+      "pinned_sha256": "7909427ce701d3bbb318cb2b61c555ae70da93864e5431eda628e602126e3567",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "97b9fd2bab9206bc504f69af0fa3672cd07495f2cd537620494a526e840784bd",
+      "path": "kit/x_references.py",
+      "pinned_sha256": "a9e0def00c52480623d47da42f116d5d4b45e0d55b6a258b57d9b01c5381ca5f",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "97b9fd2bab9206bc504f69af0fa3672cd07495f2cd537620494a526e840784bd",
+      "path": "kit/x_references.py",
+      "pinned_sha256": "aaf6809b888366fc6f7aaeba4a31c1d7e1fd7ab5be6149acaf85f8b577aa98ff",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "542f3e06ad80681ae2c7814fff930eb8f6af2a4cb82dd523d1762c3762c31c64",
+      "path": "kit/x_run.py",
+      "pinned_sha256": "61396520c8b323b78aceba42c18c0cd0b8706aaa4addd1228450b1ae48796ed0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "542f3e06ad80681ae2c7814fff930eb8f6af2a4cb82dd523d1762c3762c31c64",
+      "path": "kit/x_run.py",
+      "pinned_sha256": "82e3df9e19e0022a6f2c8cea2385701511536935bfc827faf60435de6fea69f3",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "542f3e06ad80681ae2c7814fff930eb8f6af2a4cb82dd523d1762c3762c31c64",
+      "path": "kit/x_run.py",
+      "pinned_sha256": "9d823768864fd6ef0fa136e592f9021fb6c04f29209a6e91d983f5fabc6736de",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "542f3e06ad80681ae2c7814fff930eb8f6af2a4cb82dd523d1762c3762c31c64",
+      "path": "kit/x_run.py",
+      "pinned_sha256": "bb079821d29d420afb32b57253149f91689edc8bc25362270af901f2a0ffaa4b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "542f3e06ad80681ae2c7814fff930eb8f6af2a4cb82dd523d1762c3762c31c64",
+      "path": "kit/x_run.py",
+      "pinned_sha256": "cb1af97eea2ae5b3cde1e91e11d5d1e72c23a7cd825445d3df3d4bee321e95a2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "20daf8f7623a771e0741ecdf6d7a8404b5b4a2c16bb1b4ca49b22d7a93c6d030",
+      "path": "kit/x_signal.py",
+      "pinned_sha256": "0d26654e095cf8465e8392a3caca56dfb5afc7bc0ef6559069f533f7649f6fd6",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "20daf8f7623a771e0741ecdf6d7a8404b5b4a2c16bb1b4ca49b22d7a93c6d030",
+      "path": "kit/x_signal.py",
+      "pinned_sha256": "8a62310d181d261d475f43b1f17b338cc4733de86c9da418405fba06d9d0edbb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "20daf8f7623a771e0741ecdf6d7a8404b5b4a2c16bb1b4ca49b22d7a93c6d030",
+      "path": "kit/x_signal.py",
+      "pinned_sha256": "bd2a3055acc61aaac1088fb87a41f3ed1d8eb2ef956fcb67975e25272b07d2f6",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2221981cd502a26bd6caa79d9b0de8eb4fc6f0e7c6f8ac4d3da8534c3b952ea8",
+      "path": "kit/x_smoke_settings.py",
+      "pinned_sha256": "29edd2f309c75b1619a62a1918bfcaafeb3a20e7416f53129d79735a809847b5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2221981cd502a26bd6caa79d9b0de8eb4fc6f0e7c6f8ac4d3da8534c3b952ea8",
+      "path": "kit/x_smoke_settings.py",
+      "pinned_sha256": "a7750121486060c5fb385e38d67ac97625bfdd69c95d21edb81cf03d1ea080b7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2221981cd502a26bd6caa79d9b0de8eb4fc6f0e7c6f8ac4d3da8534c3b952ea8",
+      "path": "kit/x_smoke_settings.py",
+      "pinned_sha256": "fa147ac3eb7762e1f5dba8e4f72ad1f86d388d729c188a22ecfcbb4ce43c47bd",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "2221981cd502a26bd6caa79d9b0de8eb4fc6f0e7c6f8ac4d3da8534c3b952ea8",
+      "path": "kit/x_smoke_settings.py",
+      "pinned_sha256": "fc588cd69777b01f770a4e256608062805abad7606e66e35aae15d7c0fd156d2",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1a118693cae7d09074fff808f4f295c834c44ecdaf6a295eed9f46e97c2dfda2",
+      "path": "kit/x_support.py",
+      "pinned_sha256": "3ecb4d247ac34796d1e472312e7f5f47f6c3185d60e569ddc0928008766ef42b",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1a118693cae7d09074fff808f4f295c834c44ecdaf6a295eed9f46e97c2dfda2",
+      "path": "kit/x_support.py",
+      "pinned_sha256": "6674e06987af4465ddaf3d26e2fe8cbd180346c48e1c7fec4a8f2be20658d4ee",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1a118693cae7d09074fff808f4f295c834c44ecdaf6a295eed9f46e97c2dfda2",
+      "path": "kit/x_support.py",
+      "pinned_sha256": "f247cbb5d925318fff8cd5d03fe538752a151c934aa4292905c628dc02bea35d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fec1abd612d4d5696b6fdc51f6bb6ecd751907dd49aa9ba94353f55abf20d79",
+      "path": "kit/x_tier2_run.py",
+      "pinned_sha256": "11ca51f858bacfe2f790581d47eb7c4d96aac871debdacd2d80a726dbe3fe4ce",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fec1abd612d4d5696b6fdc51f6bb6ecd751907dd49aa9ba94353f55abf20d79",
+      "path": "kit/x_tier2_run.py",
+      "pinned_sha256": "907dc1bb7c7b2fc342e301c817589b883a3d668edbf84754c83985b1b4e62fb4",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fec1abd612d4d5696b6fdc51f6bb6ecd751907dd49aa9ba94353f55abf20d79",
+      "path": "kit/x_tier2_run.py",
+      "pinned_sha256": "cd509f39539a7d954aa7034bcf5285e7d0ba7a9af2ff832daa345679311fad8a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fec1abd612d4d5696b6fdc51f6bb6ecd751907dd49aa9ba94353f55abf20d79",
+      "path": "kit/x_tier2_run.py",
+      "pinned_sha256": "db837220a14328f09d4f9da97546cdd627e62793c26304e83c9f0d5c07a115e7",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5fec1abd612d4d5696b6fdc51f6bb6ecd751907dd49aa9ba94353f55abf20d79",
+      "path": "kit/x_tier2_run.py",
+      "pinned_sha256": "f5e558a453c1d95ef4175f17a0d596f8b8e1122e79982f1e88b72aa25f5087d6",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f5e5f3f22e5a9cbeac546a02b08ae49b251a2db8a721776f963e8fa34597a51",
+      "path": "kit/x_tier2_train.py",
+      "pinned_sha256": "556bcba48ef73ecd33a86561f3ddaa5532ebbe3f3035444f74624196e9593152",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f5e5f3f22e5a9cbeac546a02b08ae49b251a2db8a721776f963e8fa34597a51",
+      "path": "kit/x_tier2_train.py",
+      "pinned_sha256": "6f8c8b40d46701d52f5cfc1506679b901cdc34b7e6803941d1391ae68969bd81",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f5e5f3f22e5a9cbeac546a02b08ae49b251a2db8a721776f963e8fa34597a51",
+      "path": "kit/x_tier2_train.py",
+      "pinned_sha256": "b0053927db83f420bdab0b0351b09959616765d240b4d32a509b2ba2fdeaab91",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f5e5f3f22e5a9cbeac546a02b08ae49b251a2db8a721776f963e8fa34597a51",
+      "path": "kit/x_tier2_train.py",
+      "pinned_sha256": "f53151b408cf2854da804c172ee04923001e2a7969fc81fb8e6286bb2546c054",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "1f5e5f3f22e5a9cbeac546a02b08ae49b251a2db8a721776f963e8fa34597a51",
+      "path": "kit/x_tier2_train.py",
+      "pinned_sha256": "fc412bfda99eb26f244fd196c8505460b82fb429493ca6661117a381b902053c",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "07e2c38c105c5aca0e64af8f27908610860b928d66826380aa2f3a74745a46f5",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "3eb09d8b7f7b893f52174cae1cd4c8a9b224fa5a7ee35e8a070308a7ff5ee049",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "4a6c25ec81552bdaba4509dd507214ad9c3c262fabbb1678c3bcb9465099dfc0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "9419b12ec1132ee5a18e586893f8eeb24bb28c6d8f6911ac59ca09af7d2c6e99",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "bd7415e3eeac5872b1264fd5bab20dcd659a4613d07c03244e00c7cd43cba846",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "ca51e144129152ec8081d21ad095350ff08b61d46acdf9fbb624cfef3b18f6fe",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "e852d3470799184901eafdc2e4f08ecab5a0ca76a2c5f956434e2dd28c5469cb",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "f811c6674f935b6b4992efad85b0dada93b733f9499627f3f87373c55b3ec62d",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "5ca49e24bf6e0913c91303595f9068b5fac9e2c17268c45422f5111a2725b5bd",
+      "path": "kit/x_train.py",
+      "pinned_sha256": "f9d7fe40e79c812e30cb5c1b32521ebfe129daedf0bbfad4b002562527479438",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "044557a25ea525372b299b6e7a17309eb74358f6138356ca08e25b28c849d473",
+      "path": "scripts/publish_kit.py",
+      "pinned_sha256": "42d9de9870126a0d6e30a7c848681721cf3545454553eec4da8f321703da7871",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "044557a25ea525372b299b6e7a17309eb74358f6138356ca08e25b28c849d473",
+      "path": "scripts/publish_kit.py",
+      "pinned_sha256": "9f59446369d88e53df88e4451214354248885d3d734bac8d679d993dd44dc4c0",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "044557a25ea525372b299b6e7a17309eb74358f6138356ca08e25b28c849d473",
+      "path": "scripts/publish_kit.py",
+      "pinned_sha256": "a199bd3105f22f5b7031b36ccea5988e2ad186efd512ae6d6d4d76e1e6cf3b20",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "044557a25ea525372b299b6e7a17309eb74358f6138356ca08e25b28c849d473",
+      "path": "scripts/publish_kit.py",
+      "pinned_sha256": "b92e645d86af4682b4ac335e1b2c380741a27a980a227719d79feba1f2d78c04",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    },
+    {
+      "new_sha256": "044557a25ea525372b299b6e7a17309eb74358f6138356ca08e25b28c849d473",
+      "path": "scripts/publish_kit.py",
+      "pinned_sha256": "dbbedc0edef8c9680686f32b338d5f8cbc6ac24ac9b979a0af46826ef0acd12a",
+      "reason": "Prospective v6 scheduling, resource, handoff and authority infrastructure; scientific definitions unchanged"
+    }
+  ],
+  "schema": "v6-infrastructure-update.v1",
+  "statement": "scientific definitions unchanged"
+}

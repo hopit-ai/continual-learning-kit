@@ -15,6 +15,8 @@ EXCLUDE = {'data','partials','raw','rollouts','validation','sdft','train','sourc
 
 
 def job(a):
+    from kit.lane_evidence import materialize
+    materialize(a.out)
     doc = binding(a.out, a.standin)
     rows, files = load(a.out)
     from kit.m2_assignment import validate_files
@@ -35,7 +37,9 @@ def job(a):
     included = []; bulk = []; omitted_weights = 0
     for path in sorted(a.out.rglob('*')):
         if not path.is_file() or path.is_symlink(): continue
-        name = str(path.relative_to(a.out)); parts = set(path.relative_to(a.out).parts)
+        name = str(path.relative_to(a.out))
+        if name.startswith('lane-evidence/'):continue
+        parts = set(path.relative_to(a.out).parts)
         if path.is_relative_to(exports) or path == a.archive or path.name in ('.lock','collect-complete.json','m2-collect.log'): continue
         # Match B exclusions. Native/merged weights stay on storage; export receipts
         # carry merged model hashes. Bulk scientific text is individually hash-listed.

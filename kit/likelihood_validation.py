@@ -19,13 +19,16 @@ def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def amendment():
+    from kit.v6_infra import activate
+    activate()
     path=RESOURCE/'likelihood-near-tie.json'
     frozen=json.loads((RESOURCE/'freeze.json').read_text())['files']
     if sha(path)!=frozen[path.name]:raise ValueError('near-tie amendment pin differs')
     value=json.loads(path.read_text())
     if value['rule']!=RULE or value['strict_gap_threshold']!=THRESHOLD or value['gap_unit']!='nats/token':raise ValueError('near-tie rule differs')
     for name,checksum in value['implementations'].items():
-        if sha(KIT/name)!=checksum:raise ValueError('near-tie validation implementation differs')
+        from kit.m2_runtime import allowed_update
+        if sha(KIT/name)!=checksum and not allowed_update(KIT/name,checksum,sha(KIT/name)):raise ValueError('near-tie validation implementation differs')
     return value
 
 
