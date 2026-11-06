@@ -219,19 +219,27 @@ def test_sp_report_success_does_not_erase_failed_sidecar(doc):
         assert c.execute(doc,'SP-read',runner=lambda *a,**k:NS(returncode=next(codes)))==7
 
 
-def test_combined_shell_wrapper_invokes_selected_python(tmp_path):
+@pytest.mark.parametrize('holder_slice',[None,'0','1'])
+@pytest.mark.parametrize('gpus',[0,1,8])
+def test_combined_shell_wrapper_invokes_selected_python(tmp_path,holder_slice,gpus):
     import os,subprocess,sys
     capture=tmp_path/'argv.json';shim=tmp_path/'job-python'
     shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nif sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
     shim.chmod(0o755)
     env=dict(os.environ,KIT=str(c.KIT),COMBINED_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
-    c.write(env['COMBINED_MANIFEST'],dict(tasks=[dict(id='M4-101',group='core',gpus=1)],
+    env.pop('UTIL_WATCH_ACTIVE',None)
+    env.pop('UTIL_HOLDER_SLICE',None)
+    if holder_slice is not None:env['UTIL_HOLDER_SLICE']=holder_slice
+    c.write(env['COMBINED_MANIFEST'],dict(tasks=[dict(id='M4-101',group='core',gpus=gpus)],
         settings={k:str(tmp_path/k) for k in ('core_local_root','kcr_root','pd_root','sp_root','control_root')}))
     subprocess.run(['bash',str(c.KIT/'jobs/combined/run-task.sh'),'M4-101'],env=env,check=True)
     args=c.load(capture)
     assert args[:3]==['-I',str(c.KIT/'util_watch.py'),'--out']
     assert Path(args[3]).parent==tmp_path/'control_root/utilisation/core'
-    assert args[4:]==['--expect-gpus','1','--',str(shim),'-I',str(c.KIT/'combined_send.py'),'run','--manifest',env['COMBINED_MANIFEST'],'--task','M4-101']
+    scope=['--expect-gpus',str(gpus)]
+    # v7-fx: one-GPU rows always run the watcher in holder-slice mode.
+    if gpus==1:scope+=['--holder-slice']
+    assert args[4:]==[*scope,'--',str(shim),'-I',str(c.KIT/'combined_send.py'),'run','--manifest',env['COMBINED_MANIFEST'],'--task','M4-101']
 
 
 def test_combined_cli_gate_and_unexpected_errors_have_distinct_codes(doc,monkeypatch):

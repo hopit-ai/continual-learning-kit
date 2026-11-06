@@ -314,6 +314,16 @@ def kit_identity(tag=None, commit=None):
 
 
 def report(inputs, out, *, standin=False, tag=None, commit=None, max_chars=12000, bootstrap=10000, full_detail=False):
+    if inputs.get('_mode')=='nm':
+        family=inputs['family'];result=read(inputs['reading'])
+        if result.get('family',family)!=family:raise ValueError('NM reading family differs')
+        if not standin:
+            from kit.v6_infra import verify
+            verify(inputs['infrastructure_update'])
+        full=dict(nm_family=family,reading=result,infrastructure_authority=inputs['infrastructure_update'])
+        if inputs.get('accounting'):full['accounting']=read(inputs['accounting'])
+        tag,commit=kit_identity(tag,commit)
+        return write_parts(out,full,tag,commit,max_chars=max_chars,full_detail=full_detail)
     from kit.v6_infra import ENV, activate, activate_v6a, bound
     authority=activate_v6a() if inputs.get('_mode')=='v6a' else activate()
     readers={}; out=Path(out)

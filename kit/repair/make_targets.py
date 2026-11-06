@@ -35,9 +35,9 @@ def main(argv=None) -> int:
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     rendered = [render(tokenizer, row["prompt"]) for row in rows]
     if args.backend == "vllm":
-        from vllm import LLM, SamplingParams                                # noqa: PLC0415
+        from vllm import SamplingParams                                # noqa: PLC0415
         sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
-        from kit.inference_lifecycle import engine_kwargs
+        from kit.inference_lifecycle import engine_kwargs, create_llm as LLM
         engine=engine_kwargs(dict(dtype="bfloat16",gpu_memory_utilization=0.85,max_model_len=2048))
         llm = LLM(model=args.model, **engine)
         answers = [o.outputs[0].text for o in llm.generate(rendered, SamplingParams(n=1, temperature=0.0, top_p=1.0, max_tokens=args.max_tokens))]

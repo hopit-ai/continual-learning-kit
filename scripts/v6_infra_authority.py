@@ -181,7 +181,8 @@ def generate(base,root=ROOT,target='HEAD'):
         if actual==pinned:continue
         kind='scorer/reducer' if name in SCORER_FILES else 'scheduling'
         files.append(dict(path=name,pinned_sha256=pinned,new_sha256=actual,classification=kind,pin_sources=sources,
-            reason=('Scheduling/handoff only; scientific definitions unchanged' if kind=='scheduling' else
+            reason=('engine backend/memory configuration; scoring definitions unchanged' if name=='kit/inference_lifecycle.py' else
+                    'Scheduling/handoff only; scientific definitions unchanged' if kind=='scheduling' else
                     'Scorer/reducer orchestration; CPU golden replay and GPU-only sign-off scope: kit/resources/v6/scorer-files.md')))
     doc=validate(dict(schema=SCHEMA,statement='scientific definitions unchanged',base_commit=base,target_commit=target,files=files))
     if uncovered_pins(doc,root,target):raise ValueError('base omits current pin transitions; use the pre-v6 kit release base 68100bf6')

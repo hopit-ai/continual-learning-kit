@@ -125,7 +125,7 @@ def compatible_files(expected,observed,seal=_UNSET):
 
 LANE_CODE=tuple('kit/'+name for name in ('lane_pool.py','lane_evidence.py','util_watch.py','v6_infra.py',
     'm2_assignment.py','m2_gpu.py','ref_guard.py','ref_score_job.py','inference_lifecycle.py',
-    'm3_manifest.py','m3_score.py','sp_manifest.py','sp_score.py'))
+    'm3_manifest.py','m3_score.py','sp_manifest.py','sp_score.py','inference_worker.py'))
 
 
 def runtime_identity():

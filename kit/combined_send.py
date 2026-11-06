@@ -271,7 +271,7 @@ def build_v6a(settings):
                 requires=[] if name.endswith('-ready') else [ident+'-ready'],
                 dependency='afterok',phase='v6a',commands=commands,
                 scoring_ready=task.get('scoring_ready'),
-                command_count=len(commands),lane_concurrency=3 if name==ident else 0,
+                command_count=len(commands),lane_concurrency=2 if name==ident else 0,
                 estimate=price(task,'kcr'),**resources(dict(gpus=int(name==ident)))))
         gpu_rows.append(ident)
     command=[settings['inference_python'],'-I',str(KIT/'ref_score_job.py'),
@@ -353,7 +353,7 @@ def execute(doc, ident, *, runner=subprocess.run):
         env['M2_INFRA_AUTHORITY_SHA256']=doc['infrastructure_update']
     def call(command, pass_fds=()):
         if row['gpus'] and not env.get('UTIL_WATCH_ACTIVE'):
-            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(utilisation_attempt(s,row)), '--expect-gpus', str(row['gpus']), '--', *command]
+            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(utilisation_attempt(s,row)), '--expect-gpus', str(row['gpus']), *(['--holder-slice'] if row['gpus']==1 else []), '--', *command]
             return runner(command, env=dict(env, UTIL_WATCH_ACTIVE='1'), **(dict(pass_fds=pass_fds) if pass_fds else {})).returncode
         return runner(command, env=env).returncode
     if group=='preflight':

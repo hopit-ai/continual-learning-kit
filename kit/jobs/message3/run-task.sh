@@ -14,6 +14,8 @@ fi
 UTIL_ROW=$("${JOB_PY:-python3}" -I -c 'import json,sys,time;doc=json.load(open(sys.argv[1]));print(next(t["gpus"] for t in doc["tasks"] if t["id"]==sys.argv[2]));print(time.time_ns())' "$M3_MANIFEST" "$TASK") || exit 1
 UTIL_GPUS=${UTIL_ROW%%$'\n'*}
 UTIL_ATTEMPT=${UTIL_ROW#*$'\n'}
+UTIL_SCOPE=(--expect-gpus "$UTIL_GPUS")
+if [ "$UTIL_GPUS" = 1 ]; then UTIL_SCOPE+=(--holder-slice); fi
 export UTIL_JOB="$TASK"
-exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$M3_OUT/state/utilisation/$UTIL_ATTEMPT.jsonl" --expect-gpus "$UTIL_GPUS" -- \
+exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$M3_OUT/state/utilisation/$UTIL_ATTEMPT.jsonl" "${UTIL_SCOPE[@]}" -- \
   "${JOB_PY:-python3}" -I "$KIT/m3_manifest.py" "${ARGS[@]}" --score-gpu "${SCORE_GPU:-0}"

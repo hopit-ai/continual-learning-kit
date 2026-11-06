@@ -171,7 +171,8 @@ def run(directory, missing_intermediates=False):
     env={k:v for k,v in os.environ.items() if not k.startswith(('M2_','M3_','KIT_','SLURM_','CUDA_','UTIL_','REF_'))}
     env.update(KIT=str(c.KIT),COMBINED_MANIFEST=str(manifest),JOB_PY=str(shim),
         KIT_V6_AUTHORITY_SHA=authority_sha256(),PATH=str(directory/'bin')+os.pathsep+os.environ['PATH'],
-        CUDA_VISIBLE_DEVICES='0',SLURM_JOB_GPUS='5',SLURM_GPUS_ON_NODE='1')
+        # Match the fake NVML index exactly; holder telemetry refuses remapped ordinals.
+        CUDA_VISIBLE_DEVICES='5',SLURM_JOB_GPUS='5',SLURM_GPUS_ON_NODE='1')
     calls=[]
     def row(ident,scenario='pass',expected=0):
         done=subprocess.run(['bash',str(c.KIT/'jobs/v6a/run.sh'),ident],env=dict(env,V6A_CPU_SCENARIO=scenario),
@@ -223,15 +224,16 @@ def run(directory, missing_intermediates=False):
     assert all(d['gpu_uuids']==[fixture_uuid(directory)] for d in telemetry if d['gpus']==1 and d['telemetry_complete'])
     assert all(d['telemetry_complete'] for d in telemetry if d['gpus']==1 and d['returncode']==0)
     assert all(d['mean_util'] is None for d in telemetry if not d['telemetry_complete'])
-    pools=[c.load(p) for p in (directory/'kcr').rglob('lane.json')]
-    assert {r['K'] for r in pools}=={2,3}
+    pool_files=list((directory/'kcr').rglob('lane.json'))
+    pools=[c.load(p) for p in pool_files]
+    assert {r['K'] for r in pools}=={2}
     assert len(list((directory/'kcr/scoring-jobs/M3-rescore-101').glob('*')))==2
     assert len(list((directory/'kcr/reference-attempts/m3/102').glob('*')))==2
     assert len((directory/'idle-checks.jsonl').read_text().splitlines())==8
     result=dict(rows=len(doc['tasks']),wrapper_calls=len(calls),pending=sum(c['returncode']==75 for c in calls),
         failed=sum(c['returncode']==1 for c in calls),parts=len(parts),KCR=decisions,
-        native_commands=sum(len(p['commands']) for p in pools if p['K']==3 and p['status']=='COMPLETE'),
-        reference_commands=sum(len(p['commands']) for p in pools if p['K']==2 and p['status']=='COMPLETE'),
+        native_commands=sum(len(p['commands']) for path,p in zip(pool_files,pools) if 'scoring-jobs' in path.parts and p['status']=='COMPLETE'),
+        reference_commands=sum(len(p['commands']) for path,p in zip(pool_files,pools) if 'reference-attempts' in path.parts and p['status']=='COMPLETE'),
         unknown_telemetry=sum(not d['telemetry_complete'] for d in telemetry),
         technical_synthetic=True,text_out=str(text_root),calls=calls)
     c.write(directory/'dryrun-result.json',result);return result

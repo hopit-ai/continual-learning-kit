@@ -18,6 +18,14 @@ from kit.p3b_score import write_csv
 from kit.m2_seed_policy import SEEDS as RETURN1_SEEDS
 
 
+@pytest.fixture(autouse=True)
+def restore_rehearsal_environment():
+    # In-process general-panel scorers enable vLLM flags during rehearsals.
+    from unittest.mock import patch
+    with patch.dict(os.environ):
+        yield
+
+
 def args(out, **kw): return NS(out=out,standin=True,**kw)
 
 

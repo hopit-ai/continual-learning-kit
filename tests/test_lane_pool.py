@@ -214,6 +214,7 @@ def test_legacy_repair_generation_uses_same_override_helper(tmp_path,monkeypatch
     import runpy
     from types import SimpleNamespace as NS
     monkeypatch.setenv('KIT_GPU_MEMORY_FRACTION','.42')
+    monkeypatch.delenv('VLLM_BATCH_INVARIANT',raising=False)
     fake=ModuleType('vllm');fake.SamplingParams=lambda **kw:kw;calls=[]
     class Engine:
         def __init__(self,**kw):calls.append(kw)

@@ -21,6 +21,7 @@ import time
 import shutil
 
 from kit import m3_contract as contract
+from kit.m3_mode import confirmation, qualification_seed
 
 STEPS = (0, 10, 20, 30, 40)
 # Builder A's contract owns the interface: data-source tags, reward entry point, receipt/preflight locations.
@@ -31,6 +32,12 @@ OWN_SCHEDULE = {'finqa': 'targets-finqa', 'math_hard': 'targets-math'}
 
 
 def schedule_binding(a, stage, root):
+    if confirmation():
+        from kit.cr_confirmation import task_binding
+        if stage == 'math_hard':
+            from kit.m3_pools import check_math_root
+            check_math_root(a.out / 'targets-math', a.standin)
+        return task_binding(a.out, stage, root)
     if stage in OWN_SCHEDULE:
         require(Path(root).resolve() == (a.out / OWN_SCHEDULE[stage]).resolve(), f'{stage} schedules come only from the tier-built {OWN_SCHEDULE[stage]}')
         value = dict(root=str(root), manifest_sha256=s.file_hash(Path(root) / 'manifest.json'))
@@ -179,6 +186,7 @@ def schedule_path(out, arm, seed, stage):
 
 def audit_coverage(out, stage, seed, built, summaries):
     """The coverage pass must assert all four arms against the immutable shared pass."""
+    if confirmation(): return plan.audit_arms(built, summaries)
     root = schedule_dir(out, stage, 'C0'); frozen_files(root)
     shared_summaries = json.loads((root / 'summaries.json').read_text())
     schedules = dict(built); values = dict(summaries)
@@ -192,7 +200,7 @@ def schedules_job(a):
     """Schedules for the requested stages (4 arms x 3 seeds each), audited and frozen per stage before training.
     Stages 1-2 freeze first; hard MATH freezes separately once its targets exist, so no early stage waits."""
     from kit.m3_pools import load, pool_root, read_panels, parse_specs, task_evidence, SUPERSET
-    arms = list(getattr(a, 'arms', None) or plan.ARMS)
+    arms = list(getattr(a, 'arms', None) or plan.active_arms())
     if set(arms) & {'C0', 'K'} and set(arms) & {'G', 'CR'}:
         from copy import copy
         for group in (['C0', 'K'], ['G', 'CR']):
@@ -223,13 +231,13 @@ def schedules_job(a):
             frozen_files(root)
             if scope in ('G', 'CR'):
                 sums = json.loads((root / 'summaries.json').read_text())
-                for seed in plan.SEEDS:
+                for seed in plan.active_seeds():
                     built = {arm: t.read_jsonl(schedule_path(a.out, arm, seed, stage)) for arm in ('G', 'CR')}
                     audit_coverage(a.out, stage, seed, built, {arm: sums[f'{arm}|{seed}|{stage}'] for arm in built})
             print('SKIP: frozen M3 schedules for', stage); continue
         binding = schedule_binding(a, stage, roots[stage])
         names = []; audits = {}; summaries = {}; tasks = []; task_verification = {}
-        for seed in plan.SEEDS:
+        for seed in plan.active_seeds():
             task, _ = task_schedule(roots[stage], seed); tasks += task
             if not a.standin: task_verification[str(seed)] = task_evidence(task, stage, panels, getattr(a, 'superset', None) or SUPERSET)
             built = {}; sums = {}
@@ -244,7 +252,7 @@ def schedules_job(a):
             if scope in ('G', 'CR'):
                 if set(built) != {'G', 'CR'}: raise NotReady('coverage freeze requires both G and CR plus frozen C0/K schedules')
                 audits[str(seed)] = audit_coverage(a.out, stage, seed, built, sums)
-            elif set(built) == set(plan.ARMS): audits[str(seed)] = plan.audit_arms(built, sums)
+            elif set(built) == set(plan.active_arms()): audits[str(seed)] = plan.audit_arms(built, sums)
             else:
                 # C0/K still share the four IDs and 28 task rows when CR/G are PENDING.
                 require(len({plan.digest(plan.shared_generic(v)) for v in built.values()}) == 1, 'shared generic IDs differ')
@@ -312,7 +320,7 @@ def convert(schedule, task, pools, tokenizer, arm, stage, replay_source=REPLAY_S
 def prepare_preflight(a):
     """Build the contract's four-update native inputs from real, frozen stage-2 legal schedules."""
     from kit.m3_pools import load
-    require(a.seed == 101 and a.stage in contract.PREFLIGHT_INPUT_STAGES and not a.standin, 'node preflight needs real legal inputs and seed 101')
+    require(a.seed == qualification_seed() and a.stage in contract.PREFLIGHT_INPUT_STAGES and not a.standin, 'node preflight needs real legal inputs and seed 101')
     if not getattr(a, 'host_reservation_bytes', None) or a.host_reservation_bytes <= 0:
         raise NotReady('declare the whole-node host RAM reservation in bytes before preflight')
     source = schedule_dir(a.out, a.stage, a.arm); frozen_files(source)
@@ -325,14 +333,14 @@ def prepare_preflight(a):
     longest = (audit.get('longest_rows') or {}).get('task:contract_nli') or (audit.get('longest_rows') or {}).get('contract_nli')
     require(longest is not None, 'frozen schedule audit must identify its longest admitted legal row')
     pools, _ = load(a.out, a.arm)
-    task, _ = task_schedule(a.schedule_root, 101)
+    task, _ = task_schedule(a.schedule_root, qualification_seed())
     legal = next((r for r in task if str(r['id']) == str(longest['id'])), None) if a.stage == 'contract_nli' else None
     if legal is None: legal = next((r for r in pools.get('contract_nli', []) if str(r['id']) == str(longest['id'])), None)
     require(legal is not None, 'longest audited legal row missing from frozen task/pool inputs')
     tokenizer = tokenizer_for(a)
     pids, _ = t.tokenize_student(tokenizer, as_chat(legal['prompt']), legal['response'])
     require(len(pids) == longest['prompt_tokens'], 'legal prompt length differs from frozen schedule audit')
-    schedule = t.read_jsonl(schedule_path(a.out, a.arm, 101, a.stage))
+    schedule = t.read_jsonl(schedule_path(a.out, a.arm, qualification_seed(), a.stage))
     selected = [dict(r) for r in schedule if r['update'] <= 4]
     require(len(selected) == 4 * contract.geometry(a.arm, a.stage)['global_rows'], 'preflight requires four complete frozen updates')
     for item in selected:
@@ -364,9 +372,9 @@ def prepare_preflight(a):
     cmd[end:end] = ['--input-manifest', str(manifest.resolve()), '--host-reservation-bytes', str(a.host_reservation_bytes)]
     atomic(root / 'node-plan.json', dict(command=cmd))
     def relative(path): return os.path.relpath(Path(path).resolve(), root.resolve())
-    sources = [source / 'manifest.json', source / 'audit.json', schedule_path(a.out, a.arm, 101, a.stage)]
+    sources = [source / 'manifest.json', source / 'audit.json', schedule_path(a.out, a.arm, qualification_seed(), a.stage)]
     files = {relative(path): s.file_hash(path) for path in [*sources, *data.glob('*.parquet'), root / 'node-plan.json']}
-    atomic(manifest, dict(schema=contract.PREFLIGHT_INPUT_SCHEMA, arm=a.arm, stage=a.stage, seed=101,
+    atomic(manifest, dict(schema=contract.PREFLIGHT_INPUT_SCHEMA, arm=a.arm, stage=a.stage, seed=qualification_seed(),
            code_sha256=contract.code_digest(), files=files, train_files=['data/train.parquet'],
            source_schedule_manifest=relative(source / 'manifest.json'), source_schedule_audit=relative(source / 'audit.json')))
     contract.validate_preflight_inputs(manifest, arm=a.arm, stage=a.stage, root=a.out)
@@ -428,7 +436,8 @@ def command(a, arm, stage, model, data, run, base, geometry, resume=None):
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=a.gpu, PYTHONPATH=str(KIT.parent) + ':' + str(a.sdpo.resolve()), P3B_DATA=str(data),
                SDPO_DIR=str(a.sdpo.resolve()), QWEN3_8B_TOKENIZER=a.tokenizer, VERL_FILE_LOGGER_PATH=str(run / 'metrics.jsonl'),
                V4_CHECKPOINT_STATE='1', V4_TELEMETRY='1', ARM='D', KIT_V4_ARM='D', EXPERIMENT=run.name, TASK='m3')
-    overrides += [f'+ray_kwargs.ray_init.runtime_env.env_vars.{key}={json.dumps(env[key])}' for key in FORWARDED]
+    if confirmation(): env['KIT_M3_MODE']='cr-confirmation'
+    overrides += [f'+ray_kwargs.ray_init.runtime_env.env_vars.{key}={json.dumps(env[key])}' for key in (*FORWARDED, *(('KIT_M3_MODE',) if confirmation() else ()))]
     keys = [override_key(v) for v in overrides]
     require(len(keys) == len(set(keys)) and not set(keys) & ENTRY_OWNED, 'M3 overrides must name each key once and leave entry-owned keys alone')
     preflight = (Path(a.out) / contract.PREFLIGHT_TEMPLATE.format(arm=arm)).resolve()
@@ -539,7 +548,7 @@ def prepare_stage(a):
     # Review item 6: the frozen base is the identity bound in inputs/base.json, re-verified before every stage.
     base_files = None if a.standin else base_files_digest(a.out)
     require(a.standin or base.get('frozen_base_files_sha256') == base_files, 'frozen base files differ from their bind-base record')
-    for panel in PANELS:
+    for panel in (() if confirmation() else PANELS):
         if not (unit_root(a.out, arm, seed, stage, 0, panel) / 'manifest.json').exists():
             raise NotReady(f'score the incoming checkpoint before training: {arm}/{seed}/{stage}/{panel}')
     run = run_root(a.out, arm, seed, stage); data = a.out / 'data' / run.name
@@ -686,9 +695,9 @@ def job(a):
 
 def configure(p):
     p.add_argument('--action', choices=('bind-base', 'schedules', 'prepare', 'train', 'export', 'preflight-inputs', 'preflight'), required=True)
-    p.add_argument('--arm', choices=plan.ARMS); p.add_argument('--seed', type=int, choices=plan.SEEDS); p.add_argument('--stage', choices=plan.STAGES)
+    p.add_argument('--arm', choices=plan.active_arms()); p.add_argument('--seed', type=int, choices=plan.active_seeds()); p.add_argument('--stage', choices=plan.STAGES)
     p.add_argument('--schedule-root', type=Path); p.add_argument('--schedule-roots', type=Path, nargs='+')
-    p.add_argument('--arms', nargs='+', choices=plan.ARMS)
+    p.add_argument('--arms', nargs='+', choices=plan.active_arms())
     p.add_argument('--panel', action='append'); p.add_argument('--holdout', action='append'); p.add_argument('--superset', type=Path)
     p.add_argument('--stages', nargs='+', choices=plan.STAGES, help='stages to freeze (default all); hard MATH freezes separately')
     p.add_argument('--host-reservation-bytes', type=int)

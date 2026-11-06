@@ -9,6 +9,7 @@ import threading
 from contextlib import contextmanager
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from kit.m3_mode import arms as active_arms, seeds as active_seeds
 from kit.m3_contract import ARMS, SEEDS, BASE_REVISION, CONFIG_KEYS, validate_config, STAGES, stage_number, COMMON_OVERRIDES, REWARD_ENTRYPOINT, PROFILES, find_m3_root, PREFLIGHT_TEMPLATE
 
 
@@ -68,9 +69,9 @@ def smoke_runner_ready_path(receipt):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    parser.add_argument('--arm', choices=ARMS, required=True)
+    parser.add_argument('--arm', choices=active_arms(), required=True)
     parser.add_argument('--stage', choices=(*STAGES,'1','2','3'), required=True)
-    parser.add_argument('--seed', type=int, choices=SEEDS, required=True)
+    parser.add_argument('--seed', type=int, choices=active_seeds(), required=True)
     parser.add_argument('--profile', choices=tuple(PROFILES), default='scientific')
     parser.add_argument('--base-model', required=True)
     parser.add_argument('--base-revision', default=BASE_REVISION)

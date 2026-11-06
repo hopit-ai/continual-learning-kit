@@ -13,7 +13,7 @@ from kit.p3b_common import NotReady
 
 
 def rescore_concurrency(ready, commands):
-    """K=3 only for the measured 8B architecture and bounded scorer paths."""
+    """Generation K=3; any likelihood work caps the measured 8B lane at K=2."""
     known={'finqa','test','math_hard','general-v1','hellaswag','knowledge-ll'}
     for command in commands:
         if '--panel-set' not in command or command[command.index('--panel-set')+1] not in known:return 1
@@ -26,12 +26,13 @@ def rescore_concurrency(ready, commands):
         except (OSError,ValueError):return 1
         if not (config.get('model_type')=='qwen3' and config.get('hidden_size')==4096 and
                 config.get('num_hidden_layers')==36 and config.get('intermediate_size')==12288):return 1
-    return 3
+    from kit.lane_pool import likelihood_command
+    return 2 if any(likelihood_command(dict(argv=c)) for c in commands) else 3
 
 
 def rescore_plan(ready, commands):
     """Describe the CPU-verified engine profile to the shared capacity guard."""
-    if rescore_concurrency(ready,commands)!=3:return commands
+    if rescore_concurrency(ready,commands)==1:return commands
     model=next(iter(load(ready)['checkpoints'].values()))['source']['model']
     return [dict(argv=c,engine=dict(backend='vllm',model=model,max_model_len=12288)) for c in commands]
 

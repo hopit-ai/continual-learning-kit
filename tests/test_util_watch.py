@@ -49,6 +49,8 @@ def test_exit_passthrough_summary_scoped_uuid_and_phases(tmp_path,env):
     assert summary['min_window_mean'] is None and summary['seconds_below_70']==0
     assert summary['startup_mean_util']==pytest.approx(80)
     assert summary['phases'][0]['phase']=='score'
+    assert summary['startup_grace_seconds']==summary['window_s']==10
+    assert summary['holder_slices']==[] and summary['holder_slice_telemetry_complete'] is False
 
 
 @pytest.mark.parametrize('visibility',['','-1','NoDevFiles'])
@@ -296,3 +298,113 @@ def test_slow_query_finishes_after_child_without_losing_telemetry(tmp_path,monke
     summary=json.loads(args.out.with_suffix('.summary.json').read_text())
     assert summary['telemetry_complete'] and summary['telemetry_errors']==0
     assert summary['mean_util']==80 and summary['gpu_uuids']==['GPU-a']
+
+
+@pytest.mark.parametrize('selector,index,complete', [('0','0',True),('5','5',True),
+    ('GPU-holder','5',True),('0','5',False)])
+def test_holder_slice_empty_inventory_queries_cuda_selector(tmp_path, env, selector, index, complete):
+    binary=tmp_path/'nvidia-smi'
+    binary.write_text('#!'+sys.executable+'\nimport sys,os\nfrom pathlib import Path\n'
+        'with Path(os.environ["FAKE_CALLED"]).open("a") as f:f.write(" ".join(sys.argv[1:])+"\\n")\n'
+        f'if any(a.startswith("--id=") for a in sys.argv):print("{index}, GPU-holder, 87, 420")\n')
+    binary.chmod(0o755)
+    env.update(CUDA_VISIBLE_DEVICES=selector,SLURM_GPUS_ON_NODE='8',SLURM_JOB_GPUS='0,1,2,3,4,5,6,7')
+    out=tmp_path/'holder.jsonl'
+    command=argv(out,'import time;time.sleep(.2);raise SystemExit(37)')
+    command[3:3]=['--holder-slice','--expect-gpus','1']
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    summary=json.loads(out.with_suffix('.summary.json').read_text())
+    assert done.returncode==37 and summary['telemetry_complete'] is complete
+    if complete:
+        assert summary['gpu_uuids']==['GPU-holder'] and summary['mean_util']==pytest.approx(87)
+    else:
+        assert summary['gpu_uuids'] is None and summary['mean_util'] is None
+        assert out.read_text()==''
+    assert summary['holder_selector_queries']>=1 and summary['holder_slice']
+    assert summary['holder_slices']==(['GPU-holder'] if complete else [])
+    assert summary['holder_slice_telemetry_complete'] is complete
+    assert '--id='+selector in Path(env['FAKE_CALLED']).read_text()
+
+
+@pytest.mark.parametrize('selector,rows', [('0,1','0, GPU-a, 85, 123'),('GPU-holder','5, GPU-other, 85, 123'),('0','')])
+def test_holder_slice_missing_or_ambiguous_measurements_remain_unknown(tmp_path,env,selector,rows):
+    env.update(CUDA_VISIBLE_DEVICES=selector,FAKE_GPU_ROWS=rows)
+    out=tmp_path/'holder-invalid.jsonl';command=argv(out,'import time;time.sleep(.1)')
+    command[3:3]=['--holder-slice','--expect-gpus','1']
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    summary=json.loads(out.with_suffix('.summary.json').read_text())
+    assert done.returncode==0 and not summary['telemetry_complete'] and summary['mean_util'] is None
+    assert out.read_text()==''
+    assert summary['holder_slices']==[] and summary['holder_slice_telemetry_complete'] is False
+
+
+@pytest.mark.parametrize('selector,indexes,expected', [
+    ('2',[2,3,4,5],None),  # holder CUDA 2 can be physical 4, never claim sibling 2
+    ('0',[2,3,4,5],None),
+    ('2',[0,1,2,3],'GPU-2'),
+    ('2',[3,2,1,0],'GPU-2'),
+    ('5',[5],'GPU-5'),
+    ('0',[5],None),  # even a singleton must match the numeric token exactly
+    ('2',[0,2,2],None),
+    ('GPU-4',[2,3,4,5],'GPU-4'),
+    ('GPU-',[2,3,4,5],None),
+    ('MIG-4',[4],None),
+])
+def test_holder_numeric_namespace_requires_exact_index_and_dense_inventory(selector,indexes,expected):
+    rows=[dict(index=str(i),uuid='GPU-'+str(i),util=87,mem=420) for i in indexes]
+    if expected is None:
+        with pytest.raises(ValueError):watch.allocated(rows,[selector],{},1,holder_slice=True)
+    else:
+        assert [r['uuid'] for r in watch.allocated(rows,[selector],{},1,holder_slice=True)]==[expected]
+
+
+@pytest.mark.parametrize('selector,expected',[('2',None),('GPU-4','GPU-4')])
+def test_holder_renumbered_inventory_never_records_sibling_gpu(tmp_path,env,selector,expected):
+    env.update(CUDA_VISIBLE_DEVICES=selector,SLURM_GPUS_ON_NODE='4',SLURM_JOB_GPUS='2,3,4,5',
+        UTIL_HOLDER_SLICE='1',FAKE_GPU_ROWS='\n'.join(f'{i}, GPU-{i}, 87, 420' for i in range(2,6)))
+    done,samples,summary=run(tmp_path,env)
+    assert done.returncode==0
+    if expected is None:
+        assert not samples and summary['gpu_uuids'] is None and summary['mean_util'] is None
+        assert not summary['telemetry_complete']
+    else:
+        assert {r['gpu'] for r in samples}=={expected} and summary['telemetry_complete']
+
+
+@pytest.mark.parametrize('grace',[None,'0','.2','30'])
+def test_startup_grace_is_recorded_with_window_default(tmp_path,env,grace):
+    out=tmp_path/'grace.jsonl';command=argv(out,'import time;time.sleep(.15);raise SystemExit(37)',window='.1')
+    if grace is not None:command[3:3]=['--startup-grace',grace]
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    summary=json.loads(out.with_suffix('.summary.json').read_text())
+    assert done.returncode==37 and summary['returncode']==37
+    assert summary['startup_grace_seconds']==(.1 if grace is None else float(grace))
+    assert summary['window_s']==.1
+    assert summary['holder_slices']==[] and summary['holder_slice_telemetry_complete'] is False
+
+
+@pytest.mark.parametrize('grace',['-1','nan','inf'])
+def test_invalid_startup_grace_rejected_before_launch(tmp_path,env,grace):
+    marker=tmp_path/'launched';out=tmp_path/'invalid.jsonl'
+    command=argv(out,'from pathlib import Path;Path('+repr(str(marker))+').touch()')
+    command[3:3]=['--startup-grace',grace]
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    assert done.returncode==2 and not marker.exists() and not out.exists()
+
+
+def test_holder_summary_retains_measured_uuid_when_later_telemetry_fails(tmp_path,monkeypatch):
+    from types import SimpleNamespace as NS
+    calls=[]
+    def query(timeout):
+        calls.append(timeout)
+        if len(calls)>1:raise ValueError('telemetry lost')
+        return [dict(uuid='GPU-holder',index='0',util=87,mem=420)]
+    monkeypatch.setattr(watch,'query',query)
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES','GPU-holder')
+    args=NS(out=tmp_path/'partial.jsonl',window=300,interval=.01,warn=70,expect_gpus=1,holder_slice=True,
+        command=[sys.executable,'-I','-c','import time;time.sleep(.15);raise SystemExit(37)'])
+    assert watch.run(args)==37
+    summary=json.loads(args.out.with_suffix('.summary.json').read_text())
+    assert summary['holder_slices']==['GPU-holder'] and len(calls)>1
+    assert summary['telemetry_complete'] is False and summary['holder_slice_telemetry_complete'] is False
+    assert summary['startup_grace_seconds']==300

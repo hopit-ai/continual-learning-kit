@@ -8,6 +8,8 @@ Use fresh output trees for every command; never merge scores from separate lane 
 The scheduler wrapper owns the per-GPU lease and util_watch.py invocation.
 """
 import argparse
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 import math
@@ -22,6 +24,8 @@ import uuid as uuid_module
 FRACTIONS={1:None,2:.42,3:.31}   # .28 left 1.12 GiB KV < 1.69 GiB needed at max_model_len 12288 (smoke attempt 3)
 PENDING=75
 PENDING_CODES=(3,PENDING)  # existing kit NotReady convention and this runner's convention
+# Never follow TMPDIR: Slurm may give independent jobs different temp roots.
+ENGINE_LOCK_ROOT=Path('/tmp')/('kit-engine-start-'+str(os.getuid()))
 
 
 class GPUQueryUnavailable(ValueError):
@@ -80,13 +84,88 @@ def capacity(command):
     if engine.get('backend')!='vllm':return 1
     model=engine.get('model');length=engine.get('max_model_len')
     if not isinstance(length,int) or isinstance(length,bool) or not 0<length<=12288:return 1
-    if model=='Qwen/Qwen3-8B':return 3
+    qualified=2 if likelihood_command(command) else 3
+    if model=='Qwen/Qwen3-8B':return qualified
     try:
         config=json.loads((Path(model)/'config.json').read_text())
         if all(config.get(k)==v for k,v in dict(model_type='qwen3',hidden_size=4096,
-                num_hidden_layers=36,num_attention_heads=32,num_key_value_heads=8,intermediate_size=12288).items()):return 3
+                num_hidden_layers=36,num_attention_heads=32,num_key_value_heads=8,intermediate_size=12288).items()):return qualified
     except (OSError,ValueError,TypeError):pass
     return 1
+
+
+def likelihood_command(command):
+    """A diagnostic generation followed by likelihood scoring is a likelihood lane."""
+    if command.get('engine',{}).get('workload')=='likelihood':return True
+    argv=command.get('argv',[])
+    if any(Path(str(v)).name=='m2_format.py' for v in argv):return True
+    for flag in ('--panel-set','--panel','--kind'):
+        values=[argv[i+1] for i,v in enumerate(argv[:-1]) if v==flag]
+        if values and values[-1] in ('hellaswag','knowledge-ll','knowledge','likelihood'):return True
+    return False
+
+
+def gpu_memory(uuid):
+    """Measured free/total MiB for one physical UUID, including cgroup fallback."""
+    command=['nvidia-smi','--query-gpu=uuid,memory.free,memory.total','--format=csv,noheader,nounits']
+    for selectors in (['--id='+uuid],[]):
+        try:
+            raw=subprocess.check_output(command+selectors,text=True,stderr=subprocess.DEVNULL,timeout=5)
+            rows=[r.split(',') for r in raw.splitlines() if r.strip()]
+            matches=[r for r in rows if len(r)==3 and r[0].strip()==uuid]
+            if len(matches)!=1:continue
+            free,total=(float(v.strip()) for v in matches[0][1:])
+            if all(math.isfinite(v) for v in (free,total)) and 0<=free<=total and total>0:
+                return free,total
+        except (OSError,subprocess.SubprocessError,ValueError):pass
+    raise GPUQueryUnavailable('free memory for allocated UUID unavailable')
+
+
+@contextmanager
+def engine_startup(kwargs):
+    """Hold a host-local physical-GPU lock through admission and full LLM startup.
+
+    Running engines may overlap. Starting engines may not overlap, even across
+    independent controllers or likelihood children in the same holder.
+    """
+    uuid=os.environ.get('M2_ASSIGNED_GPU_UUID')
+    if not os.environ.get('KIT_LANE_JOB') or not uuid:
+        yield None
+        return
+    timeout=float(os.environ.get('KIT_ENGINE_START_TIMEOUT_SECONDS','600'))
+    if not math.isfinite(timeout) or timeout<=0:raise ValueError('positive engine startup timeout required')
+    concurrency=int(os.environ.get('KIT_LANE_CONCURRENCY','1'))
+    if concurrency not in FRACTIONS:raise ValueError('engine concurrency must be 1, 2 or 3')
+    started=time.monotonic()
+    lock_timeout=(concurrency-1)*timeout
+    lock_deadline=started+lock_timeout
+    root=ENGINE_LOCK_ROOT
+    root.mkdir(parents=True,exist_ok=True)
+    path=root/(hashlib.sha256(uuid.encode()).hexdigest()+'.lock')
+    with path.open('a') as lock:
+        while True:
+            try:
+                fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic()>=lock_deadline:
+                    raise TimeoutError(f'engine startup lock wait deadline exceeded ({lock_timeout:g}s budget, K={concurrency})')
+                time.sleep(.1)
+        try:
+            deadline=time.monotonic()+timeout
+            fraction=float(kwargs.get('gpu_memory_utilization',.9))
+            if not math.isfinite(fraction) or not 0<fraction<1:raise ValueError('invalid engine memory fraction')
+            while True:
+                try:free,total=gpu_memory(uuid)
+                except GPUQueryUnavailable:free=total=None
+                if free is not None and free>=total*fraction:break
+                if time.monotonic()>=deadline:
+                    cause='query unavailable' if free is None else f'free/total {free:g}/{total:g} MiB; required fraction {fraction:g}'
+                    raise TimeoutError('engine memory share unavailable before startup deadline: '+cause)
+                time.sleep(.2)
+            yield dict(uuid=uuid,free_mib=free,total_mib=total,fraction=fraction,wait_s=time.monotonic()-started)
+        finally:
+            fcntl.flock(lock,fcntl.LOCK_UN)
 def recheck_uuid():
     # Admission already validated the allocation scope. A malformed later NVML
     # response is unknown telemetry, not evidence that the physical GPU changed.

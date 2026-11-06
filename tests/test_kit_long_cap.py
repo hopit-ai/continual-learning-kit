@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -27,6 +28,8 @@ def _load(name: str):
 
 @pytest.fixture()
 def engine(monkeypatch):
+    # Both real scorer entry points enable vLLM determinism in the environment.
+    monkeypatch.setattr(os, 'environ', os.environ.copy())
     seen = {}
 
     class _Completion:

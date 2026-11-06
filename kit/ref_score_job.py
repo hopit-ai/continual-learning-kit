@@ -24,8 +24,9 @@ from kit.ref_guard import METHOD, PANELS, ASSIGNMENT
 def source_for(out, family, checkpoint, standin):
     arm, seed, step = (checkpoint[k] for k in ('arm', 'seed', 'step'))
     if family == 'm3':
-        from kit.m3_schedule import ARMS, STAGES
-        require(arm in ('base', *ARMS) and checkpoint.get('stage') in STAGES, 'unregistered M3 checkpoint')
+        from kit.m3_schedule import STAGES
+        from kit.m3_mode import arms
+        require(arm in ('base', *arms()) and checkpoint.get('stage') in STAGES, 'unregistered M3 checkpoint')
         from kit.m3_score import checked
         return checked(out, arm, seed, checkpoint['stage'], step, standin)
     if family in ('core','reprobe'):
@@ -66,7 +67,8 @@ def assign(a):
     explicit = getattr(a, 'lane_assignment', None)
     if explicit:
         assignments = load(explicit)['assignments']
-        expected = {f'{a.family}.{panel}|{seed}' for panel in PANELS for seed in (101, 102, 103)}
+        from kit.m3_mode import seeds, confirmation
+        expected = {f'{a.family}.{panel}|{seed}' for panel in PANELS for seed in (seeds() if confirmation() and a.family=='m3' else (101,102,103))}
         require(set(assignments) == expected, 'lane assignment must name every family/panel/seed exactly once')
         require(all(all(v.get(k) for k in ('node', 'uuid', 'environment')) for v in assignments.values()), 'incomplete lane hardware')
     else:
@@ -88,6 +90,9 @@ def lane_checkpoints(a):
         raise NotReady('reference checkpoint list absent')
     checkpoints = load(a.checkpoints)
     if isinstance(checkpoints, dict): checkpoints = checkpoints['checkpoints']
+    from kit.m3_mode import confirmation, seeds, arms
+    if confirmation() and a.family=='m3':
+        require(a.seed in seeds() and all(c['seed'] in seeds() and c['arm'] in ('base',*arms()) for c in checkpoints), 'UNVERIFIED: foreign confirmation seed/arm')
     checkpoints = [c for c in checkpoints if c['seed'] == a.seed]
     require(checkpoints, 'no checkpoints for assigned seed')
     require(all(c['step'] in (0, 40) for c in checkpoints), 'reference job accepts decision checkpoints (0/40) only')
@@ -228,7 +233,8 @@ def _run(a):
     from kit.hellaswag_reference import score as hellaswag_reference
     from kit.p3b_score import write_csv
     from kit.c_score import COLUMNS
-    require(a.panel in PANELS and a.seed in (101, 102, 103), 'registered panel/seed required')
+    from kit.m3_mode import confirmation, seeds
+    require(a.panel in PANELS and a.seed in (seeds() if confirmation() and a.family=='m3' else (101,102,103)), 'registered panel/seed required')
     checkpoints = lane_checkpoints(a)
     ready = prepared_path(a)
     if a.standin:

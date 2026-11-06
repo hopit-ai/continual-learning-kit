@@ -46,8 +46,11 @@ code = _load("kit_bed_code", "kit/beds/code.py")
 SPLIT_FILE = ROOT / "kit" / "beds" / "code-split-v1.json"
 GENERATOR = ROOT / "scripts" / "make_kit_code_split.py"
 import subprocess as _sp
-_COMMON = _sp.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-PHASE1 = (Path(_COMMON.stdout.strip()).parent if _COMMON.returncode == 0 else ROOT) / "work" / "outputs" / "livecodebench-one-update-readiness"
+# An export nested under a private checkout must not discover its parent's git
+# metadata and accidentally enable tests requiring private, unexported tools.
+_COMMON = (_sp.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=ROOT, capture_output=True, text=True)
+           if (ROOT / ".git").exists() else None)
+PHASE1 = (Path(_COMMON.stdout.strip()).parent if _COMMON is not None and _COMMON.returncode == 0 else ROOT) / "work" / "outputs" / "livecodebench-one-update-readiness"
 SOURCE = PHASE1 / "source" / "test6.jsonl"
 PACKET = PHASE1 / "evaluation" / "prompt-only-code51.jsonl"
 OPUS = PHASE1 / "opus-comparison" / "api-attempt1" / "volume" / "responses.jsonl"

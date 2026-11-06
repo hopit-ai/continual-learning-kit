@@ -33,9 +33,11 @@ def visible(env):
     return None  # nvidia-smi is constrained by the allocation's device cgroup.
 
 
-def query(timeout):
-    raw=subprocess.check_output(['nvidia-smi','--query-gpu=index,uuid,utilization.gpu,memory.used',
-        '--format=csv,noheader,nounits'],text=True,stderr=subprocess.DEVNULL,timeout=timeout)
+def query(timeout, selector=None):
+    command=['nvidia-smi','--query-gpu=index,uuid,utilization.gpu,memory.used',
+        '--format=csv,noheader,nounits']
+    if selector is not None:command.append('--id='+selector)
+    raw=subprocess.check_output(command,text=True,stderr=subprocess.DEVNULL,timeout=timeout)
     rows=[]
     for fields in csv.reader(raw.splitlines()):
         if not fields:continue
@@ -49,10 +51,32 @@ def query(timeout):
     return rows
 
 
-def allocated(rows, ids, env, expected=None):
+def holder_scope(env, expected):
+    """A holder slice owns one CUDA token; Slurm may describe its whole parent."""
+    token=env.get('CUDA_VISIBLE_DEVICES','').strip()
+    if expected not in (None,1) or not (token.isdigit() or token.startswith('GPU-')) or ',' in token:
+        raise ValueError('holder-slice requires exactly one CUDA_VISIBLE_DEVICES GPU')
+    return token,{k:v for k,v in env.items() if not k.startswith('SLURM_')}
+
+
+def allocated(rows, ids, env, expected=None, *, holder_slice=False):
     def select(tokens):
         result=[]
         for ident in tokens:
+            if holder_slice:
+                # Holder CUDA ordinals can be renumbered relative to NVML's
+                # physical indexes. A sparse inventory cannot resolve them.
+                if ident.isdigit():
+                    indexes=[r['index'] for r in rows]
+                    if len(rows)!=1 and sorted(indexes)!=sorted(str(i) for i in range(len(rows))):
+                        raise ValueError('holder GPU numeric namespace ambiguous')
+                    matches=[r for r in rows if r['index']==ident]
+                elif ident.startswith('GPU-'):
+                    matches=[r for r in rows if r['uuid'].startswith(ident)]
+                else:matches=[]
+                if len(matches)!=1:raise ValueError('holder GPU missing or ambiguous')
+                result.extend(matches)
+                continue
             matches=[r for r in rows if r['index']==ident or r['uuid']==ident or
                      ident.startswith(('GPU-','MIG-')) and r['uuid'].startswith(ident)]
             if len(matches)!=1:
@@ -137,13 +161,15 @@ def phases(path):
 
 def run(a):
     if not hasattr(a,'expect_gpus'):a.expect_gpus=None
+    if getattr(a,'startup_grace',None) is None:a.startup_grace=a.window
+    holder_slice=getattr(a,'holder_slice',False) or os.environ.get('UTIL_HOLDER_SLICE')=='1'
     a.out=Path(a.out).resolve();a.out.parent.mkdir(parents=True,exist_ok=True)
     summary_path=a.out.with_suffix('.summary.json');phase_path=a.out.with_suffix('.phases.jsonl');attempt_path=a.out.with_suffix('.attempt.json')
     # Never overwrite an earlier attempt or merge UUIDs across invocations.
     if summary_path.exists() or phase_path.exists() or attempt_path.exists():raise ValueError('use a fresh utilisation path')
     stream=a.out.open('x',buffering=1)
     with attempt_path.open('x') as attempt:
-        json.dump(dict(schema='kit-util-watch-attempt.v1',expected_gpus=a.expect_gpus),attempt)
+        json.dump(dict(schema='kit-util-watch-attempt.v1',expected_gpus=a.expect_gpus,holder_slice=holder_slice),attempt)
     env=dict(os.environ,UTIL_PHASE_FILE=str(phase_path),UTIL_WATCH_ACTIVE='1')
     child=None;pending=[];old={}
     def forward(signum,frame):
@@ -155,6 +181,7 @@ def run(a):
         old[signum]=signal.signal(signum,forward)
     start=time.monotonic();started_at=time.time();stats=Rolling(a.window)
     uuids=None;ids=None;errors=0;last=None;last_warn=-math.inf;code=127;scope_valid=True
+    selector=None;scope_env=env;holder_queries=0
     def warn(mean,elapsed):
         nonlocal last_warn
         if mean<a.warn and elapsed-last_warn>=max(a.window,a.interval):
@@ -167,7 +194,11 @@ def run(a):
         a._child=child
         for signum in pending:forward(signum,None)
         expected=getattr(a,'expect_gpus',None)
-        try:ids=[] if expected==0 else visible(env)
+        try:
+            ids=[] if expected==0 else visible(env)
+            if holder_slice and expected!=0:
+                selector,scope_env=holder_scope(env,expected)
+                ids=[selector]
         except ValueError:errors+=1;scope_valid=False
         if ids==[]:
             uuids=[]
@@ -177,13 +208,20 @@ def run(a):
         stopped=threading.Event();finalized=threading.Event()
         query_timeout=max(1.,min(5.,a.interval))
         def sample():
-            nonlocal uuids,errors,last
+            nonlocal uuids,errors,last,holder_queries
             while True:
                 if ids!=[] and scope_valid:
                     try:
-                        measured=query(query_timeout)
+                        try:measured=query(query_timeout)
+                        except Exception:
+                            if selector is None:raise
+                            measured=[]
+                        if not measured and selector is not None:
+                            measured=query(query_timeout,selector)
+                            holder_queries+=1
+                            if len(measured)!=1:raise ValueError('holder GPU measurement unavailable')
                         if finalized.is_set():return
-                        rows=allocated(measured,ids,env,expected)
+                        rows=allocated(measured,ids,scope_env,expected,holder_slice=holder_slice)
                         current=[r['uuid'] for r in rows]
                         if uuids is not None and set(current)!=set(uuids):raise ValueError('allocated UUIDs changed')
                         uuids=current
@@ -225,7 +263,10 @@ def run(a):
             startup_wall_s=min(wall,a.window),startup_mean_util=stats.startup_total/min(wall,a.window) if complete and last is not None else None,
             startup_seconds_below_70=stats.startup_below if complete and last is not None else None,
             phases=phases(phase_path),telemetry_complete=complete,telemetry_errors=errors,
-            started_at=started_at,returncode=code,interval_s=a.interval,window_s=a.window)
+            started_at=started_at,returncode=code,interval_s=a.interval,window_s=a.window,startup_grace_seconds=a.startup_grace,
+            holder_slice=holder_slice,holder_selector_queries=holder_queries,
+            holder_slices=list(uuids or []) if holder_slice else [],
+            holder_slice_telemetry_complete=bool(holder_slice and complete))
         try:summary_path.write_text(json.dumps(result,allow_nan=False)+'\n')
         except OSError:print('WARN utilisation summary could not be written',file=sys.stderr)
         finally:
@@ -239,11 +280,14 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out',type=Path,required=True);p.add_argument('--interval',type=float,default=5)
     p.add_argument('--expect-gpus',type=int,choices=range(9))
+    p.add_argument('--holder-slice',action='store_true',help='one-GPU holder slice scoped by CUDA_VISIBLE_DEVICES')
+    p.add_argument('--startup-grace',type=float,help='recorded startup grace in seconds (default: --window)')
     p.add_argument('--window',type=float,default=300);p.add_argument('--warn',type=float,default=75)
     p.add_argument('command',nargs=argparse.REMAINDER);a=p.parse_args(argv)
+    if a.startup_grace is None:a.startup_grace=a.window
     if a.command[:1]==['--']:a.command=a.command[1:]
-    if not a.command or not all(math.isfinite(v) and v>0 for v in (a.interval,a.window)) or not math.isfinite(a.warn) or not 0<=a.warn<=100:
-        p.error('command, positive interval/window and warn in 0..100 required')
+    if not a.command or not all(math.isfinite(v) and v>0 for v in (a.interval,a.window)) or not math.isfinite(a.startup_grace) or a.startup_grace<0 or not math.isfinite(a.warn) or not 0<=a.warn<=100:
+        p.error('command, positive interval/window, nonnegative startup grace and warn in 0..100 required')
     try:return run(a)
     except Exception as error:
         print('WARN util_watch unavailable; running child unwatched: '+type(error).__name__,file=sys.stderr)

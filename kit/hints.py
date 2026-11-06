@@ -314,7 +314,7 @@ def cmd_stuck(args) -> int:
                          % args.out)               # so a crash in vLLM leaves nothing to block a retry
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     from transformers import AutoTokenizer                                   # noqa: PLC0415
-    from vllm import LLM, SamplingParams                                     # noqa: PLC0415
+    from vllm import SamplingParams                                     # noqa: PLC0415
     import vllm                                                              # noqa: PLC0415
     tokenizer = AutoTokenizer.from_pretrained(str(model))
     prompts = [tokenizer.apply_chat_template([{"role": "user", "content": prompt_of(row)}],
@@ -322,7 +322,7 @@ def cmd_stuck(args) -> int:
                                              enable_thinking=False) for row in rows]
     engine = {**SAMPLING_ENGINE, "max_model_len": args.max_model_len or SAMPLING_ENGINE["max_model_len"]}
     if str(HERE.parent) not in sys.path:sys.path.insert(0,str(HERE.parent))
-    from kit.inference_lifecycle import engine_kwargs
+    from kit.inference_lifecycle import engine_kwargs, create_llm as LLM
     engine=engine_kwargs(engine)
     llm = LLM(model=str(model), **engine)
     started = time.monotonic()

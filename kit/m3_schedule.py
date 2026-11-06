@@ -14,6 +14,7 @@ v2 rules:
 """
 from __future__ import annotations
 from collections import Counter
+from kit.m3_mode import seeds as active_seeds, arms as active_arms, confirmation
 import hashlib
 import json
 import random
@@ -66,7 +67,7 @@ def target_sha256(row):
 
 
 def domains_for(arm, stage):
-    require(arm in ARMS and stage in STAGES, f'unregistered arm/stage {arm}/{stage}')
+    require(arm in active_arms() and stage in STAGES, f'unregistered arm/stage {arm}/{stage}')
     return tuple(CR_LAYOUT[stage]) if arm == 'CR' else ('instruction',)
 
 
@@ -76,7 +77,7 @@ def rows_per_update(arm, stage):
 
 def prompt_cap(arm, stage):
     """Delegates to builder A's contract (manager round-3 ruling a)."""
-    require(arm in ARMS and stage in STAGES, f'unregistered arm/stage {arm}/{stage}')
+    require(arm in active_arms() and stage in STAGES, f'unregistered arm/stage {arm}/{stage}')
     from kit import m3_contract
     return m3_contract.prompt_cap(arm, stage)
 
@@ -156,7 +157,7 @@ def build(arm, seed, stage, task, pools, *, lengths=None):
     task: the stage's existing 1,280-row (40x32) task schedule for this seed, shared by all arms.
     pools: {domain: rows}; lengths: optional {id: prompt_tokens} over every pool row (overlength = error).
     """
-    require(arm in ARMS and seed in SEEDS and stage in STAGES, f'unregistered {arm}/{seed}/{stage}')
+    require(arm in active_arms() and seed in active_seeds() and stage in STAGES, f'unregistered {arm}/{seed}/{stage}')
     require(len(task) == UPDATES * TASK_ROWS, 'task schedule must be 40 x 32')
     check_lengths(pools, lengths)
     shared = shared_stream(pools['instruction'], seed)
@@ -249,6 +250,20 @@ def audit_arms(schedules, summaries=None):
     """schedules: {arm: rows} for one seed/stage. Every update's four shared IDs match across arms; G extras are
     disjoint from the shared IDs and never repeat; CR/G share 32 task rows; C0/K share the same 28;
     skipped_draw_count == 0 for every arm/domain."""
+    if confirmation():
+        require(set(schedules) == {'G', 'CR'}, 'confirmation requires G/CR only')
+        first = shared_generic(schedules['G'])
+        require(len(first) == UPDATES and all(len(v) == SHARED_GENERIC for v in first.values()), 'four shared rows/update required')
+        for arm, rows in schedules.items():
+            require(draw_audit(rows)['skipped_draw_count'] == 0, 'filtered draws')
+            require(shared_generic(rows) == first, 'CR/G shared instruction differs')
+        shared = {i for v in first.values() for i in v}
+        extras = [r['id'] for r in schedules['G'] if r.get('stream') == 'extra']
+        require(not shared & set(extras) and len(extras) == len(set(extras)), 'G extras overlap/repeat')
+        task = lambda arm: [(r['update'], r['position'], r['target_sha256']) for r in schedules[arm] if r['role'] == 'task']
+        require(task('G') == task('CR') and len(task('G')) == UPDATES * TASK_ROWS, 'CR/G task exposures differ')
+        require(all(v['skipped_draw_count'] == 0 for v in (summaries or {}).values()), 'filtered draws')
+        return dict(shared_generic_sha256=digest(first), task_sha256=digest(task('G')), shared_ids=sorted(shared), g_extra_ids=sorted(extras))
     require(set(schedules) == set(ARMS), 'all four arms required for the cross-arm audit')
     first = shared_generic(schedules['C0'])
     require(len(first) == UPDATES and all(len(v) == SHARED_GENERIC for v in first.values()), 'C0 lacks four generic rows/update')
@@ -301,8 +316,8 @@ def contract_agreement():
         if hasattr(contract, name):
             checks[name] = json.dumps(getattr(contract, name), sort_keys=True, default=list) == json.dumps(globals()[name], sort_keys=True, default=list)
     if hasattr(contract, 'geometry'):
-        checks['geometry'] = all(contract.geometry(a, s)['global_rows'] == rows_per_update(a, s) for a in ARMS for s in STAGES)
+        checks['geometry'] = all(contract.geometry(a, s)['global_rows'] == rows_per_update(a, s) for a in active_arms() for s in STAGES)
     if hasattr(contract, 'prompt_cap'):
-        checks['common_prompt_cap'] = all(contract.prompt_cap(a, s) == PROMPT_CAP for a in ARMS for s in STAGES)
+        checks['common_prompt_cap'] = all(contract.prompt_cap(a, s) == PROMPT_CAP for a in active_arms() for s in STAGES)
     status = 'PASS' if checks and all(checks.values()) else 'MISMATCH' if checks else 'PENDING'
     return dict(status=status, checks=checks, mismatched=sorted(k for k, v in checks.items() if not v))

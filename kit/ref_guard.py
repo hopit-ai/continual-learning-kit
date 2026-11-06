@@ -71,7 +71,7 @@ def records(files, standin=None):
         lane=f"reference-scores/{meta['family']}/"+(nonce+'/' if nonce else '')
         require(prefix == lane+f"{unit}-s{meta['seed']}-k{meta['step']}-{meta['panel']}/", 'reference directory identity differs')
         if nonce: require(proof.get('allocation_job')==nonce,'UNVERIFIED-HARDWARE: reference nonce differs from job tree')
-        require(meta['step'] in (0, 40), 'reference unit is not a decision checkpoint')
+        require(meta['step'] in (0,40), 'reference unit is not a registered checkpoint')
         validate_model(meta, files)
         rows = list(csv.DictReader(io.StringIO(files[prefix + 'scores.csv'].decode())))
         panel = 'knowledge' if meta['panel'] == 'knowledge-ll' else 'hellaswag'

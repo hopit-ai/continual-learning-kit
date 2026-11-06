@@ -21,13 +21,14 @@ def arguments(module,command):
 def plan(commands,out,task,standin):
     result=[];descriptions=[];reducers=[];refs=[];score_outputs=set()
     def ref(value,base=False):refs.append((value,base))
-    def add(command,record=None,length=12288):
+    def add(command,record=None,length=12288,workload=None):
         argv=[str(x) for x in command];result.append(argv);entry=dict(argv=argv)
         if record is not None:
             from kit.m2_paths import local
             model=local(record['model'])
             entry.update(requires=[str(model/'config.json')]+([str(local(record['receipt']))] if record.get('receipt') else []),
-                engine=dict(backend='vllm',model=str(model),max_model_len=length))
+                engine=dict(backend='vllm',model=str(model),max_model_len=length,
+                            **({'workload':workload} if workload else {})))
         descriptions.append(entry)
     for command in commands:
         name=Path(command[1]).stem
@@ -43,7 +44,7 @@ def plan(commands,out,task,standin):
             from kit.m2_rescore import effective_calls,ref_for
             for index,call in enumerate(effective_calls(package)):
                 value=ref_for(doc,call);ref(value,call['checkpoint']=='base' or Path(call['score_set']).name.startswith('base-'))
-                add([*command,'--call',index],value)
+                add([*command,'--call',index],value,workload='likelihood' if call.get('panel_set') in ('hellaswag','knowledge-ll') else None)
         elif name in ('m2_score','m2_reprobe','x_score'):
             if name=='m2_reprobe':
                 from kit.m2_reprobe import checkpoint
@@ -169,7 +170,7 @@ def stage(plan,standin):
 
 
 def pool_invocations(commands,directory):
-    """Independent vLLM segments use K=3; serial commands remain order barriers.
+    """Generation segments use K=3, likelihood K<=2; serial commands are barriers.
 
     HF NLL and format-validation commands have no qualified engine declaration.
     Never combine them with vLLM commands: lane_pool uses the minimum capacity.

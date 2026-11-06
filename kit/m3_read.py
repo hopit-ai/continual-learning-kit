@@ -18,6 +18,7 @@ import json
 import math
 import os
 from kit.m3_schedule import ARMS, SEEDS, STAGES
+from kit.m3_mode import seeds as active_seeds, arms as active_arms, confirmation
 
 TWO_SIDED_T = 4.302653
 ONE_SIDED_T = 2.919986
@@ -163,7 +164,7 @@ def identity_failures(table, assignment):
 
 
 def paired(table, fn, challenger, control):
-    return stats([fn(challenger, s) - fn(control, s) for s in SEEDS], TWO_SIDED_T)
+    return stats([fn(challenger, s) - fn(control, s) for s in active_seeds()], TWO_SIDED_T)
 
 
 def optional(table, functions, challenger, control):
@@ -215,6 +216,7 @@ def contrast(table, name, failures, pending):
 
 
 def decide(contrasts):
+    if confirmation(): return {'CR': contrasts['CR-G']['label']}
     out = {decision: contrasts[name]['label'] for decision, name in DECISIONS.items()}
     out['CR_interpretation'] = 'cumulative coverage confirmation opens' if out['CR'] == 'PASS' else None
     out['stacking'] = 'separately registered one-change stacking comparison needed' if out['K'] == 'PASS' and out['CR'] == 'PASS' else None
@@ -229,7 +231,7 @@ def survival(table, challenger, control):
         metric = TASK_METRIC[earlier]
         for later in STAGES[number + 1:]:
             rows = {}
-            for s in SEEDS:
+            for s in active_seeds():
                 try:
                     acquired = {arm: {q for q, v in table.cell(arm, s, earlier, 40, metric)['items'][metric].items() if v} for arm in (challenger, control)}
                     final = {arm: table.cell(arm, s, later, 40, metric)['items'][metric] for arm in (challenger, control)}
@@ -247,7 +249,7 @@ def package_bars(table, arm):
     bars = dict(role='report-only')
     def guarded(name, fn, ok):
         try:
-            value = stats([fn(s) for s in SEEDS], ONE_SIDED_T); bars[name] = dict(value, status='MET' if ok(value) else 'NOT_MET')
+            value = stats([fn(s) for s in active_seeds()], ONE_SIDED_T); bars[name] = dict(value, status='MET' if ok(value) else 'NOT_MET')
         except (Missing, Pending) as exc: bars[name] = dict(status='PENDING', missing=[str(x) for x in exc.args[0]])
     guarded('finqa_acquisition', lambda s: table.acc(arm, s, 'finqa', 40, 'finqa') - table.base(s, 'finqa'), lambda v: v['lower'] > 0)
     def tolerant(s, step):
@@ -263,7 +265,7 @@ def package_bars(table, arm):
         guarded(f'{later}/finqa>=acquisition-1', lambda s, st=later: table.acc(arm, s, st, 40, 'finqa') - table.acc(arm, s, 'finqa', 40, 'finqa'), lambda v: v['lower'] >= -1)
     guarded(f'{STAGES[-1]}/legal>=acquisition-1', lambda s: table.acc(arm, s, STAGES[-1], 40, 'test') - table.acc(arm, s, 'contract_nli', 40, 'test'), lambda v: v['lower'] >= -1)
     try:
-        acquisition = stats([table.acc(arm, s, 'math_hard', 40, 'math_hard') - table.acc(arm, s, 'math_hard', 0, 'math_hard') for s in SEEDS], ONE_SIDED_T)
+        acquisition = stats([table.acc(arm, s, 'math_hard', 40, 'math_hard') - table.acc(arm, s, 'math_hard', 0, 'math_hard') for s in active_seeds()], ONE_SIDED_T)
         bars['math_acquisition'] = dict(acquisition, status='DESCRIPTIVE')
     except (Missing, Pending) as exc: bars['math_acquisition'] = dict(status='PENDING', missing=[str(x) for x in exc.args[0]])
     bars['math_standalone_reference'] = dict(status='PENDING', reason='matching standalone references are never borrowed across recipes')
@@ -276,7 +278,7 @@ def serving(table, arm):
     for stage in STAGES:
         panel = PANEL_OF[TASK_METRIC[stage]]
         try:
-            cells = [table.cells[(arm, s, stage, 40, panel)] for s in SEEDS]; base = [table.cells[('base', s, STAGES[0], 0, panel)] for s in SEEDS]
+            cells = [table.cells[(arm, s, stage, 40, panel)] for s in active_seeds()]; base = [table.cells[('base', s, STAGES[0], 0, panel)] for s in active_seeds()]
         except KeyError: out[stage] = dict(status='PENDING'); continue
         ratio = lambda cs: sum(c['output_tokens'] for c in cs) / max(1, sum(c['correct'] for c in cs))
         value, reference = ratio(cells), ratio(base)
@@ -299,24 +301,26 @@ def analyse(cells, assignment, pending=(), receipts=None, exports=None):
     for (arm, seed, stage), status in (receipts or {}).items():
         if status == 'FAIL': failures.append(dict(cell=[arm, seed, stage, 40, 'receipt'], reason='trainer receipt FAIL'))
         elif status != 'PASS': pending.add(arm)
-    contrasts = {name: contrast(table, name, failures, pending) for name in CONTRASTS}
-    return dict(schema='message3-read.v2', seeds=list(SEEDS), t_two_sided=TWO_SIDED_T, t_one_sided=ONE_SIDED_T, sensitivity_factor=SENSITIVITY,
+    selected = {'CR-G': CONTRASTS['CR-G']} if confirmation() else CONTRASTS
+    contamination = confirmation() and any(k[1] not in active_seeds() or k[0] not in ('base', 'seed', *active_arms()) for k in cells)
+    contrasts = {name: (dict(name=name, label='UNVERIFIED', reason='foreign seed/arm contamination') if contamination else contrast(table, name, failures, pending)) for name in selected}
+    return dict(schema='message3-read.v2', seeds=list(active_seeds()), t_two_sided=TWO_SIDED_T, t_one_sided=ONE_SIDED_T, sensitivity_factor=SENSITIVITY,
                 contrasts=contrasts, decisions=decide(contrasts),
-                survival={name: survival(table, *CONTRASTS[name][:2]) for name in DECISIONS.values()},
-                package_bars={arm: package_bars(table, arm) for arm in ARMS}, serving={arm: serving(table, arm) for arm in ARMS},
+                survival={name: survival(table, *CONTRASTS[name][:2]) for name in (('CR-G',) if confirmation() else DECISIONS.values())},
+                package_bars={arm: package_bars(table, arm) for arm in active_arms()}, serving={arm: serving(table, arm) for arm in active_arms()},
                 strict_letter_knowledge_format_failures=strict_letter(table),
                 identity_failures=failures, pending_arms=sorted(pending),
                 missing_intermediate_exports={str(seed): sum(v['status']=='MISSING-EXPORT' for k,v in (exports or {}).items()
-                    if json.loads(k)[1]==seed and json.loads(k)[3] in (10,20,30)) for seed in SEEDS},
-                rules='Unmet valid bars = INCONCLUSIVE (incumbent unchanged); missing = PENDING; identity failure = UNVERIFIED. '
-                      'K-C0 and CR-G are separate prospective decisions, not a family-wide claim; CR-C0/G-C0 are descriptive.')
+                    if json.loads(k)[1]==seed and json.loads(k)[3] in (10,20,30)) for seed in active_seeds()},
+                rules='Unmet valid bars = INCONCLUSIVE (incumbent unchanged); missing = PENDING; identity failure = UNVERIFIED. ' +
+                      ('CR-G confirmation only; v8 precedence only; six v7 rows retain I0.' if confirmation() else 'K-C0 and CR-G are separate prospective decisions, not a family-wide claim; CR-C0/G-C0 are descriptive.'))
 
 
 # ----------------------------------------------------------------------------- budget and wall time
 
 def registered_costs():
     """v2 repriced incremental K/CR tier (GPU-h, three seeds). Proxies, not measured evidence; telemetry replaces them."""
-    seeds = len(SEEDS)
+    seeds = len(active_seeds())
     c0 = sum(STAGE_GPU_H.values())
     g_stage = {s: STAGE_GPU_H[s] * STAGE_SCALE[s] for s in STAGES}
     g = sum(g_stage.values()); cr = g + LEGAL_REPLAY_GPU_H
@@ -331,9 +335,9 @@ def registered_costs():
 def scoring_budget(calls):
     """Receipt-based call budget: .05-.10 GPU-h/call; serial wall time on one dedicated GPU per seed."""
     low, high = calls * SCORING_PER_CALL[0], calls * SCORING_PER_CALL[1]
-    per_seed = [low / len(SEEDS), high / len(SEEDS)]
+    per_seed = [low / len(active_seeds()), high / len(active_seeds())]
     return dict(calls=calls, gpu_hours=[low, high], serial_hours_per_seed=per_seed,
-                serial_hours_per_arm_seed=[v / len(ARMS) for v in per_seed],
+                serial_hours_per_arm_seed=[v / len(active_arms()) for v in per_seed],
                 flag=any(v > WALL_FLAG_HOURS for v in per_seed))
 
 
@@ -451,7 +455,7 @@ def sp_tier_checkpoints(tier, out=None):
         if files: entry.update(model_file_hashes=files, weights_sha256=sp_digest(files))
         return entry
     root = Path(out) if out is not None else Path('.')
-    for seed in SEEDS:
+    for seed in active_seeds():
         base_files = files_of(root / 'inputs/base.json', nested=True)
         entries.append(bound(dict(checkpoint_id=f'm3-base-s{seed}', family='m3', seed=seed, arm='base', step=0, role='base', task='M3-bind-base'), base_files))
         for arm in TIER_ARMS[tier]:
@@ -487,12 +491,12 @@ def load_cells(out, standin=False):
     cells = {}
     from kit.lane_evidence import latest_attempt
     workspaces={};attempt_errors={}
-    for seed in SEEDS:
+    for seed in active_seeds():
         try:workspaces[seed]=latest_attempt(out/'scoring-jobs'/('M3-rescore-'+str(seed)))
         except (OSError,ValueError,KeyError,TypeError) as error:
             workspaces[seed]=None;attempt_errors[seed]=str(error)
 
-    units = [('base', s, STAGES[0], 0) for s in SEEDS] + [(a, s, st, k) for a in ARMS for s in SEEDS for st in STAGES for k in STEPS]
+    units = [('base', s, STAGES[0], 0) for s in active_seeds()] + [(a, s, st, k) for a in active_arms() for s in active_seeds() for st in STAGES for k in STEPS]
     for arm, seed, stage, step in units:
         for panel in SCORED_PANELS:
             parent=out/'scoring-jobs'/('M3-rescore-'+str(seed))
@@ -543,7 +547,7 @@ def load_cells(out, standin=False):
     from kit.ref_guard import records, local_files, METHOD
     reference_files=local_files(out,attempt_errors=attempt_errors)
     reference_records=[]
-    for seed in SEEDS:
+    for seed in active_seeds():
         marker='-s'+str(seed)+'-k'
         view={k:v for k,v in reference_files.items() if not k.startswith('reference-scores/') or marker in k}
         try:reference_records.extend(records(view,standin))
@@ -578,19 +582,19 @@ def read_job(a):
     availability = json.loads((a.out / 'pools/availability.json').read_text()) if (a.out / 'pools/availability.json').exists() else {}
     from kit.m3_pools import pool_root
     pending = []
-    for arm in ARMS:
+    for arm in active_arms():
         available = pool_root(a.out, arm) / 'availability.json'
         if not available.exists() or json.loads(available.read_text()).get(arm, {}).get('status') != 'READY': pending.append(arm)
     receipts = {}
-    for arm in ARMS:
-        for seed in SEEDS:
+    for arm in active_arms():
+        for seed in active_seeds():
             for stage in STAGES:
                 from kit.m3_train import validate_stage_receipt
                 try: receipts[(arm, seed, stage)] = validate_stage_receipt(a.out, arm, seed, stage)['status']
                 except Exception: receipts[(arm, seed, stage)] = 'INCOMPLETE'
     from kit.lane_evidence import latest_attempt
     exports = {}
-    for seed in SEEDS:
+    for seed in active_seeds():
         try: workspace = latest_attempt(a.out / 'scoring-jobs' / f'M3-rescore-{seed}')
         except (OSError, ValueError, KeyError, TypeError): workspace = None
         ready = (workspace / 'scoring-ready.local.json') if workspace else a.out / 'scoring-ready' / f'M3-rescore-{seed}.local.json'

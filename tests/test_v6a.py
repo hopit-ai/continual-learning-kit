@@ -28,7 +28,7 @@ def test_manifest_only_kcr_reference_and_report_no_other_sources(staged):
     assert all(r.get('family') in (None,'m3') for r in rows)
     report=next(r for r in rows if r['id']=='REPORT-text')
     assert report['dependency']=='afterany' and set(report['requires'])=={r['id'] for r in rows if r['gpus']}
-    assert all(r['lane_concurrency']==(2 if r['group']=='reference' else 3) for r in rows if r['gpus'])
+    assert all(r['lane_concurrency']==2 for r in rows if r['gpus'])
     assert all('--workspace' not in c for r in rows if r['id'].endswith('-ready') for c in r['commands'])
     assert len([c for r in rows if r['group']=='kcr' and r['gpus'] for c in r['commands']])==594
     assert 'commands (K=3' not in combined.inventory(doc)
@@ -198,12 +198,14 @@ def test_busy_allocation_is_pending_and_does_not_launch_any_child(staged,monkeyp
 
 
 @pytest.mark.parametrize('changes',[{},dict(hidden_size=2048),dict(model_type='other')])
-def test_rescore_concurrency_uses_measured_architecture_only(tmp_path,changes):
+@pytest.mark.parametrize('panel',['finqa','test','math_hard','general-v1','hellaswag','knowledge-ll'])
+def test_rescore_concurrency_uses_measured_architecture_only(tmp_path,changes,panel):
     config=dry.pinned_base_config()
     config.update(changes);atomic(tmp_path/'model/config.json',config)
     atomic(tmp_path/'ready.json',dict(checkpoints={'one':dict(source=dict(model=str(tmp_path/'model')))}))
-    command=['python','-I','m3_score.py','--panel-set','knowledge-ll']
-    assert v6a.rescore_concurrency(tmp_path/'ready.json',[command])==(1 if changes else 3)
+    command=['python','-I','m3_score.py','--panel-set',panel]
+    expected=2 if panel in ('hellaswag','knowledge-ll') else 3
+    assert v6a.rescore_concurrency(tmp_path/'ready.json',[command])==(1 if changes else expected)
     assert v6a.rescore_concurrency(tmp_path/'ready.json',[[*command,'--max-model-len','16384']])==1
 
 
@@ -255,7 +257,7 @@ def test_knowledge_production_uses_effective_shared_engine_fraction(monkeypatch)
     monkeypatch.setitem(sys.modules,'transformers',transformers)
     result=m3_score.knowledge_production('model',[dict(id='one',context='Question?',endings=['a','b','c','d'])],'tokenizer')
     assert len(result)==1 and len(result[0]['scores'])==4
-    assert calls[0]['gpu_memory_utilization']==.31 and calls[0]['max_model_len']==12288
+    assert calls[0]['gpu_memory_utilization']==.42 and calls[0]['max_model_len']==12288
 
 
 def test_reference_default_requires_cpu_prepare_before_gpu_work(staged,monkeypatch):

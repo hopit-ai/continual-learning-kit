@@ -15,7 +15,8 @@ def compute(kind,model,*,rows=None,tokenizer=None):
         request=Path(scratch)/'request.json';result=Path(scratch)/'result.json'
         request.write_text(json.dumps(dict(kind=kind,model=str(model),rows=rows,tokenizer=str(tokenizer) if tokenizer else None)))
         done=subprocess.run([sys.executable,'-m','kit.inference_subprocess','--request',str(request),'--result',str(result)],
-            env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1])+os.pathsep+os.environ.get('PYTHONPATH','')),check=False)
+            env=dict(os.environ,KIT_INFERENCE_WORKLOAD='likelihood' if kind=='likelihood' else 'generation',
+                     PYTHONPATH=str(Path(__file__).resolve().parents[1])+os.pathsep+os.environ.get('PYTHONPATH','')),check=False)
         if done.returncode==2:raise CorrectnessStop('inference child GPU/input identity refused')
         if done.returncode:raise subprocess.CalledProcessError(done.returncode,done.args)
         value=json.loads(result.read_text())

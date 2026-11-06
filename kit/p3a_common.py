@@ -155,9 +155,9 @@ def logging(out, name):
         # every output. Bound the wait and force tee closed; the task script reaps any
         # surviving GPU workers afterwards.
         try:
-            tee.wait(timeout=120)
+            tee.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            sys.stderr.write('logging(): tee did not exit in 120s (inherited pipe); killing it\n')
+            sys.stderr.write('logging(): tee did not exit in 5s (inherited pipe); killing it\n')
             tee.kill(); tee.wait()
 
 

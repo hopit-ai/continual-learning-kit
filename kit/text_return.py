@@ -172,9 +172,16 @@ def metric_rows(family, value):
         yield 'R|'+family+'|reader|'+seed+'|'+path+'='+kind+':'+encoded
 
 
-def body_text(rows):
+def body_text(rows,width=90):
     """Deterministic <=90-column body, restored after arbitrary chat wrapping."""
-    return ''.join('\n'.join(row[i:i+90] for i in range(0,len(row),90))+'\n' for row in rows)
+    return ''.join('\n'.join(row[i:i+width] for i in range(0,len(row),width))+'\n' for row in rows)
+
+
+def frame_text(tag,commit,k,n,mode,reference,rows,*,width=90):
+    """Shared KIT/T/D/E framing for native and next-message text returns."""
+    counts='T|COUNTS|'+','.join(key+'='+str(value) for key,value in section_counts(rows).items())
+    body=body_text([f'T|KIT|{tag}|{commit}',f'T|PART|{k}|{n}','T|MODE|'+mode,reference,counts]+rows,width)
+    return body_text([f'KIT {tag} {commit} PART {k}/{n}'],width)+body+'SHA256 '+sha(body)+'\n'
 
 
 def section_counts(rows):
@@ -525,6 +532,9 @@ def operation_rows(full,public,names,mapping):
 
 
 def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_detail=False):
+    if full.get('nm_family') or 'nm_dispatch' in full:
+        from kit.nm_text import write_parts as nm_write
+        return nm_write(out,full,tag,commit,max_chars=max_chars,full_detail=full_detail)
     if not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', tag) or not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('kit tag and full 40-character commit required')
     if not 1000 <= max_chars <= MAX_CHARS: raise ValueError('part limit must be 1000..12000')
@@ -626,9 +636,7 @@ def write_parts(out, full, tag, commit, jobs=(), max_chars=MAX_CHARS, *, full_de
     def emit(directory,chunks,mode):
         directory.mkdir(parents=True,exist_ok=True);paths=[]
         for k,rows in enumerate(chunks,1):
-            counts='T|COUNTS|'+','.join(key+'='+str(value) for key,value in section_counts(rows).items())
-            body=body_text([f'T|KIT|{tag}|{commit}',f'T|PART|{k}|{len(chunks)}','T|MODE|'+mode,reference,counts]+rows)
-            text=body_text([f'KIT {tag} {commit} PART {k}/{len(chunks)}'])+body+'SHA256 '+sha(body)+'\n'
+            text=frame_text(tag,commit,k,len(chunks),mode,reference,rows)
             if not text.isascii() or '\t' in text or len(text)>max_chars:raise ValueError('part capacity exceeded')
             checked=parse_parts([text],part1_only=True,expect_commit=commit,_single_part=True)
             if any(value!='MATCH' for value in checked['part_checksums'].values()):raise ValueError('internal text checksum round-trip differs')
@@ -692,6 +700,10 @@ def parse_parts(texts, part1_only=False, base=None, *, expect_commit=None, _sing
     A base is a previously verified local reading, never partner-supplied JSON.
     Supplements retain the same transcription-only trust level as every part.
     """
+    texts=list(texts)
+    if any('T|NM|' in re.sub(r'\s+','',t) for t in texts):
+        from kit.nm_text import parse_parts as nm_parse
+        return nm_parse(texts,expect_commit=expect_commit,part1_only=part1_only)
     if expect_commit is not None and not re.fullmatch('[0-9a-f]{40}',expect_commit):raise ValueError('expected full 40-character commit required')
     sets={};counts={};identity=None;reference=None;checksum_status={}
     for text in texts:

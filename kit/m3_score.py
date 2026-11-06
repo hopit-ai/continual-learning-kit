@@ -21,6 +21,7 @@ import sys
 if __package__ in (None, ''): sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kit.p3b_common import (KIT, NotReady, atomic, bind, files_manifest, frozen_files, require, s, t)
 from kit import m3_schedule as plan
+from kit.m3_mode import confirmation
 from types import SimpleNamespace as NS
 import json
 import math
@@ -62,9 +63,9 @@ def build_assignment(nodes, message2_nodes=(), core_uuids=(), *, standin=False):
     gpus = [(n['node'], n['gpus'][i]) for i in range(max(len(n['gpus']) for n in nodes)) for n in nodes if i < len(n['gpus'])]
     require(len({g['uuid'] for _, g in gpus}) == len(gpus), 'physical UUID appears twice')
     require(not ({g['uuid'] for _, g in gpus} & set(core_uuids)), 'M3 inventory contains a GPU held by a core assignment')
-    require(standin or len(gpus) >= len(plan.SEEDS), 'scientific assignments require three distinct physical GPUs')
+    require(standin or len(gpus) >= len(plan.active_seeds()), 'scientific assignments require three distinct physical GPUs')
     values = {}
-    for index, seed in enumerate(plan.SEEDS):
+    for index, seed in enumerate(plan.active_seeds()):
         node, g = gpus[index % len(gpus)]
         values[f'{FAMILY}|{seed}'] = dict(node=node, uuid=g['uuid'], environment=g['environment'])
     return dict(schema='message2-scoring-assignment.v2', assignments=values, purpose='message3-k-cr.v2')
@@ -87,7 +88,7 @@ def assign_job(a):
     path = assignment_path(a.out)
     if path.exists():
         doc = m2_assignment.load(path)
-        require(a.standin or len({v['uuid'] for v in doc['assignments'].values()}) >= len(plan.SEEDS), 'scientific assignments require three distinct physical GPUs')
+        require(a.standin or len({v['uuid'] for v in doc['assignments'].values()}) >= len(plan.active_seeds()), 'scientific assignments require three distinct physical GPUs')
         print('SKIP: frozen M3 assignment'); return
     inventory = json.loads(a.inventory.read_text())
     if not isinstance(inventory, dict): inventory = dict(nodes=inventory)
@@ -322,7 +323,7 @@ def knowledge_production(model, rows, tokenizer_path):
             requests.append(dict(prompt_token_ids=ids)); lengths.append(len(ending)); starts.append(len(context_ids))
     mark = marker()
     try:
-        engine = create_llm(model=str(model), tokenizer=str(tokenizer_path), tensor_parallel_size=1, distributed_executor_backend='uni',
+        engine = create_llm(_kit_workload='likelihood', model=str(model), tokenizer=str(tokenizer_path), tensor_parallel_size=1, distributed_executor_backend='uni',
                             dtype='bfloat16', max_model_len=12288, max_num_seqs=1, gpu_memory_utilization=.9, enforce_eager=True, seed=0)
         outputs = engine.generate(requests, SamplingParams(temperature=0, max_tokens=1, prompt_logprobs=1), use_tqdm=False)
         require(len(outputs) == len(requests), 'complete item/option likelihood coverage required')
@@ -430,13 +431,15 @@ def prepare_scoring(a):
     from kit.ref_score_job import model_metadata
     from kit.m3_train import export_present
     checkpoints = json.loads(a.checkpoints_json); prepared = {}; exports = {}; missing = []
+    if confirmation():
+        require(all(arm in ('base',*plan.active_arms()) and seed in plan.active_seeds() for arm,seed,stage,step in checkpoints), 'UNVERIFIED: foreign confirmation checkpoint')
     for arm, seed, stage, step in checkpoints:
         key = json.dumps([arm, seed, stage, step])
         try: present = export_present(a.out, arm, seed, stage, step)
         except (NotReady, FileNotFoundError): present = False
-        exports[key] = dict(status='PRESENT' if present else 'MISSING-EXPORT', required=step not in (10, 20, 30))
+        exports[key] = dict(status='PRESENT' if present else 'MISSING-EXPORT', required=confirmation() or step not in (10, 20, 30))
         if not present:
-            if step not in (10, 20, 30): missing.append(key)
+            if exports[key]['required']: missing.append(key)
     if missing:
         atomic(a.ready, dict(checkpoints={}, exports=exports, status='PENDING'))
         raise NotReady('required exports missing: ' + ', '.join(missing))
@@ -581,9 +584,22 @@ def format_free(a, root, source, proof):
     return dict(policy_sha256=s.file_hash(formatting.POLICY), validation_sha256=validation)
 
 
+def score_hellaswag_diagnostic(a):
+    """Child-only diagnostic, retaining M3 assignment and CPU identity checks."""
+    from kit.next_hellaswag import score
+    with normalized_assignment_inventory():
+        proof_for(a.out, a.gpu, a.seed, a.standin)
+        resolved_gpu(a)
+        source, observed = checked(a.out, a.arm, a.seed, a.stage, a.step, a.standin)
+        receipt = Path(source['receipt']) if source.get('receipt') and not source['base'] else None
+        with prepared_identity(source, observed, a.standin):
+            score(NS(out=a.out, arm=unit_arm(a.arm, a.stage), seed=a.seed, step=a.step,
+                     model=source['model'], gpu=a.gpu, standin=a.standin, checkpoint_receipt=receipt))
+
+
 @costed_score
 def score_job(a):
-    require(a.panel_set in PANELS and a.seed in plan.SEEDS, 'unregistered panel/seed')
+    require(a.panel_set in PANELS and a.seed in plan.active_seeds(), 'unregistered panel/seed')
     proof = proof_for(a.out, a.gpu, a.seed, a.standin)
     resolved_gpu(a)
     root = unit_root(a.out, a.arm, a.seed, a.stage, a.step, a.panel_set); unit = unit_arm(a.arm, a.stage)
@@ -609,9 +625,18 @@ def score_job(a):
                      checkpoint_receipt=receipt, panel_root=a.panel_root, package_a=None,base_checkpoint=source['base']))
         panel_sha = json.loads((root / 'identity.json').read_text())['panel_sha256']
     elif a.panel_set == 'hellaswag':
-        from kit.next_hellaswag import score
-        with prepared_identity(source, observed, a.standin):
-            score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, model=model, gpu=a.gpu, standin=a.standin, checkpoint_receipt=receipt))
+        if a.standin:
+            from kit.next_hellaswag import score
+            score(NS(out=a.out, arm=unit, seed=a.seed, step=a.step, model=model, gpu=a.gpu, standin=True, checkpoint_receipt=receipt))
+        else:
+            # Process exit releases diagnostic CUDA allocations before the
+            # likelihood child starts; vLLM shutdown alone is insufficient.
+            import subprocess
+            from kit.m2_io import lease_fds
+            command = [sys.executable, str(KIT/'m2_cached_score.py'), 'm3_hellaswag',
+                       '--out', str(a.out), '--action', 'score', '--arm', a.arm,
+                       '--seed', str(a.seed), '--stage', a.stage, '--step', str(a.step), '--gpu', a.gpu]
+            subprocess.run(command, check=True, pass_fds=lease_fds())
         panel_sha = frozen_files(a.out / 'hellaswag').get('panel_sha256')
     else: panel_sha = generate_scores(a, a.panel_set, source, root, unit)
     if a.panel_set == 'hellaswag':
@@ -668,7 +693,7 @@ def configure(p):
     p.add_argument('--action', choices=('prepare-score', 'assign', 'validate-hellaswag', 'validate-knowledge', 'score', 'alias'), required=True)
     p.add_argument('--workspace',type=Path)
     p.add_argument('--inventory', type=Path); p.add_argument('--ready', type=Path); p.add_argument('--checkpoints-json')
-    p.add_argument('--arm', choices=('base', *plan.ARMS)); p.add_argument('--seed', type=int, choices=plan.SEEDS)
+    p.add_argument('--arm', choices=('base', *plan.active_arms())); p.add_argument('--seed', type=int, choices=plan.active_seeds())
     p.add_argument('--stage', choices=plan.STAGES, default=plan.STAGES[0]); p.add_argument('--step', type=int, choices=(0, 10, 20, 30, 40), default=0)
     p.add_argument('--panel-set', choices=PANELS); p.add_argument('--gpu', default='0'); p.add_argument('--panel-root', type=Path)
 

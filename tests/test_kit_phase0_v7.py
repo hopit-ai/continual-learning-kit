@@ -16,6 +16,9 @@ KIT=Path(t.__file__).resolve().parent
 
 @pytest.fixture
 def fake_vllm(monkeypatch):
+    # The real teacher writes engine flags directly, including previously absent
+    # keys. Restore every such write before later shared-constructor tests run.
+    monkeypatch.setattr(os,'environ',os.environ.copy())
     seen=[]
     class LLM:
         fail=False

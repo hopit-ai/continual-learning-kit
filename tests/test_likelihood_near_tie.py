@@ -66,8 +66,9 @@ def test_pinned_real_lengths_and_original_handoff_receipt(monkeypatch, sealed_v6
     historical=json.loads(path.read_text())['declaration']
     current=probe.declaration()
     # Replay the original receipt in its original declaration context. Validate
-    # the two reviewed code transitions separately; declarations remain exact.
-    code_fields={'gpu_mapper_sha256':'m2_gpu.py','lifecycle_sha256':'inference_lifecycle.py'}
+    # the reviewed scheduling transitions separately; declarations remain exact.
+    code_fields={'gpu_mapper_sha256':'m2_gpu.py','lifecycle_sha256':'inference_lifecycle.py',
+                 'subprocess_sha256':'inference_subprocess.py'}
     for field,name in code_fields.items():
         assert allowed(ROOT/'kit'/name,historical[field],current[field])
     assert {k:v for k,v in historical.items() if k not in code_fields}=={k:v for k,v in current.items() if k not in code_fields}

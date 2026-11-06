@@ -20,6 +20,8 @@ print(path)
 ' "$COMBINED_MANIFEST" "$TASK")
 UTIL_GPUS=${UTIL_ROW%%$'\n'*}
 UTIL_OUT=${UTIL_ROW#*$'\n'}
+UTIL_SCOPE=(--expect-gpus "$UTIL_GPUS")
+if [ "$UTIL_GPUS" = 1 ]; then UTIL_SCOPE+=(--holder-slice); fi
 export UTIL_JOB="$TASK"
-exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$UTIL_OUT" --expect-gpus "$UTIL_GPUS" -- \
+exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$UTIL_OUT" "${UTIL_SCOPE[@]}" -- \
   "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run --manifest "$COMBINED_MANIFEST" --task "$TASK"

@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+# CPU-only NVML protocol fixture, never hardware evidence.
+import os
+import sys
+if any(v.startswith('--query-compute-apps') for v in sys.argv):raise SystemExit(0)
+for i in range(8):
+    if any(v.startswith('--query-gpu=index,uuid,utilization.gpu,memory.used') for v in sys.argv):print(f'{i}, GPU-CPU-{i}, 90, 1024')
+    elif '--query-gpu=uuid' in sys.argv:print(f'GPU-CPU-{i}')
+    else:print(f'{i}, GPU-CPU-{i}')

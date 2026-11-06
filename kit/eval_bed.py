@@ -58,7 +58,7 @@ BED_FILES = {"math_screen": HERE / "beds" / "math_screen.py", "spider": HERE / "
              "finqa": HERE / "beds" / "finqa.py", "code": HERE / "beds" / "code.py",
              "chemistry": HERE / "beds" / "chemistry.py", "toolalpaca": HERE / "beds" / "toolalpaca.py"}
 DEFAULT_SPLIT = {"math_screen": "heldout", "spider": "heldout", "gsm8k": "heldout", "finqa": "test", "code": "heldout", "chemistry": "test", "toolalpaca": "test"}
-SPLITS = {"math_screen": ("train", "heldout"), "spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout"),
+SPLITS = {"math_screen": ("train", "heldout", "test"), "spider": ("train", "heldout"), "gsm8k": ("train", "test", "heldout"), "finqa": ("train", "dev", "test"), "code": ("train", "heldout"),
           "chemistry": ("train", "test"), "toolalpaca": ("train", "test")}
 
 
@@ -166,6 +166,8 @@ def split_of(args) -> str:
 
 def items_of(module, args) -> list:
     """[{'id', 'prompt', 'ground_truth'}] for the bed's split, built from the partner's own copy of the data."""
+    if args.bed == "math_screen" and split_of(args) == "test":
+        raise EvalBedError("math_screen test is metadata only; pass frozen_items explicitly")
     root, split = bed_root(args), split_of(args)
     if args.bed == "code":
         # the coding bed builds its own items; scoring needs the tests file `prepare` wrote, named by CODE_TESTS

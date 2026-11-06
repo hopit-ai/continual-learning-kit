@@ -9,6 +9,10 @@ install()
 
 def main():
     name=sys.argv.pop(1)
+    if name=='m3_hellaswag':
+        from kit.m3_score import score_hellaswag_diagnostic,configure
+        from kit.p3b_common import entry
+        return entry(score_hellaswag_diagnostic,configure,'m3-hellaswag-diagnostic')
     if name=='next_hellaswag':
         from kit.next_hellaswag import entry,job,configure
         return entry(job,configure,'next-hellaswag-{action}')

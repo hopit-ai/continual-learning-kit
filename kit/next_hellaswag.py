@@ -88,6 +88,8 @@ def score(a):
         bed.BED_FILES['hellaswag']=KIT/'next_hellaswag.py'
         bed.SPLITS['hellaswag']=('test',)
         bed.load_bed=lambda name:module if name=='hellaswag' else old(name)
+        from kit.inference_lifecycle import marker, shutdown_since
+        engine_mark=marker()
         try:
             os.environ.update(CUDA_VISIBLE_DEVICES=prepared_index(a.gpu,a.standin),KIT_DETERMINISTIC='1')
             bed.cmd_generate(SimpleNamespace(bed='hellaswag',root='',split='test',model=a.model,max_new_tokens=2048,
@@ -96,6 +98,7 @@ def score(a):
         finally:
             bed.load_bed=old
             bed.BED_FILES.pop('hellaswag');bed.SPLITS.pop('hellaswag')
+            shutdown_since(engine_mark)
     require(len(raw)==100 and {r['id'] for r in raw}=={r['id'] for r in rows},'HellaSwag response coverage')
     byid={r['id']:r for r in rows}
     write_rows(folder/'responses.jsonl',raw)

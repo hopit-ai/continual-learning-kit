@@ -26,7 +26,9 @@ print(Path(s["control_root"])/"utilisation"/sys.argv[2]/sys.argv[3]/(uuid.uuid4(
   exec "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run \
     --manifest "$COMBINED_MANIFEST" --task "$TASK"
 fi
+UTIL_SCOPE=(--expect-gpus "$GPUS")
+if [ "$GPUS" = 1 ]; then UTIL_SCOPE+=(--holder-slice); fi
 export UTIL_JOB="$TASK"
 exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$UTIL_OUT" \
-  --expect-gpus "$GPUS" -- "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run \
+  "${UTIL_SCOPE[@]}" -- "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run \
   --manifest "$COMBINED_MANIFEST" --task "$TASK"

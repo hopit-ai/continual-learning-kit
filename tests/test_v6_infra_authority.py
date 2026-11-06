@@ -111,6 +111,20 @@ def test_generator_uses_current_pins_not_every_historical_generation(repo):
         assert uncovered_pins(bad,root,target)==[(row['path'],row['pinned_sha256'],row['new_sha256'])]
 
 
+def test_generator_describes_lifecycle_backend_and_memory_configuration(repo):
+    root,base,_=repo
+    lifecycle=root/'kit/inference_lifecycle.py';lifecycle.write_bytes(b'old engine configuration')
+    pins=root/'kit/resources/pins.json';doc=json.loads(pins.read_text())
+    doc['code']['kit/inference_lifecycle.py']=sha(lifecycle.read_bytes())
+    pins.write_text(json.dumps(doc));commit(root)
+    lifecycle.write_bytes(b'new engine configuration');target=commit(root)
+    rows=[r for r in generate(base,root,target)['files'] if r['path']=='kit/inference_lifecycle.py']
+    assert len(rows)==1
+    assert rows[0]['reason']=='engine backend/memory configuration; scoring definitions unchanged'
+    assert rows[0]['pinned_sha256']==sha(b'old engine configuration')
+    assert rows[0]['new_sha256']==sha(b'new engine configuration')
+
+
 @pytest.mark.parametrize('staged',[False,True])
 def test_generator_refuses_uncommitted_tracked_bytes(repo,staged):
     root,base,target=repo;(root/'kit/test.py').write_bytes(b'unreviewed')

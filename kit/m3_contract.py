@@ -30,6 +30,7 @@ Runner/worker: kit.m3_runner.M3TaskRunner / M3ActorRolloutRefWorker.
 Actor/loss: kit.m3_actor.update_policy / kit.m3_loss. Receipt schema v3 below.
 """
 from __future__ import annotations
+from kit.m3_mode import seeds as active_seeds, arms as active_arms, qualification_seed
 import hashlib
 import json
 import math
@@ -112,14 +113,14 @@ def stage_number(stage):
 
 
 def prompt_cap(arm, stage):
-    if arm not in ARMS: raise ValueError('unregistered arm')
+    if arm not in active_arms(): raise ValueError('unregistered arm')
     stage_number(stage)
     return PROMPT_CAP
 
 
 def geometry(arm, stage, world_size=8):
     stage = stage_number(stage)
-    if arm not in ARMS or world_size not in (1,2,8):
+    if arm not in active_arms() or world_size not in (1,2,8):
         raise ValueError('unregistered arm or reduction rank count')
     task = 28 if arm in ('C0','K') else 32
     replay = 4 if arm in ('C0','K') else 8*stage
@@ -144,7 +145,7 @@ def validate_config(config):
     if set(config)-set(CONFIG_KEYS) or set(CONFIG_KEYS)-{'preflight','preflight_phase','input_manifest','host_reservation_bytes'}-set(config):
         raise ValueError('m3 config keys differ from contract')
     geometry(config['arm'],config['stage'])
-    if config['seed'] not in SEEDS or config['profile'] not in PROFILES:
+    if config['seed'] not in active_seeds() or config['profile'] not in PROFILES:
         raise ValueError('unregistered seed/profile')
     if config['profile'] in ('scientific','preflight') and config['base_revision']!=BASE_REVISION:
         raise ValueError('scientific base revision differs')
@@ -175,7 +176,7 @@ def validate_preflight_inputs(location, *, arm, stage, root):
     if (any(key not in value for key in PREFLIGHT_INPUT_REQUIRED)
             or value.get('schema')!=PREFLIGHT_INPUT_SCHEMA or value.get('arm')!=arm
             or value.get('stage')!=stage or stage not in PREFLIGHT_INPUT_STAGES
-            or value.get('seed')!=101 or value.get('code_sha256')!=code_digest()
+            or value.get('seed')!=qualification_seed() or value.get('code_sha256')!=code_digest()
             or 'longest_legal_prompt_tokens' in value):
         raise ValueError('preflight input schema/identity differs; legal length must come from frozen audit')
     if not location.is_relative_to(root):raise ValueError('preflight inputs escape isolated root')
@@ -268,7 +269,7 @@ def receipt_status(receipt):
 
 def validate_receipt(receipt):
     if any(k not in receipt for k in RECEIPT_REQUIRED): raise ValueError('incomplete M3 receipt schema')
-    if receipt['schema_version']!=SCHEMA_VERSION or receipt['seed'] not in SEEDS:
+    if receipt['schema_version']!=SCHEMA_VERSION or receipt['seed'] not in active_seeds():
         raise ValueError('receipt schema/seed differs')
     expected=geometry(receipt['arm'],receipt['stage'],receipt['world_size'])
     for key in ('task_rows','replay_rows','global_rows','accumulation_rounds','global_divisor'):

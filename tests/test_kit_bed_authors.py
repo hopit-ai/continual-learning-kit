@@ -123,6 +123,8 @@ def _eval_bed():
 def test_eval_bed_scores_the_chemistry_bed_from_its_messages_with_token_ids(tmp_path, monkeypatch):
     import sys
     import types
+    # The real generate command enables deterministic vLLM flags directly.
+    monkeypatch.setattr(os, 'environ', os.environ.copy())
     seen = {}
 
     class LLM:
