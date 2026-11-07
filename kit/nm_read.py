@@ -230,11 +230,16 @@ def evaluate(family,doc,spec,binding):
 
 def read(family,doc,spec,binding):
     if binding.get('status')=='ARCHIVED UNREAD':return dict(status='ARCHIVED UNREAD',reason=binding.get('reason','prerequisite archived'),persistence=binding.get('persistence'))
-    try:return evaluate(family,doc,spec,binding)
-    except Hardware as e:return dict(status='UNVERIFIED-HARDWARE',reason=str(e))
-    except Pending as e:return dict(status='PENDING/INCOMPLETE',reason=str(e))
+    try:result=evaluate(family,doc,spec,binding)
+    except Hardware as e:result=dict(status='UNVERIFIED-HARDWARE',reason=str(e))
+    except Pending as e:result=dict(status='PENDING/INCOMPLETE',reason=str(e))
     except (Invalid,KeyError,TypeError,ValueError) as e:
-        return dict(status='PENDING/INCOMPLETE' if 'FORMAT-CONFOUNDED' in str(e) else 'UNVERIFIED',reason=str(e))
+        result=dict(status='PENDING/INCOMPLETE' if 'FORMAT-CONFOUNDED' in str(e) else 'UNVERIFIED',reason=str(e))
+    if spec.get('generation_qualification'):
+        result['generation_qualification']=spec['generation_qualification']
+        result['utilisation_warnings']=[f'generation_qualification_s{seed}_'+warning
+            for seed,record in sorted(spec['generation_qualification'].items()) for warning in record['warnings']]
+    return result
 
 
 def main():

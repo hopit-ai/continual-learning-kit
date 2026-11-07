@@ -8,6 +8,29 @@ from kit.nm_common import *
 from kit.nm_jobs import inventory,current
 
 
+@pytest.mark.parametrize('gpus',[0,1,8])
+@pytest.mark.parametrize('allocation,holder',[(dict(),False),(dict(UTIL_HOLDER_SLICE='1'),True),
+    (dict(SLURM_GPUS_ON_NODE='8'),True),(dict(SLURM_JOB_GPUS='2-5'),True),
+    (dict(SLURM_STEP_GPUS='GPU-a,GPU-b'),True),(dict(SLURM_JOB_GPUS='5'),False)])
+def test_watcher_holder_scope_matches_row_and_child_exit_is_preserved(tmp_path,monkeypatch,gpus,allocation,holder):
+    from types import SimpleNamespace
+    from kit import nm_jobs,a4_common
+    config=tmp_path/'config.json';atomic(config,dict(out=str(tmp_path/'out'),technical_synthetic=True))
+    row=dict(id='NM-opr-fixture',family='opr',phase='generate',gpus=gpus,depends_on=[])
+    monkeypatch.setattr(nm_jobs,'row_for',lambda *a:row)
+    for key in ('UTIL_HOLDER_SLICE','SLURM_GPUS_ON_NODE','SLURM_JOB_GPUS','SLURM_STEP_GPUS'):monkeypatch.delenv(key,raising=False)
+    for key,value in allocation.items():monkeypatch.setenv(key,value)
+    monkeypatch.delenv('UTIL_WATCH_ACTIVE',raising=False)
+    def child(command,*,env,pass_fds):
+        scope=command[command.index('--expect-gpus'):command.index('--')]
+        assert scope==['--expect-gpus',str(gpus),*(['--holder-slice'] if gpus==1 and holder else [])]
+        assert ('UTIL_HOLDER_SLICE' in env)==(gpus==1 and 'UTIL_HOLDER_SLICE' in allocation)
+        return SimpleNamespace(returncode=37)
+    monkeypatch.setattr(a4_common,'gpu_run',child)
+    assert nm_jobs.run(config,row['id'])==37
+    assert current(tmp_path/'out',row['id'],complete=False)['exit_code']==37
+
+
 def invoke(config,task):
     return subprocess.run(['bash',str(KIT/'jobs/nm/run-task.sh'),task],env=dict(os.environ,KIT=str(KIT),NM_CONFIG=str(config),JOB_PY=sys.executable),capture_output=True,text=True)
 
@@ -157,3 +180,24 @@ def test_grpo_insensitive_D_completes_real_rows_and_text_only_cpu_return(tmp_pat
     assert imported['endpoints']['D_sensitivity']['values']==[0.]*3
     reading=load(out/'attempts'/'NM-grpo-read'/current(out,'NM-grpo-read')['nonce']/'reading.json')
     assert imported['primary']==reading['primary'] and imported['guards']==reading['guards']
+
+
+def test_inherited_watcher_marker_warns_and_runs_scientific_child(tmp_path,monkeypatch,capsys):
+    from types import SimpleNamespace
+    from kit import nm_jobs,a4_common
+    config=tmp_path/'config.json';out=tmp_path/'out'
+    atomic(config,dict(out=str(out),technical_synthetic=True))
+    row=dict(id='NM-opr-fixture',family='opr',phase='generate',gpus=1,depends_on=[])
+    monkeypatch.setattr(nm_jobs,'row_for',lambda *a:row)
+    monkeypatch.setenv('UTIL_WATCH_ACTIVE','1')
+    calls=[]
+    def child(command,*,env,pass_fds):
+        assert 'UTIL_WATCH_ACTIVE' not in env
+        assert command.count(str(KIT/'util_watch.py'))==1
+        calls.append(command)
+        return SimpleNamespace(returncode=0)
+    monkeypatch.setattr(a4_common,'gpu_run',child)
+    assert nm_jobs.run(config,row['id'])==0 and len(calls)==1
+    record=current(out,row['id'])
+    assert record['utilisation_warnings']==['INHERITED_UTIL_WATCH_ACTIVE_DROPPED']
+    assert 'W|NM-opr|INHERITED_UTIL_WATCH_ACTIVE_DROPPED|1' in capsys.readouterr().out

@@ -123,3 +123,99 @@ def test_dispatch_replaces_family_and_failed_publication_preserves_cycle(tmp_pat
     attempt=tmp_path/'failed';attempt.mkdir()
     with pytest.raises(Invalid,match='four parts'):p.dispatch_text(tmp_path,attempt,full('freeze'))
     assert pointer.read_bytes()==before
+
+
+@pytest.mark.parametrize('summary',[
+    None, 'not-json', [], {},
+    dict(telemetry_complete=False,mean_util=90,min_window_mean=85),
+    dict(telemetry_complete=True,mean_util=69,min_window_mean=68),
+    dict(telemetry_complete=True,mean_util=80,min_window_mean=None),
+    dict(telemetry_complete=True,mean_util=80,min_window_mean=75),
+])
+def test_opr_generation_utilisation_is_advisory_and_retained_in_text(tmp_path,monkeypatch,summary):
+    from kit import nm_generate,nm_read,nm_text
+    from kit.nm_jobs import row_for
+    from kit.nm_sim import fixture
+    qualification=tmp_path/'qualification';qualification.mkdir()
+    path=qualification/'util.summary.json'
+    if isinstance(summary,str):path.write_text(summary)
+    elif summary is not None:atomic(path,summary)
+    attempt=tmp_path/'attempt';attempt.mkdir();calls=[]
+    monkeypatch.setattr(p,'source',lambda *a:{})
+    monkeypatch.setattr(p,'bound',lambda *a:{})
+    monkeypatch.setattr(p,'row_result',lambda *a:qualification)
+    def generate(plan,output,qualify):
+        calls.append((plan,qualify));atomic(output,dict(attempts=[]))
+    monkeypatch.setattr(nm_generate,'generate',generate)
+    output=p.operation({},row_for('NM-opr-generate-s101'),attempt,tmp_path,tmp_path/'config.json')
+    assert output['status']=='COMPLETE' and calls==[(tmp_path/'opr/generation-s101.json',False)]
+    measured=output['generation_qualification']
+    good=isinstance(summary,dict) and summary.get('min_window_mean')==75
+    assert bool(output['utilisation_warnings']) is not good
+    if isinstance(summary,dict):
+        assert measured['mean_util']==summary.get('mean_util')
+        assert measured['min_window_mean']==summary.get('min_window_mean')
+    doc,spec,binding=fixture('opr');baseline=nm_read.read('opr',doc,spec,binding)
+    spec['generation_qualification']={'101':measured}
+    reading=nm_read.read('opr',doc,spec,binding)
+    assert reading['status']==baseline['status'] and reading['primary']==baseline['primary']
+    assert reading['utilisation_warnings']==output['utilisation_warnings']
+    full=dict(nm_family='opr',reading=reading,infrastructure_authority='a'*64)
+    parts=nm_text.write_parts(tmp_path/'text',full,'kit-message-v7b','b'*40)
+    parsed=nm_text.parse_parts([part.read_text() for part in parts])
+    assert parsed['status']==reading['status']
+    assert parsed['metadata']['utilisation']['generation_qualification_s101']==measured
+    assert parsed.get('utilisation_warnings',[])==output['utilisation_warnings']
+    lines=text_lines('opr',reading,'a'*64)
+    assert any(line.startswith('W|NM-opr|') for line in lines) is not good
+
+
+@pytest.mark.parametrize('value',[float('nan'),float('inf'),-1,101,10**400,True,'80'])
+def test_invalid_generation_utilisation_values_warn_without_raising(tmp_path,value):
+    import json
+    path=tmp_path/'summary.json'
+    path.write_text(json.dumps(dict(telemetry_complete=True,mean_util=value,min_window_mean=value)))
+    result=p.generation_utilisation(path)
+    assert result['mean_util'] is None and result['min_window_mean'] is None
+    assert len(result['warnings'])==2
+
+
+@pytest.mark.parametrize('historical',[False,True])
+def test_production_opr_reading_collects_advisory_and_reproduces_archive_spec(tmp_path,monkeypatch,historical):
+    from kit import nm_jobs,nm_read
+    from kit.nm_sim import fixture
+    doc,spec,binding=fixture('opr')
+    binding['recipe']=dict(starts={str(seed):dict(sha256='d'*64) for seed in SEEDS})
+    score=tmp_path/'score';atomic(score/'scores.json',doc)
+    atomic(tmp_path/'launch.json',dict(infrastructure_update='a'*64))
+    monkeypatch.setattr(nm_jobs,'inventory',lambda:dict(rows=[dict(id='score',family='opr',phase='score')]))
+    monkeypatch.setattr(nm_jobs,'current',lambda *a:None)
+    monkeypatch.setattr(p,'bound',lambda *a:binding)
+    monkeypatch.setattr(p,'exports_for',lambda *a:{str(k):dict(sha256='b'*64) for k in STEPS})
+    measured=dict(telemetry_complete=False,mean_util=61,min_window_mean=None,warnings=['TELEMETRY_INCOMPLETE'])
+    def row_result(out,task):
+        if task=='score':return score
+        root=tmp_path/task;root.mkdir(exist_ok=True)
+        atomic(root/'output.json',{} if historical else dict(generation_qualification=measured))
+        return root
+    monkeypatch.setattr(p,'row_result',row_result)
+    for seed in SEEDS:
+        atomic(tmp_path/'opr'/f'refresh-s{seed}.json',dict(cohort=spec['pre_cohort'][str(seed)],audit=spec['opr_refresh'][str(seed)]))
+    # Use the frozen synthetic scientific fixture, keeping the production reader
+    # and the pipeline's advisory collection and publication paths real.
+    original=nm_read.read
+    def read(family,scores,reader_spec,bound):
+        for key in ('scorers','checkpoints'):reader_spec[key]=spec[key]
+        return original(family,dict(scores,technical_synthetic=True),reader_spec,bound)
+    monkeypatch.setattr(nm_read,'read',read)
+    bundle=dict(base=dict(sha256='c'*64),panels={name:[dict(id=i) for i in ids] for name,ids in spec['panels'].items()})
+    attempt=tmp_path/'reading';attempt.mkdir()
+    result=p.reading(dict(family='opr'),attempt,tmp_path,bundle,[])
+    assert result['status']=='COMPLETE'
+    reading=load(attempt/'reading.json');reader_spec=load(attempt/'reader-spec.json')
+    assert canonical(reading)==canonical(read('opr',load(attempt/'scores.json'),reader_spec,binding))
+    if historical:assert 'generation_qualification' not in reading
+    else:
+        assert reading['generation_qualification']=={str(seed):measured for seed in SEEDS}
+        assert len(reading['utilisation_warnings'])==3
+        assert 'W|NM-opr|generation_qualification_s101_TELEMETRY_INCOMPLETE|1' in (attempt/'summary.txt').read_text()

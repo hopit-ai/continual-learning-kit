@@ -152,3 +152,27 @@ def test_grpo_pending_cli_exit_depends_on_missing_evidence(tmp_path,computed):
     assert result.returncode==(0 if computed else 75),result.stdout+result.stderr
     reading=load(tmp_path/'reading.json')
     assert reading['status']=='PENDING/INCOMPLETE' and bool(reading.get('primary'))==computed
+
+
+@pytest.mark.parametrize('failure,status',[
+    ('missing','PENDING/INCOMPLETE'),('format','UNVERIFIED'),('hardware','UNVERIFIED-HARDWARE')])
+def test_opr_advisories_survive_incomplete_reading_and_text_return(tmp_path,failure,status):
+    from kit.nm_text import payload,parse_family
+    doc,spec,binding=fixture('opr')
+    record=dict(telemetry_complete=False,mean_util=None,min_window_mean=None,warnings=['TELEMETRY_INCOMPLETE'])
+    spec['generation_qualification']={'101':record}
+    if failure=='missing':doc['cells']=[]
+    elif failure=='format':next(c for c in doc['cells'] if c['panel']=='knowledge')['precision']='quantised'
+    else:
+        target=next(c for c in doc['cells'] if c['seed']==101 and c['panel']=='instruction' and c['model']=='T' and c['step']==40)
+        target['uuid']='different'
+    result=read('opr',doc,spec,binding)
+    assert result['status']==status
+    atomic(tmp_path/'reading.json',result)
+    assert load(tmp_path/'reading.json')['generation_qualification']=={'101':record}
+    warning='generation_qualification_s101_TELEMETRY_INCOMPLETE'
+    assert result['utilisation_warnings']==[warning]
+    assert 'W|NM-opr|'+warning+'|1' in text_lines('opr',result,'a'*64)
+    rows=payload(dict(nm_family='opr',reading=result,infrastructure_authority='a'*64))
+    parsed=parse_family(rows,('kit-message-v7b','b'*40),{})
+    assert parsed['utilisation_warnings']==[warning]

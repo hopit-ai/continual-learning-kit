@@ -10,8 +10,14 @@ from kit.m3_schedule import STAGES
 
 
 def settings(cfg):
-    cr=dict(cfg.get('cr_confirmation',{}))
-    ready(cr.get('out'),'separate cr_confirmation.out required')
+    ready(isinstance(cfg,dict),'launch configuration must be an object')
+    ready(isinstance(cfg.get('cr_confirmation'),dict),'cr_confirmation must be an object')
+    cr=dict(cfg['cr_confirmation'])
+    ready(isinstance(cr.get('out'),str) and bool(cr['out']),'separate cr_confirmation.out required')
+    ready(Path(cr['out']).is_absolute(),'absolute cr_confirmation.out required')
+    ready(isinstance(cr.get('other_roots',[]),list),'other_roots must be an array')
+    ready(isinstance(cfg.get('job_python',sys.executable),str) and bool(cfg.get('job_python',sys.executable)),
+          'job_python must be a nonempty executable path')
     isolated(cr,cfg['out'])
     cr.update(budget=cr.get('budget',{}),job_python=cfg.get('job_python',sys.executable),
         infrastructure_update=cfg.get('infrastructure_update'),send_approval=cfg.get('send_approval'),
@@ -163,23 +169,54 @@ def operation(cfg,row,attempt,out):
         simulator.chmod(0o755)
         os.environ['PATH']=str(simulator.parent)+os.pathsep+os.environ.get('PATH','')
     if phase=='bind':
-        binding=bind_inputs(cfg,attempt)
-        if cfg.get('technical_synthetic'):
-            atomic(attempt/'diff-review.json',dict(status='PENDING',technical_synthetic=True,
-                reason='CPU stand-in does not establish baseline review or scientific qualification'))
-        else:verify_diff(cfg.get('diff_receipt'))
-        warnings=[]
-        verify_operator(cfg,warnings)
-        atomic(attempt/'operator-evidence.json',dict(utilisation_warnings=warnings))
-        ready(cfg.get('hosts'),'explicit confirmation hosts missing')
-        native=load(binding['realised']['native_inventory'])
-        from kit.m3_manifest import host_name
-        allowed={host_name(n['node'] if isinstance(n,dict) else n) for n in native['nodes']}
-        excluded={host_name(n) for n in native.get('message2_nodes',[])}
-        need({host_name(n) for n in cfg['hosts']}<=allowed and not {host_name(n) for n in cfg['hosts']}&excluded,'confirmation host violates inherited core-node exclusion')
-        seal(out/'confirmation-binding.json',binding)
         from kit.nm_common import source_seal,launch_config
-        seal(out/'launch/cr.json',dict(config_sha256=digest(launch_config(cfg,'cr')),code=source_seal(),cr_code=binding['code'],hosts=cfg.get('hosts',[])))
+        launch={}
+        def validate(binding,checked):
+            if cfg.get('technical_synthetic'):
+                atomic(attempt/'diff-review.json',dict(status='PENDING',technical_synthetic=True,
+                    reason='CPU stand-in does not establish baseline review or scientific qualification'))
+            else:
+                ref=cfg.get('diff_receipt')
+                record=dict(expected=ref.get('sha256') if isinstance(ref,dict) else None,observed=None)
+                binding['diff_receipt']=record
+                if isinstance(ref,dict):record['observed']=checked.access('sha',ref.get('path'),'diff receipt')
+                verify_diff(ref)
+            warnings=[]
+            verify_operator(cfg,warnings)
+            atomic(attempt/'operator-evidence.json',dict(utilisation_warnings=warnings))
+            hosts=cfg.get('hosts')
+            ready(isinstance(hosts,list) and hosts and all(isinstance(n,str) and n for n in hosts),
+                  'explicit confirmation hosts must be a nonempty string array')
+            path=binding['realised']['native_inventory']
+            source=next(r for r in binding['sources'] if r.get('path')==path)
+            record=dict(expected=source['expected'],observed=checked.access('sha',path,'native inventory'))
+            binding['native_inventory']=record
+            native=checked.document(path,record['expected'],'native inventory')
+            ready(native is not None,'native inventory unreadable')
+            nodes=native.get('nodes');excluded=native.get('message2_nodes',[])
+            record.update(expected_shape='nodes: nonempty array of host strings or {node: host}; message2_nodes: string array',
+                          observed_shape=dict(nodes=nodes,message2_nodes=excluded))
+            ready(isinstance(nodes,list) and nodes and all(
+                isinstance(n,str) and bool(n) or isinstance(n,dict) and isinstance(n.get('node'),str) and bool(n['node'])
+                for n in nodes),'native inventory nodes must be a nonempty host array')
+            ready(isinstance(excluded,list) and all(isinstance(n,str) and n for n in excluded),
+                  'native inventory message2_nodes must be a host array')
+            from kit.m3_manifest import host_name
+            from kit.cr_confirmation import HostPolicy
+            allowed={host_name(n['node'] if isinstance(n,dict) else n) for n in nodes}
+            if not ({host_name(n) for n in hosts}<=allowed and not {host_name(n) for n in hosts}&{host_name(n) for n in excluded}):
+                raise HostPolicy('confirmation host violates inherited core-node exclusion')
+            # Validate all operator-dependent launch fields before COMPLETE.
+            launch.update(config_sha256=digest(launch_config(cfg,'cr')),code=source_seal(),
+                          cr_code=binding['code'],hosts=hosts)
+            if not binding['errors']:
+                # Successful input bindings must equal later inventory-only
+                # rechecks. Retain row diagnostics only when they failed.
+                binding.pop('diff_receipt',None)
+                binding.pop('native_inventory',None)
+        binding=bind_inputs(cfg,attempt,validate=validate)
+        seal(out/'confirmation-binding.json',binding)
+        seal(out/'launch/cr.json',launch)
     elif phase=='prepare':prepare(cfg,out)
     elif phase in ('train-prepare','train','export','qualify-prepare','qualify'):
         action={'train-prepare':'prepare','train':'train','export':'export','qualify-prepare':'preflight-inputs','qualify':'preflight'}[phase]

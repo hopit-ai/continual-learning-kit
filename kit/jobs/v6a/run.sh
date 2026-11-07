@@ -26,8 +26,12 @@ print(Path(s["control_root"])/"utilisation"/sys.argv[2]/sys.argv[3]/(uuid.uuid4(
   exec "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run \
     --manifest "$COMBINED_MANIFEST" --task "$TASK"
 fi
+if [ "$GPUS" != 1 ]; then unset UTIL_HOLDER_SLICE; fi
 UTIL_SCOPE=(--expect-gpus "$GPUS")
-if [ "$GPUS" = 1 ]; then UTIL_SCOPE+=(--holder-slice); fi
+if [ "$GPUS" = 1 ] && "${JOB_PY:-python3}" -I -c '
+import os,runpy,sys
+sys.exit(0 if runpy.run_path(sys.argv[1])["use_holder_slice"](os.environ,1) else 1)
+' "$KIT/util_watch.py"; then UTIL_SCOPE+=(--holder-slice); fi
 export UTIL_JOB="$TASK"
 exec "${JOB_PY:-python3}" -I "$KIT/util_watch.py" --out "$UTIL_OUT" \
   "${UTIL_SCOPE[@]}" -- "${JOB_PY:-python3}" -I "$KIT/combined_send.py" run \

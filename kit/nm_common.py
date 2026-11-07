@@ -91,5 +91,9 @@ def text_lines(family,result,authority):
     if result.get('primary'):
         p=result['primary'];lines.append(f"NM|{family}|mean={p['mean']:.3f}|LB={p['lower']:.3f}|pos={p['positive']}/3")
     if result.get('interpretation'):lines.append(f"NM|{family}|{result['interpretation']}")
+    for seed,record in sorted(result.get('generation_qualification',{}).items()):
+        values=[record[k] for k in ('telemetry_complete','mean_util','min_window_mean')]
+        lines.append(f'T|NM|utilisation|s{seed}|'+json.dumps(values,separators=(',',':')))
+    lines.extend('W|NM-'+family+'|'+warning+'|1' for warning in result.get('utilisation_warnings',[]))
     need(all(len(line)<=90 for line in lines),'text return exceeds 90 characters')
     return lines

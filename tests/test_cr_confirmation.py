@@ -151,10 +151,6 @@ def test_separate_roots_and_predata_diff_fail_closed(tmp_path):
     assert cr.isolated(cfg,tmp_path/'six-rows')==tmp_path/'confirmation'
     cfg['out']=cfg['v6a_root']
     with pytest.raises(Invalid):cr.isolated(cfg)
-    # The plain public export has no git metadata for the diagnostic HEAD diff.
-    if (cr.KIT.parent/'.git').exists():
-        receipt=cr.diff_receipt(tmp_path/'diff.json',base='0'*40)
-        assert receipt['status']=='PENDING' and 'unavailable' in receipt['reason']
     with pytest.raises(Pending):cr.verify_diff(None)
 
 
@@ -206,7 +202,7 @@ def test_text_seventh_family_integer_rederivation_and_dispatch_budget(tmp_path):
 def test_every_new_row_real_wrapper_pending_failure_and_nonce_isolation(tmp_path):
     from scripts.cr_confirmation_dryrun import run
     r=run(tmp_path/'dry-run')
-    assert r['rows']==78 and r['wrapper_calls']==79 and r['pending']==75 and r['failed']==1
+    assert r['rows']==78 and r['wrapper_calls']==79 and r['pending']==75 and r['failed']==0 and r['malformed_pending']==1
     assert r['parts']<=4 and r['technical_synthetic']
 
 
@@ -579,9 +575,9 @@ def test_synthetic_rejects_non_standin_hosts_before_bypasses(tmp_path,hosts):
         cr_jobs.operation(cfg,dict(phase='qualify'),tmp_path/'attempt',Path(cfg['out']))
     with pytest.raises(Invalid,match='non-stand-in host refused'):
         cr_jobs.read_result(cfg,Path(cfg['out']))
-    with pytest.raises(Invalid,match='non-stand-in host refused'):
+    with pytest.raises(Pending,match='non-stand-in host refused'):
         cr.bind_inputs(cfg,tmp_path/'attempt')
-    assert not (tmp_path/'attempt').exists()
+    assert load(tmp_path/'attempt/input-binding.json')['status']=='PENDING'
 
 
 def test_standin_category_covers_bypasses_without_approving_hunks(tmp_path,monkeypatch):
@@ -600,3 +596,302 @@ def test_standin_category_covers_bypasses_without_approving_hunks(tmp_path,monke
     assert receipt['category_definitions']['technical-standin']==cr.TECHNICAL_STANDIN
     assert receipt['hunks'][0]['suggested_category']=='technical-standin'
     assert receipt['hunks'][0]['category'] is None and receipt['status']=='PENDING'
+
+
+@pytest.mark.parametrize('target', ['missing', 'directory'])
+def test_unchecked_manifest_digest_never_opens_manifest(tmp_path, monkeypatch, target):
+    from kit.cr_finqa import InputChecks
+    cfg, path = inventory_fixture(tmp_path)
+    doc = load(path)
+    source = tmp_path/target
+    if target == 'directory': source.mkdir()
+    doc['sources'].append(dict(path=str(source), manifest=True))
+    atomic(path, doc)
+    cfg['realised_inputs']['sha256'] = sha(path)
+    original = InputChecks.document
+    def document(self, item, expected, label):
+        assert item != source, 'unchecked manifest was parsed'
+        return original(self, item, expected, label)
+    monkeypatch.setattr(InputChecks, 'document', document)
+    with pytest.raises(Pending): cr.bind_inputs(cfg, tmp_path/'attempt')
+    report = load(tmp_path/'attempt/input-binding.json')
+    assert report['status'] == 'PENDING' and report['escalation'] == 'owner'
+    assert report['sources'][-1]['expected'] is None
+    assert report['sources'][-1]['observed'] is None
+
+
+@pytest.mark.parametrize('trigger', [
+    'cfg-null', 'ref-null', 'inventory-path-null', 'inventory-not-json', 'inventory-array',
+    'sources-null', 'source-null', 'role-array', 'source-path-missing', 'source-path-null',
+    'source-digest-null', 'source-digest-array', 'manifest-not-json', 'manifest-array',
+    'manifest-files-null', 'tasks-null', 'tasks-array', 'task-null',
+    'schedules-null', 'schedules-array', 'mode-deep', 'inventory-deep',
+    'nan', 'nan-with-hash-failure', 'infinity',
+])
+def test_malformed_operator_inputs_publish_pending(tmp_path, trigger):
+    cfg, path = inventory_fixture(tmp_path)
+    doc = load(path)
+    row = next(r for r in doc['sources'] if r['role'] == 'candidate-lists')
+    if trigger == 'cfg-null': cfg = None
+    elif trigger == 'ref-null': cfg['realised_inputs'] = None
+    elif trigger == 'inventory-path-null': cfg['realised_inputs']['path'] = None
+    elif trigger == 'sources-null': doc['sources'] = None
+    elif trigger == 'source-null': doc['sources'].append(None)
+    elif trigger == 'role-array': row['role'] = []
+    elif trigger == 'source-path-missing': del row['path']
+    elif trigger == 'source-path-null': row['path'] = None
+    elif trigger == 'source-digest-null': row['sha256'] = None
+    elif trigger == 'source-digest-array': row['sha256'] = []
+    elif trigger.startswith('manifest-'):
+        content = {'manifest-not-json': 'not-json', 'manifest-array': '[]', 'manifest-files-null': '{"files":null}'}[trigger]
+        Path(row['path']).write_text(content)
+        row.update(sha256=sha(row['path']), manifest=True)
+    elif trigger == 'tasks-null': doc['task_sources'] = None
+    elif trigger == 'tasks-array': doc['task_sources'] = []
+    elif trigger == 'task-null': doc['task_sources']['finqa'] = None
+    elif trigger == 'schedules-null': doc['task_sources']['finqa']['v6a_schedules'] = None
+    elif trigger == 'schedules-array': doc['task_sources']['finqa']['v6a_schedules'] = []
+    elif trigger == 'mode-deep':
+        mode = next(r for r in doc['sources'] if r['role'] == 'math-mode')
+        Path(mode['path']).write_text('['*2000+'0'+']'*2000)
+        mode['sha256'] = sha(mode['path'])
+    elif trigger in ('nan', 'nan-with-hash-failure', 'infinity'):
+        doc['extra'] = float('inf') if trigger == 'infinity' else float('nan')
+        if trigger == 'nan-with-hash-failure': row['sha256'] = '0'*64
+    content = json.dumps(doc)
+    if trigger == 'inventory-not-json': content = 'not-json'
+    elif trigger == 'inventory-array': content = '[]'
+    elif trigger == 'inventory-deep': content = '{"extra":'+'['*2000+'0'+']'*2000+'}'
+    path.write_text(content)
+    if isinstance(cfg, dict) and isinstance(cfg.get('realised_inputs'), dict):
+        cfg['realised_inputs']['sha256'] = sha(path)
+    attempt = tmp_path/'attempt'
+    with pytest.raises(Pending, match='owner escalation'): cr.bind_inputs(cfg, attempt)
+    raw = (attempt/'input-binding.json').read_text()
+    report = json.loads(raw, parse_constant=lambda value: pytest.fail('nonfinite receipt '+value))
+    assert report['status'] == 'PENDING' and report['escalation'] == 'owner'
+    assert report['errors'] and not any('input checking failed' in e for e in report['errors'])
+    assert {'expected', 'observed'} <= report['inventory'].keys()
+    assert all({'expected', 'observed'} <= row.keys() for row in report['sources'])
+    if trigger in ('nan', 'nan-with-hash-failure', 'infinity'):
+        assert report['realised']['extra'] is None
+        assert any('non-finite' in e for e in report['errors'])
+
+
+@pytest.mark.parametrize('location', [
+    'inventory-hash', 'inventory-read', 'source-hash', 'manifest-read',
+    'mode-hash', 'mode-read', 'manifest-resolve', 'source-resolve',
+])
+@pytest.mark.parametrize('failure', [PermissionError, RuntimeError, ValueError, RecursionError])
+def test_checked_input_filesystem_failures_publish_pending(tmp_path, monkeypatch, location, failure):
+    cfg, path = inventory_fixture(tmp_path)
+    doc = load(path)
+    row = next(r for r in doc['sources'] if r['role'] == 'candidate-lists')
+    mode = next(r for r in doc['sources'] if r['role'] == 'math-mode')
+    member = tmp_path/'member.json'
+    if location.startswith('manifest'):
+        atomic(Path(row['path']), dict(files={member.name: 'a'*64}))
+        row.update(sha256=sha(row['path']), manifest=True)
+    atomic(path, doc)
+    cfg['realised_inputs']['sha256'] = sha(path)
+    target = path if location.startswith('inventory') else Path(mode['path']) if location.startswith('mode') else Path(row['path'])
+    original_read = Path.read_bytes
+    original_resolve = Path.resolve
+    calls = []
+    def read(item):
+        if item == target and not location.endswith('resolve'):
+            calls.append(item)
+            if not location.endswith('read') or len(calls) == 2:
+                raise failure('operator input unavailable')
+        return original_read(item)
+    def resolve(item, *args, **kwargs):
+        if location.endswith('resolve') and item == (member if location == 'manifest-resolve' else target):
+            calls.append(item)
+            raise failure('operator input unresolvable')
+        return original_resolve(item, *args, **kwargs)
+    monkeypatch.setattr(Path, 'read_bytes', read)
+    monkeypatch.setattr(Path, 'resolve', resolve)
+    with pytest.raises(Pending): cr.bind_inputs(cfg, tmp_path/'attempt')
+    report = load(tmp_path/'attempt/input-binding.json')
+    assert calls and report['status'] == 'PENDING' and report['escalation'] == 'owner'
+    assert any(failure.__name__ in error for error in report['errors'])
+    assert not any('input checking failed' in error for error in report['errors'])
+
+
+def test_unexpected_input_exception_still_publishes_pending(tmp_path, monkeypatch):
+    def check(cfg, attempt, report, checked): raise AttributeError('unexpected input failure')
+    monkeypatch.setattr(cr, '_check_inputs', check)
+    with pytest.raises(Pending, match='AttributeError'): cr.bind_inputs({}, tmp_path/'attempt')
+    report = load(tmp_path/'attempt/input-binding.json')
+    assert report['status'] == 'PENDING' and report['escalation'] == 'owner'
+    assert report['finqa_reproduction']['status'] == 'PENDING'
+
+
+def test_binding_receipt_output_failure_remains_loud(tmp_path, monkeypatch):
+    def write(*args): raise PermissionError('receipt output unavailable')
+    monkeypatch.setattr(cr, 'atomic', write)
+    with pytest.raises(PermissionError, match='receipt output unavailable'):
+        cr.bind_inputs({}, tmp_path/'attempt')
+
+
+@pytest.mark.parametrize('trigger', ['no-git', 'no-head', 'git-unavailable'])
+def test_diff_receipt_without_git_diagnostics_is_pending(tmp_path, monkeypatch, trigger):
+    kit = tmp_path/'standalone/kit'
+    kit.mkdir(parents=True)
+    source = kit/'cr_confirmation.py'
+    source.write_text('standalone fixture\n')
+    monkeypatch.setattr(cr, 'KIT', kit)
+    monkeypatch.setattr(cr, 'code_seal', lambda: {'cr_confirmation.py': sha(source)})
+    monkeypatch.delenv('GIT_DIR', raising=False)
+    monkeypatch.delenv('GIT_WORK_TREE', raising=False)
+    # The publisher gate runs this inside an export nested in a checkout; stop
+    # git discovering that parent repository above the standalone fixture.
+    monkeypatch.setenv('GIT_CEILING_DIRECTORIES', str(tmp_path))
+    if trigger == 'no-head':
+        subprocess.run(['git', 'init'], cwd=kit.parent, check=True, capture_output=True)
+    elif trigger == 'git-unavailable':
+        def missing(*args, **kwargs): raise FileNotFoundError('git unavailable')
+        monkeypatch.setattr(subprocess, 'run', missing)
+    report = cr.diff_receipt(tmp_path/'diff.json', base='0'*40)
+    assert report == load(tmp_path/'diff.json')
+    assert report['status'] == 'PENDING' and report['escalation'] == 'owner'
+    assert 'unavailable' in report['reason'] and report['hunks'] == []
+    assert 'diagnostic_base_commit' not in report
+
+
+@pytest.mark.parametrize('trigger',[
+    'out-missing','out-type','out-relative','roots-null','cr-null','config-null','config-json',
+])
+@pytest.mark.parametrize('entry',['child','wrapper'])
+def test_cr_bind_settings_errors_are_owner_pending(tmp_path,trigger,entry):
+    cfg=dict(out=str(tmp_path/'dispatch'),technical_synthetic=True,
+        cr_confirmation=dict(out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),hosts=['CPU-STANDIN']))
+    if trigger=='out-missing':del cfg['cr_confirmation']['out']
+    elif trigger=='out-type':cfg['cr_confirmation']['out']=17
+    elif trigger=='out-relative':cfg['cr_confirmation']['out']='relative'
+    elif trigger=='roots-null':cfg['cr_confirmation']['other_roots']=None
+    elif trigger=='cr-null':cfg['cr_confirmation']=None
+    elif trigger=='config-null':cfg=None
+    config=tmp_path/'launch.json';atomic(config,cfg)
+    if trigger=='config-json':config.write_text('{bad JSON')
+    attempt=tmp_path/'attempt'
+    env=dict(os.environ,UTIL_WATCH_ACTIVE='1')
+    if entry=='child':
+        command=[sys.executable,'-I',str(KIT/'nm_execute.py'),'--config',str(config),
+            '--task','NM-cr-bind','--attempt',str(attempt)]
+    else:
+        command=[sys.executable,'-I',str(KIT/'nm_jobs.py'),'run','--config',str(config),'--task','NM-cr-bind']
+    done=subprocess.run(command,env=env,capture_output=True,text=True)
+    assert done.returncode==75,done.stdout+done.stderr
+    assert 'Traceback' not in done.stdout+done.stderr
+    reports=list(tmp_path.rglob('input-binding.json'));assert len(reports)==1
+    report=load(reports[0]);output=load(reports[0].parent/'output.json')
+    assert report['status']==output['status']=='PENDING'
+    assert report['escalation']==output['escalation']=='owner' and report['errors']
+    assert {'expected','observed'}<=report.keys()
+    if entry=='wrapper':
+        record=load(reports[0].parent/'receipt.json')
+        assert record['status']=='PENDING' and record['exit_code']==75
+
+
+@pytest.mark.parametrize('trigger',[
+    'diff-ref-type','diff-ref-path-type','diff-json','diff-array','diff-edited',
+    'native-missing-nodes','native-null-nodes','native-node-type','native-excluded-type',
+    'native-json','native-array','native-edited','launch-budget-type','host-policy',
+])
+def test_cr_bind_later_inputs_publish_final_status_once(tmp_path,monkeypatch,trigger):
+    from kit import nm_execute
+    native=tmp_path/'native.json';atomic(native,dict(nodes=['allowed'],message2_nodes=[]))
+    cfg=dict(out=str(tmp_path/'dispatch'),cr_confirmation=dict(out=str(tmp_path/'cr'),
+        v6a_root=str(tmp_path/'v6a'),hosts=['allowed']))
+    crcfg=cfg['cr_confirmation']
+    receipt=tmp_path/'diff.json';receipt.write_text('{malformed')
+    crcfg['diff_receipt']=dict(path=str(receipt),sha256=sha(receipt))
+    if trigger=='diff-ref-type':crcfg['diff_receipt']='receipt.json'
+    elif trigger=='diff-ref-path-type':crcfg['diff_receipt']['path']=[]
+    elif trigger=='diff-array':atomic(receipt,[]);crcfg['diff_receipt']['sha256']=sha(receipt)
+    elif trigger=='diff-edited':receipt.write_text('{}')
+    if not trigger.startswith('diff-'):monkeypatch.setattr(cr_jobs,'verify_diff',lambda *a:{})
+    if trigger=='native-missing-nodes':atomic(native,{})
+    elif trigger=='native-null-nodes':atomic(native,dict(nodes=None))
+    elif trigger=='native-node-type':atomic(native,dict(nodes=[dict(node=3)]))
+    elif trigger=='native-excluded-type':atomic(native,dict(nodes=['allowed'],message2_nodes='excluded'))
+    elif trigger=='native-json':native.write_text('{malformed')
+    elif trigger=='native-array':atomic(native,[])
+    elif trigger=='launch-budget-type':crcfg['budget']=None
+    elif trigger=='host-policy':crcfg['hosts']=['excluded']
+    expected=sha(native)
+    if trigger=='native-edited':native.write_text('edited after inventory binding')
+    def checked_inputs(cfg,attempt,report,checked):
+        report['realised']=dict(native_inventory=str(native))
+        report['sources']=[dict(path=str(native),expected=expected,observed=expected)]
+    monkeypatch.setattr(cr,'_check_inputs',checked_inputs)
+    writes=[];write=cr.atomic
+    def capture(path,doc):
+        if Path(path).name=='input-binding.json':writes.append(doc['status'])
+        return write(path,doc)
+    monkeypatch.setattr(cr,'atomic',capture)
+    config=tmp_path/'launch.json';atomic(config,cfg);attempt=tmp_path/'attempt'
+    monkeypatch.setenv('UTIL_WATCH_ACTIVE','1')
+    monkeypatch.setattr(sys,'argv',['nm_execute','--config',str(config),'--task','NM-cr-bind','--attempt',str(attempt)])
+    assert nm_execute.main()==(2 if trigger=='host-policy' else 75)
+    report=load(attempt/'input-binding.json');output=load(attempt/'output.json')
+    assert writes==['PENDING'] and report['errors'] and report['escalation']=='owner'
+    assert output['status']==('FAILED' if trigger=='host-policy' else 'PENDING')
+    if trigger=='host-policy':assert 'HostPolicy' in output['reason']
+    if trigger.startswith(('native-','diff-')):
+        record=report['native_inventory' if trigger.startswith('native-') else 'diff_receipt']
+        assert {'expected','observed'}<=record.keys()
+    assert not (tmp_path/'cr/confirmation-binding.json').exists()
+
+
+@pytest.mark.parametrize('trigger',['authority-type','python-type','other-root-type'])
+def test_cr_bind_parent_input_errors_are_pending(tmp_path,monkeypatch,trigger):
+    from kit import nm_jobs
+    cfg=dict(out=str(tmp_path/'dispatch'),job_python=sys.executable,
+        infrastructure_update='a'*64,cr_confirmation=dict(out=str(tmp_path/'cr'),
+        v6a_root=str(tmp_path/'v6a'),hosts=['allowed']))
+    if trigger=='authority-type':cfg['infrastructure_update']=[]
+    elif trigger=='python-type':cfg['job_python']=[]
+    else:cfg['cr_confirmation']['other_roots']=[[]]
+    monkeypatch.setenv('SLURM_JOB_ID','operator-error-fixture')
+    config=tmp_path/'launch.json';atomic(config,cfg)
+    assert nm_jobs.run(config,'NM-cr-bind')==75
+    # Settings-stage failures write beside the dispatch root, never into the
+    # confirmation tree (isolation); later input errors stay in that tree.
+    root=tmp_path/'dispatch/cr-input-errors' if trigger=='python-type' else tmp_path/'cr'
+    record=nm_jobs.current(root,'NM-cr-bind',complete=False)
+    attempt=root/'attempts/NM-cr-bind'/record['nonce']
+    assert record['status']=='PENDING'
+    report=load(attempt/'input-binding.json')
+    assert report['status']=='PENDING' and report['escalation']=='owner'
+    assert report['errors'] and {'expected','observed'}<=report.keys()
+    assert load(attempt/'output.json')['status']=='PENDING'
+
+
+def test_refused_confirmation_tree_receives_no_error_attempt(tmp_path):
+    # Opus round 2, finding 2: an isolation refusal must not write into the
+    # tree it refused; error attempts go beside the dispatch root.
+    dispatch=tmp_path/'dispatch'
+    cfg=dict(out=str(dispatch),technical_synthetic=True,
+        cr_confirmation=dict(out=str(dispatch),v6a_root=str(tmp_path/'v6a'),hosts=['CPU-STANDIN']))
+    config=tmp_path/'launch.json';atomic(config,cfg)
+    done=subprocess.run([sys.executable,'-I',str(KIT/'nm_jobs.py'),'run','--config',str(config),'--task','NM-cr-bind'],
+        env=dict(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
+    assert done.returncode==75,done.stdout+done.stderr
+    reports=list(tmp_path.rglob('input-binding.json'));assert len(reports)==1
+    assert reports[0].is_relative_to(dispatch/'cr-input-errors')
+    assert not (dispatch/'attempts').exists() and not (dispatch/'state').exists()
+
+
+def test_settings_stage_host_refusal_is_failed_with_receipt(tmp_path):
+    # Opus round 2, finding 3: a host-policy refusal stays FAILED but leaves a receipt.
+    cfg=dict(out=str(tmp_path/'dispatch'),technical_synthetic=True,
+        cr_confirmation=dict(out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),hosts=['real-node']))
+    config=tmp_path/'launch.json';atomic(config,cfg)
+    done=subprocess.run([sys.executable,'-I',str(KIT/'nm_jobs.py'),'run','--config',str(config),'--task','NM-cr-bind'],
+        env=dict(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
+    assert done.returncode==2,done.stdout+done.stderr
+    assert 'Traceback' not in done.stdout+done.stderr
+    receipts=list(tmp_path.rglob('receipt.json'));assert len(receipts)==1
+    assert load(receipts[0])['status']=='FAILED'

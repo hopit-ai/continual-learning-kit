@@ -337,7 +337,7 @@
     },
     {
       "classification": "scheduling",
-      "new_sha256": "43da9a09e800758bb60f7ce7fd1db29e0bf77bce3fdbfefff89dc25a0a68b451",
+      "new_sha256": "041bbf3ec368214de7b6f1ffd6e95505e5edd045a196a05ac7f75c0226ad0aae",
       "path": "kit/combined_send.py",
       "pin_sources": [
         "historical:docs/phase3/smoke-m3-kcr-20261029/packet.json"
@@ -583,7 +583,7 @@
     },
     {
       "classification": "scheduling",
-      "new_sha256": "e3100d26185a91a2aeebc0601fde2cedaf409de0e187c8cbe5a26abef39008a0",
+      "new_sha256": "fedfd5ff8ebb7bcdb48d0e0293fb87d2fc8cc97a3fda719b9732f64db4949885",
       "path": "kit/jobs/combined/run-task.sh",
       "pin_sources": [
         "historical:docs/phase3/smoke-m3-kcr-20261029/packet.json"
@@ -593,7 +593,7 @@
     },
     {
       "classification": "scheduling",
-      "new_sha256": "df1a9cd61c1745efb2ae49c674e0728324aec042c92eefe10eae257c9c11397e",
+      "new_sha256": "f8117bb5846f30ce069877fd0bcbe1ea49e5679b4564e443dd5421b6a8f4fefc",
       "path": "kit/jobs/message3/run-task.sh",
       "pin_sources": [
         "historical:docs/phase3/smoke-m3-kcr-20261029/packet.json"
@@ -3119,5 +3119,5 @@
   ],
   "schema": "v6-infrastructure-update.v1",
   "statement": "scientific definitions unchanged",
-  "target_commit": "f95f50689aba129c4aec57e10bf125c0c15355ef"
+  "target_commit": "f587e90ea88ebd4e21b1a777012072d2b4f25b45"
 }

@@ -57,6 +57,9 @@ def payload(full,*,full_detail=False):
     p=r.get('primary',{});key='NM-'+family
     rows.append('D|'+key+'|primary|'+status.replace(' ',':')+'|'+
         '|'.join(encoded(p.get(k)) for k in ('mean','lower','upper','positive'))+'|-')
+    for seed,record in sorted(r.get('generation_qualification',{}).items()):
+        rows.append(trow('utilisation','generation_qualification_s'+seed,record))
+    for warning in r.get('utilisation_warnings',[]):rows.append('W|'+key+'|'+warning+'|1')
     for name in ('binding_sha256','spec_sha256'):
         if r.get(name):rows.append(trow('hash',name,r[name]))
     if p:
@@ -268,7 +271,7 @@ def recompute(family,endpoints,metadata):
 
 def parse_parts(texts,*,expect_commit=None,part1_only=False):
     sets={};identity=None;reference=None;checks={};mode=None;total=None
-    prefix=r'(?:RESULTS-SHA256|D\|NM-|E\|NM-|W\|NM-cr\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|AUTH|NM|PARTNER-COMPUTED|CHECKSUM-SCOPE)\|)'
+    prefix=r'(?:RESULTS-SHA256|D\|NM-|E\|NM-|W\|NM-(?:cr|opr)\||T\|(?:KIT|PART|MODE|FULL-SET|COUNTS|AUTH|NM|PARTNER-COMPUTED|CHECKSUM-SCOPE)\|)'
     for text in texts:
         text=re.sub(r'[\u200b-\u200f\u2060\ufeff]','',text)
         text=text.translate(str.maketrans({'\u201c':'"','\u201d':'"','\u2018':"'",'\u2019':"'",'\u00a0':' '})).replace('\r','')
@@ -328,7 +331,7 @@ def parse_family(rows,identity,checks):
             need(len(f)==5 and f[3] not in metadata.setdefault(f[2],{}),'duplicate/invalid NM metadata')
             metadata[f[2]][f[3]]=json.loads(f[4])
         elif f[0]=='W':
-            need(len(f)==4 and f[1]=='NM-cr' and re.fullmatch('[A-Za-z0-9_-]+',f[2]) and f[3]=='1','invalid utilisation warning')
+            need(len(f)==4 and f[1] in ('NM-cr','NM-opr') and re.fullmatch('[A-Za-z0-9_-]+',f[2]) and f[3]=='1','invalid utilisation warning')
             warnings.append(f[2])
         elif f[0]=='E':
             need(len(f)==13 and f[2] not in endpoints and f[3] in ('P','G','I','S'),'invalid endpoint')
@@ -361,6 +364,7 @@ def parse_family(rows,identity,checks):
         infrastructure_authority=authority,complete=True,missing_parts=[],part_checksums=dict(checks),
         metadata=metadata,endpoints=endpoints,reported_status=metadata['meta']['reported_status'],
         provenance='PARTNER-COMPUTED',independent_reverification='UNVERIFIED')
+    if warnings:result['utilisation_warnings']=warnings
     result['package_summaries']={};result['diagnostics']={}
     for name,v in endpoints.items():
         need(v['method'] in ('one','two'),'unknown interval convention')

@@ -109,12 +109,25 @@ def row_lock(out,task):
 
 
 def run(config,task):
-    cfg=load(config)
-    if task.startswith('NM-cr-'):
-        from kit.cr_jobs import settings
-        cfg=settings(cfg)
+    row=row_for(task);setup_error=None;cfg={}
+    try:
+        cfg=load(config)
+        if row['family']=='cr':
+            from kit.cr_jobs import settings
+            cfg=settings(cfg)
+    except Exception as error:
+        from kit.cr_confirmation import HostPolicy
+        if row['family']!='cr' or row['phase']!='bind':raise
+        setup_error=error
+        raw=cfg if isinstance(cfg,dict) else {}
+        # A failed settings check never writes into the confirmation tree it
+        # may have refused (isolation); errors go beside the dispatch root.
+        dispatch=raw.get('out')
+        valid_dispatch=isinstance(dispatch,str) and bool(dispatch) and '\0' not in dispatch and Path(dispatch).is_absolute()
+        candidate=str((Path(dispatch) if valid_dispatch else Path(config).resolve().parent)/'cr-input-errors')
+        cfg=dict(out=candidate,technical_synthetic=raw.get('technical_synthetic') is True)
     out=Path(cfg['out']);need(out.is_absolute(),'absolute output root required')
-    row=row_for(task);synthetic=cfg.get('technical_synthetic') is True
+    synthetic=cfg.get('technical_synthetic') is True
     # Always start a new attempt. No historical assignment is an admission pin.
     nonce=uuid.uuid4().hex;attempt=out/'attempts'/task/nonce;attempt.mkdir(parents=True,exist_ok=False)
     started=time.time();record=dict(schema=SCHEMA,task=task,family=row['family'],phase=row['phase'],gpus=row['gpus'],
@@ -122,7 +135,18 @@ def run(config,task):
         slurm_job_id=os.environ.get('SLURM_JOB_ID'),technical_synthetic=synthetic,artifacts={})
     if row['family']=='cr':record.update({k:row[k] for k in ('arm','seed','stage','lane') if k in row})
     atomic(attempt/'receipt.json',record);code=1
+    def input_error(error):
+        from kit.cr_confirmation import input_failure
+        if not (attempt/'input-binding.json').is_file():
+            input_failure(attempt,error,observed=raw.get('cr_confirmation') if setup_error else cfg)
+        if not (attempt/'output.json').is_file():
+            atomic(attempt/'output.json',dict(status='PENDING',escalation='owner',reason=str(error)))
+        record['escalation']='owner'
     try:
+        if setup_error is not None:
+            # A host-policy refusal stays a refusal (FAILED), now with a receipt.
+            if isinstance(setup_error,HostPolicy):raise setup_error
+            raise Pending(type(setup_error).__name__+': '+str(setup_error)+'; owner escalation')
         with row_lock(out,task):
             if not synthetic:
                 ready(record['slurm_job_id'],'one scheduler allocation per row required')
@@ -163,13 +187,20 @@ def run(config,task):
                     env.pop(key,None)
                 if row['family']=='cr':env['M3_NODE_POLICY']=json.dumps(dict(nodes=cfg.get('hosts',[])))
                 if not row['gpus'] or synthetic:env['CUDA_VISIBLE_DEVICES']=''
+                if row['gpus']!=1:env.pop('UTIL_HOLDER_SLICE',None)
                 env['UTIL_JOB']=task
                 with allocation_reservation(ids) if ids else nullcontext(()) as fds:
                     env['M3_GPU_LOCK_FDS']=json.dumps(fds)
                     command=[cfg.get('job_python',sys.executable),'-I',str(KIT/'nm_execute.py'),'--config',str(Path(config).resolve()),'--task',task,'--attempt',str(attempt)]
-                    need(env.get('UTIL_WATCH_ACTIVE')!='1','NM wrapper must own one fresh watcher per allocation')
+                    if env.pop('UTIL_WATCH_ACTIVE',None)=='1':
+                        warning='INHERITED_UTIL_WATCH_ACTIVE_DROPPED'
+                        record.setdefault('utilisation_warnings',[]).append(warning)
+                        print('W|NM-'+row['family']+'|'+warning+'|1')
+                    scope=['--expect-gpus',str(row['gpus'])]
+                    from kit.util_watch import use_holder_slice
+                    if use_holder_slice(env,row['gpus']):scope.append('--holder-slice')
                     command=[cfg.get('job_python',sys.executable),'-I',str(KIT/'util_watch.py'),'--out',str(attempt/'util.jsonl'),
-                        '--expect-gpus',str(row['gpus']),'--',*command]
+                        *scope,'--',*command]
                     if synthetic:
                         # The real watcher uses its public simulator fixture, no NVML/CUDA.
                         env['PATH']=str(KIT/'jobs/nm/sim')+os.pathsep+env.get('PATH','')
@@ -185,11 +216,17 @@ def run(config,task):
                     record['artifacts']={str(p.relative_to(out)):sha(p) for p in [attempt/'output.json',*[
                         out/name for name in output.get('published',[])]]}
     except (Pending,FileNotFoundError) as error:
+        if row['family']=='cr' and row['phase']=='bind':input_error(error)
         record.update(status='PENDING',error=str(error));code=PENDING;print('PENDING:',error)
     except (KeyboardInterrupt,SystemExit) as error:
         record.update(status='PENDING',error='allocation interrupted: '+str(error));code=PENDING
     except Exception as error:
-        record.update(status='FAILED',error=type(error).__name__+': '+str(error));code=2;print('STOP:',record['error'])
+        from kit.cr_confirmation import HostPolicy
+        if row['family']=='cr' and row['phase']=='bind' and not isinstance(error,HostPolicy):
+            input_error(error)
+            record.update(status='PENDING',error=type(error).__name__+': '+str(error));code=PENDING;print('PENDING:',record['error'])
+        else:
+            record.update(status='FAILED',error=type(error).__name__+': '+str(error));code=2;print('STOP:',record['error'])
     finally:
         record.update(ended=time.time(),exit_code=code)
         # CPU collector reconciles actual scheduler end. No inferred GPU cost ceiling.

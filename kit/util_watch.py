@@ -19,6 +19,21 @@ import time
 import threading
 
 
+def use_holder_slice(env, expected):
+    """Scope a one-GPU row to a holder only when explicitly requested or shared."""
+    if expected != 1:return False
+    if env.get('UTIL_HOLDER_SLICE') == '1':return True
+    count=env.get('SLURM_GPUS_ON_NODE','')
+    if count.isdigit() and int(count)>1:return True
+    for key in ('SLURM_JOB_GPUS','SLURM_STEP_GPUS'):
+        tokens=env.get(key,'').split(',') if env.get(key) else []
+        def size(token):
+            bounds=token.strip().split('-')
+            return max(0,int(bounds[1])-int(bounds[0])+1) if len(bounds)==2 and all(v.isdigit() for v in bounds) else 1
+        if sum(size(token) for token in tokens)>1:return True
+    return False
+
+
 def visible(env):
     """Resolve the CUDA/cgroup namespace; Slurm IDs may be node-wide."""
     for key in ('CUDA_VISIBLE_DEVICES','NVIDIA_VISIBLE_DEVICES'):

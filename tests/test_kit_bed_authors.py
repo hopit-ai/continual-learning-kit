@@ -16,6 +16,13 @@ import pytest
 KIT = Path(__file__).resolve().parents[1] / "kit"
 
 
+@pytest.fixture(autouse=True)
+def restore_environment():
+    from unittest.mock import patch
+    with patch.dict(os.environ):
+        yield
+
+
 def load(name: str):
     spec = importlib.util.spec_from_file_location("kit_bed_test_%s" % name, KIT / "beds" / ("%s.py" % name))
     module = importlib.util.module_from_spec(spec)
@@ -124,7 +131,6 @@ def test_eval_bed_scores_the_chemistry_bed_from_its_messages_with_token_ids(tmp_
     import sys
     import types
     # The real generate command enables deterministic vLLM flags directly.
-    monkeypatch.setattr(os, 'environ', os.environ.copy())
     seen = {}
 
     class LLM:

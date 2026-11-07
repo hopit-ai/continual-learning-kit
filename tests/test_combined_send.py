@@ -228,6 +228,7 @@ def test_combined_shell_wrapper_invokes_selected_python(tmp_path,holder_slice,gp
     shim.chmod(0o755)
     env=dict(os.environ,KIT=str(c.KIT),COMBINED_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
     env.pop('UTIL_WATCH_ACTIVE',None)
+    for key in ('SLURM_GPUS_ON_NODE','SLURM_JOB_GPUS','SLURM_STEP_GPUS'):env.pop(key,None)
     env.pop('UTIL_HOLDER_SLICE',None)
     if holder_slice is not None:env['UTIL_HOLDER_SLICE']=holder_slice
     c.write(env['COMBINED_MANIFEST'],dict(tasks=[dict(id='M4-101',group='core',gpus=gpus)],
@@ -237,8 +238,7 @@ def test_combined_shell_wrapper_invokes_selected_python(tmp_path,holder_slice,gp
     assert args[:3]==['-I',str(c.KIT/'util_watch.py'),'--out']
     assert Path(args[3]).parent==tmp_path/'control_root/utilisation/core'
     scope=['--expect-gpus',str(gpus)]
-    # v7-fx: one-GPU rows always run the watcher in holder-slice mode.
-    if gpus==1:scope+=['--holder-slice']
+    if gpus==1 and holder_slice=='1':scope+=['--holder-slice']
     assert args[4:]==[*scope,'--',str(shim),'-I',str(c.KIT/'combined_send.py'),'run','--manifest',env['COMBINED_MANIFEST'],'--task','M4-101']
 
 

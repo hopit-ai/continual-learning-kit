@@ -338,6 +338,17 @@ def test_holder_slice_missing_or_ambiguous_measurements_remain_unknown(tmp_path,
     assert summary['holder_slices']==[] and summary['holder_slice_telemetry_complete'] is False
 
 
+def test_invalid_holder_scope_preserves_single_child_and_failure_exit(tmp_path,env):
+    env.update(CUDA_VISIBLE_DEVICES='0,1',SLURM_GPUS_ON_NODE='8')
+    marker=tmp_path/'child-starts'
+    code='import os;assert os.environ["UTIL_WATCH_ACTIVE"]=="1";open('+repr(str(marker))+',"a").write("start\\n");raise SystemExit(37)'
+    out=tmp_path/'invalid-scope.jsonl';command=argv(out,code)
+    command[3:3]=['--holder-slice','--expect-gpus','1']
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    assert done.returncode==37 and marker.read_text()=='start\n'
+    assert json.loads(out.with_suffix('.summary.json').read_text())['telemetry_complete'] is False
+
+
 @pytest.mark.parametrize('selector,indexes,expected', [
     ('2',[2,3,4,5],None),  # holder CUDA 2 can be physical 4, never claim sibling 2
     ('0',[2,3,4,5],None),
@@ -408,3 +419,45 @@ def test_holder_summary_retains_measured_uuid_when_later_telemetry_fails(tmp_pat
     assert summary['holder_slices']==['GPU-holder'] and len(calls)>1
     assert summary['telemetry_complete'] is False and summary['holder_slice_telemetry_complete'] is False
     assert summary['startup_grace_seconds']==300
+
+
+@pytest.mark.parametrize('allocation,holder',[
+    ({},False),({'UTIL_HOLDER_SLICE':'0'},False),({'UTIL_HOLDER_SLICE':'1'},True),
+    ({'SLURM_GPUS_ON_NODE':'1'},False),({'SLURM_GPUS_ON_NODE':'8'},True),
+    ({'SLURM_JOB_GPUS':'5'},False),({'SLURM_JOB_GPUS':'4-4'},False),
+    ({'SLURM_STEP_GPUS':'0-1'},True),({'SLURM_JOB_GPUS':'2,5'},True),
+    ({'SLURM_STEP_GPUS':'GPU-a,GPU-b'},True),
+])
+@pytest.mark.parametrize('wrapper',['combined/run-task.sh','message3/run-task.sh','v6a/run.sh'])
+@pytest.mark.parametrize('gpus',[0,1,8])
+def test_wrappers_share_holder_scope_rule(tmp_path,env,allocation,holder,wrapper,gpus):
+    capture=tmp_path/'capture.json';shim=tmp_path/'python'
+    shim.write_text('#!'+sys.executable+'\nimport os,json,sys\n'
+        'if sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\n'
+        'open(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
+    shim.chmod(0o755)
+    manifest=tmp_path/'manifest.json'
+    manifest.write_text(json.dumps(dict(mode='v6a',tasks=[dict(id='fixture',group='kcr',gpus=gpus)],
+        settings=dict(control_root=str(tmp_path/'control')))))
+    env.update(allocation)
+    env.update(KIT=str(ROOT/'kit'),COMBINED_MANIFEST=str(manifest),M3_MANIFEST=str(manifest),
+        M3_OUT=str(tmp_path/'m3'),JOB_PY=str(shim),CAPTURE=str(capture))
+    done=subprocess.run(['bash',str(ROOT/'kit/jobs'/wrapper),'fixture'],env=env,capture_output=True,text=True)
+    assert done.returncode==0,done.stderr
+    args=json.loads(capture.read_text())
+    scope=args[args.index('--expect-gpus'):args.index('--')]
+    assert scope==['--expect-gpus',str(gpus),*(['--holder-slice'] if holder and gpus==1 else [])]
+
+
+@pytest.mark.parametrize('selector',[None,'0'])
+def test_plain_single_gpu_allocation_retains_cgroup_renumbering(tmp_path,env,selector):
+    env.update(SLURM_GPUS_ON_NODE='1',SLURM_JOB_GPUS='5',FAKE_GPU_ROWS='5, GPU-physical, 87, 420')
+    if selector is None:env.pop('CUDA_VISIBLE_DEVICES',None)
+    else:env['CUDA_VISIBLE_DEVICES']=selector
+    assert not watch.use_holder_slice(env,1)
+    out=tmp_path/'plain.jsonl';command=argv(out,'import time;time.sleep(.2)')
+    command[3:3]=['--expect-gpus','1']
+    done=subprocess.run(command,env=env,capture_output=True,text=True,timeout=10)
+    summary=json.loads(out.with_suffix('.summary.json').read_text())
+    assert done.returncode==0 and summary['telemetry_complete']
+    assert summary['gpu_uuids']==['GPU-physical'] and not summary['holder_slice']

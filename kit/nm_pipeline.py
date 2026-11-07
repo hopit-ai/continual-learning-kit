@@ -29,6 +29,23 @@ def row_result(out,task):
     record=current(out,task);return out/'attempts'/task/record['nonce']
 
 
+def generation_utilisation(path):
+    """Keep qualification telemetry advisory, including missing watcher output."""
+    warnings=[]
+    try:
+        summary=load(path)
+        if not isinstance(summary,dict):raise ValueError('invalid utilisation summary')
+    except (OSError,ValueError):
+        summary={};warnings.append('UTILISATION_MISSING_OR_UNREADABLE')
+    measured=dict(telemetry_complete=summary.get('telemetry_complete') is True)
+    if not measured['telemetry_complete']:warnings.append('TELEMETRY_INCOMPLETE')
+    for field in ('mean_util','min_window_mean'):
+        value=summary.get(field)
+        measured[field]=value if type(value) in (int,float) and 0<=value<=100 else None
+        if measured[field] is None or measured[field]<70:warnings.append(field.upper()+'_BELOW_70_OR_UNKNOWN')
+    return dict(**measured,warnings=warnings)
+
+
 def cpu_base_binding(bundle,out):
     record=nm_prepare.verify_model(bundle['base']);path=out/'base.json'
     seal(path,dict(model=record['model'],revision=BASE,identity=dict(model_file_hashes=record['files'])))
@@ -175,7 +192,7 @@ def estimator_plan(bundle,out):
 
 
 def operation(cfg,row,attempt,out,config_path):
-    family=row['family'];phase=row['phase'];published=[];base=out/'prepared'/family
+    family=row['family'];phase=row['phase'];published=[];base=out/'prepared'/family;advisory={}
     def publish(path,value,immutable=True):
         (seal if immutable else atomic)(path,value);published.append(str(path.relative_to(out)));return value
     if phase=='bind':
@@ -260,8 +277,9 @@ def operation(cfg,row,attempt,out,config_path):
         row_result(out,'NM-opr-prepare')
         if phase=='generate':
             q=row_result(out,f'NM-opr-generation-qualify-s{row["seed"]}')
-            util=load(q/'util.summary.json')
-            ready(util.get('telemetry_complete') and util.get('mean_util',0)>=70 and (util.get('min_window_mean') or 0)>=70,'generation utilisation qualification PENDING')
+            util=generation_utilisation(q/'util.summary.json')
+            advisory=dict(generation_qualification=util,utilisation_warnings=[
+                f'generation_qualification_s{row["seed"]}_'+warning for warning in util['warnings']])
         plan_name='generation-qualify' if phase=='generation-qualify' else 'generation'
         generate(out/'opr'/f'{plan_name}-s{row["seed"]}.json',attempt/'generation.json',phase=='generation-qualify')
         published.append(str((attempt/'generation.json').relative_to(out)))
@@ -306,7 +324,7 @@ def operation(cfg,row,attempt,out,config_path):
     elif phase=='collect':
         return collect(row,attempt,out,bundle,published)
     else:raise Invalid('unimplemented explicit NM phase '+phase)
-    return dict(status='COMPLETE',published=published)
+    return dict(status='COMPLETE',published=published,**advisory)
 
 
 def development(cfg,row,attempt,out,bundle,published):
@@ -336,6 +354,9 @@ def reading(row,attempt,out,bundle,published):
         for arm in ('C','T'):expected[arm]={k:v['sha256'] for k,v in exports_for(out,family,arm,seed).items()}
         spec['checkpoints'][str(seed)]=expected
         if family=='opr':
+            generation=load(row_result(out,f'NM-opr-generate-s{seed}')/'output.json')
+            if 'generation_qualification' in generation:
+                spec.setdefault('generation_qualification',{})[str(seed)]=generation['generation_qualification']
             current(out,f'NM-opr-refresh-s{seed}')
             refresh=load(out/'opr'/f'refresh-s{seed}.json')
             spec['pre_cohort'][str(seed)]=refresh['cohort']

@@ -331,7 +331,7 @@ this unit does not edit it or relax its release gate.
 
 ## Seventh v7 row: CR−G confirmation (owner approved 6 November)
 
-The [confirmation registration](../docs/phase3/next-message-20261102/registration-cr-confirmation.md)
+The [confirmation registration](resources/nm/registrations/registration-cr-confirmation.md)
 adds CR−G with its own **830 GPU-hour** allowance. The other six rows retain their
 frozen I0 ancestry, definitions and seeds. Confirmation admission can affect the
 v8 task-learning comparator only. It does not change v7's other six rows or the
@@ -454,6 +454,22 @@ hard-MATH mode/targets, and schedule sources. The inventory names
 `pools_manifest`, `base_binding`, `hellaswag_manifest`, `native_inventory` and
 `math_source` as exact entries in `sources`. `math_source` must be the recorded
 mode receipt. No current M5 pointer is consulted.
+
+Each `sources` row is an object with a nonempty `path` and its lowercase
+64-character `sha256`; every hash must match. `role` is optional for auxiliary
+inputs such as tokenizer members and FinQA native inputs. When present it must
+be a string, and the inventory must still cover every role in `ROLES`.
+The optional `manifest` flag must be boolean. With `manifest:true`, the bound
+file must be a JSON object; an omitted `files` key means an empty manifest
+(the original behavior). A present `files` key must be an object mapping member
+names to hashes, and each member must also have its own verified source row.
+The bound native inventory has a nonempty `nodes` array of host strings or
+objects with a `node` string, and an optional `message2_nodes` string array.
+Malformed launch settings, diff receipts and native inventories produce an
+owner-escalated PENDING input-binding record with expected/observed diagnostics.
+If `cr_confirmation.out` is absent or invalid, the wrapper stores this attempt
+under `out/cr-input-errors` (or beside the launch config if `out` is unusable).
+The binding's final status is written once, after all bind-row input checks.
 
 `task_sources` has exactly `finqa`, `contract_nli`, `math_hard`; each binds
 `corpus` and `v6a_schedules` mapping `101`, `102`, `103` to realised schedules,

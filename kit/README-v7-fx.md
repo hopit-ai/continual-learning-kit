@@ -1,5 +1,8 @@
 # V7 operator fixes
 
+The [V7b follow-up](README-v7b.md) covers export completeness, holder scope,
+advisory utilisation and telemetry setup fallback.
+
 The partner's approved v6a changes (3a–h) are built into the kit. No overlay or
 sitecustomize hook is needed. Scoring formulas, frozen panels, decoding parameters,
 seeds and generation caps are unchanged.
@@ -42,7 +45,10 @@ seeds and generation caps are unchanged.
   unknown. Numeric holder tokens must match the reported index exactly, with
   either a singleton inventory or indexes exactly `0..n-1`. Sparse/renumbered
   inventories require an unambiguous `GPU-` UUID token; the whole-list shortcut
-  is disabled in holder mode. The combined, message3 and v6a wrappers enable this for one-GPU rows.
+  is disabled in holder mode. NM, combined, message3 and v6a enable holder mode
+  for one-GPU rows only when `UTIL_HOLDER_SLICE=1` or `SLURM_GPUS_ON_NODE`,
+  `SLURM_JOB_GPUS` or `SLURM_STEP_GPUS` reports more than one GPU. A plain
+  one-GPU allocation keeps the non-holder path, including cgroup renumbering.
   `UTIL_HOLDER_SLICE=1` is the equivalent environment option.
 
 CPU regressions are in `tests/test_v7_operator_fixes.py`, `test_lane_pool.py`,

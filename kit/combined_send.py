@@ -351,9 +351,10 @@ def execute(doc, ident, *, runner=subprocess.run):
         verify(doc['infrastructure_update'])
         env['KIT_V6_AUTHORITY_SHA']=doc['infrastructure_update']
         env['M2_INFRA_AUTHORITY_SHA256']=doc['infrastructure_update']
+    from kit.util_watch import use_holder_slice
     def call(command, pass_fds=()):
         if row['gpus'] and not env.get('UTIL_WATCH_ACTIVE'):
-            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(utilisation_attempt(s,row)), '--expect-gpus', str(row['gpus']), *(['--holder-slice'] if row['gpus']==1 else []), '--', *command]
+            command = [s['inference_python'], '-I', str(KIT / 'util_watch.py'), '--out', str(utilisation_attempt(s,row)), '--expect-gpus', str(row['gpus']), *(['--holder-slice'] if use_holder_slice(env,row['gpus']) else []), '--', *command]
             return runner(command, env=dict(env, UTIL_WATCH_ACTIVE='1'), **(dict(pass_fds=pass_fds) if pass_fds else {})).returncode
         return runner(command, env=env).returncode
     if group=='preflight':

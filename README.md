@@ -41,7 +41,7 @@ Standard library plus PyYAML for everything except `score_forgetting.py generate
 **Getting the data without a laptop in between.** Spider 1.0 (CC BY-SA 4.0) and FinQA (MIT) are on the `data-v1` branch of this repository, split under GitHub's file limit and listed in a hash manifest; its README has the three-line fetch. GSM8K and the LiveCodeBench file come from Hugging Face inside each package's `prepare`.
 
 ```bash
-pip install pyyaml pytest
+pip install pyyaml pytest pyarrow pandas
 python -m pytest -q tests
 WORK=/tmp/toy python kit/runner.py prepare kit/campaigns/toy.yaml --all
 WORK=/tmp/toy python kit/runner.py run kit/campaigns/toy.yaml --all

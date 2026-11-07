@@ -18,6 +18,13 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def restore_environment():
+    from unittest.mock import patch
+    with patch.dict(os.environ):
+        yield
+
+
 def _load(name: str):
     spec = importlib.util.spec_from_file_location("kit_%s_longcap" % name, ROOT / "kit" / ("%s.py" % name))
     module = importlib.util.module_from_spec(spec)
@@ -29,7 +36,6 @@ def _load(name: str):
 @pytest.fixture()
 def engine(monkeypatch):
     # Both real scorer entry points enable vLLM determinism in the environment.
-    monkeypatch.setattr(os, 'environ', os.environ.copy())
     seen = {}
 
     class _Completion:

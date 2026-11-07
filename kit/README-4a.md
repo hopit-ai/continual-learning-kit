@@ -97,7 +97,7 @@ The example is a schema, not a new measurement. The kit pins
 `approved_ceiling_gpu_hours` to **600 for F/F+replay and 800 for D/D+replay**.
 Package B tier 2 selected W = D, so 800 applies. The fixed approval reference is
 owner, 21 October: "Approved with 600 partner GPU-hours. If it is tight, make it more",
-from [Approved budget](../docs/phase4/4a-registration-20261020.md#approved-budget).
+from [Approved budget](resources/a4/registration.md).
 The binding records this exact quote and the registration path. Optional
 `--approved-ceiling` and `--approval-reference` inputs must equal the pinned
 values; differing values stop with exit 2. Runtime budget checks re-validate

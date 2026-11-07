@@ -37,16 +37,18 @@ def run(directory):
     from kit.nm_common import sha
     cfg=load(config);cfg['cr_confirmation']['realised_inputs']=dict(path=str(raw),sha256=sha(raw));atomic(config,cfg)
     done=subprocess.run(['bash',str(KIT/'jobs/nm/run-task.sh'),'NM-cr-bind'],env=env,capture_output=True,text=True,timeout=45)
-    assert done.returncode==2,(done.stdout,done.stderr)
-    failed=current(out,'NM-cr-bind',complete=False)
-    assert failed['status']=='FAILED' and failed['nonce']!=calls[0]['nonce']
+    assert done.returncode==75,(done.stdout,done.stderr)
+    malformed=current(out,'NM-cr-bind',complete=False)
+    assert malformed['status']=='PENDING' and malformed['nonce']!=calls[0]['nonce']
+    binding=load(out/'attempts/NM-cr-bind'/malformed['nonce']/'input-binding.json')
+    assert binding['status']=='PENDING' and binding['escalation']=='owner'
     assert len({r['nonce'] for r in calls})==len(calls)
     from kit.nm_text import parse_parts
     collection=current(out,'NM-cr-collect');parts=load(out/'attempts/NM-cr-collect'/collection['nonce']/'parts.json')
     parsed=parse_parts([Path(p).read_text() for p in parts])
     assert parsed['families']['cr']['status']=='PENDING/INCOMPLETE' and len(parts)<=4
     result=dict(rows=len(calls),wrapper_calls=len(calls)+1,pending=sum(c['returncode']==75 for c in calls),
-                failed=1,parts=len(parts),technical_synthetic=True,calls=calls)
+                failed=0,malformed_pending=1,parts=len(parts),technical_synthetic=True,calls=calls)
     atomic(directory/'result.json',result);return result
 
 

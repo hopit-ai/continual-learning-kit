@@ -4,9 +4,8 @@ import sys
 if __package__ in (None,''):sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import json
 import os
-import re
 import subprocess
-from kit.nm_common import atomic, load, sha, digest, need, ready, Pending, seal, KIT
+from kit.nm_common import atomic, load, sha, digest, need, ready, Pending, Invalid, seal, KIT
 from kit.m3_mode import CONFIRMATION_SEEDS as SEEDS, CONFIRMATION_ARMS as ARMS
 
 BASELINE = '059d6293'
@@ -48,93 +47,199 @@ def isolated(cfg, dispatch_out=None):
     return out
 
 
+class HostPolicy(Invalid):
+    """An explicit host-policy refusal remains Invalid, not an input retry."""
+
+
 def verify_standin(cfg):
     """Synthetic bypasses may address only the reserved CPU fixture host."""
     if cfg.get('technical_synthetic'):
-        need(cfg.get('technical_synthetic') is True and cfg.get('hosts') == ['CPU-STANDIN'],
-             'technical_synthetic requires hosts exactly [CPU-STANDIN]; non-stand-in host refused')
+        if not (cfg.get('technical_synthetic') is True and cfg.get('hosts') == ['CPU-STANDIN']):
+            raise HostPolicy('technical_synthetic requires hosts exactly [CPU-STANDIN]; non-stand-in host refused')
 
 
-def bind_inputs(cfg, attempt):
-    """Publish expected/observed even on missing/hash/mode mismatch. Fail closed."""
+def _check_inputs(cfg, attempt, report, checked):
+    from kit.cr_finqa import PROTOCOL, native_paths, reproduce, receipt_value
+    errors = report['errors']
+    cfg = receipt_value(cfg, errors, 'configuration')
+    ready(isinstance(cfg, dict), 'configuration must be an object')
     verify_standin(cfg)
-    report = dict(schema='cr-input-binding.v1', baseline=BASELINE, seeds=list(SEEDS),
-                  status='PENDING', escalation='owner', sources=[], errors=[])
-    def blocked(reason): report['errors'].append(reason)
     ref = cfg.get('realised_inputs', {})
-    path = Path(ref.get('path', '/MISSING-v6a-realised-inputs'))
-    observed = sha(path) if path.is_file() else None
-    report['inventory'] = dict(path=str(path), expected=ref.get('sha256'), observed=observed)
-    if not ref.get('sha256') or observed != ref['sha256']:
-        blocked('v6a node inventory absent/hash mismatch; never reconstruct')
+    ready(isinstance(ref, dict), 'realised_inputs must be an object')
+    report['inventory'].update(path=ref.get('path'), expected=ref.get('sha256'))
+    path = checked.access('path', ref.get('path'), 'v6a inventory')
+    observed = checked.access('sha', path, 'v6a inventory') if path is not None else None
+    report['inventory']['observed'] = observed
+    if not checked.valid_digest(ref.get('sha256')) or observed is None or observed != ref['sha256']:
+        errors.append('v6a node inventory absent/hash mismatch; never reconstruct')
+        return
+    doc = checked.document(path, ref['sha256'], 'v6a inventory')
+    if doc is None: return
+    report['realised'] = doc
+    report['hard_math_mode'] = doc.get('hard_math_mode')
+    if doc.get('kit_commit') != BASELINE: errors.append('realised inventory must bind kit 059d6293')
+    if doc.get('hard_math_mode') not in ('core-copy', 'm3-fallback'): errors.append('recorded hard-MATH mode absent')
+    sources = doc.get('sources')
+    ready(isinstance(sources, list), 'realised sources must be an array')
+    roles = set()
+    verified = {}
+    paths = {}
+    valid_rows = []
+    members = []
+    for index, row in enumerate(sources):
+        label = 'source '+str(index)
+        record = dict(expected=None, observed=None)
+        report['sources'].append(record)
+        if not isinstance(row, dict):
+            errors.append(label+' must be an object')
+            continue
+        record.update(row, expected=row.get('sha256'), observed=None)
+        valid_rows.append(row)
+        if isinstance(row.get('role'), str): roles.add(row['role'])
+        elif 'role' in row: errors.append(label+' role must be a string when present')
+        source = checked.access('path', row.get('path'), label)
+        if source is None: continue
+        actual = checked.access('sha', source, label)
+        record['observed'] = actual
+        resolved = checked.access('resolve', source, label)
+        if resolved is not None: paths[str(resolved)] = row.get('sha256')
+        valid = checked.valid_digest(row.get('sha256')) and actual is not None and actual == row['sha256']
+        if not valid:
+            errors.append('missing/hash mismatch: '+str(source))
+        elif resolved is not None:
+            key = str(resolved)
+            if key in verified and verified[key] != actual:
+                errors.append('conflicting realised source: '+key)
+            verified[key] = actual
+        if 'manifest' in row and type(row['manifest']) is not bool:
+            errors.append(label+' manifest flag must be boolean')
+        if valid and row.get('manifest') is True:
+            manifest = checked.document(source, row['sha256'], label+' manifest')
+            if manifest is None: continue
+            files = manifest.get('files', {})
+            if not isinstance(files, dict):
+                errors.append(label+' manifest files must be an object')
+                continue
+            for name, expected in files.items():
+                if not name or not checked.valid_digest(expected):
+                    errors.append(label+' manifest member name/digest invalid')
+                    continue
+                member = checked.access('resolve', source.parent/name, label+' manifest member')
+                # Membership is checked after every source row has been inspected.
+                if member is not None:
+                    members.append((str(member), expected))
+    if not sources or not ROLES <= roles: errors.append('realised source inventory incomplete')
+    for member, expected in members:
+        if paths.get(member) != expected or verified.get(member) != expected:
+            errors.append('unbound realised manifest member: '+member)
+    modes = [r for r in valid_rows if r.get('role') == 'math-mode']
+    if len(modes) != 1:
+        errors.append('recorded mode receipt missing')
     else:
-        doc = load(path)
-        if doc.get('kit_commit') != BASELINE: blocked('realised inventory must bind kit 059d6293')
-        if doc.get('hard_math_mode') not in ('core-copy', 'm3-fallback'): blocked('recorded hard-MATH mode absent')
-        sources = doc.get('sources', [])
-        if not sources or not ROLES <= {r.get('role') for r in sources}: blocked('realised source inventory incomplete')
-        for row in sources:
-            source = Path(row['path']); actual = sha(source) if source.is_file() else None
-            report['sources'].append(dict(row, expected=row.get('sha256'), observed=actual))
-            if not re.fullmatch('[0-9a-f]{64}', row.get('sha256', '')) or actual != row['sha256']:
-                blocked('missing/hash mismatch: '+str(source))
-            # Every manifest member must also be enumerated with its recorded
-            # expected hash; adding a newly generated expected hash is forbidden.
-            if actual == row.get('sha256') and row.get('manifest'):
-                for name, expected in load(source).get('files', {}).items():
-                    member=(source.parent/name).resolve()
-                    if not any(Path(r['path']).resolve()==member and r.get('sha256')==expected for r in sources):
-                        blocked('unbound realised manifest member: '+str(member))
-        modes=[r for r in sources if r.get('role')=='math-mode']
-        if len(modes)!=1 or not Path(modes[0]['path']).is_file(): blocked('recorded mode receipt missing')
-        elif sha(Path(modes[0]['path'])) != modes[0].get('sha256'): blocked('recorded mode receipt hash mismatch')
+        mode = modes[0]
+        resolved = checked.access('resolve', mode.get('path'), 'recorded mode receipt')
+        expected = mode.get('sha256')
+        if resolved is None or not checked.valid_digest(expected) or verified.get(str(resolved)) != expected:
+            errors.append('recorded mode receipt hash mismatch')
         else:
-            # Only a hash-bound receipt is read; an unreadable one is a mismatch.
-            try: recorded = load(modes[0]['path']).get('path')
-            except (ValueError, OSError, AttributeError): recorded = None
-            if recorded != doc.get('hard_math_mode'): blocked('recorded hard-MATH mode mismatch')
-        # Paths consumed by preparation must be exact entries in this inventory.
-        for name in ('pools_manifest','base_binding','hellaswag_manifest', 'native_inventory', 'math_source'):
-            if not doc.get(name) or not any(r['path']==doc[name] for r in sources): blocked('unbound '+name)
-        tasks=doc.get('task_sources', {})
-        if set(tasks)!={'finqa','contract_nli','math_hard'}: blocked('task schedule sources absent')
-        for stage, task in tasks.items():
-            for key in ('corpus','v6a_schedules'):
-                paths=[task.get(key)] if key=='corpus' else list(task.get(key,{}).values())
-                if key=='v6a_schedules' and set(task.get(key,{}))!={'101','102','103'}: blocked('v6a task schedule identity absent: '+stage)
-                for item in paths:
-                    if not any(r['path']==item for r in sources):blocked('unbound task source '+str(item))
-            if stage == 'finqa':
-                from kit.cr_finqa import PROTOCOL, native_paths
-                if task.get('algorithm') != PROTOCOL: blocked('FinQA requires B native procedure; owner escalation')
-                try:
-                    for item in native_paths(task):
-                        if not any(Path(r['path']).resolve()==item.resolve() for r in sources):
-                            blocked('unbound FinQA native input: '+str(item))
-                    if not cfg.get('technical_synthetic'):
-                        tokenizer=Path(cfg.get('tokenizer') or '/MISSING-tokenizer')
-                        members=[p for p in tokenizer.rglob('*') if p.is_file()]
-                        if not members: blocked('FinQA pinned tokenizer missing')
-                        for item in members:
-                            if not any(Path(r['path']).resolve()==item.resolve() for r in sources):
-                                blocked('unbound FinQA tokenizer member: '+str(item))
-                except (KeyError, Pending) as error: blocked('FinQA native inputs absent: '+str(error)+'; owner escalation')
-            elif task.get('algorithm')!='seed-shuffle-cycle-v1':blocked('schedule algorithm differs: '+stage)
-        if modes and doc.get('math_source')!=modes[0]['path']:blocked('hard-MATH source differs from recorded mode receipt')
-        report['hard_math_mode']=doc.get('hard_math_mode')
-        report['realised']=doc
+            receipt = checked.document(mode['path'], expected, 'recorded mode receipt')
+            if receipt is None or receipt.get('path') != doc.get('hard_math_mode'):
+                errors.append('recorded hard-MATH mode mismatch')
+        if doc.get('math_source') != mode.get('path'):
+            errors.append('hard-MATH source differs from recorded mode receipt')
+    bound_paths = {r['path'] for r in valid_rows if isinstance(r.get('path'), str)}
+    for name in ('pools_manifest', 'base_binding', 'hellaswag_manifest', 'native_inventory', 'math_source'):
+        value = doc.get(name)
+        if not isinstance(value, str) or value not in bound_paths: errors.append('unbound '+name)
+    tasks = doc.get('task_sources')
+    ready(isinstance(tasks, dict), 'task_sources must be an object')
+    if set(tasks) != {'finqa', 'contract_nli', 'math_hard'}: errors.append('task schedule sources absent')
+    for stage, task in tasks.items():
+        if not isinstance(task, dict):
+            errors.append('task source must be an object: '+stage)
+            continue
+        corpus = task.get('corpus')
+        if not isinstance(corpus, str) or corpus not in bound_paths: errors.append('unbound task corpus: '+stage)
+        schedules = task.get('v6a_schedules')
+        if not isinstance(schedules, dict):
+            errors.append('v6a_schedules must be an object: '+stage)
+        else:
+            if set(schedules) != {'101', '102', '103'}: errors.append('v6a task schedule identity absent: '+stage)
+            for item in schedules.values():
+                if not isinstance(item, str) or item not in bound_paths: errors.append('unbound task schedule: '+stage)
+        if stage == 'finqa':
+            if task.get('algorithm') != PROTOCOL: errors.append('FinQA requires B native procedure; owner escalation')
+            try:
+                for item in native_paths(task):
+                    resolved = checked.access('resolve', item, 'FinQA native input')
+                    if resolved is not None and str(resolved) not in verified:
+                        errors.append('unbound FinQA native input: '+str(item))
+            except Pending as error:
+                errors.append('FinQA native inputs absent: '+str(error)+'; owner escalation')
+            if not cfg.get('technical_synthetic'):
+                members = checked.access('members', cfg.get('tokenizer'), 'FinQA tokenizer')
+                if not members: errors.append('FinQA pinned tokenizer missing')
+                for item in members or []:
+                    resolved = checked.access('resolve', item, 'FinQA tokenizer member')
+                    if resolved is not None and str(resolved) not in verified:
+                        errors.append('unbound FinQA tokenizer member: '+str(item))
+        elif task.get('algorithm') != 'seed-shuffle-cycle-v1': errors.append('schedule algorithm differs: '+stage)
+    if not errors:
+        proof = reproduce(tasks['finqa'], cfg, attempt, verified_inventory=verified)
+        report['finqa_reproduction'] = proof
+        errors.extend(proof['errors'])
+
+
+def binding_report():
+    return dict(schema='cr-input-binding.v1', baseline=BASELINE, seeds=list(SEEDS),
+                status='PENDING', escalation='owner', inventory=dict(path=None, expected=None, observed=None),
+                sources=[], errors=[])
+
+
+def input_failure(attempt, error, *, observed=None):
+    """Settings failures occur before inventory binding can start."""
+    from kit.cr_finqa import receipt_value
+    report = binding_report()
+    report.update(expected='valid CR bind-row configuration', observed=observed)
+    report['errors'].append(type(error).__name__+': '+str(error))
+    errors=[]
+    report=receipt_value(report, errors, 'input binding')
+    report['errors'].extend(errors)
+    atomic(Path(attempt)/'input-binding.json', report)
+    return report
+
+
+def bind_inputs(cfg, attempt, *, validate=None):
+    """Always publish input failures as owner-escalated PENDING with diagnostics."""
+    from kit.cr_finqa import PROTOCOL, InputChecks, receipt_value
+    report = binding_report()
+    refusal = None
+    try:
+        _check_inputs(cfg, attempt, report, InputChecks(report['errors']))
         if not report['errors']:
-            from kit.cr_finqa import reproduce
-            proof=reproduce(tasks['finqa'],cfg,attempt)
-            report['finqa_reproduction']=proof
-            report['errors'].extend(proof['errors'])
+            report.update(code=code_seal())
+            if validate is not None:
+                validate(report, InputChecks(report['errors']))
+    except HostPolicy as error:
+        report['errors'].append(str(error))
+        if validate is not None: refusal = error
+    except (Pending, ValueError) as error:
+        report['errors'].append(str(error))
+    except Exception as error:
+        # Last-resort input boundary. Expected malformed cases are validated above.
+        report['errors'].append('input checking failed: '+type(error).__name__+' '+str(error))
+    sanitization_errors = []
+    report = receipt_value(report, sanitization_errors, 'input binding')
+    report['errors'].extend(sanitization_errors)
     if report['errors'] and 'finqa_reproduction' not in report:
-        from kit.cr_finqa import PROTOCOL
-        report['finqa_reproduction']=dict(protocol=PROTOCOL,status='PENDING',escalation='owner',
-            checks=[],regenerated={},errors=['FinQA input binding: '+r+'; owner escalation' for r in report['errors']])
+        report['finqa_reproduction'] = dict(protocol=PROTOCOL, status='PENDING', escalation='owner',
+            checks=[], regenerated={}, errors=['FinQA input binding: '+r+'; owner escalation' for r in report['errors']])
     if not report['errors']:
-        report.update(status='COMPLETE', escalation=None, code=code_seal())
-    atomic(attempt/'input-binding.json', report)
+        report.update(status='COMPLETE', escalation=None)
+    # Output errors are deliberately outside the input boundary. atomic uses
+    # allow_nan=False, after receipt_value has sanitised all operator content.
+    atomic(Path(attempt)/'input-binding.json', report)
+    if refusal is not None: raise refusal
     ready(not report['errors'], '; '.join(report['errors'])+'; owner escalation')
     return report
 
@@ -145,14 +250,29 @@ def diff_receipt(out, *, base=BASELINE):
     result=dict(schema='cr-diff.v1', baseline=base, status='PENDING', escalation='owner', hunks=[],
                 allowed_categories=sorted(ALLOWED), category_definitions={'technical-standin':TECHNICAL_STANDIN},
                 code=code_seal())
-    found=subprocess.run(['git','rev-parse','--verify',base+'^{commit}'],cwd=root,capture_output=True,text=True)
+    try:
+        found=subprocess.run(['git','rev-parse','--verify',base+'^{commit}'],cwd=root,capture_output=True,text=True)
+    except OSError as error:
+        result['reason']='git unavailable: '+str(error)+'; diff review PENDING'
+        atomic(out,result)
+        return result
     comparison=base
     target='hunks'
     if found.returncode:
         result['reason']='baseline git object unavailable; diff review PENDING'
         # Reviewable local inventory is explicitly diagnostic. It cannot be
         # promoted to a receipt against the missing scientific baseline.
-        comparison=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
+        try:
+            head=subprocess.run(['git','rev-parse','HEAD'],cwd=root,capture_output=True,text=True)
+        except OSError as error:
+            result['reason']+='; diagnostic HEAD unavailable: '+str(error)
+            atomic(out,result)
+            return result
+        if head.returncode or not head.stdout.strip():
+            result['reason']+='; diagnostic HEAD unavailable'
+            atomic(out,result)
+            return result
+        comparison=head.stdout.strip()
         result['diagnostic_base_commit']=comparison
         result['diagnostic_hunks']=[]
         target='diagnostic_hunks'
@@ -184,9 +304,12 @@ def diff_receipt(out, *, base=BASELINE):
 
 
 def verify_diff(ref):
+    ready(isinstance(ref,dict), 'diff_receipt must be an object; owner escalation')
+    ready(isinstance(ref.get('path'),str) and bool(ref['path']), 'diff receipt path required; owner escalation')
     ready(ref and Path(ref.get('path','')).is_file(), 'pre-data diff receipt absent; owner escalation')
     ready(sha(ref['path'])==ref.get('sha256'), 'diff receipt hash mismatch; owner escalation')
     doc=load(ref['path'])
+    ready(isinstance(doc,dict), 'diff receipt must contain a JSON object; owner escalation')
     ready(doc.get('baseline')==BASELINE and doc.get('status')=='COMPLETE' and doc.get('review'), 'baseline diff review incomplete; owner escalation')
     ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; owner escalation')
     ready(doc.get('hunks') and all(h.get('category') in ALLOWED and h.get('sha256') for h in doc['hunks']), 'unapproved diff hunk; owner escalation')
