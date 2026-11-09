@@ -572,6 +572,7 @@ def test_public_export_ships_worker_and_runs_operator_regressions(tmp_path,monke
     (target/'tmp').mkdir()
     done=subprocess.run([sys.executable,'-m','pytest','-q','tests/test_v7_operator_fixes.py',
         '-k','not public_export','--basetemp=tmp/v7-fx-export-tests','-p','no:cacheprovider'],
-        cwd=target,capture_output=True,text=True,timeout=60)
+        cwd=target,capture_output=True,text=True,timeout=60,
+        env={k:v for k,v in os.environ.items() if k != 'PYTEST_ADDOPTS'})
     assert done.returncode==0,done.stdout+done.stderr
     assert 'passed' in done.stdout and 'deselected' in done.stdout

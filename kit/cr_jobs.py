@@ -5,11 +5,23 @@ import json
 import sys
 from types import SimpleNamespace as NS
 from kit.nm_common import *
-from kit.cr_confirmation import SEEDS as CR_SEEDS, ARMS, FINQA_PENDING, isolated, bind_inputs, verify_diff, verify_standin
+from kit.cr_confirmation import SEEDS as CR_SEEDS, ARMS, FINQA_PENDING, isolated, isolated_parent, bind_inputs, verify_diff, verify_standin
 from kit.m3_schedule import STAGES
 
 
+# The owner approved the inherited cache only while CR always hashes models.
+# Include the named companion and the actual seal/phase spellings read by it.
+MODEL_CACHE_ENV = ('M2_MODEL_HASH_RECEIPTS_FILE', 'M2_MODEL_HASH_RECEIPTS_FILE_SHA256',
+                   'M2_MODEL_HASH_RECEIPTS_SHA256', 'M2_EXECUTION_PHASE')
+
+
+def clear_model_cache_environment():
+    for name in MODEL_CACHE_ENV:
+        os.environ.pop(name, None)
+
+
 def settings(cfg):
+    clear_model_cache_environment()
     ready(isinstance(cfg,dict),'launch configuration must be an object')
     ready(isinstance(cfg.get('cr_confirmation'),dict),'cr_confirmation must be an object')
     cr=dict(cfg['cr_confirmation'])
@@ -18,7 +30,10 @@ def settings(cfg):
     ready(isinstance(cr.get('other_roots',[]),list),'other_roots must be an array')
     ready(isinstance(cfg.get('job_python',sys.executable),str) and bool(cfg.get('job_python',sys.executable)),
           'job_python must be a nonempty executable path')
+    ready(cr.get('six_row_root') and cr.get('v6b_root'),
+          'six_row_root and v6b_root required for CR isolation')
     isolated(cr,cfg['out'])
+    isolated_parent(cr,cfg['out'])
     cr.update(budget=cr.get('budget',{}),job_python=cfg.get('job_python',sys.executable),
         infrastructure_update=cfg.get('infrastructure_update'),send_approval=cfg.get('send_approval'),
         technical_synthetic=cfg.get('technical_synthetic',False),dispatch_out=cfg['out'])
@@ -153,6 +168,7 @@ def prepare(cfg,out):
 
 def operation(cfg,row,attempt,out):
     """Allocation child; invoked by nm_execute through the normal watcher."""
+    clear_model_cache_environment()
     from kit import m3_train,m3_score,ref_score_job
     from kit.cr_confirmation import analyse
     verify_standin(cfg)

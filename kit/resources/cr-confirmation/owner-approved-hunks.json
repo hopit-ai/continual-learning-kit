@@ -1,0 +1,187 @@
+{
+ "schema": "cr-owner-approved-hunks.v1",
+ "approval": "owner, 8 Nov 2026: \"Approve the 27 changes, build the fix\" (exact count 26: 18 uncategorised + 8 mislabelled, per Opus categorisation tmp/v7b-cr-diff/opus-categories.md)",
+ "receipt_sha256": "19e2938f35716984876c5c3714b55b1bb794ffc12415cb1884fe437136aceaec",
+ "baseline": "059d6293",
+ "kit_tag": "kit-message-v7b",
+ "hunks": [
+  {
+   "index": 4,
+   "file": "kit/eval_bed.py",
+   "header": "@@ -58,7 +58,7 @@",
+   "sha256": "20deef51e13dc5a87ec18fa9e8f26b046ac44a664a4829a8725569b019a82a03"
+  },
+  {
+   "index": 5,
+   "file": "kit/eval_bed.py",
+   "header": "@@ -166,6 +166,8 @@",
+   "sha256": "adbc104444f1b050b75d96e20c2983a51154afb9019dcac9658544ebeabc0542"
+  },
+  {
+   "index": 13,
+   "file": "kit/lane_pool.py",
+   "header": "@@ -88,21 +187,33 @@",
+   "sha256": "de5c6f12522db5600be1788a400952ca0b115bdf49a2533c9084ff9906c7ce7d"
+  },
+  {
+   "index": 15,
+   "file": "kit/lane_pool.py",
+   "header": "@@ -135,13 +247,20 @@",
+   "sha256": "8d9434707813565f2cab06b215ee190b7dd24ac5cb2ef4f4f2f06d427ddf6936"
+  },
+  {
+   "index": 17,
+   "file": "kit/lane_pool.py",
+   "header": "@@ -193,10 +314,11 @@",
+   "sha256": "2eb529fae187d0f788fe2edf8313a7d19e79b2b7bad4ee7d8e3286b6ab15ca1b"
+  },
+  {
+   "index": 25,
+   "file": "kit/m3_manifest.py",
+   "header": "@@ -229,7 +229,7 @@",
+   "sha256": "8ae3e7182c9fc9187a21a55571739bebbd7e9a85df2a88b96f50ec26e3658178"
+  },
+  {
+   "index": 26,
+   "file": "kit/m3_manifest.py",
+   "header": "@@ -326,7 +326,7 @@",
+   "sha256": "de19a6d9a3a936da37500dd39dc90803ab8ead8e0209ae37a0c51cf36fcc861b"
+  },
+  {
+   "index": 27,
+   "file": "kit/m3_manifest.py",
+   "header": "@@ -464,8 +464,24 @@",
+   "sha256": "ba92c8d5469d264763f46a8ef2743249e8a2d46d25ba6b783d58611b259fa51b"
+  },
+  {
+   "index": 28,
+   "file": "kit/m3_manifest.py",
+   "header": "@@ -486,11 +502,8 @@",
+   "sha256": "2086c693ea9dfb030d282e240dc40e21579d29fc70b03c4c9cee11d1723a55d5"
+  },
+  {
+   "index": 32,
+   "file": "kit/m3_pools.py",
+   "header": "@@ -435,7 +435,8 @@",
+   "sha256": "8100ef6530164951b0dc3b8c0b8c9510b40a6ae0adc46f95cff4454c8c956977"
+  },
+  {
+   "index": 33,
+   "file": "kit/m3_pools.py",
+   "header": "@@ -925,6 +926,8 @@",
+   "sha256": "21404d8a2a0cd98d4d1894705d1766fd853d8b4697307f07289a21e0b9452457"
+  },
+  {
+   "index": 35,
+   "file": "kit/m3_read.py",
+   "header": "@@ -141,17 +142,19 @@",
+   "sha256": "52241f7cce929fa4521148758bc97f7aa2d9ee7b2de588a7a3ec5bd6bafd9307"
+  },
+  {
+   "index": 75,
+   "file": "kit/m3_train.py",
+   "header": "@@ -456,7 +465,7 @@",
+   "sha256": "ba1da48d33e6980d03a809cb111db834df830bea3f3af43af4fe4600c5a0a142"
+  },
+  {
+   "index": 76,
+   "file": "kit/m3_train.py",
+   "header": "@@ -475,8 +484,9 @@",
+   "sha256": "034b87e12b69cb99f5aee2586fc5a11cda65e1af17329428c5cc20ea7f77b38d"
+  },
+  {
+   "index": 77,
+   "file": "kit/m3_train.py",
+   "header": "@@ -500,14 +510,16 @@",
+   "sha256": "308cbb98f6951efaa9e01bbf3691422d455b893751c506b312cb3a0a36e5fae6"
+  },
+  {
+   "index": 79,
+   "file": "kit/m3_train.py",
+   "header": "@@ -603,6 +615,9 @@",
+   "sha256": "b65681689c7787ceb24ca51a993d4b412deb579ecb72ca3599dcf16a1e47f3a8"
+  },
+  {
+   "index": 83,
+   "file": "kit/next_pools.py",
+   "header": "@@ -4,6 +4,8 @@",
+   "sha256": "67bd16fd6414a6a50ce25a0020e886c4866f4aaf5a67e503391e940fa09a7c0f"
+  },
+  {
+   "index": 90,
+   "file": "kit/ref_guard.py",
+   "header": "@@ -49,6 +49,9 @@",
+   "sha256": "54dd672335b772c4e8581da1524f043840c02a86b4a064ec449eddbc4ac39ed1"
+  },
+  {
+   "index": 91,
+   "file": "kit/ref_guard.py",
+   "header": "@@ -65,8 +68,10 @@",
+   "sha256": "71b6d9ab051b7cb2858e9a2cdf4be1031887e79901a33b48c322ff071286a27a"
+  },
+  {
+   "index": 97,
+   "file": "kit/ref_score_job.py",
+   "header": "@@ -338,7 +344,11 @@",
+   "sha256": "5a10a5335aa346c47a8315af20ec705b21a21cb7454b3072ffc37a9b65c5cc3c"
+  },
+  {
+   "index": 109,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -9,6 +9,15 @@",
+   "sha256": "90535ac8025aa2483346791c53ec3e3fb149585fd21d410c11dfdf2d09010b98"
+  },
+  {
+   "index": 110,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -17,13 +26,17 @@",
+   "sha256": "d0140a95e840c4c4b0692a251f8274909b74b19273125728cdfae45790d8231c"
+  },
+  {
+   "index": 111,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -38,7 +51,7 @@",
+   "sha256": "6cb0388f1d84a42bd387094dec03a95f0929df02ab6e3e09d9568e3ef53dbd16"
+  },
+  {
+   "index": 112,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -56,11 +69,10 @@",
+   "sha256": "e605bb1454cadd8543939b1f31cc5a051a3094dc9af725d7034fd7f9122fac2f"
+  },
+  {
+   "index": 113,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -71,19 +83,28 @@",
+   "sha256": "0cda9a5cd167343add2ca579f35ed143f4e99d7a1b9f2b98628ebe73534111cf"
+  },
+  {
+   "index": 114,
+   "file": "kit/v6_infra.py",
+   "header": "@@ -97,18 +118,18 @@",
+   "sha256": "1c5d669bc7e3a3df4840d2c134d3ec366b1b4ac44714afa51c8fc8a039cb9dbc"
+  }
+ ],
+ "reassigned": {
+  "60": {
+   "file": "kit/m3_score.py",
+   "sha256": "bb6e334125346a09545d666db4ac67c736f60f5ac43d6e53afb44077d44a12c5",
+   "category": "likelihood-K2"
+  },
+  "62": {
+   "file": "kit/m3_score.py",
+   "sha256": "ee6d11659eee0ded4181ea427142b46b7371430fdecc71fdca9a17d862a35b50",
+   "category": "3g"
+  },
+  "63": {
+   "file": "kit/m3_score.py",
+   "sha256": "1221efb7721ba816b089ed8359e08d8149085ef1a920241e126f5f65e70eecb4",
+   "category": "3g"
+  },
+  "95": {
+   "file": "kit/ref_score_job.py",
+   "sha256": "1d3bfde94677954829eece5d841bd4effe31abf5e4b42f187516cf9c64d4d8d2",
+   "category": "likelihood-K2"
+  }
+ }
+}

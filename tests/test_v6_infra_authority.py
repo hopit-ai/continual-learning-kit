@@ -185,7 +185,7 @@ def test_export_cpu_gate_supplies_an_explicit_build_seal(authority,monkeypatch,t
     from types import SimpleNamespace as NS
     target=tmp_path/'export';path=target/'kit/resources/v6/infrastructure-update.json';path.parent.mkdir(parents=True)
     path.write_bytes(authority[1].read_bytes());calls=[]
-    monkeypatch.setattr(m2_privacy,'scan',lambda *a:[])
+    monkeypatch.setattr(m2_privacy,'scan',lambda *a,**kw:[])
     monkeypatch.setattr(publish_kit.subprocess,'run',lambda *a,**kw:calls.append(kw) or NS(returncode=0,stdout='1 passed'))
     publish_kit.check(target)
     assert calls[0]['env']['KIT_V6_AUTHORITY_SHA']==sha(path.read_bytes())

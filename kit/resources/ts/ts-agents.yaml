@@ -1,0 +1,4 @@
+- name: single_turn_agent
+  _target_: kit.ts_agent.TSTargetLoop
+- name: ts_auxiliary
+  _target_: kit.ts_agent.TSAuxiliaryLoop

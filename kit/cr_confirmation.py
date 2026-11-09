@@ -17,6 +17,16 @@ ROLES = {'candidate-lists', 'raw-responses', 'accepted-responses', 'task-demonst
          'contract-journal', 'contract-replay', 'math-mode', 'math-targets',
          'schedule-sources', 'pools', 'panels', 'references', 'scorers', 'licences'}
 ALLOWED = {'seed-mode', 'finqa-native-order', 'technical-standin', 'namespace', '3a', '3b', '3d', '3g', '3h', 'likelihood-K2', 'holder-slice'}
+ALLOWED.update(('owner-v6-howchange', 'owner-v7c-fix'))
+OWNER_V7C_FIX_FILES = ('kit/cr_confirmation.py', 'kit/cr_jobs.py', 'scripts/publish_kit.py')
+OWNER_V7C_FIX_REVIEWER = 'Opus v7c review round 3'
+OWNER_V7C_FIX_BINDING = ('Exact bytes are bound by the receipt code seal; the owner supplies '
+    'the receipt hash in launch JSON diff_receipt.sha256.')
+OWNER_HUNKS = 'resources/cr-confirmation/owner-approved-hunks.json'
+OWNER_SHA256 = '356c1035dca50a0dfb79b728c0583c994c4e9a51622d6033b856d271188e14fd'
+OWNER_COVERAGE = 'resources/cr-confirmation/owner-approved-169.json'
+OWNER_COVERAGE_SHA256 = 'c8580c3aa36ffe7ba30cac3a18eee924a6514b262ef88b50b83310407399fd93'
+OWNER_RESOURCES = ((OWNER_HUNKS, OWNER_SHA256), (OWNER_COVERAGE, OWNER_COVERAGE_SHA256))
 TECHNICAL_STANDIN = ('CPU-STANDIN only: fixture tokenizer/model/export/scoring; skip baseline diff approval, '
     'eight-GPU preflight and training receipts; simulated nvidia-smi; TECHNICAL-ONLY output')
 IMPLEMENTATION = ('cr_confirmation.py', 'cr_jobs.py', 'cr_text.py', 'cr_finqa.py', 'm3_mode.py',
@@ -26,25 +36,49 @@ IMPLEMENTATION = ('cr_confirmation.py', 'cr_jobs.py', 'cr_text.py', 'cr_finqa.py
 
 
 def code_seal():
-    from kit.m3_contract import CODE_FILES
-    from kit.cr_finqa import B_CODE
-    inherited=(*CODE_FILES,'m3_manifest.py','m3_pools.py','p3b_train.py','p3b_score.py',
-        'p3b_common.py','hellaswag_reference.py','likelihood_validation.py','score_forgetting.py',
-        'scorers.py','c_score.py','next_hellaswag.py','inference_lifecycle.py','lane_pool.py',
-        'util_watch.py','eval_bed.py','lane_evidence.py','m2_assignment.py','m2_gpu.py',
-        'v6_infra.py','resources/p3b/v4-recipes.json')
-    return {name: sha(KIT/name) for name in sorted(set((*IMPLEMENTATION,*inherited,*B_CODE)))}
+    from kit.cr_dependencies import FROZEN_DEPENDENCIES
+    names = set(FROZEN_DEPENDENCIES) | {path for path, _ in OWNER_RESOURCES}
+    return {name: sha(KIT/name) for name in sorted(names)}
+
+
+def owner_hunks():
+    approved = set()
+    for path, expected in OWNER_RESOURCES:
+        ready(sha(KIT/path) == expected, 'owner approval resource changed; owner escalation')
+        doc = load(KIT/path)
+        ready(doc.get('baseline') == BASELINE, 'owner approval baseline differs')
+        approved.update((h['file'], h['sha256']) for h in doc['hunks'])
+    return approved
+
+
+def check_categories(hunks):
+    approved = owner_hunks()
+    return bool(hunks) and all(h.get('category') in ALLOWED and h.get('sha256') and
+        (h['category'] != 'owner-v6-howchange' or (h.get('file'), h['sha256']) in approved) and
+        (h['category'] != 'owner-v7c-fix' or h.get('file') in OWNER_V7C_FIX_FILES)
+        for h in hunks)
 
 
 def isolated(cfg, dispatch_out=None):
     out = Path(cfg['out']).resolve()
-    others = [cfg.get('v6a_root'), dispatch_out, *cfg.get('other_roots', [])]
+    others = [cfg.get('v6a_root'), cfg.get('v6b_root'), cfg.get('six_row_root'),
+              dispatch_out, *cfg.get('other_roots', [])]
     ready(cfg.get('v6a_root'), 'v6a realised root absent; owner escalation')
     for other in filter(None, others):
         path = Path(other).resolve()
         need(out != path and out not in path.parents and path not in out.parents,
              'confirmation requires separate non-nested output trees')
     return out
+
+
+def isolated_parent(cfg, dispatch_out):
+    """The CR-only dispatch must also be disjoint from all inherited roots."""
+    parent = Path(dispatch_out).resolve()
+    for other in filter(None, [cfg.get('v6a_root'), cfg.get('v6b_root'),
+                              cfg.get('six_row_root'), *cfg.get('other_roots', [])]):
+        path = Path(other).resolve()
+        need(parent != path and parent not in path.parents and path not in parent.parents,
+             'CR parent requires separate non-nested output trees')
 
 
 class HostPolicy(Invalid):
@@ -248,7 +282,11 @@ def diff_receipt(out, *, base=BASELINE):
     """Enumerate every baseline hunk; unknown baseline/hunks never become approval."""
     root=KIT.parent
     result=dict(schema='cr-diff.v1', baseline=base, status='PENDING', escalation='owner', hunks=[],
-                allowed_categories=sorted(ALLOWED), category_definitions={'technical-standin':TECHNICAL_STANDIN},
+                allowed_categories=sorted(ALLOWED), category_definitions={'technical-standin':TECHNICAL_STANDIN,
+                    'owner-v7c-fix':dict(files=list(OWNER_V7C_FIX_FILES), reviewer=OWNER_V7C_FIX_REVIEWER,
+                        binding=OWNER_V7C_FIX_BINDING, quote=None, date=None, hunks=[]),
+                    'owner-v6-howchange':dict(resources=[dict(path='kit/'+p,sha256=h) for p,h in OWNER_RESOURCES],
+                        scope='exact file and hunk sha256 pairs only; owner-approved coverage closure')},
                 code=code_seal())
     try:
         found=subprocess.run(['git','rev-parse','--verify',base+'^{commit}'],cwd=root,capture_output=True,text=True)
@@ -282,6 +320,7 @@ def diff_receipt(out, *, base=BASELINE):
     import difflib
     for name in code_seal():
         file='kit/'+name
+        file=os.path.normpath(file)
         previous=subprocess.run(['git','show',comparison+':'+file],cwd=root,capture_output=True)
         before=previous.stdout.decode().splitlines(True) if previous.returncode==0 else []
         suggested=None
@@ -312,10 +351,21 @@ def verify_diff(ref):
     ready(isinstance(doc,dict), 'diff receipt must contain a JSON object; owner escalation')
     ready(doc.get('baseline')==BASELINE and doc.get('status')=='COMPLETE' and doc.get('review'), 'baseline diff review incomplete; owner escalation')
     ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; owner escalation')
-    ready(doc.get('hunks') and all(h.get('category') in ALLOWED and h.get('sha256') for h in doc['hunks']), 'unapproved diff hunk; owner escalation')
+    ready(check_categories(doc.get('hunks', [])), 'unapproved diff hunk; owner escalation')
+    fixes = [{k:h[k] for k in ('file', 'header', 'sha256')}
+             for h in doc['hunks'] if h['category'] == 'owner-v7c-fix']
+    fixes.sort(key=lambda h: h['file'])
+    if fixes:
+        definition = doc.get('category_definitions', {}).get('owner-v7c-fix', {})
+        ready(definition.get('files') == list(OWNER_V7C_FIX_FILES) and
+              definition.get('reviewer') == OWNER_V7C_FIX_REVIEWER and
+              definition.get('binding') == OWNER_V7C_FIX_BINDING and
+              all(isinstance(definition.get(k), str) and definition[k].strip() for k in ('quote', 'date')) and
+              definition.get('hunks') == fixes and {h['file'] for h in fixes} == set(OWNER_V7C_FIX_FILES),
+              'owner-v7c-fix approval definition incomplete; owner escalation')
     # Regenerate baseline hunks, so an incomplete approved list cannot hide code.
     import tempfile
-    with tempfile.TemporaryDirectory(dir=KIT.parent/'tmp') as temporary:
+    with tempfile.TemporaryDirectory(prefix='cr-diff-') as temporary:
         actual=diff_receipt(Path(temporary)/'diff.json')
     ready(actual.get('baseline_commit')==doc.get('baseline_commit') and
           [(h['file'],h['sha256']) for h in actual['hunks']]==[(h['file'],h['sha256']) for h in doc['hunks']],

@@ -184,3 +184,12 @@ Forward-looking requirements, to be completed after approval and before confirma
 
 ## Owner approval (6 November 2026)
 Owner: "Approve 830 + acknowledge". The allocation of up to 830 partner GPU-hours is approved, on top of the six v7 rows. The non-admission rule is acknowledged: retain the then-current incumbent, including any valid v7 admission. Build authority is granted. The tag needs separate owner approval.
+
+## Registration delta: FinQA fresh-seed schedules (owner, 6 November 2026, before any data)
+Owner: "Yes, approve regenerating FinQA orders with package B's procedure".
+
+v6a's FinQA stage copies package B's native per-seed order, and package B has orders only for its own seeds. For seeds 104–106, the FinQA schedule is therefore **regenerated with package B's own ordering procedure** (same code, data, corpus and sampler; only the seed changes). Rules:
+- **Gate:** before any 104–106 order is used, the procedure must reproduce byte-for-byte v6a's realised FinQA schedules for seeds 101–103. It must also reproduce package B's stored orders for any of seeds 104–105 that exist on the node.
+- **Failure:** any mismatch leaves FinQA PENDING with owner escalation, never a fallback.
+- **Unchanged:** legal and hard MATH keep their seed-shuffle-cycle rule.
+- **Freeze:** this delta is fixed before any 104–106 output exists.

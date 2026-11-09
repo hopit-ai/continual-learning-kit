@@ -1,0 +1,8 @@
+{
+  "verl/experimental/agent_loop/agent_loop.py": "f90b888ed852b400ebfc2577f5877cd205227bd468cf488986ba9039f3499b92",
+  "verl/experimental/agent_loop/single_turn_agent_loop.py": "b2922f52dcec6a314b32f90fd4deff5368cc8c17f4ee6fd4951e784415d9f440",
+  "verl/workers/rollout/vllm_rollout/vllm_async_server.py": "b8040966b73c6b0ef78c8e8063e63187b650720be49830a0c2bd95da3599cde8",
+  "verl/workers/rollout/replica.py": "ed6e66af38557c1e6dbdc6e1be141097808902b9b75f2c7df12cc05bb3d5567a",
+  "verl/workers/reward_manager/naive.py": "971c206c8f73b9812977f4fe31c0f0fdcdf6b6434e95b443a4b1073a6744e32a",
+  "verl/trainer/config/rollout/rollout.yaml": "a344e9734986761c246957a49f718fd74932463cea100a99f56a5df3591dc482"
+}

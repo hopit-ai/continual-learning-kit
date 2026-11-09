@@ -18,7 +18,8 @@ def run(directory):
     config=directory/'config.json';out=directory/'confirmation'
     atomic(config,dict(out=str(directory/'six-rows'),job_python=sys.executable,
         technical_synthetic=True,infrastructure_update=authority_sha256(),
-        cr_confirmation=dict(out=str(out),v6a_root=str(directory/'v6a'),hosts=['CPU-STANDIN'])))
+        cr_confirmation=dict(out=str(out),six_row_root=str(directory/'root-A'),
+            v6b_root=str(directory/'v6b'),v6a_root=str(directory/'v6a'),hosts=['CPU-STANDIN'])))
     env=dict(os.environ,KIT=str(KIT),NM_CONFIG=str(config),JOB_PY=sys.executable,PYTHONDONTWRITEBYTECODE='1')
     env.pop('UTIL_WATCH_ACTIVE',None)
     calls=[]

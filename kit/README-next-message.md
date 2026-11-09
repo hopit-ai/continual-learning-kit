@@ -338,9 +338,10 @@ v8 task-learning comparator only. It does not change v7's other six rows or the
 product incumbent. No K, C0, combined winner or historical n=6 analysis is run.
 This build does not grant tag/send authority.
 
-Use [rows-v7.json](resources/nm/rows-v7.json) for all seven comparisons, or generate
-it with `nm_jobs.py inventory --confirmation --out PATH`. The original `rows.json`
-and default six-row inventory remain available for the frozen six registrations.
+For v7c, submit only [CR rows.json](resources/cr-confirmation/rows.json) from
+the v7c folder. Keep the original six-row inventory and v7b folder for the frozen
+six registrations. [rows-v7.json](resources/nm/rows-v7.json) is a combined
+reference inventory; do not deploy all seven from one folder or parent root.
 The additional [78 explicit rows](resources/cr-confirmation/rows.json) comprise
 52 CPU rows, 20 eight-GPU rows (18 scientific stages and two qualifications), and
 six one-GPU scoring rows. The merged v7 inventory has 522 rows: 312 CPU, 137
@@ -360,7 +361,7 @@ and dependencies. There are no target-generation/reconstruction rows.
 Use the **same real wrapper** as the six rows:
 
 ```bash
-export KIT=/durable/kit NM_CONFIG=/durable/v7/launch.json
+export KIT=/durable/kit-message-v7c/kit NM_CONFIG=/durable/v7c-cr-launch.json
 export JOB_PY=/durable/envs/job/bin/python
 # Submit explicitly, adding partition/account/node/time settings at your site.
 sbatch --parsable --nodes=1 --cpus-per-task=8 \
@@ -368,7 +369,7 @@ sbatch --parsable --nodes=1 --cpus-per-task=8 \
 sbatch --parsable --nodes=1 --cpus-per-task=8 \
   --kill-on-invalid-dep=yes --dependency=afterok:$CR_BIND_JOB \
   "$KIT/jobs/nm/run-task.sh" NM-cr-prepare
-# Continue using every row's depends_on and right-sized resources in rows-v7.json.
+# Continue using every row's depends_on and right-sized resources in resources/cr-confirmation/rows.json.
 # Example final CPU reader (the six scoring IDs are scheduler job IDs):
 sbatch --parsable --nodes=1 --cpus-per-task=8 \
   --kill-on-invalid-dep=yes --dependency=afterany:$ACCOUNT:$N104:$R104:$N105:$R105:$N106:$R106 \
@@ -383,21 +384,28 @@ native trainer runs. All attempts retain their nonces, leases, watcher data and
 costs. Scoring recovery re-runs the **entire seed/lane in one fresh allocation**.
 No cross-attempt stitching is permitted.
 
-Add a `cr_confirmation` object to the existing launch JSON. Its `out`, the six-row
-`out`, `v6a_root` and other roots must be separate, non-nested trees. All
-confirmation schedules, state, score attempts and reader outputs live under this
-new root. Only the shared return-cycle pointer/text assembly includes all seven.
-The six rows' inputs and allocation branch are unchanged.
+For the revised v7c deployment, create a **CR-only launch JSON** with its own
+parent `out`. Run only `NM-cr-*` from the v7c code folder. All six other families
+(v2b, GRPO, OPR, Fisher, iSDFT, Freeze) use the unchanged v7b code folder and
+existing six-row parent root. The CR parent, `cr_confirmation.out`, six-row root
+and v6a/v6b roots must be separate, non-nested trees. CR has its own dispatch
+and return-cycle pointer. See [v7c status and deployment](README-v7c.md).
 
 ```json
 {
+  "out": "/durable/v7c-cr-parent",
+  "job_python": "/durable/envs/kit/bin/python",
+  "infrastructure_update": "4daf1f7f5624e3f9190831a1832d1183cb8b4032d310a9d0d027562ff058f400",
+  "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
   "cr_confirmation": {
     "out": "/durable/cr-confirmation",
     "v6a_root": "/durable/restored-v6a",
-    "other_roots": ["/durable/restored-v6b"],
+    "v6b_root": "/durable/restored-v6b",
+    "six_row_root": "/durable/v7b-six-row-parent",
+    "other_roots": [],
     "hosts": ["approved-non-core-node"],
     "realised_inputs": {"path": "/durable/node-v6a-inventory.json", "sha256": "OWNER_BOUND_SHA256"},
-    "diff_receipt": {"path": "/durable/reviewed-cr-diff.json", "sha256": "REVIEWED_RECEIPT_SHA256"},
+    "diff_receipt": {"path": "/durable/kit-message-v7c/kit/resources/cr-confirmation/diff-receipt-v7c.json", "sha256": "04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380"},
     "operator_receipt": {"path": "/durable/operator-qualification.json", "sha256": "QUALIFIED_RECEIPT_SHA256"},
     "trainer_python": "/durable/envs/trainer/bin/python",
     "sdpo": "/durable/pinned-SDPO",
@@ -420,10 +428,10 @@ into `cr_confirmation.budget.row_max_seconds` (all **78** rows):
 ```python
 import json
 from pathlib import Path
-launch = json.loads(Path("/durable/v7/launch.json").read_text())
+launch = json.loads(Path("/durable/v7c-cr-launch.json").read_text())
 launch["cr_confirmation"]["budget"]["row_max_seconds"] = json.loads(
-    Path("/durable/kit/resources/cr-confirmation/row-max-seconds.json").read_text())
-Path("/durable/v7/launch.json").write_text(json.dumps(launch, indent=2) + "\n")
+    Path("/durable/kit-message-v7c/kit/resources/cr-confirmation/row-max-seconds.json").read_text())
+Path("/durable/v7c-cr-launch.json").write_text(json.dumps(launch, indent=2) + "\n")
 ```
 
 GPU bounds use the registration's repricing **upper** GPU-hours divided by
@@ -439,7 +447,9 @@ allocation approval; actual allocations, failures and retries still debit 830.
 Replace with measured current-code bounds and reprice before send.
 The parent launch still binds `infrastructure_update`, `job_python` and the
 separate send approval. Never infer an infrastructure seal from the local file.
-A CR row cannot debit I0/K/CR or any of the six-row allocation branches.
+CR rows read **`cr_confirmation.budget`**, not a top-level `budget`. Reservations
+and allocation reconciliation live in `cr_confirmation.out`, separately from
+the six-row ledger. A CR row cannot debit I0/K/CR or any six-row allowance.
 
 `realised_inputs` pins an existing **node-side** inventory under kit `059d6293`.
 Its `kit_commit` is `059d6293`, `hard_math_mode` is the **recorded** `core-copy` or
@@ -586,29 +596,44 @@ Generate the pre-data code-diff receipt:
   --diff-receipt /durable/cr-diff-to-review.json
 ```
 
-The receipt covers confirmation code and inherited scientific/scoring/runtime
-files against **`059d6293`**. Review every hunk, assign only `seed-mode`,
-`namespace`, `finqa-native-order` (the owner-approved B regeneration/gate),
-`technical-standin`, `3a`, `3b`, `3d`, `3g`, `3h`, `likelihood-K2`, `holder-slice`, then bind
-the reviewed COMPLETE receipt and review reference by hash. Any other delta is
-PENDING for owner escalation. `technical-standin` classifies the CPU-only fixture
-tokenizer/model/export/scoring, skipped baseline diff approval, skipped eight-GPU
-preflight, omitted training receipts in the stand-in reader, and simulated
-`nvidia-smi`. These bypasses require `CPU-STANDIN` and produce TECHNICAL-ONLY
-evidence. This category requires the same pre-data hunk review as every other
-category; it does not approve a real run or waive its gates.
-The v7 dispatch wrapper is **predicted to need owner
-escalation** under this “any other delta” rule: whole new files absent at the
-baseline receive `suggested_category:null`, and require substantive review.
-`verify_diff` regenerates the full hunk inventory;
-an omitted hunk or changed code cannot pass. The local build's baseline object
-is unavailable, so its [receipt](resources/cr-confirmation/diff-receipt.json)
-explicitly remains **PENDING**. Node-side binding and optional operator evidence
+The v7c receipt restores the conservative round-3 dependency closure: 479
+sealed files (the original 478 plus the evening approval resource), 143 changed
+files and 348 baseline hunks. The owner approved the 169 additional inherited
+pairs after all three review groups. The former dependency gap is closed;
+[the operator note](README-v7c.md) describes cache isolation and production paths
+that CPU rehearsal did not exercise.
+Use a full clone with baseline **`059d6293`** present; check
+`git rev-parse --verify '059d6293^{commit}'` before generating or verifying review.
+Every hunk requires a substantive allowed category: `seed-mode`, `namespace`,
+`finqa-native-order`, `technical-standin`, `3a`, `3b`, `3d`, `3g`, `3h`,
+`likelihood-K2`, `holder-slice`, `owner-v7c-fix`, or `owner-v6-howchange`.
+`owner-v7c-fix` is restricted to `kit/cr_confirmation.py`, `kit/cr_jobs.py` and
+`scripts/publish_kit.py`, with approval recorded in the receipt.
+`owner-v6-howchange` accepts only
+exact (file, hunk SHA256) pairs in the byte-pinned
+[26-pair approval](resources/cr-confirmation/owner-approved-hunks.json) and
+[169-pair approval](resources/cr-confirmation/owner-approved-169.json).
+`technical-standin` covers only CPU fixture bypasses; their output is TECHNICAL-ONLY.
+
+<!-- v7c-receipt-status -->
+The current [diff receipt](resources/cr-confirmation/diff-receipt-v7c.json) is **COMPLETE**.
+The receipt records the owner approval quote, date and reviewed pairs for
+`owner-v7c-fix`, bound by its code seal and the launch JSON `diff_receipt.sha256`.
+Use the receipt SHA256 and tag commit stated in the owner's send message; stop if
+`sha256sum` of the receipt or `git rev-parse HEAD` differs from those values.
+<!-- /v7c-receipt-status -->
+Bind a COMPLETE receipt's shipped path and SHA256 in the CR-only JSON as shown
+in [the operator note](README-v7c.md). `verify_diff` checks the full code seal and
+independently regenerates every baseline hunk digest. Raw patch text stays in
+the private review inventory, since removed baseline lines can contain private
+literals; no diff bytes are omitted from the independently checked digests.
+A COMPLETE diff receipt grants no tag, send or realised-input approval.
+Node-side binding and optional operator evidence
 are also not claimed by this CPU-only build. Run the CPU fixture through all
 78 real wrapper/watcher rows with:
 
 ```bash
-python scripts/cr_confirmation_dryrun.py --runnable --out /tmp/cr-native-finqa-dryrun
+python -I scripts/cr_confirmation_dryrun.py --runnable --out /tmp/cr-native-finqa-dryrun
 ```
 
 The stand-in calls B's real scheduler, verifies the three historical schedules
@@ -628,9 +653,9 @@ attempt reconciliation, recoverable coverage of v6a's 298.3, and actual
 critical-path/load/queue/transfer timings. The provisional **15.24–27.47 h** serial
 path carries a **>24 h risk**; no measured utilisation or timing is asserted.
 
-Paste the newest **combined** return cycle from the parent `out/return-cycle.json`.
-It contains at most **four ESSENTIAL parts total for all seven rows**, with FULL
-detail retained locally. CR `T|NM|count` rows hold integer correct/total counts in
+Paste CR's newest return cycle from the **CR-only parent**
+`out/return-cycle.json`. It contains at most **four ESSENTIAL parts for CR**,
+with FULL detail retained locally. The six-row return stays in its v7b parent. CR `T|NM|count` rows hold integer correct/total counts in
 seed order 104–106; the CPU importer recomputes the primary and every guard rather
 than trusting printed summaries. No old seed contributes. Prominent primary and
 three IFEval endpoint lines accompany the counts. A PENDING/UNVERIFIED provenance
