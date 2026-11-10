@@ -9,7 +9,8 @@ import os
 import subprocess
 import time
 import uuid
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
+import fcntl
 from kit.a2_common import *
 
 # Captured partner site MaxTime=7-00:00:00 -> SITE_MINUTES 10080 (kit/README-phase0.md).
@@ -152,6 +153,18 @@ def completed(out, task):
     return path.parent
 
 
+@contextmanager
+def _blocking_lock(directory):
+    """Wait for the first-seal lock; a concurrent first row must not fail after reserving."""
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory/'.lock').open('a') as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 def run(config, task):
     cfg = load(config)
     out = Path(cfg['out'])
@@ -190,7 +203,8 @@ def run(config, task):
         except NotReady:
             pass
         from kit.a2_budget import sealed_config
-        bind(out/'config.json', sealed_config(cfg))
+        if (out/'config.json').exists():
+            bind(out/'config.json', sealed_config(cfg))
         attempt = out/'attempts'/task/uuid.uuid4().hex
         attempt.mkdir(parents=True)
         started = time.time()
@@ -224,6 +238,8 @@ def run(config, task):
                     reserve(cfg, out, value, row)
                 atomic(attempt/'receipt.json', value)
             approval(cfg)
+            with _blocking_lock(out/'config-lock'):
+                bind(out/'config.json', sealed_config(cfg))
             from kit.m3_manifest import allocated_gpus
             if not row.get('qualification') and row['phase'] not in ('price', 'collect'):
                 gate(cfg, out)

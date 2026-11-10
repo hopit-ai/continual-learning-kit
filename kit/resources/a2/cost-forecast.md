@@ -3,8 +3,8 @@
 No 4A outcome or actual run timing was opened. The historical D+replay proxy is
 6.3–6.7 GPU-h/stage, borrowed provisionally for D; the slower 58-minute anchor
 is 7.733333 GPU-h. These are not qualified SEC runtimes. Missing node D/replay/
-rewrite timing remains PENDING before send. The source citations below identify
-repository-only documents, absent from a kit-only export: 4A registration
+rewrite timing remains PENDING until qualification. The source citations below
+identify repository-only documents, absent from a kit-only export: 4A registration
 section 11 (`docs/phase4/4a-registration-20261020.md`), the historical kit build
 report (`docs/phase4/4a-kit-build-report-20261021.json`, D_replay.stage), and the
 long-cap reprice (`docs/phase3/kcr-reprice-20261029.md`).
@@ -63,7 +63,8 @@ GPU-h of genuinely additional work raises its upper forecast to 485.6.
 
 The frozen single-allocation rule prevents splitting complete comparisons at
 the default 600-second command limit: J/P/R are 52:17, RP 77:02; RP confirmation
-is 28:05. These scheduling conflicts remain reported, not silently relaxed.
+is 28:05. These long lanes fit the captured seven-day site limit. Submit each
+complete comparison in one allocation with its declared ceiling.
 Monthly rewrite rows instead use actual admitted counts from the bound ledger
 and split into <=24-hour command batches. Smaller rows do not establish a
 utilisation qualification; utilisation remains warn-only.
@@ -76,8 +77,9 @@ is 600–900, or 615.2–935.6 including confirmation. The 7.733333 anchor gives
 
 These are forecasts, not spending ceilings or execution authority. Bind measured
 D, generic/rewrite context and scoring timings, connected preparation, rewrite
-failures, transfers and A2-specific approval before send. RP charges shared
-control, scoring and overhead once to study expenditure; each standalone system
+failures and transfers during qualification under the separately approved
+A2 cap. The price row then permits continuation or returns owner escalation.
+RP charges shared control, scoring and overhead once to study expenditure; each standalone system
 charges shared artifacts fully. Upstream shared raw-ledger/memory costs remain
 UNMEASURED without receipts, never zero. Node accounting uses GPUs × actual full
 allocation elapsed time, including idle and failed time. Queue gaps cost zero.

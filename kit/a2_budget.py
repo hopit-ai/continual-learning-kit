@@ -26,7 +26,7 @@ def forecast(arm, d, challenger=None, *, rewrite_stage=None, collection=0, prepa
                                 exploratory_cells=exploratory_cells, confirmation_cells=confirmation_cells,
                                 score_cell_gpu_hours=score_cell_hours, scoring_load_failure=scoring_load_failure,
                                 overhead_failures=80),
-                status='PROVISIONAL; reprice from qualified node receipts before send')
+                status='PROVISIONAL; reprice from qualification receipts before continuation')
 
 
 def reference(path):

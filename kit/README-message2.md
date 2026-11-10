@@ -1750,3 +1750,9 @@ The public export includes four byte-identical pinned sources in `scripts/`:
 `smoke_x_integration_modal.py`. Screen S/P2 require these for their on-node
 implementation hashes and the S reader. The source files grant no launch
 authority. The publisher privacy gate scans them and every exported file.
+
+The node-side public expectation check is structural unless you supply your own
+token file. Set `KIT_PRIVATE_TOKENS_FILE` to an absolute path to a JSON list of
+plain strings. Invalid or empty token files stop the check. Matching lower-cases
+tokens and keeps only a-z and 0-9; it does not remove accents, so list accented
+spellings as separate entries.

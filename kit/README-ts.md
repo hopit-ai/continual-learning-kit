@@ -59,6 +59,11 @@ CR uses four instruction, two GSM8K and two ARC replay rows throughout, plus eig
 
 Each binding has 36 training stages, two generation-only identity probes and 21 scoring lanes (three seeds × seven panels). Full four-arm execution still has 453 score cells per binding. Each lane's CPU preparation depends on the binding and every scheduled arm's three stage exports for that seed, so no GPU is allocated while waiting for exports. After allocation, the lane gate checks those prepared dependencies; the lane then scores base, acquisition references and all scheduled arms' checkpoints serially on one physical GPU. The reader requires one measured allocation nonce, GPU UUID and environment across that entire (seed, panel) frontier. A failed or interrupted lane is rescored in full. Deferred arms are omitted from the scheduled frontier; contrasts requiring them remain PENDING, with the arm marked PENDING/DEFERRED. Missing lanes leave their affected evidence PENDING.
 
+A halted arm blocks the shared scoring lanes for its seed. To defer that arm,
+rebuild the inventory with fewer `--arms` in a fresh output root and use the
+same arms list in the configuration. Keep the earlier root for accounting.
+A hardware mismatch gives UNVERIFIED for the result, arms and contrasts.
+
 Panel lanes cover FinQA-1147, legal-test-100, hard-MATH-100, strict instruction-100, general-maths-100, knowledge-100 and HellaSwag-100. Knowledge and HellaSwag use the incumbent full-precision reference scorers. The reader derives S−D and H−D primary contrasts and S−M and M−D secondary contrasts from validated item vectors. R equally averages stage-three changes on instruction, general maths and knowledge against base, FinQA against that arm's stage-one final, and legal against its stage-two final. Paired three-seed intervals use sample SD and t=4.302653. Benefit requires mean ≥2 pp, lower >0 and three positive differences. Every paired guard requires its lower bound ≥−1 pp. Unmet bars produce INCONCLUSIVE.
 
 Readings retain acquisition gain/AUC, acquired-answer survival denominators, answer transitions, common acquired cohorts, training histories and token costs including incorrect answers. S/M mask ledgers report intersections, arm-only eligibility, neither-eligible counts and Jaccard overlap on matched scheduled IDs. Zero-correct token cost is undefined. The inherited 1.5× serving ceiling is reported at cost. The collector produces numbered path-free return parts.
@@ -107,9 +112,7 @@ Reprice using measured eight-attempt throughput, allocation wall time, IO and re
 
 ```sh
 mkdir -p tmp/tsarms-round2
-env -u TS_ALLOW_PINNED_CPU_EXECUTION python -m pytest -q tests/test_ts_*.py \
-  --basetemp=./tmp/tsarms-round2/ts-tests
-python -m pytest -q tests/test_nm_*.py tests/test_kit_sdft.py \
+python -m pytest -q tests/test_nm_*.py \
   tests/test_kit_runner.py tests/test_v7b_fixes.py \
   --basetemp=./tmp/tsarms-round2/incumbent-tests
 python -I kit/ts_dryrun.py --out ./tmp/tsarms-round2/fresh-rehearsal

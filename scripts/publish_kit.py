@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -88,7 +89,7 @@ def normalise(text):
     return ''.join(c for c in text if not unicodedata.combining(c) and unicodedata.category(c) != 'Cf')
 
 
-def load_private_names():
+def _private_input():
     path = ROOT/'management/private-names.json'
     try:
         doc = json.loads(path.read_text())
@@ -102,9 +103,27 @@ def load_private_names():
         repository = re.sub('[^a-z0-9]', '', normalise(doc['repository']))
         if repository not in names:
             raise ValueError('repository absent from names')
+        # Former shipped-digest storage tokens: exact complete tokens, never substrings.
+        storage_rows = doc['storage_tokens']
+        if not isinstance(storage_rows, list) or not storage_rows:
+            raise ValueError('empty storage tokens')
+        storage = tuple(re.sub('[^a-z0-9]', '', normalise(row['token'])) for row in storage_rows)
+        if any(not token or hashlib.sha256(token.encode()).hexdigest() != row['sha256']
+               for token, row in zip(storage, storage_rows)):
+            raise ValueError('storage token digest mismatch')
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise SystemExit(f'publisher requires valid private build input {path}: {exc}') from exc
+    return names, repository, tuple(row['name'] for row in rows), storage
+
+
+def load_private_names():
+    names, repository, _, _ = _private_input()
     return names, repository
+
+
+def private_hook_tokens(names, storage):
+    """Every token m2_privacy receives from the publisher's private input."""
+    return [*names, *storage]
 
 
 @lru_cache(maxsize=32768)
@@ -354,8 +373,50 @@ def check_markdown_links(target: Path) -> None:
     if missing:raise SystemExit('export refused, dangling Markdown links:\n  '+'\n  '.join(missing))
 
 
+def assert_private_export(target, entries, storage=()):
+    """Require zero plain identifiers and zero private-derived hex digests.
+
+    Private values and their digests exist only in memory. Diagnostics contain
+    relative file and line numbers only, including for binary export files.
+    """
+    names = tuple(re.sub('[^a-z0-9]', '', normalise(entry)) for entry in entries)
+    variants = set()
+    for entry in entries:
+        variants.update((entry, entry.lower(), entry.upper(), entry.casefold(), normalise(entry),
+                         re.sub('[^a-z0-9]', '', normalise(entry))))
+    digests = {function(value.encode()).hexdigest()
+               for value in (*variants, *storage) for function in (hashlib.sha256, hashlib.sha1, hashlib.md5)}
+    for path in sorted(p for p in target.rglob('*') if p.is_file()):
+        text = path.read_bytes().decode('utf-8', errors='replace')
+        views = (text, text.casefold(), normalise(text))
+        private_lines = []
+        for view in views:
+            for value in variants:
+                index = view.find(value)
+                if value and index >= 0:
+                    private_lines.append(view.count('\n', 0, index)+1)
+        # Storage tokens: exact complete tokens and their -/_ parts, as m2_privacy, but also
+        # over undecodable files, which m2_privacy skips.
+        normal_text = normalise(text)
+        for token in re.finditer(r'[\w]+(?:[-_][\w]+)*', normal_text):
+            parts = {token.group(), *re.split(r'[-_]', token.group())}
+            if any(re.sub('[^a-z0-9]', '', part) in storage for part in parts):
+                private_lines.append(normal_text.count('\n', 0, token.start())+1)
+                break
+        match = DENY.search(text, names)
+        if match:
+            private_lines.append(match.string.count('\n', 0, match.start())+1)
+        private_lines.extend(hit['line'] for hit in separator_name_hits(text, names) if hit['blocking'])
+        if private_lines:
+            raise SystemExit(f'export refused by zero-private assertion {path.relative_to(target)}:{min(private_lines)}')
+        for number, line in enumerate(text.splitlines(), 1):
+            if any(value in line.lower() for value in digests):
+                raise SystemExit(f'export refused by zero-private assertion {path.relative_to(target)}:{number}')
+
+
 def check(target: Path) -> None:
-    names, _ = load_private_names()
+    names, _, entries, storage = _private_input()
+    assert_private_export(target, entries, storage)
     check_markdown_links(target)
     hits = []
     for path in sorted(p for p in target.rglob("*") if p.is_file()):
@@ -364,9 +425,9 @@ def check(target: Path) -> None:
             continue
         for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
             if DENY.search(line, names):
-                hits.append("%s:%d: %s" % (path.relative_to(target), number, line.strip()[:120]))
+                hits.append("%s:%d" % (path.relative_to(target), number))
         for hit in separator_name_hits(path.read_text(errors='replace'), names):
-            diagnostic = '%s:%d: %s' % (path.relative_to(target), hit['line'], hit['context'])
+            diagnostic = '%s:%d' % (path.relative_to(target), hit['line'])
             if hit['blocking']:
                 hits.append(diagnostic)
             else:
@@ -376,7 +437,20 @@ def check(target: Path) -> None:
     # Match MESSAGE 2's privacy rules against every byte actually shipped,
     # including the selected standalone tests and generated root files.
     from kit.m2_privacy import scan
-    private=scan(target, paths=(p for p in target.rglob('*') if p.is_file()))
+    descriptor, token_path = tempfile.mkstemp(prefix='kit-private-tokens-', suffix='.json')
+    previous = os.environ.get('KIT_PRIVATE_TOKENS_FILE')
+    try:
+        with os.fdopen(descriptor, 'w') as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            json.dump(private_hook_tokens(names, storage), stream)
+        os.environ['KIT_PRIVATE_TOKENS_FILE'] = token_path
+        private=scan(target, paths=(p for p in target.rglob('*') if p.is_file()))
+    finally:
+        if previous is None:
+            os.environ.pop('KIT_PRIVATE_TOKENS_FILE', None)
+        else:
+            os.environ['KIT_PRIVATE_TOKENS_FILE'] = previous
+        Path(token_path).unlink(missing_ok=True)
     if private:raise SystemExit('export refused by public privacy rules: '+', '.join(private))
     # test_x_smoke_stage_audit.py ships as a sealed reference-tooling input;
     # its native-reference tests require the separate SDPO checkout and are
@@ -384,7 +458,6 @@ def check(target: Path) -> None:
     # The real exported-test gate owns and deletes its basetemp, even on failure.
     # Supply the copied build's seal explicitly to CPU test launches. Runtime
     # activation itself never discovers/approves the authority's own digest.
-    import hashlib,os
     test_env=dict(os.environ,KIT_V6_AUTHORITY_SHA=hashlib.sha256(
         (target/'kit/resources/v6/infrastructure-update.json').read_bytes()).hexdigest())
     with tempfile.TemporaryDirectory(prefix='.publish-tests-',dir=target) as scratch:

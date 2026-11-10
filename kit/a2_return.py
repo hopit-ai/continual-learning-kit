@@ -11,6 +11,8 @@ import gzip
 import io
 import re
 import tarfile
+import tempfile
+import uuid
 from kit.a2_common import *
 from kit.a2_read import analyse
 from kit.text_return import frame_text
@@ -89,14 +91,37 @@ def write_parts(directory, payload, commit):
         chunks[-1].append(line)
         size += len(line)+len(line)//89+1
     full_set = digest(chunks)
-    paths = []
+    rendered = []
     for index, chunk in enumerate(chunks, 1):
         value = frame_text('a2-'+payload['arm'].lower(), commit, index, len(chunks), 'FULL',
                            f'T|FULL-SET|{len(chunks)}|{full_set}', chunk, width=89)
         require(value.isascii() and len(value) <= 11400 and all(len(line) < 90 for line in value.splitlines()), 'text part overflow')
-        path = directory/f'RETURN-TEXT-{index}-of-{len(chunks)}.md'
-        path.write_text(value)
-        paths.append(path)
+        rendered.append((f'RETURN-TEXT-{index}-of-{len(chunks)}.md', value))
+    paths = [directory/name for name, _ in rendered]
+    with tempfile.TemporaryDirectory(prefix='.return-parts-', dir=directory) as scratch:
+        staged = Path(scratch)
+        for name, value in rendered:
+            (staged/name).write_text(value)
+        with lock(directory/'.return-lock'):
+            older = sorted(directory.glob('RETURN-TEXT-*.md'))
+            superseded = directory/'superseded'/uuid.uuid4().hex
+            moved = []
+            published = []
+            try:
+                if older:
+                    superseded.mkdir(parents=True)
+                for path in older:
+                    path.replace(superseded/path.name)
+                    moved.append(path)
+                for path in paths:
+                    (staged/path.name).replace(path)
+                    published.append(path)
+            except BaseException:
+                for path in published:
+                    path.unlink()
+                for path in moved:
+                    (superseded/path.name).replace(path)
+                raise
     return paths
 
 

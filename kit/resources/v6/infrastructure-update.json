@@ -3115,9 +3115,28 @@
       ],
       "pinned_sha256": "f9d7fe40e79c812e30cb5c1b32521ebfe129daedf0bbfad4b002562527479438",
       "reason": "Scorer/reducer orchestration; CPU golden replay and GPU-only sign-off scope: kit/resources/v6/scorer-files.md"
+    },
+    {
+      "classification": "scheduling",
+      "new_sha256": "581357fe5f9c5d3a0cd3d38d8f73408c5f2e9cbe8eac44925e4630e1a2a4f642",
+      "path": "kit/m2_privacy.py",
+      "pin_sources": [
+        "kit/resources/m2/runtime-updates.json/files/kit/m2_privacy.py"
+      ],
+      "pinned_sha256": "edd4c4ad8e641d385c095c40eacb51f866dbffb7158946d4f7a83f1327ab1636",
+      "reason": "Privacy/operational change to private token inputs; scientific definitions unchanged"
+    },
+    {
+      "classification": "scheduling",
+      "new_sha256": "581357fe5f9c5d3a0cd3d38d8f73408c5f2e9cbe8eac44925e4630e1a2a4f642",
+      "path": "kit/m2_privacy.py",
+      "pin_sources": [
+        "kit/resources/s/registration.json/kit/m2_privacy.py"
+      ],
+      "pinned_sha256": "0457531c37ed9b0eabe4280f6f95a61d695d51f12081290f9f20fa04f48db17e",
+      "reason": "Privacy/operational change to private token inputs; scientific definitions unchanged"
     }
   ],
   "schema": "v6-infrastructure-update.v1",
-  "statement": "scientific definitions unchanged",
-  "target_commit": "f587e90ea88ebd4e21b1a777012072d2b4f25b45"
+  "statement": "scientific definitions unchanged"
 }

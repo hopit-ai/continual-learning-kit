@@ -1,10 +1,42 @@
 """Reject private identifiers in the exact public export scope."""
 import hashlib
 import re
+import json
+import os
+import sys
 from pathlib import Path
 
-# Digests of normalized complete tokens; no identifying names or storage tokens ship.
-PRIVATE_TOKEN_SHA256 = frozenset(('0bca6f21d009136a49d2b893516d0ddcd85fa08ac64405ef5808e95e70295496', '0c32d5421d5b4bbb52c35493f38652dce7b9c9f80aa79a5d88937832a2cd1b4b', '4772e89b183820d42e2a233465fd2a44aa81551d32e80024e8615bcae47fd0e2', '50bf4c9269f1f982e9310ad430723e1f90018cffab77dab4b960af5e0bb692cf', 'c994ced70b6ec802a8c03e58088a52fd3ffa9f446d1728b2d928f4f4487b9ef3'))
+TOKEN_FILE_ENV = 'KIT_PRIVATE_TOKENS_FILE'
+_structural_notice_sent = False
+
+
+def private_tokens():
+    """Load optional private inputs. Invalid configured inputs raise ValueError.
+
+    An unset hook selects structural-only scanning, announced once per process.
+    Input errors and scan diagnostics never include token contents or locations.
+    """
+    global _structural_notice_sent
+    source = os.environ.get(TOKEN_FILE_ENV)
+    if source is None:
+        if not _structural_notice_sent:
+            _structural_notice_sent = True
+            print('public privacy scan uses structural checks only (token file unset)', file=sys.stderr)
+        return frozenset()
+    try:
+        path = Path(source)
+        if not path.is_absolute():
+            raise ValueError
+        values = json.loads(path.read_text())
+        if not isinstance(values, list) or not values or any(
+                not isinstance(value, str) or not value.strip() for value in values):
+            raise ValueError
+        tokens = frozenset(re.sub(r'[^a-z0-9]', '', value.lower()) for value in values)
+        if '' in tokens:
+            raise ValueError
+        return tokens
+    except (OSError, ValueError):
+        raise ValueError('private token input unavailable or invalid') from None
 
 
 # Public source-document emails are scientific data, exempt only at exact frozen bytes.
@@ -36,6 +68,7 @@ def public_paths(root):
 
 
 def scan(root,paths=None):
+    tokens = private_tokens()
     violations=[]
     rules=patterns();root=Path(root)
     for path in public_paths(root) if paths is None else paths:
@@ -53,7 +86,7 @@ def scan(root,paths=None):
             candidates={token.group(),*re.split(r'[-_]',token.group())}
             for candidate in candidates:
                 normal=re.sub(r'[^a-z0-9]','',candidate.lower())
-                if hashlib.sha256(normal.encode()).hexdigest() in PRIVATE_TOKEN_SHA256:
+                if normal in tokens:
                     matches.append(token);break
         for number in sorted({text.count('\n',0,match.start())+1 for match in matches}):
             violations.append(f'{path.relative_to(root)}:{number}')

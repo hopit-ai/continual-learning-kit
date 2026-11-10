@@ -73,6 +73,10 @@ bash "$KIT/jobs/a2/run-task.sh" A2-R-bind
 # Execute each remaining selected row in its own allocation with its resources.
 ```
 
+The bind row also needs a scheduler allocation. It exits 2 outside one.
+A missing or invalid budget is refused before the configuration is sealed.
+Correct it and reuse the same output folder.
+
 CPU rows use zero GPUs and 8 CPUs. Native stages use 8 GPUs and 32 CPUs, with
 fresh optimizer/scheduler and incoming-student EMA. Generation uses one GPU and
 8 CPUs. Full comparison scoring is one allocation on one physical GPU, with
@@ -86,7 +90,7 @@ single-GPU serial lanes, so watch the 70% utilisation rule (warn-only on our
 side) and tell us in Part 3 if one is evicted. Only a row whose ceiling exceeds
 the site MaxTime is listed under `scheduling_conflicts`; at the captured limit
 there are none. Set `SITE_MINUTES` if your limit differs.
-Standalone confirmation is 18:43. Rewrite rows use the actual hash-bound monthly
+Standalone confirmation is 18:44. Rewrite rows use the actual hash-bound monthly
 admitted trace count when emitted with `--config`, and split into command batches
 as necessary so every rewrite ceiling is at most 24 h. The checked-in inventories
 use the frozen supply ceiling of 80 questions/month (14:42 for rewrite at 600 s).
@@ -211,13 +215,18 @@ both the standalone archive and readable/pasteable text. If qualification has
 not completed, it reports NOT PRICED and the spend so far, then exits PENDING
 (75) so collect stays unsealed. Only a completed OWNER ESCALATION price seals
 the qualification-only return. After recovery, rerun collect to return the real
-reading. Preserve all durable attempts, including failed/idle allocations;
-resubmit failed rows/dependants
-with fresh scheduler IDs. Actual scheduler ends, never scheduled EndTime, are
+reading. Older return-part sets move to `superseded/`. Import the active
+parts. Preserve all durable attempts, including failed/idle allocations;
+resubmit failed rows/dependants with fresh scheduler IDs. Actual scheduler ends, never scheduled EndTime, are
 required for measured pricing and accounting; retry only the CPU price row if
 ends are still pending. Queue gaps cost zero GPU-h. Build approval and 4A's
 funding remain separate. The frozen registration's before-send pricing language
 is superseded only for this operational sequence by the dated owner departure.
+
+If spending reaches the cap after a PROCEED price, collect can exit 75 before
+writing spend parts. Preserve the attempts and scheduler accounting for the
+manager to review. Running reservations count GPUs times elapsed allocation
+time until reconciliation and can refuse another row early.
 
 The January–June reading is exploratory. Bars are mean >= +2, positive 3/3,
 two-sided paired df=2 t=4.302653 lower bound >0; every individual holdout/memory
