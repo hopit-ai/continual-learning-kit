@@ -7,11 +7,13 @@ if __package__ in (None, ''):
 
 import argparse
 import json
+from math import ceil
 import os
 import subprocess
 import uuid
 
 from kit import ts_arms as ts, ts_read
+from kit.nm_read import Hardware
 from kit.nm_common import KIT, SEEDS, BASE, need, ready, load, atomic, seal, checked, sha, digest, Pending
 
 
@@ -31,6 +33,10 @@ def inventory(bindings=ts.BINDINGS, arms=ts.ARMS):
     def add(binding, name, phase, dependencies=(), gpus=0, **identity):
         ident = f'TS-{binding}-{name}'
         afterany = phase in ('read', 'collect')
+        timeout = 172800 if gpus == 8 else 14400
+        if phase == 'score':
+            # Retain the old four-hour allowance per nine-cell frontier block.
+            timeout = min(172800, 14400 * ceil(identity['expected_score_cells'] / 9))
         rows.append(dict(id=ident, binding=binding, phase=phase, nodes=1, gpus=gpus,
             cpus=32 if gpus == 8 else 8, may_share_node=gpus != 8,
             needs=[] if afterany else list(dependencies), wants=list(dependencies) if afterany else [],
@@ -38,7 +44,7 @@ def inventory(bindings=ts.BINDINGS, arms=ts.ARMS):
             dependency_options=['--kill-on-invalid-dep=yes'],
             command=['{env.TS_PYTHON}', '-I', '{kit}/ts_jobs.py', 'run',
                      '--config', '{work}/ts-config.json', '--task', ident],
-            env=dict(TS_PYTHON='python3'), timeout_seconds=172800 if gpus == 8 else 14400,
+            env=dict(TS_PYTHON='python3'), timeout_seconds=timeout,
             **identity))
         return ident
     for binding in bindings:
@@ -62,15 +68,15 @@ def inventory(bindings=ts.BINDINGS, arms=ts.ARMS):
                     prior = add(binding, name + '-export', 'export', [trained], arm=arm, seed=seed, stage=stage)
                     exports[arm, seed].append(prior)
         scores = []
-        for arm in ('base', *arms):
-            for seed in SEEDS:
-                for panel in ts_read.PANELS:
-                    name = f'{arm}-s{seed}-score-{panel}'
-                    dependencies = [bound] if arm == 'base' else exports[arm, seed]
-                    prepared = add(binding, name + '-prepare', 'score-prepare', dependencies, arm=arm, seed=seed, panel=panel)
-                    count = len(ts_read.frontier(panel, () if arm == 'base' else (arm,), include_base=arm == 'base'))
-                    scores.append(add(binding, name, 'score', [prepared], 1, arm=arm, seed=seed, panel=panel,
-                                      expected_score_cells=count, lane_concurrency=1))
+        for seed in SEEDS:
+            for panel in ts_read.PANELS:
+                name = f's{seed}-score-{panel}'
+                dependencies = [bound, *(export for arm in arms for export in exports[arm, seed])]
+                prepared = add(binding, name + '-prepare', 'score-prepare', dependencies,
+                               arms=list(arms), seed=seed, panel=panel)
+                count = len(ts_read.frontier(panel, arms, include_base=True))
+                scores.append(add(binding, name, 'score', [prepared], 1, arms=list(arms), seed=seed, panel=panel,
+                                  expected_score_cells=count, lane_concurrency=1))
         read = add(binding, 'read', 'read', scores, arms=list(arms))
         add(binding, 'collect', 'collect', [read])
     return dict(schema='kit-campaign.v1', name='teacher-signal-DRAFT', workdir_env='TS_WORK',
@@ -91,7 +97,7 @@ def stage_root(out, row):
 
 
 def lane_path(out, kind, row):
-    return out / kind / f"{row['arm']}-s{row['seed']}-{row['panel']}.json"
+    return out / kind / f"s{row['seed']}-{row['panel']}.json"
 
 
 def dependency(out, task):
@@ -118,8 +124,7 @@ def score_prepare(cfg, row, out):
     if not synthetic:
         need(len(items) == (1147 if panel == 'finqa' else 100), 'frozen panel denominator differs')
     cells = []
-    lane_arm = row['arm']
-    frontier = ts_read.frontier(panel, () if lane_arm == 'base' else (lane_arm,), include_base=lane_arm == 'base')
+    frontier = ts_read.frontier(panel, row['arms'], include_base=True)
     for arm, stage, step in frontier:
         if arm == 'base':
             from kit.ts_sim import base
@@ -277,7 +282,11 @@ def operation(cfg, row, out, attempt):
         for cost in costs:
             cost['tokens_per_correct'] = cost['output_tokens'] / cost['correct'] if cost['correct'] and cost['output_tokens'] is not None else None
         target = lane_path(out, 'scores', row)
-        seal(target, dict(cells=cells, costs=costs)); published.append(target)
+        previous_sha = sha(target) if target.is_file() else None
+        # Publish only the complete rerun, even if an interrupted attempt left a file.
+        atomic(target, dict(cells=cells, costs=costs)); published.append(target)
+        if previous_sha and previous_sha != sha(target):
+            print(f'Replaced score file with different bytes for lane {row["seed"]}.{row["panel"]}', file=sys.stderr)
     elif phase == 'read':
         from kit.ts_read import evaluate
         cells, costs = [], {}
@@ -289,18 +298,16 @@ def operation(cfg, row, out, attempt):
         missing = []
         for seed in SEEDS:
             for panel in ts_read.PANELS:
-                lane_costs = []
-                for arm in ('base', *arms):
-                    lane = dict(row, arm=arm, seed=seed, panel=panel)
-                    path = lane_path(out, 'scores', lane)
-                    task = f"TS-{row['binding']}-{arm}-s{seed}-score-{panel}"
-                    state = out / 'state' / (task + '.json')
-                    if not path.is_file() or not state.is_file() or load(state)['status'] != 'COMPLETE':
-                        missing.append(f'{arm}.{seed}.{panel}')
-                        continue
-                    dependency(out, task)
-                    result = load(path)
-                    cells.extend(result['cells']); lane_costs.extend(result['costs'])
+                lane = dict(row, seed=seed, panel=panel)
+                path = lane_path(out, 'scores', lane)
+                task = f"TS-{row['binding']}-s{seed}-score-{panel}"
+                state = out / 'state' / (task + '.json')
+                if not path.is_file() or not state.is_file() or load(state)['status'] != 'COMPLETE':
+                    missing.append(f'{seed}.{panel}')
+                    continue
+                dependency(out, task)
+                result = load(path)
+                cells.extend(result['cells']); lane_costs = result['costs']
                 base_cost = next((c for c in lane_costs if c['model'] == 'base'), {})
                 base_tokens = base_cost.get('output_tokens')
                 for cost in lane_costs:
@@ -317,15 +324,34 @@ def operation(cfg, row, out, attempt):
             # Independent plan authorities prevent accepting a self-certified score.
             for seed in SEEDS:
                 for panel in ts_read.PANELS:
-                    for arm in ('base', *arms):
-                        path = lane_path(out, 'plans', dict(row, arm=arm, seed=seed, panel=panel))
-                        if not path.is_file():
-                            continue
-                        for p in load(path)['cells']:
-                            spec['panels'][panel] = [r['id'] for r in p['items']]
-                            spec['scorers'][panel] = p['authority']
-                            spec['checkpoints'][str(seed)].setdefault(p['model'], {})[str(p['step'])] = p['source']['sha256']
-        result = evaluate(dict(cells=cells, technical_synthetic=synthetic), spec, arms=arms, allow_missing=True)
+                    path = lane_path(out, 'plans', dict(row, seed=seed, panel=panel))
+                    if not path.is_file():
+                        continue
+                    for p in load(path)['cells']:
+                        spec['panels'][panel] = [r['id'] for r in p['items']]
+                        spec['scorers'][panel] = p['authority']
+                        spec['checkpoints'][str(seed)].setdefault(p['model'], {})[str(p['step'])] = p['source']['sha256']
+        try:
+            result = evaluate(dict(cells=cells, technical_synthetic=synthetic), spec, arms=arms, allow_missing=True)
+        except Hardware as error:
+            identities = {}
+            for cell in cells:
+                lane = f'{cell["seed"]}.{cell["panel"]}'
+                fields = identities.setdefault(lane, {field: set() for field in ('nonce', 'uuid', 'environment')})
+                for field, values in fields.items():
+                    values.add(cell.get(field))
+            failures = {lane: [field for field, values in fields.items() if len(values) > 1 or not all(values)]
+                        for lane, fields in identities.items()}
+            failures = {lane: fields for lane, fields in failures.items() if fields}
+            reason = str(error) + ' | ' + ' | '.join(
+                f'lane {lane} fields {", ".join(fields)}' for lane, fields in failures.items())
+            result = dict(status='UNVERIFIED', reason=reason, hardware_failures=failures,
+                          arms={arm: 'UNVERIFIED' if arm == 'base' or arm in arms else 'PENDING/DEFERRED'
+                                for arm in ('base', *ts.ARMS)},
+                          contrasts={name: dict(priority=priority,
+                              status='UNVERIFIED' if challenger in arms and control in arms else 'PENDING',
+                              reason=reason if challenger in arms and control in arms else 'missing or deferred arm evidence')
+                              for name, (challenger, control, priority) in ts_read.CONTRASTS.items()})
         qualification = out / 'qualification' / row['binding'] / 'attempt0-identity.json'
         if qualification.is_file():
             result['qualification'] = load(qualification)
@@ -381,7 +407,16 @@ def operation(cfg, row, out, attempt):
         else:
             result = dict(status='PENDING/INCOMPLETE', binding=row['binding'], technical_synthetic=synthetic)
         from kit.ts_text import return_parts
-        parts = return_parts(result)
+        if result.get('hardware_failures'):
+            # Identity corruption has no validated metrics to render.
+            lines = ['DRAFT - NOT FOR SEND', 'CPU-STANDIN TECHNICAL-ONLY' if synthetic else 'PARTNER-COMPUTED',
+                     'Replay ' + row['binding'], 'Status UNVERIFIED', 'Reason ' + result['reason']]
+            lines.extend('|'.join(['R', name, contrast['priority'], contrast['status']])
+                         for name, contrast in result['contrasts'].items())
+            lines.append('Accounting ' + result['accounting_status'])
+            parts = ['PART 1 OF 1\n' + '\n'.join(lines) + '\n']
+        else:
+            parts = return_parts(result)
         for index, part in enumerate(parts, 1):
             path = out / 'text' / f'RETURN-TS-{index}.txt'
             path.parent.mkdir(exist_ok=True)

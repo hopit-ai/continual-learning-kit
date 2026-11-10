@@ -9,17 +9,6 @@ CONTRASTS = {'S-D': ('S', 'D', 'primary'), 'H-D': ('H', 'D', 'primary'),
              'S-M': ('S', 'M', 'secondary'), 'M-D': ('M', 'D', 'secondary')}
 
 
-class Table(nm_read.Table):
-    """Each arm/base lane has its own measured allocation identity."""
-    def __init__(self, doc, spec):
-        super().__init__(doc, spec)
-        self.lanes = {}
-
-    def cell(self, seed, panel, model, step=40):
-        self.used = self.lanes.setdefault((seed, panel, model.split('.')[0]), {})
-        return super().cell(seed, panel, model, step)
-
-
 def frontier(panel, arms=ts.ARMS, *, include_base=True):
     cells = [('base', None, 0)] if include_base else []
     for arm in arms:
@@ -38,22 +27,18 @@ def model_name(arm, stage):
 
 
 def evaluate(doc, spec, *, arms=ts.ARMS, allow_missing=False):
-    table = Table(doc, spec)
-    status = {}
-    for arm in ('base', *ts.ARMS):
-        if arm != 'base' and arm not in arms:
-            status[arm] = 'PENDING/DEFERRED'
-            continue
-        try:
-            for seed in SEEDS:
-                for panel in PANELS:
-                    for a, stage, step in frontier(panel, () if arm == 'base' else (arm,), include_base=arm == 'base'):
-                        table.cell(seed, panel, model_name(a, stage), step)
-            status[arm] = 'COMPLETE'
-        except Pending:
-            if not allow_missing:
-                raise
-            status[arm] = 'PENDING'
+    table = nm_read.Table(doc, spec)
+    status = {arm: 'COMPLETE' if arm == 'base' or arm in arms else 'PENDING/DEFERRED'
+              for arm in ('base', *ts.ARMS)}
+    for seed in SEEDS:
+        for panel in PANELS:
+            for arm, stage, step in frontier(panel, arms, include_base=True):
+                try:
+                    table.cell(seed, panel, model_name(arm, stage), step)
+                except Pending:
+                    if not allow_missing:
+                        raise
+                    status[arm] = 'PENDING'
     complete = [a for a in arms if status[a] == status['base'] == 'COMPLETE']
     def acc(arm, seed, stage, panel, step=40):
         return table.acc(seed, panel, model_name(arm, stage), step)

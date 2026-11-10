@@ -1,7 +1,9 @@
 """Frozen confirmation closure and owner-conditioned cache isolation."""
 import ast
+import hashlib
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -12,17 +14,42 @@ from kit.cr_dependencies import FROZEN_DEPENDENCIES
 from kit.nm_common import KIT, atomic, load, sha
 
 
+# Only these independent A2 additions are exempt from the full kit code scan.
+# Pin the literal list independently so additions cannot broaden the exemption.
+A2_CODE_PATHS = (
+    'a2_bind.py',
+    'a2_budget.py',
+    'a2_common.py',
+    'a2_confirmation.py',
+    'a2_dryrun.py',
+    'a2_execute.py',
+    'a2_j_read.py',
+    'a2_jobs.py',
+    'a2_p_read.py',
+    'a2_pipeline.py',
+    'a2_r_read.py',
+    'a2_read.py',
+    'a2_replay.py',
+    'a2_return.py',
+    'a2_rewrite.py',
+    'a2_sim.py',
+    'jobs/a2/run-task.sh',
+)
+A2_CODE_PATHS_SHA256 = '5b6d917ef8a0875f927695d287199b490d5443e037ea12f39d6c04790705fb91'
+
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
 
-    All kit Python/shell files are included because CR uses computed worker,
-    reward and entry-point names. AST imports also follow external scripts and
-    fixtures, including imports nested in optional/runtime-only branches.
+    Every kit Python/shell path requires coverage except the exact A2 allowlist.
+    This catches new plugins even when no explicit import names them.
+    AST imports remain checked in EVERY frozen Python file, including external
+    scripts/fixtures and imports nested in optional/runtime-only branches.
     """
     root = kit.parent
     covered = {(kit/name).resolve() for name in frozen}
     missing = {p.resolve() for p in kit.rglob('*') if p.is_file()
-               and p.suffix in ('.py', '.sh') and '__pycache__' not in p.parts} - covered
+               and p.suffix in ('.py', '.sh')
+               and p.relative_to(kit).as_posix() not in A2_CODE_PATHS} - covered
     for path in covered:
         if path.suffix != '.py':
             continue
@@ -45,8 +72,84 @@ def uncovered_imports(kit, frozen):
     return sorted(str(p.relative_to(root)) for p in missing)
 
 
+def a2_references(kit, frozen):
+    """Reject imports, computed-name fragments and shell paths anywhere sealed."""
+    pattern = re.compile(r'\ba2_|\bjobs[/.\\]a2\b')
+    return [name for name in frozen
+            if pattern.search(name) or pattern.search((kit/name).read_text())]
+
+
+def directory_scan_loaders(kit, frozen):
+    """Conservatively inventory code-directory scans in dynamic-loader files.
+
+    Include importlib in child-command strings. Python globs and directory enumeration over kit are suspect;
+    straightforward aliases of the kit directory are included.
+    Data-only globs and fixed-prefix plugin maps cannot select the A2 paths.
+    This is a regression inventory, not a general Python reachability proof.
+    """
+    import fnmatch
+    found = []
+    for name in frozen:
+        path = kit/name
+        if path.suffix != '.py':
+            continue
+        source = path.read_text()
+        if not re.search(r'importlib|__import__', source):
+            continue
+        tree = ast.parse(source)
+        aliases = {'KIT', 'kit'}
+        # Track straightforward aliases, including kit=Path(KIT).
+        for _ in range(3):
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value:
+                    if (isinstance(node.value, ast.Name) and node.value.id in aliases or
+                        isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                        and node.value.func.id == 'Path' and len(node.value.args) == 1
+                        and isinstance(node.value.args[0], ast.Name) and node.value.args[0].id in aliases):
+                        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                        aliases.update(n.id for t in targets for n in ast.walk(t) if isinstance(n, ast.Name))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            method = func.attr if isinstance(func, ast.Attribute) else getattr(func, 'id', '')
+            if method not in ('glob', 'rglob', 'iglob', 'iterdir', 'walk', 'listdir', 'scandir'):
+                continue
+            patterns = [n.value for arg in node.args for n in ast.walk(arg)
+                        if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+            broad_python = any(fnmatch.fnmatch(p, pattern) or fnmatch.fnmatch('kit/'+p, pattern) or fnmatch.fnmatch(Path(p).name, pattern)
+                               for pattern in patterns for p in A2_CODE_PATHS)
+            receiver = ast.unparse(func.value) if isinstance(func, ast.Attribute) else ''
+            kit_directory = (any(re.search(r'\b'+re.escape(alias)+r'\b', receiver) for alias in aliases)
+                             or '__file__' in receiver or any('kit' in p for p in patterns))
+            if (broad_python and kit_directory) or (method in ('iterdir', 'walk', 'listdir', 'scandir') and kit_directory):
+                found.append((name, node.lineno))
+    return sorted(found)
+
+
+def test_sealed_directory_scan_loader_inventory_is_frozen():
+    # v4_prepare's import_smoke scans all kit code, but CR never calls it.
+    # Keep the known off-CR loader visible and tied to the approved receipt;
+    # any added loader or changed source fails this inventory/pin check.
+    assert directory_scan_loaders(KIT, cr.code_seal()) == [('v4_prepare.py', 117), ('v4_prepare.py', 121), ('v4_prepare.py', 258)]
+    receipt = load(KIT/'resources/cr-confirmation/diff-receipt-v7c.json')
+    assert sha(KIT/'v4_prepare.py') == receipt['code']['v4_prepare.py']
+
+
+@pytest.mark.parametrize('scan', ["KIT.glob('*.py')", "KIT.rglob('*.py')", 'KIT.iterdir()',
+                                  "glob.glob('kit/*.py')", 'KIT_ALIAS.iterdir()'])
+def test_directory_scan_loader_guard_detects_discovery(tmp_path, scan):
+    (tmp_path/'entry.py').write_text('import importlib\nKIT_ALIAS = KIT\nfor path in '+scan+':\n    importlib.import_module(path.stem)\n')
+    assert directory_scan_loaders(tmp_path, ('entry.py',)) == [('entry.py', 3)]
+
+
 def test_confirmation_imports_and_runtime_plugins_are_covered():
+    assert len(A2_CODE_PATHS) == 17
+    assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
+    assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
+    assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
     assert not uncovered_imports(KIT, FROZEN_DEPENDENCIES)
+    assert not a2_references(KIT, cr.code_seal())
     assert len(FROZEN_DEPENDENCIES) == 477
     assert set(cr.code_seal()) == set(FROZEN_DEPENDENCIES) | {p for p, _ in cr.OWNER_RESOURCES}
 
@@ -58,6 +161,27 @@ def test_coverage_guard_detects_an_uncovered_confirmation_import(tmp_path):
     (tmp_path/'helper.py').write_text('value = 1\n')
     assert uncovered_imports(kit, ('cr_entry.py',)) == ['helper.py']
     assert not uncovered_imports(kit, ('cr_entry.py', '../helper.py'))
+
+
+def test_only_exact_a2_paths_are_exempt_and_imports_still_require_coverage(tmp_path):
+    kit = tmp_path/'kit'
+    kit.mkdir()
+    (kit/'a2_bind.py').write_text('value = 1\n')
+    assert not uncovered_imports(kit, ())
+    (kit/'cr_entry.py').write_text('from kit import a2_bind\n')
+    assert uncovered_imports(kit, ('cr_entry.py',)) == ['kit/a2_bind.py']
+    assert a2_references(kit, ('cr_entry.py',)) == ['cr_entry.py']
+    # Unimported new code still requires coverage, regardless of its prefix.
+    (kit/'zz_new.py').write_text('value = 1\n')
+    (kit/'a2_extra.py').write_text('value = 1\n')
+    assert uncovered_imports(kit, ('cr_entry.py', 'a2_bind.py')) == ['kit/a2_extra.py', 'kit/zz_new.py']
+
+
+@pytest.mark.parametrize('source', ['import kit.a2_extra', "plugin = 'a2_' + name",
+                                     "command = 'kit/jobs/a2/run-task.sh'"])
+def test_a2_guard_catches_imports_and_computed_names(tmp_path, source):
+    (tmp_path/'entry.py').write_text(source+'\n')
+    assert a2_references(tmp_path, ('entry.py',)) == ['entry.py']
 
 
 def test_every_cache_environment_read_is_removed():

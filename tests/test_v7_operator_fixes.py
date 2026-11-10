@@ -562,7 +562,7 @@ def test_live_likelihood_pool_overrides_requested_three_with_two_and_42(tmp_path
     assert receipt['gpu_memory_fraction']==.42
 
 
-@pytest.mark.skipif(not (ROOT/'scripts/publish_kit.py').exists(), reason='private export builder is absent')
+@pytest.mark.skipif(not (ROOT/'management/private-names.json').is_file(), reason='export rebuilding requires private manager input')
 def test_public_export_ships_worker_and_runs_operator_regressions(tmp_path,monkeypatch):
     from scripts import publish_kit as publisher
     monkeypatch.setattr(publisher,'licence_text',lambda:'CPU export fixture; no network')

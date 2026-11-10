@@ -1,5 +1,12 @@
 # Message after return 2
 
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7c` clone,
+> checked against the owner's commit and receipt SHA256
+> `04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380`.
+> Clone any newer tag into a **NEW directory**, never into the v7c clone.
+> On a newer tag, the CR refusal "confirmation code changed since diff review"
+> is expected, not a defect. A newer tag's launch JSON carries no `cr_confirmation`.
+
 The six v3 registrations are preserved byte for byte in
 [resources/nm/registrations](resources/nm/registrations/README.md), including the
 2 November owner approval, “Approve all six + allocation”. Their precedence and
@@ -396,7 +403,7 @@ and return-cycle pointer. See [v7c status and deployment](README-v7c.md).
   "out": "/durable/v7c-cr-parent",
   "job_python": "/durable/envs/kit/bin/python",
   "infrastructure_update": "4daf1f7f5624e3f9190831a1832d1183cb8b4032d310a9d0d027562ff058f400",
-  "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
+  "send_approval": "Owner, 10 November 2026: Decisions 1, 3 and 7: approve as recommended",
   "cr_confirmation": {
     "out": "/durable/cr-confirmation",
     "v6a_root": "/durable/restored-v6a",
@@ -444,7 +451,14 @@ are 17,280 / 20,760 / 24,180 for training, 6,660 for qualification, and
 of 14,400 seconds for preparation/tokenization and 3,600 for other CPU work;
 they reserve zero GPU-hours. These are per-attempt ceilings, not a larger
 allocation approval; actual allocations, failures and retries still debit 830.
-Replace with measured current-code bounds and reprice before send.
+Owner-approved operational departure, 10 November 2026: “Decisions 1, 3 and 7:
+approve as recommended”. Proceed with the shipped complete **78-entry**
+`row_max_seconds` map under the **830 GPU-hour** cap enforced by
+`nm_budget.reserve`. Reconcile measured current-code/scoring repricing **after
+the run**, from actual allocation-end records in the return, including all
+failed, idle and retried allocations. The dated quote is the launch JSON's
+`send_approval` reference. This changes pricing procedure only; CR code remains
+sealed and runs only from the public **kit-message-v7c** tag.
 The parent launch still binds `infrastructure_update`, `job_python` and the
 separate send approval. Never infer an infrastructure seal from the local file.
 CR rows read **`cr_confirmation.budget`**, not a top-level `budget`. Reservations
@@ -558,8 +572,10 @@ base and incoming/acquisition references. Native jobs retain the task curves at
 likelihood cells at 10/20/30 are not required. Base/incoming model aliases may
 cause repeated loads; every actual call is charged. The registration's 330
 call-equivalent forecast also reserves validation passes; the logical cell
-inventory does not remove that allowance. Measure throughput and reprice before
-send, retaining the 830 allowance. A missing curve/export keeps the
+inventory does not remove that allowance. Use the shipped complete row bounds
+under the approved 830 GPU-hour cap; reconcile measured throughput and repricing
+after the run from allocation-end records in the return, under the 10 November
+2026 owner departure above. A missing curve/export keeps the
 confirmation incomplete. Scorer UUID/environment/allocation identities include
 curves; off-assignment or cross-job constituents are UNVERIFIED-HARDWARE.
 

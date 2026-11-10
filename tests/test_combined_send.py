@@ -111,6 +111,8 @@ def test_tier_node_preflight_retains_pending_for_dependency_failure(tmp_path):
 def test_all_tier_files_in_publisher_scope_and_private_runtime_maps_not_copied(tmp_path):
     publish_kit=pytest.importorskip('scripts.publish_kit',reason='publisher is private build tooling')
     root=Path(__file__).resolve().parents[1]
+    if not (root/'management/private-names.json').is_file():
+        pytest.skip('export rebuilding requires private manager input')
     target=publish_kit.build(tmp_path/'public',tag='kit-message-v4')
     assert c.load(target/'kit/KIT-IDENTITY.json')['tag']=='kit-message-v4'
     files=c.load(target/'EXPORT-INVENTORY.json')

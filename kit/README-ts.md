@@ -57,7 +57,7 @@ The [row inventory](resources/ts/rows-ts.json) contains both DAGs. Its `registra
 
 CR uses four instruction, two GSM8K and two ARC replay rows throughout, plus eight FinQA rows in stages two and three and eight legal rows in stage three. All arms read the same frozen ordered schedule for each seed/stage. Preserve task IDs, demonstrations, replay targets, slots, balancing policy, exclusions and pool identities in the binding package.
 
-Each binding has 36 training stages, two generation-only identity probes and independent scoring lanes for base and each arm. Each seed has seven panel lanes per arm/base. Full four-arm execution has 105 scoring lanes and 453 score cells per binding. An arm's scoring preparation depends only on that arm's exports. Each lane scores its own frontier serially on one GPU. The reader validates a consistent measured allocation identity within each lane. Each missing arm remains PENDING while complete arm contrasts can be read.
+Each binding has 36 training stages, two generation-only identity probes and 21 scoring lanes (three seeds × seven panels). Full four-arm execution still has 453 score cells per binding. Each lane's CPU preparation depends on the binding and every scheduled arm's three stage exports for that seed, so no GPU is allocated while waiting for exports. After allocation, the lane gate checks those prepared dependencies; the lane then scores base, acquisition references and all scheduled arms' checkpoints serially on one physical GPU. The reader requires one measured allocation nonce, GPU UUID and environment across that entire (seed, panel) frontier. A failed or interrupted lane is rescored in full. Deferred arms are omitted from the scheduled frontier; contrasts requiring them remain PENDING, with the arm marked PENDING/DEFERRED. Missing lanes leave their affected evidence PENDING.
 
 Panel lanes cover FinQA-1147, legal-test-100, hard-MATH-100, strict instruction-100, general-maths-100, knowledge-100 and HellaSwag-100. Knowledge and HellaSwag use the incumbent full-precision reference scorers. The reader derives S−D and H−D primary contrasts and S−M and M−D secondary contrasts from validated item vectors. R equally averages stage-three changes on instruction, general maths and knowledge against base, FinQA against that arm's stage-one final, and legal against its stage-two final. Paired three-seed intervals use sample SD and t=4.302653. Benefit requires mean ≥2 pp, lower >0 and three positive differences. Every paired guard requires its lower bound ≥−1 pp. Unmet bars produce INCONCLUSIVE.
 
@@ -99,7 +99,7 @@ python -I "$KIT/runner.py" plan "$TS_WORK/campaign.json"
 
 To defer H, pass `--arms D M S` and use that same arms list in the configuration. Inventory generation builds the selected DAG directly. Runtime roots include the replay binding, with distinct I0/CR stage, qualification, plan and score paths.
 
-The operator submits [one row](jobs/ts/run-task.sh) per allocation with the declared resources and dependency options. Training and identity probes use eight GPUs and 32 CPUs on one node. Each scoring lane uses one GPU and eight CPUs. Other rows use zero GPUs and eight CPUs. Stage chains use `afterok`. Readers and collectors use `afterany`. Include `--kill-on-invalid-dep=yes` for dependent allocations. Utilisation and missing telemetry remain advisory. Allocation-end accounting requires scheduler receipt reconciliation.
+The operator submits [one row](jobs/ts/run-task.sh) per allocation with the declared resources and dependency options. Training and identity probes use eight GPUs and 32 CPUs on one node. Each scoring lane uses one GPU and eight CPUs. Its timeout is 14,400 seconds per started block of nine expected score cells, capped at the 172,800-second training timeout. At full scope this gives 28,800 seconds for each 13-cell general-panel lane, 72,000 for each 37-cell FinQA lane, and 57,600 for the 33-cell legal and 29-cell hard-MATH lanes. Other rows use zero GPUs and eight CPUs. Stage chains use `afterok`. Readers and collectors use `afterany`. Include `--kill-on-invalid-dep=yes` for dependent allocations. Utilisation and missing telemetry remain advisory. Allocation-end accounting requires scheduler receipt reconciliation.
 
 Reprice using measured eight-attempt throughput, allocation wall time, IO and retries. The approved I0 envelope of about 897–1877 GPU-hours remains a planning forecast. Reprice CR separately. H can be deferred if the revised envelope exceeds the available budget.
 
@@ -115,7 +115,7 @@ python -m pytest -q tests/test_nm_*.py tests/test_kit_sdft.py \
 python -I kit/ts_dryrun.py --out ./tmp/tsarms-round2/fresh-rehearsal
 ```
 
-Delete each pytest basetemp after its run. The rehearsal uses a fresh directory and executes all 652 rows through the campaign runner with CPU children, including 72 toy-logit training stages, four identity-probe jobs and 210 scoring lanes. It exercises dependency refusals, missing checker output, all-failure batches and idempotent runner replay. Its outputs carry TECHNICAL-ONLY provenance.
+Delete each pytest basetemp after its run. The rehearsal uses a fresh directory and executes all 316 rows through the campaign runner with CPU children, including 72 toy-logit training stages, four identity-probe jobs and 42 scoring lanes. It exercises dependency refusals, missing checker output, all-failure batches and idempotent runner replay. Its outputs carry TECHNICAL-ONLY provenance.
 
 | Review finding | Departure probe or correction |
 | --- | --- |
@@ -129,7 +129,7 @@ Delete each pytest basetemp after its run. The rehearsal uses a fresh directory 
 | 8 | TS resources in their own directory, explicit implementation seal and NM digest equality with main |
 | 9 | Whitespace-normalised distinctness and measured near-duplicate numerator/denominator/rate |
 | 10 | Literal example-response wrapper also wraps positive feedback |
-| 11 | Independent arm scoring, arms selection, pending reader evidence and binding-specific paths |
+| 11 | Shared (seed, panel) scoring across base and scheduled arms, arms selection, pending reader evidence and binding-specific paths |
 | 12 | Nonfinite masked-row loss retains incumbent failure strictness |
 
 TS explicitly seals its source, row inventory, agent config, token fixtures, real-prompt fixtures, pinned seam hashes and this README. The incumbent NM source-seal manifest and digest equal main. D delegates its actor update directly to the incumbent, and CPU tests compare the resulting actor and EMA weights byte-for-byte when every task mask is one.

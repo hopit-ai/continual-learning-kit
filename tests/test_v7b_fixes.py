@@ -36,7 +36,7 @@ def test_scorer_environment_fixture_preserves_native_mapping_and_restores_writes
 
 def test_runnable_confirmation_in_standalone_export(tmp_path):
     target=ROOT
-    if (ROOT/'scripts/publish_kit.py').is_file():
+    if (ROOT/'management/private-names.json').is_file():
         from scripts import publish_kit
         target=publish_kit.build(tmp_path/'public',tag='kit-message-v7b')
         assert (target/'scripts/cr_confirmation_fixture.py').read_bytes()==(ROOT/'scripts/cr_confirmation_fixture.py').read_bytes()
@@ -77,7 +77,7 @@ def test_opr_advisories_fit_seven_family_essential_return(tmp_path,monkeypatch):
     assert parsed['families']['cr']['metadata']['finqa']['reproduction']==proof
 
 
-@pytest.mark.skipif(not (ROOT/'scripts/publish_kit.py').is_file(),reason='private export builder is absent')
+@pytest.mark.skipif(not (ROOT/'management/private-names.json').is_file(),reason='export rebuilding requires private manager input')
 def test_export_links_ship_reviewed_bytes_and_pass_privacy(tmp_path):
     from scripts import publish_kit
     from kit.m2_privacy import scan
@@ -99,7 +99,7 @@ def test_export_links_ship_reviewed_bytes_and_pass_privacy(tmp_path):
         publish_kit.check_markdown_links(target)
 
 
-@pytest.mark.skipif(not (ROOT/'scripts/publish_kit.py').is_file(),reason='private export builder is absent')
+@pytest.mark.skipif(not (ROOT/'management/private-names.json').is_file(),reason='export rebuilding requires private manager input')
 def test_publisher_rejects_dangling_runbook_links_before_test_gate(tmp_path,monkeypatch):
     from scripts import publish_kit
     kit=tmp_path/'kit';kit.mkdir()
@@ -118,7 +118,7 @@ def test_publisher_rejects_dangling_runbook_links_before_test_gate(tmp_path,monk
         publish_kit.check(tmp_path)
 
 
-@pytest.mark.skipif(not (ROOT/'scripts/publish_kit.py').is_file(),reason='private export builder is absent')
+@pytest.mark.skipif(not (ROOT/'scripts/publish_kit.py').is_file(),reason='publisher file is absent')
 @pytest.mark.parametrize('label',['across\na line break','nested [inner] label','outer [inner [deep]] label',r'escaped \[brackets\]'])
 def test_publisher_balances_link_labels_and_ignores_footnote_definitions(tmp_path,label):
     from scripts import publish_kit

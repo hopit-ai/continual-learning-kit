@@ -1,5 +1,12 @@
 # V7c operator note: CR-only, separate parent root
 
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7c` clone,
+> checked against the owner's commit and receipt SHA256
+> `04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380`.
+> Clone any newer tag into a **NEW directory**, never into the v7c clone.
+> On a newer tag, the CR refusal "confirmation code changed since diff review"
+> is expected, not a defect. A newer tag's launch JSON carries no `cr_confirmation`.
+
 <!-- v7c-receipt-status -->
 The current [diff receipt](resources/cr-confirmation/diff-receipt-v7c.json) is **COMPLETE**.
 The receipt records the owner approval quote, date and reviewed pairs for

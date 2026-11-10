@@ -1,0 +1,3838 @@
+{
+  "schema": "a2-rows.v1",
+  "arm": "P",
+  "registration_sha256": "276f4f6e04c3d0c228a47e04f80fa1d8de22335a5af5aee1ee68dabab98bf789",
+  "training_stages": 18,
+  "rows": [
+    {
+      "id": "A2-P-bind",
+      "arm": "P",
+      "phase": "bind",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-bind"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": true
+    },
+    {
+      "id": "A2-P-context-m1",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-bind",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-arrival-prepare-m1",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "kind": "arrival",
+      "qualification": true
+    },
+    {
+      "id": "A2-P-arrival-m1",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-feedback-m1",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-month-m1",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-context-m2",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-arrival-prepare-m2",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "kind": "arrival",
+      "qualification": true
+    },
+    {
+      "id": "A2-P-arrival-m2",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-feedback-m2",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-P-plain-s101-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-P-plain-s101-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m2-prepare",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-P-replay-s101-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-P-replay-s101-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m2-prepare",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-P-price",
+      "arm": "P",
+      "phase": "price",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-bind",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-context-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-arrival-prepare-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-arrival-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-feedback-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-month-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-context-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-arrival-prepare-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-arrival-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s101-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s101-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s101-m2-train",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-price"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure"
+    },
+    {
+      "id": "A2-P-P-plain-s101-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m2-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m2-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m2-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-month-m2",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s101-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s102-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s103-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s101-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s102-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s103-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-context-m3",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-prepare-m3",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-m3",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-feedback-m3",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-month-m3",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-context-m4",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-prepare-m4",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-m4",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-feedback-m4",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m4-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m4-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m4-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-month-m4",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s101-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s102-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s103-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s101-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s102-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s103-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-context-m5",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-prepare-m5",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-m5",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-feedback-m5",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-month-m5",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-context-m6",
+      "arm": "P",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-context-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-prepare-m6",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-context-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-prepare-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-arrival-m6",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-prepare-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-arrival-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-feedback-m6",
+      "arm": "P",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-arrival-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-feedback-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s101-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s101-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s101-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s102-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s102-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s102-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-plain-s103-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-plain-s103-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-plain-s103-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-plain",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s101-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s101-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s101-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s102-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s102-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s102-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m6-prepare",
+      "arm": "P",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m6-train",
+      "arm": "P",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-P-replay-s103-m6-export",
+      "arm": "P",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-P-replay-s103-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-P-replay-s103-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "P-replay",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-month-m6",
+      "arm": "P",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s101-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s102-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-plain-s103-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s101-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s102-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-P-replay-s103-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-month-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-comparison-prepare",
+      "arm": "P",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-month-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-comparison-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "kind": "comparison",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-comparison",
+      "arm": "P",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "52:17:00",
+      "time_limit_seconds": 188220,
+      "job_deadline_seconds": 171060,
+      "depends_on": [
+        {
+          "id": "A2-P-comparison-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-comparison"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "kind": "comparison",
+      "commands": 285,
+      "long_lane_warning": "Frozen complete-comparison single-allocation rule keeps this lane whole",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-freeze-june",
+      "arm": "P",
+      "phase": "freeze-june",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-comparison",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-freeze-june"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-read",
+      "arm": "P",
+      "phase": "read",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-freeze-june",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-read"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-collect",
+      "arm": "P",
+      "phase": "collect",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-price",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-P-read",
+          "type": "afterany"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-collect"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-confirmation-bind",
+      "arm": "P",
+      "phase": "confirmation-bind",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-freeze-june",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-confirmation-bind"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-confirmation-prepare",
+      "arm": "P",
+      "phase": "confirmation-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-confirmation-bind",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-confirmation-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-confirmation-score",
+      "arm": "P",
+      "phase": "confirmation-score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "18:44:00",
+      "time_limit_seconds": 67440,
+      "job_deadline_seconds": 61260,
+      "depends_on": [
+        {
+          "id": "A2-P-confirmation-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-confirmation-score"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "commands": 102,
+      "qualification": false
+    },
+    {
+      "id": "A2-P-confirmation-read",
+      "arm": "P",
+      "phase": "confirmation-read",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-confirmation-score",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-confirmation-read"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-P-confirmation-collect",
+      "arm": "P",
+      "phase": "confirmation-collect",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-P-confirmation-read",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-P-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-P-confirmation-collect"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    }
+  ],
+  "confirmation": "PENDING until separately governed December build/release; dormant rows",
+  "scheduling_conflicts": [],
+  "long_lanes": [
+    "A2-P-comparison"
+  ]
+}

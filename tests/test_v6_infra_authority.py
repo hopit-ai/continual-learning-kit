@@ -177,8 +177,8 @@ def test_new_s_binding_cannot_self_seal_from_an_unbound_historical_parent(author
         s_bind.job(NS(out=tmp_path/'screen',message2=parent))
 
 
-@pytest.mark.skipif(not (Path(__file__).resolve().parents[1]/'scripts/publish_kit.py').exists(),
-                    reason='the publisher itself is not part of the public export')
+@pytest.mark.skipif(not (Path(__file__).resolve().parents[1]/'management/private-names.json').is_file(),
+                    reason='publisher privacy gate requires private manager input')
 def test_export_cpu_gate_supplies_an_explicit_build_seal(authority,monkeypatch,tmp_path):
     from scripts import publish_kit
     from kit import m2_privacy

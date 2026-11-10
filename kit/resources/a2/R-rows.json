@@ -1,0 +1,4546 @@
+{
+  "schema": "a2-rows.v1",
+  "arm": "R",
+  "registration_sha256": "276f4f6e04c3d0c228a47e04f80fa1d8de22335a5af5aee1ee68dabab98bf789",
+  "training_stages": 18,
+  "rows": [
+    {
+      "id": "A2-R-bind",
+      "arm": "R",
+      "phase": "bind",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-bind"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": true
+    },
+    {
+      "id": "A2-R-context-m1",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-bind",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-arrival-prepare-m1",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "kind": "arrival",
+      "qualification": true
+    },
+    {
+      "id": "A2-R-arrival-m1",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-feedback-m1",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m1",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-m1",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-finish-m1",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-month-m1",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m1"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 1,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-context-m2",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m1",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-arrival-prepare-m2",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "kind": "arrival",
+      "qualification": true
+    },
+    {
+      "id": "A2-R-arrival-m2",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-feedback-m2",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m2",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-m2",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": true
+    },
+    {
+      "id": "A2-R-rewrite-finish-m2",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-R-raw-s101-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-R-raw-s101-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m2-prepare",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m2-prepare",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 2,
+      "qualification": true
+    },
+    {
+      "id": "A2-R-price",
+      "arm": "R",
+      "phase": "price",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-bind",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-context-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-arrival-prepare-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-arrival-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-feedback-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-prepare-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-finish-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-month-m1",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-context-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-arrival-prepare-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-arrival-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-feedback-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-prepare-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s101-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s101-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s101-m2-train",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-price"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure"
+    },
+    {
+      "id": "A2-R-R-raw-s101-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m2-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m2-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m2-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m2-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m2-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m2-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m2-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m2-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-month-m2",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s101-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s102-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s103-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s101-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s102-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s103-m2-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m2"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 2,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-context-m3",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m2",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-prepare-m3",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-m3",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-feedback-m3",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m3",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-m3",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-finish-m3",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-month-m3",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m3"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 3,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-context-m4",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m3",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-prepare-m4",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-m4",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-feedback-m4",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m4",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-m4",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-finish-m4",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m4-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m4-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m4-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m4-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m4-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m4-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m4-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m4-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-month-m4",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s101-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s102-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s103-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s101-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s102-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s103-m4-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m4"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 4,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-context-m5",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m4",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-prepare-m5",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-m5",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-feedback-m5",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m5",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-m5",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-finish-m5",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-month-m5",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m5"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 5,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-context-m6",
+      "arm": "R",
+      "phase": "context",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m5",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-context-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-prepare-m6",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-context-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-prepare-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "kind": "arrival",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-arrival-m6",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "02:16:00",
+      "time_limit_seconds": 8160,
+      "job_deadline_seconds": 7260,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-prepare-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-arrival-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "kind": "arrival",
+      "commands": 12,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-feedback-m6",
+      "arm": "R",
+      "phase": "feedback",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-arrival-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-feedback-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-prepare-m6",
+      "arm": "R",
+      "phase": "rewrite-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-feedback-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-prepare-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-m6",
+      "arm": "R",
+      "phase": "rewrite",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "14:42:00",
+      "time_limit_seconds": 52920,
+      "job_deadline_seconds": 48060,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-prepare-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "commands": 80,
+      "trace_start": 0,
+      "trace_stop": 80,
+      "count_basis": "supply ceiling",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-rewrite-finish-m6",
+      "arm": "R",
+      "phase": "rewrite-finish",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-rewrite-finish-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s101-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s101-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s101-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s102-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s102-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s102-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-raw-s103-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-raw-s103-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-raw-s103-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-raw",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s101-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s101-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s101-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 101,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s102-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s102-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s102-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 102,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m6-prepare",
+      "arm": "R",
+      "phase": "prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m6-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m6-train",
+      "arm": "R",
+      "phase": "train",
+      "nodes": 1,
+      "gpus": 8,
+      "cpus": 32,
+      "may_share_node": false,
+      "time": "04:24:00",
+      "time_limit_seconds": 15840,
+      "job_deadline_seconds": 14400,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m6-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m6-train"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-R-rewrite-s103-m6-export",
+      "arm": "R",
+      "phase": "export",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-R-rewrite-s103-m6-train",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-R-rewrite-s103-m6-export"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "model": "R-rewrite",
+      "seed": 103,
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-month-m6",
+      "arm": "R",
+      "phase": "month",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-rewrite-finish-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s101-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s102-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-raw-s103-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s101-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s102-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-R-rewrite-s103-m6-export",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-month-m6"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "month": 6,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-comparison-prepare",
+      "arm": "R",
+      "phase": "score-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-month-m6",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-comparison-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "kind": "comparison",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-comparison",
+      "arm": "R",
+      "phase": "score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "52:17:00",
+      "time_limit_seconds": 188220,
+      "job_deadline_seconds": 171060,
+      "depends_on": [
+        {
+          "id": "A2-R-comparison-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-comparison"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "kind": "comparison",
+      "commands": 285,
+      "long_lane_warning": "Frozen complete-comparison single-allocation rule keeps this lane whole",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-freeze-june",
+      "arm": "R",
+      "phase": "freeze-june",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-comparison",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-freeze-june"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-read",
+      "arm": "R",
+      "phase": "read",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-freeze-june",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-read"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-collect",
+      "arm": "R",
+      "phase": "collect",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-price",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-R-read",
+          "type": "afterany"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-collect"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-confirmation-bind",
+      "arm": "R",
+      "phase": "confirmation-bind",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-freeze-june",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-confirmation-bind"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-confirmation-prepare",
+      "arm": "R",
+      "phase": "confirmation-prepare",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-confirmation-bind",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-confirmation-prepare"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-confirmation-score",
+      "arm": "R",
+      "phase": "confirmation-score",
+      "nodes": 1,
+      "gpus": 1,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "18:44:00",
+      "time_limit_seconds": 67440,
+      "job_deadline_seconds": 61260,
+      "depends_on": [
+        {
+          "id": "A2-R-confirmation-prepare",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-confirmation-score"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "commands": 102,
+      "qualification": false
+    },
+    {
+      "id": "A2-R-confirmation-read",
+      "arm": "R",
+      "phase": "confirmation-read",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-confirmation-score",
+          "type": "afterany"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-confirmation-read"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    },
+    {
+      "id": "A2-R-confirmation-collect",
+      "arm": "R",
+      "phase": "confirmation-collect",
+      "nodes": 1,
+      "gpus": 0,
+      "cpus": 8,
+      "may_share_node": true,
+      "time": "04:00:00",
+      "time_limit_seconds": 14400,
+      "job_deadline_seconds": null,
+      "depends_on": [
+        {
+          "id": "A2-R-confirmation-read",
+          "type": "afterok"
+        },
+        {
+          "id": "A2-R-price",
+          "type": "afterok"
+        }
+      ],
+      "dependency_options": [
+        "--kill-on-invalid-dep=yes"
+      ],
+      "command": [
+        "{job_python}",
+        "-I",
+        "{kit}/a2_jobs.py",
+        "run",
+        "--config",
+        "{a2_config}",
+        "--task",
+        "A2-R-confirmation-collect"
+      ],
+      "gpu_hour_basis": "allocated GPUs x actual allocation wall hours, including idle/failure",
+      "qualification": false
+    }
+  ],
+  "confirmation": "PENDING until separately governed December build/release; dormant rows",
+  "scheduling_conflicts": [],
+  "long_lanes": [
+    "A2-R-comparison"
+  ]
+}

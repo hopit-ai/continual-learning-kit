@@ -15,6 +15,8 @@ proven to stand on its own and to carry nothing from outside the declared export
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -28,7 +30,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 PUBLIC_URL = "https://github.com/hopit-ai/continual-learning-kit"
-PRIVATE_REPOSITORY_SHA256 = '57224dd650d3c42f61353971539406529df8c24000ba640454e852d731e0b4b8'
 PUBLIC_TAG = "kit-b0-v3"
 K1A_TAG = "kit-k1a-v1"
 TESTS = ("test_kit_runner.py", "test_kit_report.py", "test_kit_stage_local.py", "test_kit_bed_finqa.py", "test_kit_bed_gsm8k.py",
@@ -52,6 +53,9 @@ TESTS += ("test_v7_operator_fixes.py",)
 TESTS += ("test_nm_actor.py", "test_nm_binding.py", "test_nm_budget.py", "test_nm_data.py", "test_nm_jobs.py", "test_nm_math.py", "test_nm_pipeline.py", "test_nm_prepare.py", "test_nm_read.py", "test_nm_return.py", "test_nm_text.py",)
 TESTS += ("test_cr_confirmation.py", "test_cr_finqa.py", "test_v7_operator_fixes.py", "test_v7b_fixes.py",)
 TESTS += ("test_cr_v7c_closure.py",)
+# A2 public checks use shipped kit files and explicit synthetic CPU identities.
+# The separate private registration parity test runs when its document exists.
+TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
 TESTS += ("kit_authority.py", "util70_fixtures.py",)
 # Runtime hashes and the S reader require these exact source bytes on the node.
 # Copying them grants no launch authority; Modal smokes remain manager-run.
@@ -75,50 +79,96 @@ K2_TAG = "kit-k2-v2"
 K3_TAG = "kit-k3-v1"
 K1C_TAG = "kit-k1c-v1"
 # Owner, 23 Oct 2026: the partner's name must never appear in shipped material.
-# Private identifiers remain one-way digests when this sealed tool ships.
-# Match the legacy private-name substrings without storing reversible names.
+# Identifiers and digests are private build inputs, never exported source.
 from functools import lru_cache
-import hashlib
-PRIVATE_IDENTIFIER_SHA256 = {
-    6: frozenset(('50bf4c9269f1f982e9310ad430723e1f90018cffab77dab4b960af5e0bb692cf',)),
-    9: frozenset(('0bca6f21d009136a49d2b893516d0ddcd85fa08ac64405ef5808e95e70295496',)),
-    10: frozenset(('4772e89b183820d42e2a233465fd2a44aa81551d32e80024e8615bcae47fd0e2',)),
-    21: frozenset(('57224dd650d3c42f61353971539406529df8c24000ba640454e852d731e0b4b8',)),
-}
+
+
+def normalise(text):
+    text = unicodedata.normalize('NFKD', text).casefold().replace('ı', 'i').replace('ſ', 's')
+    return ''.join(c for c in text if not unicodedata.combining(c) and unicodedata.category(c) != 'Cf')
+
+
+def load_private_names():
+    path = ROOT/'management/private-names.json'
+    try:
+        doc = json.loads(path.read_text())
+        rows = doc['names']
+        names = tuple(re.sub('[^a-z0-9]', '', normalise(row['name'])) for row in rows)
+        if not names or any(not name for name in names):
+            raise ValueError('empty names')
+        if any(hashlib.sha256(name.encode()).hexdigest() != row['sha256']
+               for name, row in zip(names, rows)):
+            raise ValueError('digest mismatch')
+        repository = re.sub('[^a-z0-9]', '', normalise(doc['repository']))
+        if repository not in names:
+            raise ValueError('repository absent from names')
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise SystemExit(f'publisher requires valid private build input {path}: {exc}') from exc
+    return names, repository
 
 
 @lru_cache(maxsize=32768)
-def _private_identifier(token):
-    normal = unicodedata.normalize('NFKD', token).casefold().replace('ı', 'i').replace('ſ', 's')
-    normal = re.sub('[^a-z0-9]', '', normal)
-    return any(hashlib.sha256(normal[i:i+length].encode()).hexdigest() in values
-               for length,values in PRIVATE_IDENTIFIER_SHA256.items()
-               for i in range(len(normal)-length+1))
+def _private_identifier(token, names):
+    normal = re.sub('[^a-z0-9]', '', normalise(token))
+    return any(name in normal for name in names)
 
 
 class _Deny:
     structural = re.compile(r"/[U]sers/|@g(?:mail)\.|sk-[a]nt-|hf_[A-Za-z0-9]{12,}|BEGIN [A-Z ]*PRIVATE KEY")
 
-    def search(self, text):
-        match = self.structural.search(text)
+    def search(self, text, names=None):
+        if names is None:
+            names, _ = load_private_names()
+        match = self.structural.search(''.join(c for c in text if unicodedata.category(c) != 'Cf'))
         if match:
             return match
+        text = normalise(text)
         return next((m for m in re.finditer(r'[\w]+(?:[-_][\w]+)*', text)
-                     if _private_identifier(m.group())), None)
+                     if _private_identifier(m.group(), names)), None)
 
 
 DENY = _Deny()
 
 
 def public_repository_names(text):
+    _, repository = load_private_names()
     def replace(match):
-        normal = re.sub('[^a-z0-9]', '', match.group().lower())
-        return ('continual-learning-kit' if hashlib.sha256(normal.encode()).hexdigest()
-                == PRIVATE_REPOSITORY_SHA256 else match.group())
+        normal = re.sub('[^a-z0-9]', '', normalise(match.group()))
+        return 'continual-learning-kit' if normal == repository else match.group()
     return re.sub(r'[\w]+(?:[-_][\w]+)*', replace, text)
 
 
+def separator_name_hits(text, names):
+    """Report all candidates; embedded runs in one ordinary word are advisory.
+
+    Whole tokens and spans across multiple words/punctuation are blocking.
+    An ordinary word is a maximal Unicode alphanumeric run (no underscore).
+    Normalised offsets and context are used consistently in diagnostics.
+    """
+    text = normalise(text)
+    separator = r'[\s._\-/\\|:,]{0,3}'
+    for name in names:
+        pattern = separator.join(map(re.escape, name))
+        for match in re.finditer(pattern, text):
+            start, end = match.span()
+            whole = (not start or not text[start-1].isalnum()) and (end == len(text) or not text[end].isalnum())
+            inside_word = all(c.isalnum() for c in match.group()) and not whole
+            context = text[max(0, start-45):min(len(text), end+45)].replace('\n', r'\n')
+            yield dict(line=text.count('\n', 0, start)+1, context=context,
+                       blocking=whole or not inside_word)
+
+
+PUBLIC_TEST_ARGS = ('-m', 'pytest', '-q', 'tests', '--ignore=tests/test_x_smoke_stage_audit.py')
+
+
 README = """# continual-learning-kit
+
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7c` clone,
+> checked against the owner's commit and receipt SHA256
+> `04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380`.
+> Clone any newer tag into a **NEW directory**, never into the v7c clone.
+> On a newer tag, the CR refusal "confirmation code changed since diff review"
+> is expected, not a defect. A newer tag's launch JSON carries no `cr_confirmation`.
 
 The current combined message 2+3 entry point is [COMBINED SEND](kit/README-combined.md).
 Message-3 joins only on Opus SEND by 2 November; tier failures never block core.
@@ -162,10 +212,12 @@ Standard library plus PyYAML for everything except `score_forgetting.py generate
 
 ```bash
 pip install pyyaml pytest pyarrow pandas
-python -m pytest -q tests
+python -m pytest -q tests --ignore=tests/test_x_smoke_stage_audit.py
 WORK=/tmp/toy python kit/runner.py prepare kit/campaigns/toy.yaml --all
 WORK=/tmp/toy python kit/runner.py run kit/campaigns/toy.yaml --all
 ```
+
+A `test_util_watch` failure under load is a timing flake; rerun that file alone: `python -m pytest -q tests/test_util_watch.py`.
 
 Docstrings mention numbered receipts and a run record. Those live in our research repository; every
 number quoted here was checked there against raw files before it was written down.
@@ -209,6 +261,7 @@ def licence_text() -> str:
 
 
 def build(target: Path, tag=None) -> Path:
+    load_private_names()  # Fail before writing anything if private build inputs are absent.
     if target.exists() and any(target.iterdir()):
         raise SystemExit("export directory must be empty: %s" % target)
     (target / "tests").mkdir(parents=True)
@@ -238,26 +291,28 @@ def build(target: Path, tag=None) -> Path:
     (target / "NOTICE").write_text(NOTICE)
     (target / "LICENSE").write_text(licence_text())
     (target / ".gitignore").write_text("__pycache__/\n*.pyc\n.pytest_cache/\n")
-    import json
     if tag is None:
         try:
             tag = subprocess.check_output(["git", "-C", str(ROOT), "describe", "--tags",
                 "--exact-match", "--match", "kit-*", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
-        except subprocess.CalledProcessError:
+        except (OSError, subprocess.CalledProcessError):
             tag = "untagged"
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", tag):
         raise ValueError("invalid kit identity tag")
     shipped_identity = ROOT/'kit/KIT-IDENTITY.json'
     try:
+        toplevel = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+            text=True, stderr=subprocess.DEVNULL).strip()
+        if Path(toplevel).resolve() != ROOT.resolve():
+            raise ValueError('git belongs to an enclosing checkout')
         commit = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
             text=True, stderr=subprocess.DEVNULL).strip()
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, ValueError, subprocess.CalledProcessError):
         commit = json.loads(shipped_identity.read_text())['commit']
     identity = {"tag": tag, "commit": commit}
     (target / "kit/KIT-IDENTITY.json").write_text(json.dumps(identity, sort_keys=True)+"\n")
     # Exact inventory for every shipped tier resource, including frozen bytes. No local
     # runtime maps, source docs/smoke inputs or generated operational manifests are copied.
-    import hashlib, json
     files = {str(p.relative_to(target)): hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(target.rglob('*')) if p.is_file()}
     (target / 'EXPORT-INVENTORY.json').write_text(json.dumps(files, indent=2, sort_keys=True)+'\n')
@@ -300,6 +355,7 @@ def check_markdown_links(target: Path) -> None:
 
 
 def check(target: Path) -> None:
+    names, _ = load_private_names()
     check_markdown_links(target)
     hits = []
     for path in sorted(p for p in target.rglob("*") if p.is_file()):
@@ -307,8 +363,14 @@ def check(target: Path) -> None:
             hits.append("%s: compiled file" % path.relative_to(target))
             continue
         for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
-            if DENY.search(line):
+            if DENY.search(line, names):
                 hits.append("%s:%d: %s" % (path.relative_to(target), number, line.strip()[:120]))
+        for hit in separator_name_hits(path.read_text(errors='replace'), names):
+            diagnostic = '%s:%d: %s' % (path.relative_to(target), hit['line'], hit['context'])
+            if hit['blocking']:
+                hits.append(diagnostic)
+            else:
+                print('privacy advisory (inside one ordinary word): '+diagnostic)
     if hits:
         raise SystemExit("export refused, %d denylist hits:\n  %s" % (len(hits), "\n  ".join(hits[:20])))
     # Match MESSAGE 2's privacy rules against every byte actually shipped,
@@ -326,7 +388,7 @@ def check(target: Path) -> None:
     test_env=dict(os.environ,KIT_V6_AUTHORITY_SHA=hashlib.sha256(
         (target/'kit/resources/v6/infrastructure-update.json').read_bytes()).hexdigest())
     with tempfile.TemporaryDirectory(prefix='.publish-tests-',dir=target) as scratch:
-        done = subprocess.run([sys.executable, "-I", "-m", "pytest", "-o", "pythonpath=.", "-q", "-p", "no:cacheprovider", "--basetemp",str(Path(scratch)/'bt'), "--ignore=tests/test_x_smoke_stage_audit.py", "tests"], cwd=target, env=test_env,capture_output=True, text=True)
+        done = subprocess.run([sys.executable, "-I", *PUBLIC_TEST_ARGS, "-o", "pythonpath=.", "-p", "no:cacheprovider", "--basetemp",str(Path(scratch)/'bt')], cwd=target, env=test_env,capture_output=True, text=True)
     print(done.stdout.strip().splitlines()[-1])
     if done.returncode != 0:
         raise SystemExit("the exported tests do not pass on their own:\n" + done.stdout[-2000:])
