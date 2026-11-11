@@ -56,8 +56,11 @@ TESTS += ("test_cr_confirmation.py", "test_cr_finqa.py", "test_v7_operator_fixes
 TESTS += ("test_cr_v7c_closure.py",)
 # A2 public checks use shipped kit files and explicit synthetic CPU identities.
 # The separate private registration parity test runs when its document exists.
+TESTS += ("test_trace_registration.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
 TESTS += ("kit_authority.py", "util70_fixtures.py",)
+# Public deletion mechanics. Manager-only binding checks depend on private reads.
+TESTS += ("test_deletion_logic.py", "test_deletion_torch.py", "test_deletion_isolation.py",)
 # Runtime hashes and the S reader require these exact source bytes on the node.
 # Copying them grants no launch authority; Modal smokes remain manager-run.
 RUNTIME_FILES = ("scripts/check_pinned_inputs.py", "scripts/screen_s_analysis.py",
@@ -76,6 +79,9 @@ RUNTIME_FILES += ("docs/phase3/hard-math-screen-preregistration-20261020.md",
                   "docs/phase3/hard-math-screen-result-20261020.md")
 RUNTIME_FILES += ("scripts/apache-2.0.txt",
                   "docs/phase3/next-message-20261102/registration-cr-confirmation.md")
+RUNTIME_FILES += ("scripts/deletion_smoke_modal.py",)
+# Retain source-registration parity checks alongside the bundled runtime copy.
+RUNTIME_FILES += ("docs/phase4/trace-registration-DRAFT-20261111.md",)
 K2_TAG = "kit-k2-v2"
 K3_TAG = "kit-k3-v1"
 K1C_TAG = "kit-k1c-v1"
@@ -198,6 +204,8 @@ programme on small models that keep learning new tasks without forgetting old on
 
 | File | What it does |
 |---|---|
+| `deletion_tuning/`, `scripts/deletion_smoke_modal.py` | Frozen-dense mask arm, training-only LR qualification, resume and hard export. The default smoke command prints its price. The manager controls launches and partner qualification. |
+| `kit/README-trace.md`, `kit/trace_*.py`, `kit/jobs/trace/` | TRACE runner, offline CPU rehearsal, descriptive comparisons and numeric text returns. The runtime registration ships in `kit/resources/trace/registration.md`; node inputs and production qualification remain to be bound. |
 | `kit/README-phase0.md`, `kit/read_v4_phase0.py`, `kit/simulate_v4_phase0.py`, `kit/sim/bin/` | Bounded technical phase 0: confirmed host-venv payload, zero-GPU download job and Slurm header, archive reader, nine-case CPU rehearsal and process-only Slurm stand-ins. All entry points ship under kit/. |
 | `kit/runner.py` | Runs a campaign file row by row **with a pilot gate**: a row marked `pilot` is judged against bars written in advance, and every later row is refused unless the pilot passed. A `prepare` stage does all IO on a CPU machine before any GPU is held. Records a start file before launch and a verdict after; never overwrites. |
 | `kit/README-send4.md` | **Send 4, archived pilot runbook** (tag `kit-batch3-v1`): the budget audit of the ten K1c checkpoints, the 1.7B control on GSM8K (learning rate by training limit with a finish-gated reward), and the Qwen3-8B pilot on the SDPO authors' Chemistry and ToolAlpaca tasks under four recipes. Three commands, two archives. The runner now loses only the rows that need a failed run, and runs a row again by itself when the run it read was retried. |
@@ -241,7 +249,7 @@ A `test_util_watch` failure under load is a timing flake; rerun that file alone:
 Docstrings mention numbered receipts and a run record. Those live in our research repository; every
 number quoted here was checked there against raw files before it was written down.
 
-Data notices are in `NOTICE`.
+Data and third-party code notices are in `NOTICE`.
 """
 
 NOTICE = """continual-learning-kit
@@ -267,8 +275,25 @@ kit/resources/next/sec/ contains questions, answers and the filing excerpts they
 public SEC EDGAR filings (U.S. Securities and Exchange Commission, https://www.sec.gov/edgar).
 kit/resources/a4/ holds only identifiers and hashes of a further SEC slice, not its text.
 
+TRACE runners read operator-staged data under task-specific grants. TRACE data is staged separately.
+FOMC is CC BY-NC 4.0. MeetingBank and ScienceQA are CC BY-NC-SA 4.0.
+NumGLUE-cm and NumGLUE-ds use ODC-By, with underlying content grants required.
+Py150 requires per-file MIT/BSD/Apache source notices. C-STANCE and 20Minuten
+require applicable grants before affected tasks run. Evaluation and original-tokenizer
+terms are recorded in kit/resources/trace/registration.md section 8.
+Qwen/Qwen2.5-7B-Instruct (local judge) is Apache-2.0. Retain its licence and notices
+with staged model files. TRACE code is Apache-2.0 subject to individual file headers.
+
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.
+
+deletion_tuning/vendor/deleting_weights/differentiable_mask.py and portions of
+deletion_tuning/deletion_mask.py derive from deleting-weights
+(https://github.com/agentic-learning-ai-lab/deleting-weights), MIT License.
+Copyright (c) 2026 agentic learning ai lab.
+The complete MIT permission and warranty notice is shipped in
+deletion_tuning/vendor/deleting_weights/LICENSE. Source identity and hashes are
+in deletion_tuning/vendor/deleting_weights/PROVENANCE.json.
 """
 
 
@@ -285,6 +310,8 @@ def build(target: Path, tag=None) -> Path:
         raise SystemExit("export directory must be empty: %s" % target)
     (target / "tests").mkdir(parents=True)
     shutil.copytree(ROOT / "kit", target / "kit", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copytree(ROOT / "deletion_tuning", target / "deletion_tuning",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache"))
     partner = target / "kit" / "README-partner.md"
     text = public_repository_names(partner.read_text())
     text = text.replace("You have access to our private repository. Clone it", "Clone the kit")

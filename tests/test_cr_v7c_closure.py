@@ -37,10 +37,32 @@ A2_CODE_PATHS = (
 )
 A2_CODE_PATHS_SHA256 = '5b6d917ef8a0875f927695d287199b490d5443e037ea12f39d6c04790705fb91'
 
+# Independent TRACE additions have the same exact-path coverage boundary as A2.
+TRACE_CODE_PATHS = (
+    'jobs/trace/run-task.sh',
+    'trace_calibration.py',
+    'trace_common.py',
+    'trace_entry.py',
+    'trace_jobs.py',
+    'trace_judge.py',
+    'trace_metrics.py',
+    'trace_native.py',
+    'trace_overlap.py',
+    'trace_prepare.py',
+    'trace_prompt.py',
+    'trace_read.py',
+    'trace_rehearsal.py',
+    'trace_score.py',
+    'trace_sft.py',
+    'trace_targets.py',
+    'trace_train.py',
+)
+TRACE_CODE_PATHS_SHA256 = 'a630dd08dc1d400f03b4dab934b3e1d709626b31bd744b7b18e24a1b88a650be'
+
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
 
-    Every kit Python/shell path requires coverage except the exact A2 allowlist.
+    Every kit Python/shell path requires coverage except the exact A2 and TRACE allowlists.
     This catches new plugins even when no explicit import names them.
     AST imports remain checked in EVERY frozen Python file, including external
     scripts/fixtures and imports nested in optional/runtime-only branches.
@@ -49,7 +71,7 @@ def uncovered_imports(kit, frozen):
     covered = {(kit/name).resolve() for name in frozen}
     missing = {p.resolve() for p in kit.rglob('*') if p.is_file()
                and p.suffix in ('.py', '.sh')
-               and p.relative_to(kit).as_posix() not in A2_CODE_PATHS} - covered
+               and p.relative_to(kit).as_posix() not in (*A2_CODE_PATHS, *TRACE_CODE_PATHS)} - covered
     for path in covered:
         if path.suffix != '.py':
             continue
@@ -148,10 +170,26 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
     assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
+    assert len(TRACE_CODE_PATHS) == 17
+    assert tuple(sorted(TRACE_CODE_PATHS)) == TRACE_CODE_PATHS
+    assert hashlib.sha256(('\n'.join(TRACE_CODE_PATHS)+'\n').encode()).hexdigest() == TRACE_CODE_PATHS_SHA256
+    assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)
     assert not uncovered_imports(KIT, FROZEN_DEPENDENCIES)
     assert not a2_references(KIT, cr.code_seal())
     assert len(FROZEN_DEPENDENCIES) == 477
     assert set(cr.code_seal()) == set(FROZEN_DEPENDENCIES) | {p for p, _ in cr.OWNER_RESOURCES}
+
+
+def test_only_exact_trace_paths_are_exempt(tmp_path):
+    kit = tmp_path/'kit'
+    kit.mkdir()
+    (kit/'trace_common.py').write_text('VALUE = 1\n')
+    assert not uncovered_imports(kit, ())
+    (kit/'trace_unregistered.py').write_text('VALUE = 2\n')
+    assert uncovered_imports(kit, ()) == ['kit/trace_unregistered.py']
+    (kit/'trace_unregistered.py').unlink()
+    (kit/'cr_entry.py').write_text('from kit import trace_common\n')
+    assert uncovered_imports(kit, ('cr_entry.py',)) == ['kit/trace_common.py']
 
 
 def test_coverage_guard_detects_an_uncovered_confirmation_import(tmp_path):

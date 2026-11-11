@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/agentic-learning-ai-lab/deleting-weights",
+  "commit": "94f0340ebb574f95bb41d844165253a6785e215e",
+  "license": "MIT",
+  "date": "2026-11-11",
+  "source_sha256": {
+    "LICENSE": "be154d4457983610e977f1d0145784ce1807fb284e92d76daa9587253b479bed",
+    "src/learnable_sparsity/differentiable_mask.py": "1aca93847b27f6de3a6787088f2a2fb831854c6ad49de7e86344a58017e7cf74",
+    "src/learnable_sparsity/sparse_linear.py": "efd7f96eccd2347284a9f488374594141da3d5654dfc260efb9a3662144b8fa7",
+    "src/wanda_calibration.py": "e5176aa572baba7baa8146e892c2145cecb1f73fcc130af7b653057c1f6dbed1"
+  },
+  "vendored_sha256": {
+    "LICENSE": "be154d4457983610e977f1d0145784ce1807fb284e92d76daa9587253b479bed",
+    "differentiable_mask.py": "1aca93847b27f6de3a6787088f2a2fb831854c6ad49de7e86344a58017e7cf74"
+  },
+  "modifications": {
+    "differentiable_mask.py": "Verbatim copy. House adapters in deletion_tuning/deletion_mask.py reshape G as matrix for matched sharding and implement only uncached SparseLinear and Wanda equations. No upstream trainer, compression or dependency tree vendored."
+  }
+}

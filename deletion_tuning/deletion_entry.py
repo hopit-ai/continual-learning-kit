@@ -1,0 +1,36 @@
+"""Mask arm on the existing long-context D runner and native checkpoints.
+
+Use identical I0 Hydra overrides, plus DELETION_CALIBRATION (tokenized task
+prompts) and DELETION_SEED. The inherited C runner validates every D setting.
+"""
+import os
+
+
+def main():
+    from omegaconf import OmegaConf
+    from kit import sdft_verl as v
+    from deletion_tuning.deletion_runner import DeletionTaskRunner, registered_lr
+    from deletion_tuning.deletion_worker import validate_calibration
+    validate_calibration(os.environ['DELETION_CALIBRATION'])
+    registered_lr()
+    os.environ['V4_CHECKPOINT_STATE'] = '1'
+    v.check_pinned()
+
+    original = v.main_ppo.run_ppo
+    def run(config, *args, **kwargs):
+        path = 'ray_kwargs.ray_init.runtime_env.env_vars'
+        env = dict(OmegaConf.select(config, path, default={}))
+        for key in ('DELETION_CALIBRATION', 'DELETION_SEED', 'V4_CHECKPOINT_STATE',
+                    'DELETION_LR_MODE', 'DELETION_LR_RECEIPT', 'DELETION_LR_SHA256'):
+            if key not in os.environ:
+                continue
+            env[key] = os.environ[key]
+        OmegaConf.update(config, path, env, merge=False, force_add=True)
+        return original(config, *args, **kwargs)
+    v.main_ppo.run_ppo = run
+    v.main_ppo.TaskRunner = DeletionTaskRunner
+    v.main_ppo.main()
+
+
+if __name__ == '__main__':
+    main()

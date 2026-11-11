@@ -24,5 +24,22 @@ kit/resources/next/sec/ contains questions, answers and the filing excerpts they
 public SEC EDGAR filings (U.S. Securities and Exchange Commission, https://www.sec.gov/edgar).
 kit/resources/a4/ holds only identifiers and hashes of a further SEC slice, not its text.
 
+TRACE runners read operator-staged data under task-specific grants. TRACE data is staged separately.
+FOMC is CC BY-NC 4.0. MeetingBank and ScienceQA are CC BY-NC-SA 4.0.
+NumGLUE-cm and NumGLUE-ds use ODC-By, with underlying content grants required.
+Py150 requires per-file MIT/BSD/Apache source notices. C-STANCE and 20Minuten
+require applicable grants before affected tasks run. Evaluation and original-tokenizer
+terms are recorded in kit/resources/trace/registration.md section 8.
+Qwen/Qwen2.5-7B-Instruct (local judge) is Apache-2.0. Retain its licence and notices
+with staged model files. TRACE code is Apache-2.0 subject to individual file headers.
+
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.
+
+deletion_tuning/vendor/deleting_weights/differentiable_mask.py and portions of
+deletion_tuning/deletion_mask.py derive from deleting-weights
+(https://github.com/agentic-learning-ai-lab/deleting-weights), MIT License.
+Copyright (c) 2026 agentic learning ai lab.
+The complete MIT permission and warranty notice is shipped in
+deletion_tuning/vendor/deleting_weights/LICENSE. Source identity and hashes are
+in deletion_tuning/vendor/deleting_weights/PROVENANCE.json.

@@ -16,6 +16,8 @@ programme on small models that keep learning new tasks without forgetting old on
 
 | File | What it does |
 |---|---|
+| `deletion_tuning/`, `scripts/deletion_smoke_modal.py` | Frozen-dense mask arm, training-only LR qualification, resume and hard export. The default smoke command prints its price. The manager controls launches and partner qualification. |
+| `kit/README-trace.md`, `kit/trace_*.py`, `kit/jobs/trace/` | TRACE runner, offline CPU rehearsal, descriptive comparisons and numeric text returns. The runtime registration ships in `kit/resources/trace/registration.md`; node inputs and production qualification remain to be bound. |
 | `kit/README-phase0.md`, `kit/read_v4_phase0.py`, `kit/simulate_v4_phase0.py`, `kit/sim/bin/` | Bounded technical phase 0: confirmed host-venv payload, zero-GPU download job and Slurm header, archive reader, nine-case CPU rehearsal and process-only Slurm stand-ins. All entry points ship under kit/. |
 | `kit/runner.py` | Runs a campaign file row by row **with a pilot gate**: a row marked `pilot` is judged against bars written in advance, and every later row is refused unless the pilot passed. A `prepare` stage does all IO on a CPU machine before any GPU is held. Records a start file before launch and a verdict after; never overwrites. |
 | `kit/README-send4.md` | **Send 4, archived pilot runbook** (tag `kit-batch3-v1`): the budget audit of the ten K1c checkpoints, the 1.7B control on GSM8K (learning rate by training limit with a finish-gated reward), and the Qwen3-8B pilot on the SDPO authors' Chemistry and ToolAlpaca tasks under four recipes. Three commands, two archives. The runner now loses only the rows that need a failed run, and runs a row again by itself when the run it read was retried. |
@@ -59,4 +61,4 @@ A `test_util_watch` failure under load is a timing flake; rerun that file alone:
 Docstrings mention numbered receipts and a run record. Those live in our research repository; every
 number quoted here was checked there against raw files before it was written down.
 
-Data notices are in `NOTICE`.
+Data and third-party code notices are in `NOTICE`.
