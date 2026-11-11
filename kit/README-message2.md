@@ -1752,7 +1752,17 @@ implementation hashes and the S reader. The source files grant no launch
 authority. The publisher privacy gate scans them and every exported file.
 
 The node-side public expectation check is structural unless you supply your own
-token file. Set `KIT_PRIVATE_TOKENS_FILE` to an absolute path to a JSON list of
+token file. The scan checks home-directory paths, private tmp-directory paths,
+Anaconda paths under opt, email addresses, hostnames with H100 followed by a hyphen,
+IP-address-derived hostnames, numeric JSON job IDs and job references with at
+least five digits. H100 hardware-class and hour/day terms are exempt.
+Email addresses at example.com and emails in three byte-pinned ContractNLI
+source files are exempt.
+The expectation projection also rejects private metadata keys for hosts, users,
+job IDs, GPU UUIDs, settings and tier hardware. It rejects string locations
+starting with a slash, tilde or file scheme, and strings containing backslashes.
+Names are checked only when the operator supplies `KIT_PRIVATE_TOKENS_FILE`.
+Set `KIT_PRIVATE_TOKENS_FILE` to an absolute path to a JSON list of
 plain strings. Invalid or empty token files stop the check. Matching lower-cases
 tokens and keeps only a-z and 0-9; it does not remove accents, so list accented
 spellings as separate entries.

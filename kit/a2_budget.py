@@ -39,7 +39,10 @@ def approval(cfg):
         raise NotReady('A2 execution/spending approval absent; build approval is separate')
     ceiling = budget.get('approved_gpu_hours')
     require(type(ceiling) in (int, float) and math.isfinite(ceiling) and 0 < ceiling <= 601,
-            'invalid approved A2 budget; single selected-arm cap must be <= 601 GPU-h')
+            'invalid approved A2 budget, cap per arm must be <= 601 GPU-h under '
+            'Owner, 10 November 2026: Approve 601 per arm, 1,202 total, order as proposed. '
+            'Sequence all arms with valid inputs, reading branch first, '
+            "second arm afterok on the first arm's price row")
     return ceiling
 
 
@@ -257,11 +260,40 @@ def price(cfg, out):
     return [*artifacts, directory/'price.json', directory/'price-ref.json']
 
 
+def price_evidence(out, arm):
+    """Read verified price artifacts, including a terminal escalation attempt.
+
+    An escalation exits 75 to stop scheduler afterok dependants. Its measured
+    price still belongs in the CPU afterany collector's return.
+    """
+    out = Path(out)
+    task = 'A2-'+arm+'-price'
+    state = out/'state'/(task+'.json')
+    if not state.is_file():
+        raise NotReady('price row absent: '+task)
+    pointer = load(state)
+    receipt = out/pointer['receipt']
+    require(s.file_hash(receipt) == pointer['sha256'], 'price row receipt changed')
+    value = load(receipt)
+    if value['status'] != 'COMPLETE' and not (
+            value['status'] == 'PENDING' and value.get('price_decision') == 'OWNER ESCALATION'):
+        raise NotReady('price row unfinished: '+task)
+    require(value['task'] == task and value['phase'] == 'price', 'price row identity differs')
+    artifacts = value.get('artifacts', {})
+    require({'qualification/price.json', 'qualification/price-ref.json'} <= set(artifacts),
+            'price row artifacts absent')
+    for name, sha in artifacts.items():
+        require((out/name).is_file() and s.file_hash(out/name) == sha, 'price row artifact changed: '+name)
+    value = load(checked(load(Path(out)/'qualification/price-ref.json')))
+    if load(receipt)['status'] == 'PENDING':
+        require(value['decision'] == 'OWNER ESCALATION', 'pending price is not an escalation')
+    return value
+
+
 def gate(cfg, out):
     from kit.a2_jobs import completed, configured_inventory
     ceiling = approval(cfg)
-    root = completed(out, 'A2-'+cfg['arm']+'-price')
-    value = load(checked(load(Path(out)/'qualification/price-ref.json')))
+    value = price_evidence(out, cfg['arm'])
     require(value.get('config_sha256') == digest(sealed_config(cfg)) and
             value.get('protocol_sha256') == digest(protocol()) and
             value.get('registration_sha256') == REGISTRATION and

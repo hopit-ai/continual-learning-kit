@@ -202,6 +202,9 @@ def run(config, task):
             prior = completed(out, task)
         except NotReady:
             pass
+        # Return parts reflect the latest accounting and supersede prior sets.
+        if row['phase'] in ('collect', 'confirmation-collect'):
+            prior = None
         from kit.a2_budget import sealed_config
         if (out/'config.json').exists():
             bind(out/'config.json', sealed_config(cfg))
@@ -248,6 +251,8 @@ def run(config, task):
                     completed(out, dep['id'])
             if prior is not None:
                 # An idempotent invocation still consumed its own allocation.
+                if row['phase'] == 'price':
+                    gate(cfg, out)
                 code = 0
                 value['status'] = 'COMPLETE'
                 return code
@@ -267,6 +272,14 @@ def run(config, task):
                            '--task', task, '--attempt', str(attempt)]
                 with job_deadline(row['job_deadline_seconds']) if row['gpus'] else nullcontext():
                     code = gpu_run(command, env=env, pass_fds=fds).returncode
+            if code == 0 and row['phase'] == 'price':
+                price = load(out/'qualification/price.json')
+                if price['decision'] == 'OWNER ESCALATION':
+                    code = PENDING
+                    value['price_decision'] = price['decision']
+                    print(f"PENDING: A2 owner escalation: price {price['total_gpu_hours']:.6g} GPU-h "
+                          f"exceeds approved {price['approved_gpu_hours']:g}; "
+                          f"qualification spend {price['qualification_gpu_hours']:.6g} GPU-h")
             value['status'] = 'COMPLETE' if code == 0 else 'PENDING' if code == PENDING else 'FAILED'
         except (NotReady, FileNotFoundError) as error:
             value.update(status='PENDING', error=str(error))
@@ -281,7 +294,8 @@ def run(config, task):
             if synthetic or not row['gpus']:
                 value['allocation_ended_at'] = value['ended_at']
             output = attempt/'output.json'
-            names = load(output).get('artifacts', []) if output.exists() and code == 0 else []
+            retain_price = row['phase'] == 'price' and value.get('price_decision') == 'OWNER ESCALATION'
+            names = load(output).get('artifacts', []) if output.exists() and (code == 0 or retain_price) else []
             value['artifacts'] = {str(Path(name).relative_to(out)): s.file_hash(name) for name in names}
             atomic(attempt/'receipt.json', value)
             if prior is None:

@@ -289,6 +289,9 @@ def qualification_standin(root, arm, cap=601):
     from kit import a2_budget as budget
     cfg = fixture(root, arm)
     cfg['budget']['approved_gpu_hours'] = cap
+    # Real configs carry kit_commit (the node check requires it); exports have no Git.
+    cfg['kit_commit'] = SYNTHETIC_KIT_COMMIT
+    atomic(Path(root)/'config.json', cfg)
     out = Path(cfg['out'])
     bind(out/'config.json', budget.sealed_config(cfg))
     rows = jobs.configured_inventory(cfg)['rows']
@@ -357,7 +360,7 @@ def test_over_cap_stops_every_later_row_and_returns_spend(tmp_path):
     out = Path(cfg['out'])
     (out/'config.json').unlink()
     atomic(tmp_path/'P/config.json', cfg)
-    assert jobs.run(tmp_path/'P/config.json', 'A2-P-price') == 0
+    assert jobs.run(tmp_path/'P/config.json', 'A2-P-price') == PENDING
     with pytest.raises(NotReady, match='owner escalation.*qualification spend'):
         budget.gate(cfg, out)
     for row in rows:
@@ -371,18 +374,38 @@ def test_over_cap_stops_every_later_row_and_returns_spend(tmp_path):
     assert load(sealed/'receipt.json')['status'] == 'COMPLETE'
     original = load(out/'state/A2-P-collect.json')
     assert jobs.run(tmp_path/'P/config.json', 'A2-P-collect') == 0
-    assert load(out/'state/A2-P-collect.json') == original
+    assert load(out/'state/A2-P-collect.json') != original
+    assert list((Path(cfg['text_out'])/'exploratory/superseded').rglob('RETURN-TEXT-*.md'))
     returned = a2_return.read_archive(cfg['archive'])
     assert returned['status'] == 'PENDING'
     assert returned['qualification']['total_gpu_hours'] > 100
     assert returned['qualification']['qualification_gpu_hours'] == returned['accounting']['gpu_hours'] > 0
-    parts = sorted(Path(cfg['text_out']).rglob('RETURN-TEXT-*.md'))
+    parts = sorted((Path(cfg['text_out'])/'exploratory').glob('RETURN-TEXT-*.md'))
     imported = a2_return.import_parts([p.read_text() for p in parts])
     assert imported['qualification'] == returned['qualification']
     assert imported['accounting'] == returned['accounting']
 
 
-@pytest.mark.parametrize('failure', ['missing-stage', 'incomplete-price'])
+def test_completed_legacy_escalation_price_retry_still_exits_pending(tmp_path):
+    cfg, _ = qualification_standin(tmp_path/'P', 'P', cap=100)
+    config = tmp_path/'P/config.json'
+    out = Path(cfg['out'])
+    assert jobs.run(config, 'A2-P-price') == PENDING
+    pointer_path = out/'state/A2-P-price.json'
+    pointer = load(pointer_path)
+    receipt = out/pointer['receipt']
+    value = load(receipt)
+    value['status'] = 'COMPLETE'
+    value.pop('price_decision')
+    atomic(receipt, value)
+    atomic(pointer_path, dict(receipt=pointer['receipt'], sha256=s.file_hash(receipt)))
+    # A prior successful execution of the price computation must still obey its
+    # escalation decision when used as a new scheduler dependency.
+    assert jobs.run(config, 'A2-P-price') == PENDING
+    assert load(out/'qualification/price.json')['decision'] == 'OWNER ESCALATION'
+
+
+@pytest.mark.parametrize('failure', ['missing-stage', 'incomplete-price', 'killed-price'])
 def test_unpriced_collect_writes_return_without_sealing(tmp_path, failure):
     cfg, rows = qualification_standin(tmp_path/'P', 'P')
     cfg['kit_commit'] = SYNTHETIC_KIT_COMMIT
@@ -390,7 +413,20 @@ def test_unpriced_collect_writes_return_without_sealing(tmp_path, failure):
     (out/'config.json').unlink()
     config = tmp_path/'P/config.json'
     atomic(config, cfg)
-    if failure == 'missing-stage':
+    if failure == 'killed-price':
+        # A failed qualification kills its afterok price job before it ever runs.
+        task = next(r['id'] for r in rows if r['phase'] == 'train')
+        state = out/'state'/(task+'.json')
+        receipt = out/load(state)['receipt']
+        value = load(receipt)
+        value['status'] = 'FAILED'
+        atomic(receipt, value)
+        atomic(state, dict(receipt=str(receipt.relative_to(out)), sha256=s.file_hash(receipt)))
+        with pytest.raises(NotReady):
+            jobs.completed(out, task)
+        assert not (out/'state/A2-P-price.json').exists()
+        assert not (out/'attempts/A2-P-price').exists()
+    elif failure == 'missing-stage':
         task = next(r['id'] for r in rows if r['phase'] == 'train')
         (out/'state'/(task+'.json')).unlink()
         assert jobs.run(config, 'A2-P-price') == PENDING
@@ -407,6 +443,8 @@ def test_unpriced_collect_writes_return_without_sealing(tmp_path, failure):
         jobs.completed(out, 'A2-P-collect')
     returned = a2_return.read_archive(cfg['archive'])
     assert returned['qualification']['status'] == returned['qualification']['decision'] == 'NOT PRICED'
+    assert returned['qualification']['qualification_gpu_hours'] == returned['accounting']['gpu_hours']
+    assert returned['accounting']['gpu_hours'] > 0
     parts = sorted(Path(cfg['text_out']).rglob('RETURN-TEXT-*.md'))
     imported = a2_return.import_parts([p.read_text() for p in parts])
     assert all(imported[k] == v for k, v in returned.items())
@@ -647,3 +685,389 @@ def test_completed_stage_replay_charges_without_changing_price_snapshot(tmp_path
     assert len(list((out/'attempts'/task).glob('*/receipt.json'))) == 2
     assert load(out/'state'/(task+'.json')) == original
     assert budget.gate(cfg, out) == price
+
+
+def test_return_config_identity_uses_sealed_dictionary(tmp_path):
+    from kit.a2_budget import sealed_config
+    cfg = fixture(tmp_path/'J', 'J')
+    cfg['kit_commit'] = SYNTHETIC_KIT_COMMIT
+    out = Path(cfg['out'])
+    atomic(out/'config.json', sealed_config(cfg))
+    identity = a2_return.return_identity(cfg)
+    assert identity['config_sha256'] == digest(sealed_config(cfg))
+    assert identity['config_file_sha256'] == digest((out/'config.json').read_bytes())
+    assert identity['config_sha256'] != identity['config_file_sha256']
+    # Confirmation permission changes are excluded from the sealed dictionary.
+    cfg.update(allow_confirmation=True, confirmation=dict(supply='later'))
+    assert a2_return.return_identity(cfg) == identity
+    # Pretty-printing changes only the separately named file digest.
+    (out/'config.json').write_bytes(canonical(sealed_config(cfg)))
+    reformatted = a2_return.return_identity(cfg)
+    assert reformatted['config_sha256'] == identity['config_sha256']
+    assert reformatted['config_file_sha256'] != identity['config_file_sha256']
+
+
+@pytest.mark.parametrize('priced', [False, True])
+def test_price_return_and_identity_share_sealed_digest(tmp_path, priced):
+    from kit.a2_budget import sealed_config
+    cfg, _ = qualification_standin(tmp_path/'J', 'J')
+    out = Path(cfg['out'])
+    if priced:
+        assert jobs.run(tmp_path/'J/config.json', 'A2-J-price') == 0
+    with pytest.raises(NotReady, match='qualification return written'):
+        a2_return.qualification_return(cfg, out)
+    paths = sorted((Path(cfg['text_out'])/'exploratory').glob('RETURN-TEXT-ESSENTIAL-*.md'))
+    result = a2_return.import_parts([p.read_text() for p in paths])
+    assert result['qualification']['decision'] == ('PROCEED' if priced else 'NOT PRICED')
+    assert result['qualification']['config_sha256'] == result['identity']['config_sha256'] == digest(sealed_config(cfg))
+
+
+def count_fixture(arm, confirmation=False, real_scale=False):
+    """Binary units with stable pair IDs and real population sizes when requested."""
+    plan = a2_read.confirmation_plan(arm) if confirmation else a2_read.score_plan(arm)
+    counts = dict(zip(MONTHS, (37, 80, 80, 75, 80, 43)))
+    held = dict(zip(MONTHS, (5, 24, 19, 14, 20, 10)))
+    physical = dict(allocation_nonce='one', uuid='GPU-one', environment='fixed')
+    cells = []
+    for key in plan:
+        kind, model, seed, stage, panel, mode = key
+        sec = panel.startswith('2026-')
+        n = (counts.get(panel, 40) if sec else 100) if real_scale else 12
+        holdouts = held.get(panel, 10) if real_scale else 6
+        ids = range(n) if kind in ('arrival', 'base') or not sec else range(holdouts)
+        rows = [dict(question_id=f'{panel}-{i}', correct=int(digest([*key, i]), 16) % 2,
+                     historical_correct=int(i % 3 == 0), holdout=int(sec and i < holdouts),
+                     family=FAMILIES[i % 2] if sec else '', input_tokens=100+i, output_tokens=20+i)
+                for i in ids]
+        cells.append(dict(key=list(key), physical=physical, rows=rows,
+                          expected_members={r['question_id']: dict(holdout=bool(r['holdout']), family=r['family'])
+                                            for r in rows}))
+    return dict(arm=arm, registration_sha256=REGISTRATION, cells=cells, technical_synthetic=False,
+                p_applicable=True, confirmation=confirmation, accounting=dict(gpu_hours=12),
+                identity=dict(kit_commit='1'*40, config_sha256='2'*64, protocol_sha256='3'*64),
+                assignment=dict(status='COMPLETE', nonce='one', allocated_uuids=['GPU-one']),
+                confirmation_receipt=dict(terminal_june_frozen=True, audit_verified=True, supply={
+                    m: dict(questions=40, holdouts=10, components=5) for m in ('2026-10', '2026-11')}))
+
+
+def split_texts(paths, mode):
+    return [p.read_text() for p in paths if f'-{mode}-' in p.name]
+
+
+def without_transcription(reading):
+    return {k: v for k, v in reading.items() if k != 'transcription'}
+
+
+def item_bar_oracle(payload):
+    """Independent item joins and interval arithmetic, with no count-reader calls."""
+    import statistics
+    cells = {tuple(c['key']): c['rows'] for c in payload['cells']}
+    confirmation = payload['confirmation']
+
+    def interval(values, primary):
+        mean = statistics.mean(values)
+        sd = statistics.stdev(values)
+        radius = 4.302653 * sd / math.sqrt(3)
+        positive = sum(v > 0 for v in values)
+        passed = mean >= 2 and mean-radius > 0 and positive == 3 if primary else mean-radius >= -1
+        return dict(values=values, mean=mean, sd=sd, lower=mean-radius, upper=mean+radius,
+                    positive=positive, n=3, df=2, t=4.302653, pass_bar=passed)
+
+    result = {}
+    transitions = []
+    # Explicit contrasts keep this oracle independent of the runtime contrast lookup.
+    systems = {'J': [('J', 'J-frozen', 'J-current')],
+               'P': [('P', 'P-plain', 'P-replay')],
+               'R': [('R', 'R-raw', 'R-rewrite')],
+               'RP': [('P', 'raw-plain', 'P-replay'), ('R', 'raw-plain', 'R-rewrite')]}
+    for label, control, challenger in systems[payload['arm']]:
+        def paired(kind, seed, stage, panel, mode):
+            a, b = ({r['question_id']: r['correct'] for r in cells[(kind, model, seed, stage, panel, mode)]
+                     if panel in GENERAL or r['holdout']} for model in (control, challenger))
+            assert a and a.keys() == b.keys()
+            n = len(a)
+            delta = 100*sum(b[q]-a[q] for q in a)/n
+            transitions.append(dict(contrast=label, kind=kind, seed=seed, month=stage, panel=panel,
+                mode=mode, n=n, delta=delta, granularity_points=100/n,
+                correct_to_wrong=sum(a[q] == 1 and b[q] == 0 for q in a),
+                wrong_to_correct=sum(a[q] == 0 and b[q] == 1 for q in a)))
+            return delta
+
+        months = ('2026-10', '2026-11') if confirmation else MONTHS[1:]
+        monthly = {str(seed): [paired('confirmation' if confirmation else 'arrival', seed,
+                    6 if confirmation else MONTHS.index(month)+1, month, 'on') for month in months]
+                   for seed in SEEDS}
+        primary = interval([sum(monthly[str(seed)])/len(months) for seed in SEEDS], True)
+        guards = {}
+        for stage in ((6,) if confirmation else (2, 4, 6)):
+            for panel in (*MONTHS[:stage], 'ifeval', 'knowledge', 'math'):
+                for mode in (('off',) if panel in GENERAL else ('on', 'off')):
+                    bar = interval([paired('terminal' if confirmation else 'post', seed,
+                                           stage, panel, mode) for seed in SEEDS], False)
+                    bar['item_denominators'] = [t['n'] for t in transitions[-3:]]
+                    bar['item_granularity_points'] = [t['granularity_points'] for t in transitions[-3:]]
+                    guards[f'm{stage}/{panel}/{mode}'] = bar
+        passed = primary['pass_bar'] and all(g['pass_bar'] for g in guards.values())
+        verdict = ('CONFIRMED PASS' if confirmation else 'EXPLORATORY PASS') if passed else 'INCONCLUSIVE'
+        result[label] = dict(primary=primary, monthly=monthly, guards=guards, verdict=verdict)
+    return result, transitions
+
+
+@pytest.mark.parametrize('arm', ['J', 'P', 'R', 'RP'])
+@pytest.mark.parametrize('confirmation', [False, True])
+@pytest.mark.parametrize('real_scale', [False, True])
+def test_count_transport_exact_reading_and_size(tmp_path, arm, confirmation, real_scale):
+    payload = count_fixture(arm, confirmation, real_scale)
+    paths = a2_return.write_parts(tmp_path, payload, '1'*40)
+    expected = a2_return.reproduce(payload)
+    oracle, transitions = item_bar_oracle(payload)
+    assert expected['contrasts'] == oracle
+    assert expected['transitions'] == transitions
+    assert all(c['primary']['sd'] > 0 for c in oracle.values())
+    essential, full = (split_texts(paths, mode) for mode in ('ESSENTIAL', 'FULL'))
+    assert without_transcription(a2_return.import_parts(essential)) == expected
+    assert without_transcription(a2_return.import_parts(full)) == expected
+    assert without_transcription(a2_return.import_parts(essential+full)) == expected
+    assert len(essential) <= 4 and sum(len(t.splitlines()) for t in essential) <= 300
+    compact = a2_return._import_parts(essential, payload_only=True)
+    assert 'cells' not in compact and 'expected_members' not in json.dumps(compact)
+    assert compact['identity'] == payload['identity']
+    assert compact['keyed_counts']['pairs']
+    for i, j, holdout, n, cc, cw, wc, ww in compact['keyed_counts']['pairs']:
+        assert cc+cw+wc+ww == n and type(holdout) is bool
+    assert bool(compact['keyed_counts']['paths']) != confirmation
+    assert all(t.isascii() and max(map(len, t.splitlines())) < 90 for t in essential+full)
+
+
+@pytest.mark.parametrize('change', ['swapped_seed', 'off_by_one_stage', 'swapped_memory_mode'])
+@pytest.mark.parametrize('confirmation', [False, True])
+def test_item_oracle_detects_count_key_mutations(change, confirmation):
+    payload = count_fixture('RP', confirmation=confirmation, real_scale=True)
+    oracle, transitions = item_bar_oracle(payload)
+    compact = a2_return.compact_counts(payload)
+    assert a2_return.reproduce(compact)['contrasts'] == oracle
+    if change == 'off_by_one_stage':
+        next(c[0] for c in compact['keyed_counts']['cells'] if c[0][1] == 'P-replay')[3] += 1
+        with pytest.raises(CorrectnessStop, match='missing keyed score cells'):
+            a2_return.reproduce(compact)
+        return
+    # Relabel the item cells and recapture consistent counts. A valid 2x2 table
+    # can still represent the wrong seed/mode join, which the oracle must catch.
+    keys = [c['key'] for c in payload['cells']]
+    for key in keys:
+        if change == 'swapped_seed':
+            key[2] = {101: 102, 102: 101}.get(key[2], key[2])
+        elif key[4] in MONTHS and key[0] != 'confirmation':
+            key[5] = {'on': 'off', 'off': 'on'}[key[5]]
+    mutated = a2_return.reproduce(a2_return.compact_counts(payload))
+    assert mutated['contrasts'] != oracle
+    assert mutated['transitions'] != transitions
+
+
+def test_mutated_count_changes_bar_and_refuses_full(tmp_path):
+    payload = count_fixture('R', confirmation=True)
+    paths = a2_return.write_parts(tmp_path/'original', payload, '1'*40)
+    essential = split_texts(paths, 'ESSENTIAL')
+    compact = a2_return._import_parts(essential, payload_only=True)
+    before = a2_return.import_parts(essential)
+    counts = compact['keyed_counts']
+    pair = counts['pairs'][0]
+    # One wrong/wrong answer becomes wrong/correct. Update its absolute marginal.
+    pair[6] += 1
+    pair[7] -= 1
+    groups = counts['cells'][pair[1]][2]
+    next(g for g in groups if g[0] and g[2] > g[3])[3] += 1
+    mutated = a2_return.reproduce(compact)
+    assert mutated['contrasts']['R']['primary']['mean'] != before['contrasts']['R']['primary']['mean']
+    # Repack the edited count payload with the same collect identity. Do not
+    # recompute a checksum: it remains an advisory transcription aid.
+    import base64, gzip, re
+    encoded = base64.b64encode(gzip.compress(canonical(compact), mtime=0)).decode()
+    flat = re.sub(r'\s+', '', essential[0])
+    assert len(essential) == 1
+    edited = re.sub(r'T\|A2\|packed\|.+?(?=SHA256)',
+                    lambda _: 'T|A2|packed|'+canonical([0, 1, encoded]).decode(), flat)
+    assert a2_return.import_parts([edited])['contrasts'] == mutated['contrasts']
+    with pytest.raises(CorrectnessStop, match='ESSENTIAL/FULL disagreement'):
+        a2_return.import_parts([edited]+split_texts(paths, 'FULL'))
+    import io, tarfile
+    archive = tmp_path/'full.tar.gz'
+    raw = canonical(payload)
+    with tarfile.open(archive, 'w:gz') as tar:
+        info = tarfile.TarInfo('a2-evidence.json'); info.size = len(raw)
+        tar.addfile(info, io.BytesIO(raw))
+    assert without_transcription(a2_return.import_parts(essential, archive)) == a2_return.read_archive(archive)
+    with pytest.raises(CorrectnessStop, match='ESSENTIAL/FULL disagreement'):
+        a2_return.import_parts([edited], archive)
+
+
+def test_acquired_then_lost_is_temporal_and_counted(tmp_path):
+    payload = count_fixture('J')
+    # A real 0 -> 1 -> 0 -> 1 path, not derivable from arrival/final differences.
+    for c in payload['cells']:
+        if c['key'][1:3] == ['J-current', 101] and c['key'][4:] == [MONTHS[0], 'on']:
+            c['rows'][0]['correct'] = int(c['key'][0] == 'post' and c['key'][3] in (2, 6))
+    compact = a2_return.compact_counts(payload)
+    reading = a2_return.reproduce(compact)
+    expected = a2_return.reproduce(payload)
+    assert reading == expected
+    record = next(r for r in reading['retention_transitions'] if r.get('acquired_then_lost') and
+                  r['model'] == 'J-current' and r['seed'] == 101 and r['month'] == MONTHS[0])
+    assert record['acquired_then_lost'] >= 1
+    path = next(p for p in compact['keyed_counts']['paths'] if p[1] > 0)
+    path[1] -= 1
+    assert a2_return.reproduce(compact)['retention_transitions'] != expected['retention_transitions']
+
+
+def test_count_parts_missing_mixed_and_superseded(tmp_path):
+    payload = count_fixture('RP', real_scale=True)
+    first = a2_return.write_parts(tmp_path, payload, '1'*40)
+    old = {p.name: p.read_text() for p in first}
+    second = a2_return.write_parts(tmp_path, payload, '1'*40)
+    assert {p.name for p in (tmp_path/'superseded').rglob('*.md')} == set(old)
+    essential = split_texts(second, 'ESSENTIAL')
+    with pytest.raises(CorrectnessStop, match='INCOMPLETE'):
+        a2_return.import_parts(essential[:-1])
+    # The same arm, commit and scientific values are still separate collects.
+    with pytest.raises(CorrectnessStop, match='mixed A2 collect'):
+        a2_return.import_parts(essential+[v for k, v in old.items() if '-FULL-' in k][0:1])
+    with pytest.raises(CorrectnessStop):
+        a2_return.import_parts([p.read_text() for p in tmp_path.rglob('RETURN-TEXT-*.md')])
+    assert a2_return.import_parts(essential)['status'] == 'COMPLETE'
+    # Both complete sets still cross-check after a refresh.
+    assert a2_return.import_parts([p.read_text() for p in second])['status'] == 'COMPLETE'
+
+
+def test_identical_pasted_parts_deduplicate_and_changed_duplicates_refuse(tmp_path):
+    paths = a2_return.write_parts(tmp_path, count_fixture('RP', real_scale=True), '1'*40)
+    texts = [p.read_text() for p in paths]
+    expected = a2_return.import_parts(texts)
+    assert a2_return.import_parts(texts+list(reversed(texts))) == expected
+    # Even an advisory checksum edit makes this a non-identical duplicate.
+    edited = texts[0].replace('SHA256 ', 'SHA256 0', 1)
+    assert edited != texts[0]
+    with pytest.raises(CorrectnessStop, match='duplicate/mixed part numbering'):
+        a2_return.import_parts(texts+[edited])
+
+
+@pytest.mark.parametrize('large', [False, True])
+def test_collect_reports_essential_part_count_and_warns(tmp_path, capsys, large):
+    payload = count_fixture('J')
+    if large:
+        payload['diagnostics'] = dict(opaque=''.join(digest(str(i).encode()) for i in range(2000)))
+    paths = a2_return.write_parts(tmp_path, payload, '1'*40)
+    n = sum('-ESSENTIAL-' in p.name for p in paths)
+    printed = capsys.readouterr().out
+    assert f'A2 J exploratory ESSENTIAL parts: {n}' in printed
+    assert ('WARNING: ESSENTIAL exceeds 4 parts' in printed) == large
+    assert (n > 4) == large
+
+
+@pytest.mark.parametrize('panel', [*MONTHS[:1], *GENERAL])
+def test_every_registered_unit_is_binary(panel):
+    from kit import a4_score, scorers
+    if panel == 'ifeval':
+        member = dict(panel=panel, id='two-instructions', meta=dict(
+            instruction_id_list=['length_constraints:number_words', 'detectable_format:number_bullet_lists'],
+            kwargs=[dict(num_words=2, relation='at least'), dict(num_bullets=2)]))
+        # Prompt success is all instructions, never the fraction satisfied.
+        assert scorers.score(panel, 'two words', member)['correct'] is False
+    elif panel in GENERAL:
+        member = dict(panel=panel, id='unit', answer='A' if panel == 'knowledge' else '1', prompt='q')
+    else:
+        # SEC scoring is int(explicit-unit correctness); the whole pipeline is
+        # covered by the wrapper tests above. Fractional records must refuse.
+        member = None
+    if member is not None:
+        rows = a4_score.graded([member], [dict(id=member['id'], panel=panel, response='',
+            input_tokens=0, output_tokens=0, finish_reason='stop')], {}, False)
+        assert type(rows[0]['correct']) is int and rows[0]['correct'] in (0, 1)
+    payload = count_fixture('R')
+    cell = next(c for c in payload['cells'] if c['key'][4] == panel)
+    cell['rows'][0]['correct'] = .5
+    with pytest.raises(CorrectnessStop, match='non-binary'):
+        a2_return.compact_counts(payload)
+
+
+def test_legacy_v7e_packed_and_record_imports(tmp_path):
+    import base64, gzip
+    from kit.text_return import frame_text
+    payload = count_fixture('P')
+    packed = base64.b64encode(gzip.compress(canonical(payload), mtime=0)).decode()
+    pieces = [packed[i:i+3000] for i in range(0, len(packed), 3000)]
+    texts = [frame_text('a2-p', '1'*40, i+1, len(pieces), 'FULL', 'T|FULL-SET|1|'+'0'*64,
+              ['T|A2|packed|'+canonical([i, len(pieces), v]).decode()], width=89)
+             for i, v in enumerate(pieces)]
+    assert without_transcription(a2_return.import_parts(texts)) == a2_return.reproduce(payload)
+    # The older uncompressed record importer remains supported too.
+    archived = dict(arm='P', registration_sha256=REGISTRATION, status='ARCHIVED UNREAD')
+    text = frame_text('a2-p', '1'*40, 1, 1, 'FULL', 'T|FULL-SET|1|'+'0'*64,
+                      ['T|A2|meta|'+canonical(archived).decode().replace(' ', chr(92)+'u0020')], width=89)
+    assert a2_return.import_parts([text])['status'] == 'ARCHIVED UNREAD'
+
+
+def test_compact_diagnostics_keep_statistics_and_full_keeps_bulk(tmp_path):
+    payload = count_fixture('RP')
+    payload['diagnostics'] = {'raw-ledger/m1': dict(response_characters=[3, 4, 3]),
+        'stage/s1': dict(runtime=dict(loss_metrics=[dict(loss=2., tokens=3), dict(loss=4., tokens=5)])),
+        'rewrite/example/first': dict(raw='raw text', rewritten='new text', accepted=True)}
+    paths = a2_return.write_parts(tmp_path, payload, '1'*40)
+    essential, full = (a2_return._import_parts(split_texts(paths, mode), payload_only=True)
+                       for mode in ('ESSENTIAL', 'FULL'))
+    summary = essential['diagnostics']
+    assert summary['raw-ledger/m1']['response_character_histogram'] == {'3': 2, '4': 1}
+    assert summary['stage/s1']['runtime']['loss_metric_statistics']['loss'] == dict(n=2, total=6., mean=3.)
+    assert summary['rewrite/example/first']['detail'] == 'FULL'
+    assert full['diagnostics'] == payload['diagnostics']
+    assert a2_return.reproduce(essential) == a2_return.reproduce(full)
+    assert a2_return.import_parts([p.read_text() for p in paths])['status'] == 'COMPLETE'
+
+
+@pytest.mark.parametrize('change', ['missing_pair', 'missing_path', 'unused_pair', 'bad_table', 'bad_group'])
+def test_invalid_or_missing_count_evidence_refuses(change):
+    compact = a2_return.compact_counts(count_fixture('R'))
+    counts = compact['keyed_counts']
+    if change == 'missing_pair':
+        counts['pairs'].pop()
+    elif change == 'missing_path':
+        counts['paths'].pop()
+    elif change == 'unused_pair':
+        counts['pairs'].append([0, 0, False, 12, 3, 0, 0, 9])
+    elif change == 'bad_table':
+        counts['pairs'][0][4] += 1
+    else:
+        counts['cells'][0][2][0][3] = 1000
+    with pytest.raises(CorrectnessStop) as error:
+        a2_return.reproduce(compact)
+    assert not str(error.value).startswith('INCOMPLETE:')
+
+
+def test_missing_essential_cli_reports_incomplete(tmp_path):
+    import subprocess, sys
+    payload = count_fixture('RP', real_scale=True)
+    payload['diagnostics'] = dict(opaque=''.join(digest(str(i).encode()) for i in range(400)))
+    paths = a2_return.write_parts(tmp_path/'parts', payload, '1'*40)
+    essential = [p for p in paths if '-ESSENTIAL-' in p.name]
+    assert len(essential) >= 2
+    out = tmp_path/'reading.json'
+    result = subprocess.run([sys.executable, '-I', str(KIT/'a2_r_read.py'), '--text',
+                             *map(str, essential[:-1]), '--out', str(out)], capture_output=True, text=True)
+    assert result.returncode == 75 and load(out)['status'] == 'INCOMPLETE'
+
+
+def test_both_text_sets_publish_atomically(tmp_path, monkeypatch):
+    payload = count_fixture('J')
+    paths = a2_return.write_parts(tmp_path, payload, '1'*40)
+    original = {p.name: p.read_bytes() for p in paths}
+    replace = Path.replace
+    failed = False
+    def fail_one_publish(path, target):
+        nonlocal failed
+        if path.parent.name.startswith('.return-parts-') and '-FULL-' in path.name and not failed:
+            failed = True
+            raise OSError('synthetic publish failure')
+        return replace(path, target)
+    monkeypatch.setattr(Path, 'replace', fail_one_publish)
+    with pytest.raises(OSError, match='synthetic publish'):
+        a2_return.write_parts(tmp_path, payload, '1'*40)
+    assert failed and {p.name: p.read_bytes() for p in tmp_path.glob('RETURN-TEXT-*.md')} == original

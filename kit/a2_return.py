@@ -18,21 +18,26 @@ from kit.a2_read import analyse
 from kit.text_return import frame_text
 
 
-def reproduce(payload):
+def reproduce(payload, capture=None):
     require(payload['arm'] in ('J', 'P', 'R', 'RP') and payload['registration_sha256'] == REGISTRATION,
             'return registration/arm differs')
     if payload.get('status') in ('ARCHIVED UNREAD', 'NOT APPLICABLE', 'PENDING'):
         return dict(arm=payload['arm'], status=payload['status'], provenance='PARTNER-COMPUTED',
                     independent_reverification='UNVERIFIED',
-                    **{k: payload[k] for k in ('accounting', 'qualification') if k in payload})
-    result = analyse(payload['arm'], payload['cells'], synthetic=payload['technical_synthetic'],
+                    **{k: payload[k] for k in ('accounting', 'qualification', 'identity') if k in payload})
+    result = analyse(payload['arm'], payload.get('cells', []), synthetic=payload['technical_synthetic'],
                      confirmation=payload.get('confirmation', False), receipt=payload.get('confirmation_receipt'),
-                     p_applicable=payload.get('p_applicable', True), assignment=payload.get('assignment'))
+                     p_applicable=payload.get('p_applicable', True), assignment=payload.get('assignment'),
+                     counts=payload.get('keyed_counts'), capture=capture)
+    if 'identity' in payload:
+        result['identity'] = payload['identity']
+    if 'p_applicable' in payload:
+        result['p_applicable'] = payload['p_applicable']
     result['accounting'] = payload['accounting']
     if 'qualification' in payload:
         result['qualification'] = payload['qualification']
     if 'diagnostics' in payload:
-        result['diagnostics'] = payload['diagnostics']
+        result['diagnostics'] = diagnostic_summary(payload['diagnostics'])
     return result
 
 
@@ -40,63 +45,54 @@ def write_parts(directory, payload, commit):
     require(re.fullmatch('[0-9a-f]{40}', commit), 'kit commit must be a full git identity')
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    # Exact numeric endpoints remain visible; no pasted verdict or interval is trusted.
-    def record(kind, value):
-        text = canonical(value).decode().replace(' ', r'\u0020').replace('|', r'\u007c')
-        return 'T|A2|'+kind+'|'+text
-    compact = copy.deepcopy(payload)
-    fields = ('question_id', 'correct', 'historical_correct', 'holdout', 'family',
-              'input_tokens', 'output_tokens', 'finished')
-    for cell in compact.get('cells', []):
-        cell['rows'] = [{k: r[k] for k in fields if k in r} for r in cell['rows']]
-        cell['model_sha256'] = digest(cell.pop('model', {}))
-    for value in compact.get('diagnostics', {}).values():
-        runtime = value.get('runtime') if isinstance(value, dict) else None
-        if runtime and 'loss_metrics' in runtime:
-            logs = runtime.pop('loss_metrics')
-            keys = {k for row in logs for k in row}
-            means = {}
-            for key in keys:
-                values = [r[key] for r in logs if type(r.get(key)) in (int, float) and math.isfinite(r[key])]
-                if values:
-                    means[key] = sum(values)/len(values)
-            runtime['loss_metric_means'] = means
-    packed = base64.b64encode(gzip.compress(canonical(compact), mtime=0)).decode('ascii')
-    pieces = [packed[i:i+3000] for i in range(0, len(packed), 3000)]
-    rows = ['T|PARTNER-COMPUTED|independent-reverification=UNVERIFIED',
-            'T|CHECKSUM-SCOPE|advisory-only']
+    # Both transports carry one fresh collect identity. It is not a checksum.
+    transport = dict(collect=uuid.uuid4().hex, kit_commit=commit,
+                     phase='confirmation' if payload.get('confirmation') else 'exploratory')
+    full = dict(payload, return_set=transport)
+    essential = dict(compact_counts(payload), return_set=transport)
     reading = reproduce(payload)
+    rows = ['T|PARTNER-COMPUTED|independent-reverification=UNVERIFIED',
+            'T|TRANSCRIPTION-UNVERIFIED', 'T|CHECKSUM-SCOPE|advisory-only']
     if payload.get('qualification'):
         price = payload['qualification']
         rows.extend(['T|A2-QUALIFICATION-SPEND|'+str(price['qualification_gpu_hours']),
                      'T|A2-FULL-PRICE|'+str(price.get('total_gpu_hours', 'NOT-PRICED')),
                      'T|A2-PRICE-DECISION|'+price['decision'].replace(' ', ':')])
     for label, contrast in reading.get('contrasts', {}).items():
-        p = contrast['primary']
+        primary = contrast['primary']
         verdict = reading['status'] if reading['status'] != 'COMPLETE' else contrast['verdict']
         rows.append('|'.join(['D', 'A2-'+payload['arm'], label, verdict.replace(' ', ':'),
-                              *[canonical(p[k]).decode() for k in ('mean', 'lower', 'upper', 'positive')], '-']))
-        for name, kind, result, bar in [('primary', 'P', p, 'mean>=2;LB>0;pos=3'),
+                              *[canonical(primary[k]).decode() for k in ('mean', 'lower', 'upper', 'positive')], '-']))
+        for name, kind, result, bar in [('primary', 'P', primary, 'mean>=2;LB>0;pos=3'),
                 *[(k, 'G', v, 'LB>=-1') for k, v in contrast['guards'].items()]]:
             rows.append('|'.join(['E', 'A2-'+payload['arm'], label+'.'+name, kind,
                 *[canonical(result[k]).decode() for k in ('values', 'mean', 'sd', 'lower', 'upper', 'positive', 'n')], bar, 'two']))
-    rows.extend(record('packed', [i, len(pieces), piece]) for i, piece in enumerate(pieces))
-    chunks = [[]]
-    size = 0
-    for line in rows:
-        require(len(line) < 10000, 'logical text record too large')
-        if size+len(line)+len(line)//89+1 > 10500:
-            chunks.append([])
-            size = 0
-        chunks[-1].append(line)
-        size += len(line)+len(line)//89+1
-    full_set = digest(chunks)
+
+    def chunks(value):
+        packed = base64.b64encode(gzip.compress(canonical(value), mtime=0)).decode('ascii')
+        pieces = [packed[i:i+3000] for i in range(0, len(packed), 3000)]
+        records = rows + ['T|A2|packed|'+canonical([i, len(pieces), piece]).decode()
+                          for i, piece in enumerate(pieces)]
+        result, size = [[]], 0
+        for line in records:
+            require(len(line) < 10000, 'logical text record too large')
+            if size+len(line)+len(line)//89+1 > 10500:
+                result.append([])
+                size = 0
+            result[-1].append(line)
+            size += len(line)+len(line)//89+1
+        return result
+
+    full_chunks = chunks(full)
+    reference = f'T|FULL-SET|{len(full_chunks)}|{digest(full_chunks)}'
     rendered = []
-    for index, chunk in enumerate(chunks, 1):
-        value = frame_text('a2-'+payload['arm'].lower(), commit, index, len(chunks), 'FULL',
-                           f'T|FULL-SET|{len(chunks)}|{full_set}', chunk, width=89)
-        require(value.isascii() and len(value) <= 11400 and all(len(line) < 90 for line in value.splitlines()), 'text part overflow')
-        rendered.append((f'RETURN-TEXT-{index}-of-{len(chunks)}.md', value))
+    for mode, values in [('ESSENTIAL', chunks(essential)), ('FULL', full_chunks)]:
+        for index, chunk in enumerate(values, 1):
+            value = frame_text('a2-'+payload['arm'].lower(), commit, index, len(values), mode,
+                               reference, ['T|A2-SET|'+transport['collect'], *chunk], width=89)
+            require(value.isascii() and len(value) <= 11400 and all(len(line) < 90 for line in value.splitlines()),
+                    'text part overflow')
+            rendered.append((f'RETURN-TEXT-{mode}-{index}-of-{len(values)}.md', value))
     paths = [directory/name for name, _ in rendered]
     with tempfile.TemporaryDirectory(prefix='.return-parts-', dir=directory) as scratch:
         staged = Path(scratch)
@@ -122,11 +118,16 @@ def write_parts(directory, payload, commit):
                 for path in moved:
                     (superseded/path.name).replace(path)
                 raise
+    essential_count = sum('-ESSENTIAL-' in path.name for path in paths)
+    print(f'A2 {payload["arm"]} {transport["phase"]} ESSENTIAL parts: {essential_count}', flush=True)
+    if essential_count > 4:
+        print('WARNING: ESSENTIAL exceeds 4 parts', flush=True)
     return paths
 
 
-def import_parts(texts):
+def _import_parts(texts, payload_only=False):
     parts = {}
+    original_texts = {}
     identity = None
     checksum_status = []
     n = None
@@ -139,8 +140,12 @@ def import_parts(texts):
         require(identity in (None, own), 'mixed A2 kit identities')
         identity = own
         index, count = int(match[3]), int(match[4])
-        require(1 <= index <= count and index not in parts and n in (None, count), 'duplicate/mixed part numbering')
+        require(1 <= index <= count and n in (None, count), 'duplicate/mixed part numbering')
+        if index in parts:
+            require(original_texts[index] == text, 'duplicate/mixed part numbering')
+            continue
         n = count
+        original_texts[index] = text
         body, _, checksum = flat[match.end():].rpartition('SHA256')
         require(bool(checksum), 'part checksum field absent')
         # Digests are advisory, even when the content was transcribed differently.
@@ -150,7 +155,7 @@ def import_parts(texts):
             parsed.append((kind, json.loads(raw)))
         parts[index] = parsed
         checksum_status.append('TRANSCRIPTION-UNVERIFIED')
-    require(n is not None and set(parts) == set(range(1, n+1)), 'missing A2 text parts')
+    require(n is not None and set(parts) == set(range(1, n+1)), 'INCOMPLETE: missing A2 text parts')
     packed_rows = [v for index in sorted(parts) for kind, v in parts[index] if kind == 'packed']
     if packed_rows:
         require(all(kind == 'packed' for rows in parts.values() for kind, _ in rows), 'mixed packed/legacy text')
@@ -164,6 +169,10 @@ def import_parts(texts):
         require(len(raw) <= 28*1024*1024, 'packed return exceeds CPU import bound')
         payload = json.loads(raw)
         require(identity[0] == 'a2-'+payload['arm'].lower(), 'cross-arm pasted return')
+        if 'return_set' in payload:
+            require(payload['return_set']['kit_commit'] == identity[1], 'mixed A2 kit identities')
+        if payload_only:
+            return payload
         result = reproduce(payload)
         result.update(provenance='PARTNER-COMPUTED', independent_reverification='UNVERIFIED',
                       transcription='TRANSCRIPTION-UNVERIFIED', checksums='advisory')
@@ -209,25 +218,144 @@ def import_parts(texts):
     payload['cells'] = list(cells.values())
     if diagnostics:
         payload['diagnostics'] = diagnostics
+    if payload_only:
+        return payload
     result = reproduce(payload)
     result.update(provenance='PARTNER-COMPUTED', independent_reverification='UNVERIFIED',
                   transcription='TRANSCRIPTION-UNVERIFIED', checksums='advisory')
     return result
 
 
-def read_archive(path):
+
+
+def diagnostic_summary(diagnostics):
+    """Keep exact length distributions and loss sums/counts; bulk stays in FULL."""
+    from collections import Counter
+    result = copy.deepcopy(diagnostics)
+    for key, value in result.items():
+        if not isinstance(value, dict):
+            continue
+        if key.startswith('rewrite/example/') and 'raw' in value:
+            result[key] = dict(accepted=value['accepted'], detail='FULL',
+                raw_sha256=digest(value['raw'].encode()), rewritten_sha256=digest(value['rewritten'].encode()),
+                raw_characters=len(value['raw']), rewritten_characters=len(value['rewritten']))
+            continue
+        if 'response_characters' in value:
+            value['response_character_histogram'] = dict(sorted(Counter(map(str, value.pop('response_characters'))).items()))
+        runtime = value.get('runtime')
+        if runtime and 'loss_metrics' in runtime:
+            logs = runtime.pop('loss_metrics')
+            metrics = {}
+            for field in sorted({k for row in logs for k in row}):
+                numbers = [r[field] for r in logs if type(r.get(field)) in (int, float) and math.isfinite(r[field])]
+                if numbers:
+                    metrics[field] = dict(n=len(numbers), total=sum(numbers), mean=sum(numbers)/len(numbers))
+            runtime['loss_metric_statistics'] = metrics
+    return result
+
+def compact_counts(payload):
+    """Exact sufficient statistics, computed from units, never from pasted bars."""
+    value = {k: copy.deepcopy(v) for k, v in payload.items()
+             if k not in ('cells', 'assignment', 'return_set', 'keyed_counts')}
+    if 'diagnostics' in value:
+        value['diagnostics'] = diagnostic_summary(value['diagnostics'])
+    if 'cells' in payload:
+        capture = {}
+        reproduce(payload, capture=capture)
+        value['keyed_counts'] = capture
+        assignment = payload.get('assignment')
+        if assignment is not None:
+            value['assignment'] = {k: assignment[k] for k in ('status', 'nonce', 'allocated_uuids') if k in assignment}
+    elif 'keyed_counts' in payload:
+        value['keyed_counts'] = copy.deepcopy(payload['keyed_counts'])
+        if 'assignment' in payload:
+            value['assignment'] = copy.deepcopy(payload['assignment'])
+    return value
+
+
+def import_parts(texts, full_archive=None):
+    """Import complete count or legacy sets; FULL is an exact evidence cross-check.
+
+    Physical and set SHA256s are advisory. Collect IDs and scientific counts are
+    structural identities/evidence, so mixtures and disagreements are refused.
+    """
+    sets, identity = {}, None
+    for text in texts:
+        flat = re.sub(r'\s+', '', text)
+        mode = re.search(r'T\|MODE\|(ESSENTIAL|FULL)', flat)
+        own = re.search(r'T\|A2-SET\|([0-9a-f]{32})(?=T\|)', flat)
+        if own:
+            require(mode is not None, 'missing A2 return mode')
+            require(identity in (None, own[1]), 'mixed A2 collect identities')
+            identity = own[1]
+        sets.setdefault(mode[1] if mode else 'FULL', []).append(text)
+    require(sets, 'INCOMPLETE: missing A2 text parts')
+    payloads = {mode: _import_parts(parts, payload_only=True) for mode, parts in sets.items()}
+    for mode, payload in payloads.items():
+        transport = payload.get('return_set')
+        if transport is not None:
+            require(identity is not None, 'missing A2 collect identity')
+        if 'keyed_counts' in payload:
+            require(transport is not None and mode == 'ESSENTIAL', 'missing A2 count transport identity')
+        if identity is not None:
+            require(transport and transport['collect'] == identity, 'mixed A2 collect identities')
+            for text in sets[mode]:
+                flat = re.sub(r'\s+', '', text)
+                require('T|A2-SET|'+identity in flat and transport['kit_commit'] in flat,
+                        'missing/mixed A2 collect identity')
+            if 'cells' in payload or 'keyed_counts' in payload:
+                require((mode == 'ESSENTIAL') == ('keyed_counts' in payload),
+                        'A2 transport mode differs from payload')
+    essential = payloads.get('ESSENTIAL')
+    full = payloads.get('FULL')
+    if full_archive is not None:
+        archive = archive_payload(full_archive)
+        if full is not None:
+            require(compact_counts(full) == compact_counts(archive), 'FULL text/archive disagreement')
+        full = archive
+    if essential is not None and full is not None:
+        require(compact_counts(essential) == compact_counts(full), 'ESSENTIAL/FULL disagreement')
+    payload = essential if essential is not None else full
+    require(payload is not None, 'INCOMPLETE: no A2 return')
+    result = reproduce(payload)
+    result.update(provenance='PARTNER-COMPUTED', independent_reverification='UNVERIFIED',
+                  transcription='TRANSCRIPTION-UNVERIFIED', checksums='advisory')
+    return result
+
+
+def archive_payload(path):
     with tarfile.open(path, 'r:gz') as tar:
         members = tar.getmembers()
         require([m.name for m in members] == ['a2-evidence.json'] and
                 members[0].isfile() and members[0].size <= 28*1024*1024, 'invalid independent A2 archive')
-        payload = json.load(tar.extractfile(members[0]))
-    return reproduce(payload)
+        return json.load(tar.extractfile(members[0]))
 
+
+def read_archive(path):
+    return reproduce(archive_payload(path))
+
+
+def return_identity(cfg):
+    """Identify the canonical sealed config and, separately, its file bytes."""
+    from kit.a2_budget import sealed_config
+    sealed = sealed_config(cfg)
+    path = Path(cfg['out'])/'config.json'
+    bound = Path(cfg['out'])/'binding.json'
+    pins = load(bound)['protocol'] if cfg.get('disposition') != 'archived' and bound.is_file() else protocol()
+    commit = cfg.get('kit_commit')
+    if not commit:
+        import subprocess
+        commit = subprocess.check_output(['git', '-C', str(KIT), 'rev-parse', 'HEAD'], text=True).strip()
+    result = dict(config_sha256=digest(sealed), protocol_sha256=digest(pins), kit_commit=commit)
+    if cfg.get('disposition') != 'archived' and path.is_file():
+        result['config_file_sha256'] = digest(path.read_bytes())
+    return result
 
 def disposition_return(cfg, status, confirmation=False):
     """An unselected or zero-share arm archives without opening any node input."""
     import subprocess
-    payload = dict(arm=cfg['arm'], registration_sha256=REGISTRATION, status=status)
+    payload = dict(arm=cfg['arm'], registration_sha256=REGISTRATION, status=status,
+                   identity=return_identity(cfg), confirmation=confirmation)
     archive = Path(cfg['archive'])
     if confirmation:
         archive = archive.with_name('confirmation-'+archive.name)
@@ -244,16 +372,15 @@ def disposition_return(cfg, status, confirmation=False):
 
 def qualification_return(cfg, out):
     """CPU-only return even when repricing stopped every scientific dependent."""
-    from kit.a2_budget import reconcile
-    from kit.a2_jobs import completed
-    pointer = Path(out)/'qualification/price-ref.json'
+    from kit.a2_budget import reconcile, price_evidence, sealed_config
     try:
-        completed(out, 'A2-'+cfg['arm']+'-price')
-        price = load(checked(load(pointer)))
+        price = price_evidence(out, cfg['arm'])
     except (NotReady, FileNotFoundError):
         price = dict(decision='NOT PRICED', status='NOT PRICED',
+                     config_sha256=digest(sealed_config(cfg)),
                      qualification_gpu_hours=reconcile(out, cfg.get('technical_synthetic', False))['gpu_hours'])
     payload = dict(arm=cfg['arm'], registration_sha256=REGISTRATION, status='PENDING',
+                   identity=return_identity(cfg),
                    qualification=price, accounting=reconcile(out, cfg.get('technical_synthetic', False)))
     raw = canonical(payload)
     archive = Path(cfg['archive'])
@@ -280,6 +407,7 @@ def collect(cfg, out, confirmation=False):
     from kit.a2_budget import reconcile
     root = completed(out, 'A2-'+cfg['arm']+('-confirmation-score' if confirmation else '-comparison'))
     payload = dict(arm=cfg['arm'], registration_sha256=REGISTRATION,
+                   identity=return_identity(cfg),
                    technical_synthetic=cfg.get('technical_synthetic', False), cells=load(root/'cells.json'),
                    assignment=load(root/'receipt.json'),
                    p_applicable=load(out/'binding.json').get('P_applicable', True),
@@ -311,8 +439,11 @@ def collect(cfg, out, confirmation=False):
         commit = subprocess.check_output(['git', '-C', str(KIT), 'rev-parse', 'HEAD'], text=True).strip()
     text_out = Path(cfg['text_out'])/('confirmation' if confirmation else 'exploratory')
     paths = write_parts(text_out, payload, commit)
-    imported = import_parts([p.read_text() for p in paths])
-    require(imported.get('contrasts') == result.get('contrasts') and imported['status'] == result['status'], 'text import bars differ')
+    essential = [p.read_text() for p in paths if '-ESSENTIAL-' in p.name]
+    imported = import_parts(essential)
+    require({k: v for k, v in imported.items() if k != 'transcription'} == result,
+            'ESSENTIAL reading differs from archive')
+    require(import_parts([p.read_text() for p in paths]) == imported, 'FULL reading differs')
     atomic(out/(prefix+'text-imported.json'), imported)
     # All bulk checkpoints, contexts, schedules, raw answers and attempt receipts
     # stay on the durable node. Their manifest is returned without moving models.
@@ -325,13 +456,21 @@ def collect(cfg, out, confirmation=False):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    group = p.add_mutually_exclusive_group(required=True)
-    group.add_argument('--archive', type=Path)
-    group.add_argument('--text', type=Path, nargs='+')
+    p.add_argument('--archive', type=Path, help='FULL archive, optionally cross-check --text')
+    p.add_argument('--text', type=Path, nargs='+')
     p.add_argument('--arm', choices=('J', 'P', 'R', 'RP'), required=True)
     p.add_argument('--out', type=Path, required=True)
     a = p.parse_args()
-    result = read_archive(a.archive) if a.archive else import_parts([p.read_text() for p in a.text])
+    require(a.archive or a.text, '--archive or --text required')
+    try:
+        result = import_parts([p.read_text() for p in a.text], a.archive) if a.text else read_archive(a.archive)
+    except CorrectnessStop as error:
+        if not str(error).startswith('INCOMPLETE:'):
+            raise
+        atomic(a.out, dict(arm=a.arm, status='INCOMPLETE', reason=str(error),
+                           provenance='PARTNER-COMPUTED', transcription='TRANSCRIPTION-UNVERIFIED'))
+        print('INCOMPLETE')
+        return PENDING
     require(result['arm'] == a.arm, 'wrong standalone arm return')
     atomic(a.out, result)
     print(result['status'])

@@ -1,10 +1,14 @@
 # A2: J(b), P and R
 
 Build approval: owner, 8 November 2026, “3 Yes”. Operational departure and
-selected-arm spending authority: owner, 10 November 2026, “Decisions 1, 3 and 7:
-approve as recommended”. Bind that dated reference and a cap at most 601 GPU-h
-in the selected arm’s configuration before its first row. It never submits jobs, downloads inputs or reads a 4A
-outcome. Only the branch selected later by A2's registered 4A reading is sent.
+spending authority follows the owner’s 10 November 2026 amendment. Send J(b)
+and RP when their registered inputs are valid. RP uses one shared fresh control.
+P and R are not sent standalone.
+Sequence them with the reading’s branch first. Submit the second arm’s root
+rows afterok on the first arm’s price row, A2-ARM-price. Bind a cap at most
+601 GPU-h in each arm’s own configuration before its first row. The total
+approved ceiling is 1,202 GPU-h. The kit never submits jobs, downloads inputs
+or reads a 4A outcome.
 J(a) routing is separately governed and is not implemented here.
 
 The scientific specification is [the frozen registration](resources/a2/registrations.md),
@@ -40,15 +44,18 @@ hash in the send record. Use fixed absolute paths across jobs:
   "i0": {"path": "/durable/bindings/i0.json", "sha256": "FULL_SHA256"},
   "budget": {
     "approved_gpu_hours": 601,
-    "approval_reference": "Owner, 10 November 2026: Decisions 1, 3 and 7: approve as recommended"
+    "approval_reference": "Owner, 10 November 2026: Approve 601 per arm, 1,202 total, order as proposed"
   },
   "allow_confirmation": false
 }
 ```
 
 This is a complete configuration shape for initial binding, with placeholders to
-replace with real paths, hashes and approval. The 601 GPU-h maximum applies only to the single arm selected by the v6b
-reading; it is not an allowance for each arm or a public release authorization. `connected` is required for J; `i0` for P and RP; R ignores both.
+replace with real paths, hashes and approval. The 601 GPU-h maximum is per arm,
+with 1,202 GPU-h approved in total. Keep each arm’s configuration, `out`, budget
+ledger, archive and `text_out` separate. The reading’s branch goes first. The
+second arm starts afterok on the first arm’s price row. `connected` is required
+for J; `i0` for P and RP; R ignores both.
 `budget` is required before real GPU work. `inference_environment` belongs in the
 inputs document shown below, rather than this configuration. Optional `kit_commit`
 is the full 40-character kit Git identity; otherwise local HEAD is read. Real runs
@@ -196,7 +203,7 @@ generic positions, P stays NOT APPLICABLE; configured P rows request no GPUs,
 and RP qualifies/prices the shared control and R only, with no P training cost.
 
 Every GPU allocation, including qualification, failures, retries and idle time,
-uses the existing `a2_budget.reserve` ledger and the **same** owner cap. With
+uses the existing `a2_budget.reserve` ledger and that arm’s **own** owner cap. With
 14400-second stages, 600-second command bounds and supply-ceiling rewrite
 counts, the successful prefix reservations (including 30-second handoff per
 GPU row, excluding already elapsed allocation startup) are J **69.183333**,
@@ -213,13 +220,19 @@ and qualification spend. Do not change the sealed cap. Run the CPU collector
 returns the computed price, qualification spend and allocation accounting in
 both the standalone archive and readable/pasteable text. If qualification has
 not completed, it reports NOT PRICED and the spend so far, then exits PENDING
-(75) so collect stays unsealed. Only a completed OWNER ESCALATION price seals
+(75) so collect stays unsealed. Only a verified OWNER ESCALATION price from a
+terminal PENDING (75) attempt seals
 the qualification-only return. After recovery, rerun collect to return the real
-reading. Older return-part sets move to `superseded/`. Import the active
-parts. Preserve all durable attempts, including failed/idle allocations;
-resubmit failed rows/dependants with fresh scheduler IDs. Actual scheduler ends, never scheduled EndTime, are
-required for measured pricing and accounting; retry only the CPU price row if
-ends are still pending. Queue gaps cost zero GPU-h. Build approval and 4A's
+reading. Older return-part sets move to `superseded/`. Paste and import only the top-level `RETURN-TEXT-ESSENTIAL-*-of-*.md` files.
+Never paste files under `superseded/`. Preserve all durable attempts, including failed/idle allocations;
+resubmit failed rows/dependants with fresh scheduler IDs.
+After an escalation, never resubmit the second arm.
+Actual scheduler ends, never scheduled EndTime, are required for measured
+pricing and accounting; retry only the CPU price row if
+ends are still pending. Its afterok dependants, including the second arm’s
+root rows, are killed by `--kill-on-invalid-dep=yes`. After a successful price
+retry, resubmit those dependants against the new price job ID. The old killed
+submissions stay killed. Queue gaps cost zero GPU-h. Build approval and 4A's
 funding remain separate. The frozen registration's before-send pricing language
 is superseded only for this operational sequence by the dated owner departure.
 
@@ -253,20 +266,41 @@ At the holdout floor, item granularity is 10 points monthly and 5 in the mean;
 the protocol warns that “a +2 bar is effectively unreachable.” No endpoint change
 is allowed. Actual confirmation data is never read during the CPU rehearsal.
 
-Each collector produces a standalone archive plus `RETURN-TEXT-*-of-*.md` parts.
-Paste every part from the selected arm/phase verbatim. Lines are ASCII and under
-90 characters. Import with:
+Each collector writes a standalone archive and two text sets for each arm/phase.
+Paste only the top-level `RETURN-TEXT-ESSENTIAL-*-of-*.md` parts.
+Keep `RETURN-TEXT-FULL-*-of-*.md` and the archive on the node.
+The manager may ask for FULL later. Never paste `superseded/` files.
+Keep arms, phases and collects separate. Lines are ASCII and under 90 characters.
+Import with:
 
 ```bash
-python -I kit/a2_return.py --arm R --text /path/RETURN-TEXT-*.md --out tmp/R-reading.json
+python -I kit/a2_return.py --arm R --text /path/RETURN-TEXT-ESSENTIAL-*.md --out tmp/R-reading.json
 python -I kit/a2_return.py --arm R --archive /path/R-return.tar.gz --out tmp/R-archive.json
 ```
 
-Readers recompute all bars from exact item counts. Returns remain PARTNER-COMPUTED;
-independent reverification is UNVERIFIED. Text checksums are advisory and never
-turn a transcription into an independently verified measurement. The archive
-contains CPU reader evidence; bulk checkpoints, native states, raw answers,
-schedules, rewrite receipts and contexts stay durable with a full hash manifest.
+ESSENTIAL contains identity, applicability, price, spend and keyed counts.
+Its config_sha256 hashes the canonical sealed config, including on NOT PRICED returns.
+config_file_sha256 separately identifies config.json bytes when that file exists.
+Collect prints the ESSENTIAL part count and warns above four parts.
+Readers recompute every bar, interval, score, denominator and answer transition.
+Each binary comparison keeps n and all four paired counts: c-c, c-w, w-c, w-w.
+IFEval uses one binary result per prompt: all its instructions must pass.
+SEC, knowledge and maths also use one binary result per question.
+Stage paths keep counts of acquired answers later lost.
+D/E decision and endpoint lines remain human-readable.
+The packed T records contain the counts; pasted decisions are never trusted.
+Length histograms and loss sums/counts preserve diagnostic summaries.
+FULL retains item records, loss logs and representative rewrite text.
+Supply both text sets to cross-check them.
+Use --text with --archive to cross-check ESSENTIAL against the archive.
+Disagreement refuses import. A missing part is INCOMPLETE. Older returns still import.
+Missing keyed counts refuse import. Identical double-pasted parts are deduplicated.
+Different copies of the same part number refuse import.
+Returns remain PARTNER-COMPUTED / TRANSCRIPTION-UNVERIFIED.
+Independent reverification is UNVERIFIED. Checksums are advisory.
+The archive still contains all CPU evidence. Bulk checkpoints, native states,
+raw answers, schedules, rewrite receipts and contexts stay on the durable node.
+A full hash manifest stays there too.
 Preserve them. An unselected arm uses `disposition: archived`; every row returns
 ARCHIVED UNREAD without opening its node paths or allocating a GPU.
 
