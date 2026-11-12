@@ -92,7 +92,13 @@ TyDiQA, PIQA and BoolQ. Each has `rows`, `prompt_cap`, `response_cap` and
 
 Calibration rows have opaque `id`, `panel`, `prompt`, `a`, `b` and
 `checkpoint_independent: true`. Seal 30 per open panel. Keep source/model
-identifiers outside answer text. Use `trace_calibration.py --pairs pairs.json
+identifiers outside answer text. Build them with the manager-side workflow in
+[resources/trace/operator/README.md](resources/trace/operator/README.md).
+It selects from the three pinned public files after approved local staging;
+this build downloads nothing. Author and review the requested answers manually
+or with an authorised agent; no API authoring is part of this build.
+The builder emits sealed JSONL, its SHA-256 and the matching JSON array.
+Keep its LOCAL quality/order key on our side. Use `trace_calibration.py --pairs pairs.json
 --out packets` on our side to create independent Astra/Fable high packets.
 That command expects a JSON array converted from the sealed calibration JSONL.
 Only ID/messages go to the raters. Keep reversal mapping locally. Opus
@@ -113,6 +119,25 @@ upstream file reference, `function`, result `key`, `scale_to_100`, dependency
 file references and `uses_source` for SARI. Staged source modules keep their
 licences/notices. TRACE's source `metrics.py` and dependencies require binding.
 Knowledge uses the inherited independent reference implementation directly.
+
+Fill only local paths and hashes in
+`resources/trace/operator/task-authorities-template.json` for the eight tasks.
+Stage TRACE unmodified with root `metrics.py` and sibling `evaluations/`.
+The SARI result key is the JSON path `["sari", 0, "sari"]`.
+String result keys retain their existing meaning.
+
+Metric environment pins are rouge 1.0.1, fuzzywuzzy 0.18.0, sacrebleu 2.4.3,
+sacremoses 0.1.1 and packaging 26.3 (the vendored SARI script imports it).
+Do not install python-Levenshtein: Py150 edit
+similarity is pinned to fuzzywuzzy's difflib matcher and the bridge refuses
+the other backend. Use nltk 3.5 on Python <=3.11 or nltk 3.9.1 on
+Python >=3.12. BLEU is computed upstream and unused by registered keys.
+`datasets` need not be installed for metrics. The bridge supplies a scoped
+compatibility module and loads the hash-bound vendored datasets 2.21.0 SARI
+script locally, with no network fetch. Its licence and provenance ship beside it.
+The fixtures test perfect-answer invariants only. General OpenCompass metrics
+still need separate upstream verification. The operator README documents the
+manager-only `scripts/trace_metric_upstream_verify.py` command and metric venv.
 
 `admission` includes `original_tokenizer_census`, `supervised_masks`,
 `prompt_fixtures`, `scorer_fixtures`, `demo_fidelity_gold` and
@@ -142,17 +167,39 @@ The five dispositions describe valid correctness evidence. Include noise-floor,
 world-size/reduction, EMA recurrence, native resume and export identity in the
 hashed detailed evidence. Timing and utilisation appear as diagnostics.
 
-These local qualification command manifests, metric fixture bindings and node
-assets remain to be supplied. They are visible readiness dependencies. The
-CPU rehearsal validates their interface using stand-ins. Production numerical
-qualification runs on the node before its scientific descendants.
+Operator assets now ship in `resources/trace/operator/`: callable declarations,
+twenty authored cases per metric, qualification command templates and admission
+receipt templates. Complete local paths/hashes with one command:
+
+```bash
+python -I kit/trace_operator.py bind --config node-inputs.json --out bindings
+```
+
+Use `bindings/config.json` as TRACE_CONFIG. The binder checks the actual staged
+metric callable against every expected fixture score to 1e-6 before publishing
+the config. Source-dependent fixtures are contract cases, not a claim that an
+absent upstream scorer has been tested. Preserve source licences and supply the
+exact upstream function, result key and units in `operator.metric_authorities`.
+The frozen instruction/maths callable and fixtures need no upstream code.
+
+Native numerical probes and CPU semantic/fidelity observations require the
+installed stack, licensed data and tokenizers. Bind their measured evidence and
+command assets using the documented operator schema. Templates alone cannot
+qualify a node. The qualification wrapper executes every bound native probe
+and validates its measurements, including the fixed D/D noise tolerance.
+It never substitutes CPU rehearsal evidence for production qualification.
+The generated 27B summary audit is deferred until after targets; CPU bind seals
+its receipt without changing the prepared config. All other CPU authorities
+are checked before targets. See the operator README for exact schemas and the
+remaining native-probe integration dependency.
 
 ## Run with operator-owned sbatch
 
 The inventory prints allocation rows, GPU counts and dependency row IDs.
 Use `inventory --config local-config.json` to print the selected study scope.
 Submit those plain rows with your own sbatch and afterok dependencies. The
-CPU bind precedes all GPU qualifications. Qualification flows directly into
+CPU prepare precedes targets; CPU bind follows targets and precedes GPU
+qualification and training. Qualification flows directly into
 training under the estimated ceiling approved with this send. The kit contains
 no scheduler submission or monitoring service.
 
@@ -167,7 +214,17 @@ bash "$KIT/jobs/trace/run-task.sh" train-gold-101
 Replace the example row ID with the inventory row. `prepare`, `bind` and
 `collect` are CPU rows. `targets` uses two GPUs. Training and qualification
 use eight. Each scoring row uses one physical GPU for the complete comparison,
-all general-v1 states and local judging. CPU binding precedes GPU rows.
+all general-v1 states and local judging. CPU prepare precedes targets, which
+must finish before CPU bind can validate and seal the 27B schedules.
+
+Use dependency edges, rather than printed inventory order, to schedule work.
+All three seeds and all study sources can train concurrently after their own
+qualification. A completed seed can score and judge on its separate GPU while
+other seeds/sources train. CPU prepare, bind and collect need no GPU allocation.
+Scoring and judging within one complete comparison retain the same physical
+GPU; stage ancestry and the persistent S8 optimizer remain sequential.
+These independent edges already ship, so no scheduling or registered settings
+are changed here. `price` uses the study key `27b`, matching `inventory`.
 
 GPU rows are wrapped by `util_watch.py` with a 70% target. Missing/low telemetry,
 cap-hit rates and estimated ceiling overruns warn and continue. Numeric/scorer,

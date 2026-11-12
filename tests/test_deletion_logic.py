@@ -121,7 +121,9 @@ def test_launcher_one_mock_container_and_durable_receipt(monkeypatch, tmp_path):
     import contextlib
     import sys
     from types import SimpleNamespace
-    from scripts.deletion_smoke_modal import launch, IMAGE_ID
+    from scripts.deletion_smoke_modal import launch
+    image_id = 'mock-image'
+    monkeypatch.setenv('DELETION_MODAL_IMAGE_ID', image_id)
     calls = []
     files = {}
     class Files:
@@ -150,7 +152,7 @@ def test_launcher_one_mock_container_and_durable_receipt(monkeypatch, tmp_path):
             assert detach is True
             return contextlib.nullcontext()
     monkeypatch.setitem(sys.modules, 'modal', SimpleNamespace(App=App,
-        Image=SimpleNamespace(from_id=lambda image: image if image == IMAGE_ID else None),
+        Image=SimpleNamespace(from_id=lambda image: image if image == image_id else None),
         Sandbox=SimpleNamespace(create=SimpleNamespace(aio=create))))
     receipt = tmp_path / 'receipt.json'
     launch(receipt)
@@ -167,3 +169,37 @@ def test_launcher_one_mock_container_and_durable_receipt(monkeypatch, tmp_path):
     with pytest.raises(FileExistsError):
         launch(receipt)
     assert len([v for name, v in calls if name == 'create']) == 1
+
+
+def test_launch_requires_image_before_receipt_or_modal(tmp_path, monkeypatch):
+    from scripts.deletion_smoke_modal import launch
+    monkeypatch.delenv('DELETION_MODAL_IMAGE_ID', raising=False)
+    receipt = tmp_path/'absent.json'
+    with pytest.raises(ValueError, match='image-id'):
+        launch(receipt)
+    assert not receipt.exists()
+    source = (ROOT/'scripts/deletion_smoke_modal.py').read_text()
+    assert not __import__('re').search(r'im-[A-Za-z0-9]{16,}', source)
+
+
+def test_price_cli_accepts_explicit_image_without_launch(monkeypatch):
+    import subprocess
+    import sys
+    monkeypatch.delenv('DELETION_MODAL_IMAGE_ID', raising=False)
+    command = [sys.executable, str(ROOT/'scripts/deletion_smoke_modal.py')]
+    assert json.loads(subprocess.check_output(command, text=True))['image_id'] is None
+    assert json.loads(subprocess.check_output(command + ['--image-id', 'mock-image'],
+                                             text=True))['image_id'] == 'mock-image'
+
+
+def test_finder_geometry_matches_kit_qwen3_8b_checks():
+    """v7g shipped (4096, 32); Qwen3-8B has 36 layers, so the 8B finder would have refused."""
+    import re
+    from deletion_tuning.deletion_lr import QWEN3_8B_GEOMETRY
+    assert QWEN3_8B_GEOMETRY == (4096, 36)
+    prepare = (ROOT / 'kit/nm_prepare.py').read_text()
+    assert "config.get('hidden_size')==4096 and config.get('num_hidden_layers')==36" in prepare
+    pool = (ROOT / 'kit/lane_pool.py').read_text()
+    assert re.search(r'num_hidden_layers=36', pool)
+    source = (ROOT / 'deletion_tuning/deletion_lr.py').read_text()
+    assert '4096, 32' not in source and '[4096, 32]' not in source

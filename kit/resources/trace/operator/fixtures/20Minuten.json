@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 0",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 0"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 0",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 1",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 1"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 2",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 2"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 3",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 3"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 4",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 4"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 5",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 5"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 5",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 6",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 6"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 6",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 7",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 7"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 7",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 8",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 8"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 8",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 9",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 9"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 9",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 10",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 10"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 10",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 11",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 11"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 11",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 12",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 12"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 12",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 13",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 13"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 13",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 14",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 14"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 14",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 15",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 15"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 15",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 16",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 16"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 16",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 17",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 17"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 17",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 18",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 18"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 18",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "20Minuten",
+      "panel": "20Minuten",
+      "prompt": "alpha beta gamma delta eins zwei drei vier 19",
+      "answer": "alpha beta gamma delta neu klar kurz leicht 19"
+    },
+    "prediction": "alpha beta gamma delta neu klar kurz leicht 19",
+    "score": 100.0
+  }
+]

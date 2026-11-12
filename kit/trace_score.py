@@ -14,15 +14,24 @@ from kit.trace_common import *
 
 def metric_adapter(ref):
     path = bound_file(ref)
+    for dependency in ref.get('dependencies', []):
+        bound_file(dependency)
     spec = importlib.util.spec_from_file_location('trace_metric_'+sha(path), path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     fn = getattr(module, ref['function'])
+    if 'authority' in ref:
+        implementation = fn
+        def fn(row, prediction):
+            return implementation(dict(row, metric_authority=ref['authority']), prediction)
     fixtures = bound_json(ref['fixtures'])
     need(len(fixtures) >= 20, 'twenty metric fixtures required')
     for fixture in fixtures:
         actual = fn(fixture['row'], fixture['prediction'])
         need(type(actual) in (float, int) and math.isfinite(actual) and
+             0 <= actual <= 100 and
+             type(fixture['score']) in (float, int) and math.isfinite(fixture['score']) and
+             0 <= fixture['score'] <= 100 and
              abs(actual-fixture['score']) <= 1e-6, 'scorer fixture mismatch')
     return fn
 
@@ -33,7 +42,8 @@ def aggregate(values):
     return dict(sum=math.fsum(values), n=len(values), mean=math.fsum(values)/len(values))
 
 
-def generation(model, tokenizer, rows, prompt_cap, response_cap, temperature, seed):
+def generation(model, tokenizer, rows, prompt_cap, response_cap, temperature, seed,
+               *, judge_profile=None, audit=None):
     os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = '0'
     os.environ['VLLM_BATCH_INVARIANT'] = '1'
     os.environ['VLLM_ATTENTION_BACKEND'] = 'FLASH_ATTN'
@@ -42,18 +52,38 @@ def generation(model, tokenizer, rows, prompt_cap, response_cap, temperature, se
     from kit.inference_lifecycle import create_llm, shutdown_since, marker
     from kit.m2_gpu import assert_current
     assert_current()
-    tok = AutoTokenizer.from_pretrained(tokenizer, local_files_only=True)
-    prompts = [tok.apply_chat_template(r.get('messages') or [dict(role='user',content=r['prompt'])],
-               tokenize=False, add_generation_prompt=True, enable_thinking=False) for r in rows]
-    token_ids = [tok.encode(p, add_special_tokens=False) for p in prompts]
-    # S8 retains the registered left clipping. The subset was length-filtered.
-    uncut_lengths = [len(ids) for ids in token_ids]
-    token_ids = [ids[-prompt_cap:] for ids in token_ids]
+    from kit.trace_score import cached_tokens as cached, encode_tokens as encode
+    arrays = (cached(tokenizer, rows, prompt_cap) if judge_profile is None else None)
+    if arrays is None:
+        tok = AutoTokenizer.from_pretrained(tokenizer, local_files_only=True)
+        arrays = encode(tok, rows, prompt_cap)
+    token_ids, uncut_lengths = arrays['token_ids'], arrays['uncut_lengths']
+    extra = {}
+    if judge_profile is not None:
+        from kit.trace_judge import settings
+        extra = settings(judge_profile)
+    if audit is not None:
+        audit.update(token_ids_sha256=digest(token_ids), request_ids=[r['id'] for r in rows],
+                     seeds=[int(digest([seed,r['id']])[:8],16) for r in rows],
+                     grouping='one call, all both-order requests', retry_count=0,
+                     canonical_orders=[int(r['id'].rsplit('-',1)[1]) for r in rows])
     scope = marker()
     try:
-        engine = create_llm(model=str(model), tokenizer=str(tokenizer),
+        engine_options = dict(model=str(model), tokenizer=str(tokenizer),
                     dtype='bfloat16', tensor_parallel_size=1, enforce_eager=True,
                     max_model_len=prompt_cap+response_cap, gpu_memory_utilization=.85)
+        engine_options.update(extra)
+        if judge_profile is None:
+            engine = create_llm(**engine_options)
+        else:
+            from kit.trace_judge import create_judge_engine
+            engine = create_judge_engine(engine_options)
+        if judge_profile is not None:
+            from kit.trace_judge import effective_settings, validate_settings
+            resolved = effective_settings(engine, engine_options)
+            validate_settings(resolved,judge_profile)
+            if audit is not None:
+                audit['engine'] = resolved
         params = [SamplingParams(temperature=temperature, top_p=1, top_k=-1,
                    max_tokens=response_cap, seed=int(digest([seed,r['id']])[:8],16)) for r in rows]
         outputs = engine.generate([dict(prompt_token_ids=ids) for ids in token_ids], params,
@@ -70,49 +100,52 @@ def generation(model, tokenizer, rows, prompt_cap, response_cap, temperature, se
 
 
 def score_state(cfg, study, seed, state, model):
-    protocol = load(Path(cfg['out'])/'prepared.json')
+    from kit.trace_common import local_file
+    protocol = load(local_file(Path(cfg['out'])/'prepared.json'))
     panels = protocol['panels']
     tasks = TASKS if study == 's8' else SUBSET
     work = Path(cfg['out'])/'scores'/f'{study}-{seed}'/state['id']
-    work.mkdir(parents=True, exist_ok=True)
-    results = {}
-    for task in tasks:
-        rows = protocol['datasets'][task]['test'] if study == 's8' else protocol['tests'][task]
-        outputs = generation(model, cfg['base']['model'], rows, 1024 if study=='s8' else 2048,
-                             512 if study=='s8' else 2048, .1, seed)
-        fn = metric_adapter(cfg['metrics'][task])
-        values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
-        results[task] = aggregate(values)
-        atomic(work/(task+'.json'), dict(outputs=outputs, values=values))
-    general = panels['general-v1']
-    for panel in ('instruction','maths'):
-        aliases = {'instruction':('instruction','ifeval'), 'maths':('maths','math')}
-        rows = [r for r in general if r['panel'] in aliases[panel]]
-        outputs = generation(model, cfg['base']['model'], rows, 2048, 2048, 0., seed)
-        fn = metric_adapter(cfg['metrics'][panel])
-        values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
-        results[panel] = aggregate(values)
-        atomic(work/(panel+'.json'), dict(outputs=outputs, values=values))
-    # Use the kit's independent reference implementation and its frozen parsing.
-    from kit.m3_score import knowledge_reference
-    rows = [r for r in general if r['panel'] == 'knowledge']
-    reference = knowledge_reference(model, rows, cfg['base']['model'])
-    values = [100*int(r['selected'] == 'ABCD'.index(row['answer'])) for r,row in zip(reference,rows)]
-    results['knowledge'] = aggregate(values)
-    atomic(work/'knowledge.json', dict(records=reference, values=values))
-    if study == 's8':
-        for panel, spec in panels['trace_general'].items():
-            # Frozen few-shot messages, extraction and decoding are node inputs.
-            rows = spec['rows']
-            outputs = generation(model, cfg['base']['model'], rows,
-                         spec['prompt_cap'], spec['response_cap'], spec['temperature'], seed)
+    from kit.trace_common import output_tree
+    with output_tree(work) as work:
+        work.mkdir(parents=True, exist_ok=True)
+        results = {}
+        for task in tasks:
+            rows = protocol['datasets'][task]['test'] if study == 's8' else protocol['tests'][task]
+            outputs = generation(model, cfg['base']['model'], rows, 1024 if study=='s8' else 2048,
+                                 512 if study=='s8' else 2048, .1, seed)
+            fn = metric_adapter(cfg['metrics'][task])
+            values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
+            results[task] = aggregate(values)
+            atomic(work/(task+'.json'), dict(outputs=outputs, values=values))
+        general = panels['general-v1']
+        for panel in ('instruction','maths'):
+            aliases = {'instruction':('instruction','ifeval'), 'maths':('maths','math')}
+            rows = [r for r in general if r['panel'] in aliases[panel]]
+            outputs = generation(model, cfg['base']['model'], rows, 2048, 2048, 0., seed)
             fn = metric_adapter(cfg['metrics'][panel])
             values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
             results[panel] = aggregate(values)
             atomic(work/(panel+'.json'), dict(outputs=outputs, values=values))
-    outputs = generation(model, cfg['base']['model'], panels['open'], 2048, 2048, .1, seed)
-    atomic(work/'open.json', outputs)
-    atomic(work/'result.json', results)
+        # Use the kit's independent reference implementation and its frozen parsing.
+        from kit.m3_score import knowledge_reference
+        rows = [r for r in general if r['panel'] == 'knowledge']
+        reference = knowledge_reference(model, rows, cfg['base']['model'])
+        values = [100*int(r['selected'] == 'ABCD'.index(row['answer'])) for r,row in zip(reference,rows)]
+        results['knowledge'] = aggregate(values)
+        atomic(work/'knowledge.json', dict(records=reference, values=values))
+        if study == 's8':
+            for panel, spec in panels['trace_general'].items():
+                # Frozen few-shot messages, extraction and decoding are node inputs.
+                rows = spec['rows']
+                outputs = generation(model, cfg['base']['model'], rows,
+                             spec['prompt_cap'], spec['response_cap'], spec['temperature'], seed)
+                fn = metric_adapter(cfg['metrics'][panel])
+                values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
+                results[panel] = aggregate(values)
+                atomic(work/(panel+'.json'), dict(outputs=outputs, values=values))
+        outputs = generation(model, cfg['base']['model'], panels['open'], 2048, 2048, .1, seed)
+        atomic(work/'open.json', outputs)
+        atomic(work/'result.json', results)
 
 
 def lane(cfg, study, seed, attempt):
@@ -140,6 +173,72 @@ def lane(cfg, study, seed, attempt):
                 artifacts_sha256={str(p.relative_to(Path(cfg['out']))):sha(p)
                     for p in (Path(cfg['out'])/'scores'/f'{study}-{seed}').rglob('*.json')
                     if p.name!='lane.json'}))
+
+
+
+
+from pathlib import Path
+import os
+from kit.trace_common import digest, sha, load, need, seal
+
+
+def tokenizer_identity(tokenizer):
+    root=Path(tokenizer)
+    files={str(p.relative_to(root)):sha(p) for p in root.rglob('*') if p.is_file()
+           and not p.name.endswith(('.bin','.safetensors'))}
+    need(files,'tokenizer assets absent')
+    return digest(files)
+
+
+def encode_tokens(tok,rows,prompt_cap):
+    prompts=[tok.apply_chat_template(r.get('messages') or [dict(role='user',content=r['prompt'])],
+             tokenize=False,add_generation_prompt=True,enable_thinking=False) for r in rows]
+    ids=[tok.encode(p,add_special_tokens=False) for p in prompts]
+    return dict(token_ids=[x[-prompt_cap:] for x in ids],uncut_lengths=[len(x) for x in ids])
+
+
+def cached_tokens(tokenizer,rows,prompt_cap,*,write=False,cache=None):
+    cache=cache or os.environ.get('TRACE_TOKEN_CACHE')
+    if not cache:
+        return None
+    identity=tokenizer_identity(tokenizer)
+    key=digest([identity,prompt_cap,'chat-no-thinking-v1',rows])
+    path=Path(cache)/(key+'.json')
+    if path.exists():
+        from kit.trace_common import local_file
+        value=load(local_file(path))
+        need(value['key']==key and value['sha256']==digest(value['arrays']), 'token cache changed')
+        return value['arrays']
+    if not write:
+        raise FileNotFoundError('CPU token preparation missing')
+    from transformers import AutoTokenizer
+    arrays=encode_tokens(AutoTokenizer.from_pretrained(tokenizer,local_files_only=True),rows,prompt_cap)
+    seal(path,dict(key=key,sha256=digest(arrays),arrays=arrays))
+    return arrays
+
+
+def token_groups(protocol,study):
+    from kit.trace_common import TASKS,SUBSET
+    panels=protocol['panels']
+    for task in (TASKS if study=='s8' else SUBSET):
+        yield (protocol['datasets'][task]['test'] if study=='s8' else protocol['tests'][task],
+               1024 if study=='s8' else 2048)
+    general=panels['general-v1']
+    for aliases in (('instruction','ifeval'),('maths','math')):
+        yield [r for r in general if r['panel'] in aliases],2048
+    if study=='s8':
+        for spec in panels['trace_general'].values():
+            yield spec['rows'],spec['prompt_cap']
+    yield panels['open'],2048
+
+
+def prepare_tokens(cfg):
+    protocol=load(Path(cfg['out'])/'prepared.json')
+    cache=Path(cfg['out'])/'token-cache'
+    for study in protocol['active_studies']:
+        for rows,cap in token_groups(protocol,study):
+            cached_tokens(cfg['base']['model'],rows,cap,write=True,cache=cache)
+    return dict(files={p.name:sha(p) for p in cache.glob('*.json')})
 
 
 if __name__ == '__main__':

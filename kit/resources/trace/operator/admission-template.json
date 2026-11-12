@@ -1,0 +1,26 @@
+{
+  "original_tokenizer_census": {
+    "valid": false,
+    "evidence_sha256": null
+  },
+  "supervised_masks": {
+    "valid": false,
+    "evidence_sha256": null
+  },
+  "prompt_fixtures": {
+    "valid": false,
+    "evidence_sha256": null
+  },
+  "scorer_fixtures": {
+    "valid": false,
+    "evidence_sha256": null
+  },
+  "demo_fidelity_gold": {
+    "valid": false,
+    "evidence_sha256": null
+  },
+  "demo_fidelity_27b": {
+    "valid": false,
+    "evidence_sha256": null
+  }
+}

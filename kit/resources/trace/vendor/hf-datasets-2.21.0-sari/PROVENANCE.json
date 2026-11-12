@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/huggingface/datasets",
+  "tag": "2.21.0",
+  "path": "metrics/sari/sari.py",
+  "sha256": "3816e522bc92f40c0d02313355da13964d045a99db1c07e9d18ccdb78d23eed4",
+  "fetched": "2026-11-12",
+  "owner_approved": true,
+  "license": "Apache-2.0",
+  "modifications": []
+}

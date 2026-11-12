@@ -40,13 +40,17 @@ A2_CODE_PATHS_SHA256 = '5b6d917ef8a0875f927695d287199b490d5443e037ea12f39d6c0479
 # Independent TRACE additions have the same exact-path coverage boundary as A2.
 TRACE_CODE_PATHS = (
     'jobs/trace/run-task.sh',
+    'resources/trace/vendor/hf-datasets-2.21.0-sari/sari.py',
     'trace_calibration.py',
+    'trace_calibration_build.py',
     'trace_common.py',
+    'trace_datasets.py',
     'trace_entry.py',
     'trace_jobs.py',
     'trace_judge.py',
     'trace_metrics.py',
     'trace_native.py',
+    'trace_operator.py',
     'trace_overlap.py',
     'trace_prepare.py',
     'trace_prompt.py',
@@ -57,7 +61,7 @@ TRACE_CODE_PATHS = (
     'trace_targets.py',
     'trace_train.py',
 )
-TRACE_CODE_PATHS_SHA256 = 'a630dd08dc1d400f03b4dab934b3e1d709626b31bd744b7b18e24a1b88a650be'
+TRACE_CODE_PATHS_SHA256 = 'a30d77e1ee5cb04057f21ef882eaf91d92360f2d316597ed3a515ae9cc9fb07e'
 
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
@@ -170,7 +174,7 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
     assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
-    assert len(TRACE_CODE_PATHS) == 17
+    assert len(TRACE_CODE_PATHS) == 21
     assert tuple(sorted(TRACE_CODE_PATHS)) == TRACE_CODE_PATHS
     assert hashlib.sha256(('\n'.join(TRACE_CODE_PATHS)+'\n').encode()).hexdigest() == TRACE_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)

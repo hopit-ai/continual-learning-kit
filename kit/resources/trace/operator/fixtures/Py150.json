@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_0(value):\n    return value + 0\n"
+    },
+    "prediction": "def function_0(value):\n    return value + 0\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_1(value):\n    return value + 1\n"
+    },
+    "prediction": "def function_1(value):\n    return value + 1\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_2(value):\n    return value + 2\n"
+    },
+    "prediction": "def function_2(value):\n    return value + 2\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_3(value):\n    return value + 3\n"
+    },
+    "prediction": "def function_3(value):\n    return value + 3\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_4(value):\n    return value + 4\n"
+    },
+    "prediction": "def function_4(value):\n    return value + 4\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_5(value):\n    return value + 5\n"
+    },
+    "prediction": "def function_5(value):\n    return value + 5\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_6(value):\n    return value + 6\n"
+    },
+    "prediction": "def function_6(value):\n    return value + 6\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_7(value):\n    return value + 7\n"
+    },
+    "prediction": "def function_7(value):\n    return value + 7\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_8(value):\n    return value + 8\n"
+    },
+    "prediction": "def function_8(value):\n    return value + 8\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_9(value):\n    return value + 9\n"
+    },
+    "prediction": "def function_9(value):\n    return value + 9\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_10(value):\n    return value + 10\n"
+    },
+    "prediction": "def function_10(value):\n    return value + 10\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_11(value):\n    return value + 11\n"
+    },
+    "prediction": "def function_11(value):\n    return value + 11\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_12(value):\n    return value + 12\n"
+    },
+    "prediction": "def function_12(value):\n    return value + 12\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_13(value):\n    return value + 13\n"
+    },
+    "prediction": "def function_13(value):\n    return value + 13\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_14(value):\n    return value + 14\n"
+    },
+    "prediction": "def function_14(value):\n    return value + 14\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_15(value):\n    return value + 15\n"
+    },
+    "prediction": "def function_15(value):\n    return value + 15\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_16(value):\n    return value + 16\n"
+    },
+    "prediction": "def function_16(value):\n    return value + 16\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_17(value):\n    return value + 17\n"
+    },
+    "prediction": "def function_17(value):\n    return value + 17\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_18(value):\n    return value + 18\n"
+    },
+    "prediction": "def function_18(value):\n    return value + 18\n",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "Py150",
+      "panel": "Py150",
+      "prompt": "Complete the code.",
+      "answer": "def function_19(value):\n    return value + 19\n"
+    },
+    "prediction": "def function_19(value):\n    return value + 19\n",
+    "score": 100.0
+  }
+]

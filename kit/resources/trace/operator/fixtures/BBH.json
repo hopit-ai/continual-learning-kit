@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer0.",
+      "answer": "answer0"
+    },
+    "prediction": "answer0",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer1.",
+      "answer": "answer1"
+    },
+    "prediction": "answer1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer2.",
+      "answer": "answer2"
+    },
+    "prediction": "answer2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer3.",
+      "answer": "answer3"
+    },
+    "prediction": "answer3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer4.",
+      "answer": "answer4"
+    },
+    "prediction": "answer4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer5.",
+      "answer": "answer5"
+    },
+    "prediction": "answer5",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer6.",
+      "answer": "answer6"
+    },
+    "prediction": "answer6",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer7.",
+      "answer": "answer7"
+    },
+    "prediction": "answer7",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer8.",
+      "answer": "answer8"
+    },
+    "prediction": "answer8",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer9.",
+      "answer": "answer9"
+    },
+    "prediction": "answer9",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer10.",
+      "answer": "answer10"
+    },
+    "prediction": "answer10",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer11.",
+      "answer": "answer11"
+    },
+    "prediction": "answer11",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer12.",
+      "answer": "answer12"
+    },
+    "prediction": "answer12",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer13.",
+      "answer": "answer13"
+    },
+    "prediction": "answer13",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer14.",
+      "answer": "answer14"
+    },
+    "prediction": "answer14",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer15.",
+      "answer": "answer15"
+    },
+    "prediction": "answer15",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer16.",
+      "answer": "answer16"
+    },
+    "prediction": "answer16",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer17.",
+      "answer": "answer17"
+    },
+    "prediction": "answer17",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer18.",
+      "answer": "answer18"
+    },
+    "prediction": "answer18",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "BBH",
+      "panel": "BBH",
+      "prompt": "Return answer19.",
+      "answer": "answer19"
+    },
+    "prediction": "answer19",
+    "score": 100.0
+  }
+]

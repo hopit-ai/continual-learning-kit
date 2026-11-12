@@ -24,6 +24,8 @@ from deletion_tuning.deletion_mask import (
 
 GRID = (1e-3, 3e-3, 5e-3, 1e-2)
 FALLBACK = 5e-3
+# Qwen3-8B (hidden_size, num_hidden_layers); must match kit/nm_prepare.py and kit/lane_pool.py.
+QWEN3_8B_GEOMETRY = (4096, 36)
 UPDATES = 3
 MAX_DAMAGE = .10
 MAX_FLIPS = .01
@@ -137,7 +139,7 @@ def run_finder(owner, data, *, code_check=False):
     student, teacher, optimizer = owner.actor_module, owner.teacher_module, owner.actor_optimizer
     if getattr(owner, '_v4_completed_updates', 0) != 0:
         raise ValueError('LR finder must precede scientific updates')
-    if not code_check and (student.config.hidden_size, student.config.num_hidden_layers) != (4096, 32):
+    if not code_check and (student.config.hidden_size, student.config.num_hidden_layers) != QWEN3_8B_GEOMETRY:
         raise ValueError('production LR selection requires the Qwen3-8B qualification path')
     if not code_check:
         count = torch.tensor(data.batch['input_ids'].shape[0], device=next(student.parameters()).device)
@@ -269,7 +271,7 @@ def frozen_rate(path, expected_sha256):
     if (record['schema'] != 'deletion-lr.v1' or record['code_check'] is not False or
             record['training_only'] is not True or record['updates_per_rate'] != UPDATES or
             record['max_damage'] != MAX_DAMAGE or record['max_flips'] != MAX_FLIPS or
-            record['grid'] != list(GRID) or record['model_geometry'] != [4096, 32] or record['seed'] != 101):
+            record['grid'] != list(GRID) or record['model_geometry'] != list(QWEN3_8B_GEOMETRY) or record['seed'] != 101):
         raise ValueError('receipt is not the registered production LR finder')
     selected, fallback = choose_rate(record['trials'])
     if record['selected_rate'] != selected or record['fallback'] != fallback:

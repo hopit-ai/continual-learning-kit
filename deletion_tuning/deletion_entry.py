@@ -4,9 +4,30 @@ Use identical I0 Hydra overrides, plus DELETION_CALIBRATION (tokenized task
 prompts) and DELETION_SEED. The inherited C runner validates every D setting.
 """
 import os
+import sys
+import json
+from pathlib import Path
 
 
 def main():
+    from kit.trace_common import local_file, stage_command
+    # Immutable input bytes only; all native checkpoints remain durable.
+    files=[]
+    for arg in sys.argv[1:]:
+        if '=' not in arg:
+            continue
+        key,value=arg.split('=',1)
+        if key.lstrip('+') in ('data.train_files','data.val_files'):
+            try:
+                paths=json.loads(value)
+            except ValueError:
+                paths=value
+            for path in paths if isinstance(paths,list) else [paths]:
+                if Path(path).is_file():
+                    files.append(path)
+    sys.argv=stage_command(sys.argv,files)
+    if os.environ.get('DELETION_CALIBRATION'):
+        os.environ['DELETION_CALIBRATION']=str(local_file(os.environ['DELETION_CALIBRATION']))
     from omegaconf import OmegaConf
     from kit import sdft_verl as v
     from deletion_tuning.deletion_runner import DeletionTaskRunner, registered_lr

@@ -1,0 +1,118 @@
+{
+  "C-STANCE": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_CStance.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "accuracy",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "FOMC": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_FOMC.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "accuracy",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "MeetingBank": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_MeetingBank.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "rouge-L",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "Py150": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_Py150.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "similarity",
+    "scale_to_100": 1,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "ScienceQA": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_ScienceQA.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "accuracy",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "NumGLUE-cm": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_NumGLUE_cm.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "accuracy",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "NumGLUE-ds": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_NumGLUE_ds.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": "accuracy",
+    "scale_to_100": 100,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": false
+  },
+  "20Minuten": {
+    "path": "FILL_STAGED_TRACE/evaluations/eval_20Minuten.py",
+    "sha256": "FILL_SHA256",
+    "function": "eval",
+    "key": [
+      "sari",
+      0,
+      "sari"
+    ],
+    "scale_to_100": 1,
+    "dependencies": [
+      {
+        "path": "FILL_STAGED_TRACE/metrics.py",
+        "sha256": "FILL_SHA256"
+      }
+    ],
+    "uses_source": true
+  }
+}

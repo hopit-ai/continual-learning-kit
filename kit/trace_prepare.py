@@ -71,6 +71,13 @@ def prepare(cfg):
     need(cfg['base']['revision'] == BASE and cfg['judge']['revision'] == JUDGE['revision'],
          'registered model revision differs')
     studies = cfg.get('studies', ['s8', *SOURCES])
+    # Shipped operator plans validate available CPU authorities before targets.
+    # The generated-demo fidelity audit is completed after targets, at bind.
+    if cfg.get('admission'):
+        admission_plan = bound_json(cfg['admission'])
+        if admission_plan.get('schema') == 'trace-admission-plan.v1':
+            from kit.trace_operator import admission
+            admission(admission_plan['evidence'], studies, defer_27b=True, cfg=cfg)
     roles = ['base', 'judge', 'original_tokenizer']
     if set(studies) & set(SOURCES):
         roles.append('teacher')
@@ -142,7 +149,12 @@ def prepare(cfg):
              'TRACE general panel inventory differs')
     need(Counter(r['panel'] for r in panels['open']) ==
          Counter({'Self-Instruct':175, 'LIMA':300, 'CoNa':178}), 'open panel IDs/count differ')
-    calibration = read_rows(cfg['calibration'])
+    if isinstance(cfg['calibration'],dict) and cfg['calibration'].get('schema') == 'trace-calibration-assembly.v1':
+        from kit.trace_calibration_build import node_assemble
+        calibration = node_assemble(cfg['calibration'], panels['open'],
+                                    out/'sealed-calibration'/'calibration.jsonl')
+    else:
+        calibration = read_rows(cfg['calibration'])
     need(Counter(r['panel'] for r in calibration) ==
          Counter({'Self-Instruct':30, 'LIMA':30, 'CoNa':30}), 'calibration count differs')
     need(all(r.get('checkpoint_independent') is True for r in calibration),
@@ -190,6 +202,10 @@ def bind(cfg):
                                   gold=r['answer']) for r in schedule(rows, seed, task)]
                 seal(Path(cfg['out'])/'schedules'/f'{source}-{seed}-{task}.json', scheduled)
     probes = bound_json(cfg['admission'])
+    if probes.get('schema') == 'trace-admission-plan.v1':
+        from kit.trace_operator import admission
+        probes = admission(probes['evidence'], cfg.get('studies', ['s8', *SOURCES]), cfg=cfg)
+        seal(Path(cfg['out'])/'admission-receipt.json', probes)
     required = {'original_tokenizer_census', 'supervised_masks', 'prompt_fixtures',
                 'scorer_fixtures'}
     if prepared['selected']:

@@ -292,7 +292,7 @@ def test_finder_rule_fixed_grid_bounds_fallback_and_ties(tmp_path):
         choose_rate(trials[:-1])
     record = dict(schema='deletion-lr.v1', code_check=False, training_only=True,
                   updates_per_rate=3, max_damage=.1, max_flips=.01, grid=list(GRID),
-                  model_geometry=[4096, 32], seed=101, trials=trials, selected_rate=.005, fallback=True)
+                  model_geometry=[4096, 36], seed=101, trials=trials, selected_rate=.005, fallback=True)
     path = tmp_path / 'rate.json'
     path.write_text(json.dumps(record))
     digest = hashlib.sha256(path.read_bytes()).hexdigest()

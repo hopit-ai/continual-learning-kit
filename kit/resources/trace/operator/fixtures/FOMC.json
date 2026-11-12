@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 0.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 1.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 2.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 3.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 4.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 5.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 6.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 7.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 8.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 9.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 10.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 11.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 12.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 13.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 14.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 15.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 16.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 17.",
+      "answer": "neutral"
+    },
+    "prediction": "neutral",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 18.",
+      "answer": "dovish"
+    },
+    "prediction": "dovish",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "FOMC",
+      "panel": "FOMC",
+      "prompt": "Classify statement 19.",
+      "answer": "hawkish"
+    },
+    "prediction": "hawkish",
+    "score": 100.0
+  }
+]

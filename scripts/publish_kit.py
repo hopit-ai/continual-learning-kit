@@ -57,6 +57,7 @@ TESTS += ("test_cr_v7c_closure.py",)
 # A2 public checks use shipped kit files and explicit synthetic CPU identities.
 # The separate private registration parity test runs when its document exists.
 TESTS += ("test_trace_registration.py",)
+TESTS += ("test_trace_metrics.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
 TESTS += ("kit_authority.py", "util70_fixtures.py",)
 # Public deletion mechanics. Manager-only binding checks depend on private reads.
@@ -283,6 +284,11 @@ require applicable grants before affected tasks run. Evaluation and original-tok
 terms are recorded in kit/resources/trace/registration.md section 8.
 Qwen/Qwen2.5-7B-Instruct (local judge) is Apache-2.0. Retain its licence and notices
 with staged model files. TRACE code is Apache-2.0 subject to individual file headers.
+
+kit/resources/trace/vendor/hf-datasets-2.21.0-sari/sari.py is copied unchanged
+from huggingface/datasets tag 2.21.0, metrics/sari/sari.py, Apache-2.0.
+Copyright 2020 The HuggingFace Datasets Authors and the current dataset script
+contributor. Its LICENSE and PROVENANCE.json accompany the source.
 
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.

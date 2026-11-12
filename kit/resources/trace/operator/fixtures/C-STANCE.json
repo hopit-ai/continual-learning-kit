@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 0.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 1.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 2.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 3.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 4.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 5.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 6.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 7.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 8.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 9.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 10.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 11.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 12.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 13.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 14.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 15.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 16.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 17.",
+      "answer": "中立"
+    },
+    "prediction": "中立",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 18.",
+      "answer": "支持"
+    },
+    "prediction": "支持",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "C-STANCE",
+      "panel": "C-STANCE",
+      "prompt": "Classify statement 19.",
+      "answer": "反对"
+    },
+    "prediction": "反对",
+    "score": 100.0
+  }
+]

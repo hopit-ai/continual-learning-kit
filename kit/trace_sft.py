@@ -123,106 +123,123 @@ def finish_export(root, index, target):
 
 def main(cfg, seed):
     offline()
-    prepared = load(Path(cfg['out'])/'prepared.json')
-    need(prepared.get('s8_ready') is True, 'S8 CPU census/licences PENDING')
-    token_rows = {task:bound_file(ref) for task,ref in prepared['sft_rows'].items()}
-    import torch
-    import random
-    import numpy as np
-    import deepspeed
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    from torch.utils.data import DataLoader, DistributedSampler
+    from kit.trace_jobs import timing_phase as phase
+    from contextlib import nullcontext
     rank = int(os.environ['LOCAL_RANK'])
-    torch.cuda.set_device(rank)
-    deepspeed.init_distributed()
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    model = AutoModelForCausalLM.from_pretrained(cfg['base']['model'],
-                 local_files_only=True, torch_dtype=torch.bfloat16)
-    tokenizer = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
-    model.gradient_checkpointing_enable()
-    model.config.use_cache = False
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, betas=(.9,.95),
-                                 eps=1e-8, weight_decay=0)
-    engine, optimizer, _, scheduler = deepspeed.initialize(
-        model=model, optimizer=optimizer, config=deepspeed_config())
-    root = Path(cfg['out'])/'training'/f's8-{seed}'
-    root.mkdir(parents=True, exist_ok=True)
-    cursor = dict(task=0, epoch=0, micro=0, config_sha256=digest(cfg))
-    pointer = root/'resume.json'
-    restore_rng = None
-    if pointer.exists():
-        saved = load(pointer)
-        need(saved['config_sha256'] == digest(cfg), 'SeqFT native identity changed')
-        _, cursor = engine.load_checkpoint(str(root/'native'), tag=saved['tag'])
-        need(cursor['config_sha256'] == digest(cfg), 'SeqFT resume config changed')
-        restore_rng = cursor['rng'][rank]
-    token_counts = list(restore_rng.get('token_counts',[0]*5)) if restore_rng else [0]*5
-    def collate(rows):
-        width = ((max(len(r['input_ids']) for r in rows)+7)//8)*8
-        result = {}
-        for key, pad in [('input_ids',tokenizer.pad_token_id),('attention_mask',0),('labels',-100)]:
-            result[key] = torch.tensor([[pad]*(width-len(r[key]))+r[key] for r in rows])
-        counts = [len(rows),sum(sum(r['attention_mask']) for r in rows),
-                  sum(sum(x != -100 for x in r['labels']) for r in rows),
-                  sum(r['combined_cap_hit'] for r in rows),
-                  sum(r['target_cap_hit'] for r in rows)]
-        return result, counts
+    with phase('prep') if rank == 0 else nullcontext():
+        prepared = load(Path(cfg['out'])/'prepared.json')
+        need(prepared.get('s8_ready') is True, 'S8 CPU census/licences PENDING')
+        from kit.trace_common import local_file
+        token_rows = {task:local_file(bound_file(ref)) for task,ref in prepared['sft_rows'].items()}
+        import torch
+        import random
+        import numpy as np
+        import deepspeed
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from torch.utils.data import DataLoader, DistributedSampler
+        rank = int(os.environ['LOCAL_RANK'])
+        torch.cuda.set_device(rank)
+        deepspeed.init_distributed()
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        model = AutoModelForCausalLM.from_pretrained(cfg['base']['model'],
+                     local_files_only=True, torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
+        model.gradient_checkpointing_enable()
+        model.config.use_cache = False
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, betas=(.9,.95),
+                                     eps=1e-8, weight_decay=0)
+        engine, optimizer, _, scheduler = deepspeed.initialize(
+            model=model, optimizer=optimizer, config=deepspeed_config())
+        root = Path(cfg['out'])/'training'/f's8-{seed}'
+        root.mkdir(parents=True, exist_ok=True)
+        cursor = dict(task=0, epoch=0, micro=0, config_sha256=digest(cfg))
+        pointer = root/'resume.json'
+        restore_rng = None
+        if pointer.exists():
+            saved = load(pointer)
+            need(saved['config_sha256'] == digest(cfg), 'SeqFT native identity changed')
+            _, cursor = engine.load_checkpoint(str(root/'native'), tag=saved['tag'])
+            need(cursor['config_sha256'] == digest(cfg), 'SeqFT resume config changed')
+            restore_rng = cursor['rng'][rank]
+        token_counts = list(restore_rng.get('token_counts',[0]*5)) if restore_rng else [0]*5
+        def collate(rows):
+            width = ((max(len(r['input_ids']) for r in rows)+7)//8)*8
+            result = {}
+            for key, pad in [('input_ids',tokenizer.pad_token_id),('attention_mask',0),('labels',-100)]:
+                result[key] = torch.tensor([[pad]*(width-len(r[key]))+r[key] for r in rows])
+            counts = [len(rows),sum(sum(r['attention_mask']) for r in rows),
+                      sum(sum(x != -100 for x in r['labels']) for r in rows),
+                      sum(r['combined_cap_hit'] for r in rows),
+                      sum(r['target_cap_hit'] for r in rows)]
+            return result, counts
+    from concurrent.futures import ThreadPoolExecutor
+    hash_pool = ThreadPoolExecutor(max_workers=1) if rank == 0 else None
+    hash_jobs = []
+    from kit.trace_jobs import timing_phase as phase
+    from contextlib import nullcontext
     for index, (task, epochs) in enumerate(zip(TASKS, EPOCHS)):
         if index < cursor['task']:
             continue
-        rows = load(token_rows[task])
-        sampler = DistributedSampler(rows, num_replicas=8, rank=rank, seed=seed,
-                                     shuffle=True, drop_last=False)
-        loader = DataLoader(rows, sampler=sampler, batch_size=1, collate_fn=collate)
-        for epoch in range(epochs):
-            if index == cursor['task'] and epoch < cursor['epoch']:
-                continue
-            for micro, (batch, batch_counts) in enumerate(loader):
-                if index == cursor['task'] and epoch == cursor['epoch'] and micro < cursor['micro']:
+        with phase('train') if rank == 0 else nullcontext():
+            rows = load(token_rows[task])
+            sampler = DistributedSampler(rows, num_replicas=8, rank=rank, seed=seed,
+                                         shuffle=True, drop_last=False)
+            loader = DataLoader(rows, sampler=sampler, batch_size=1, collate_fn=collate)
+            for epoch in range(epochs):
+                if index == cursor['task'] and epoch < cursor['epoch']:
                     continue
-                if restore_rng is not None:
-                    random.setstate(restore_rng['python'])
-                    np.random.set_state(restore_rng['numpy'])
-                    torch.set_rng_state(restore_rng['torch'])
-                    torch.cuda.set_rng_state(restore_rng['cuda'], rank)
-                    restore_rng = None
-                engine.train()
-                batch = {k:v.to(rank) for k,v in batch.items()}
-                loss = engine(**batch, use_cache=False).loss
-                need(bool(torch.isfinite(loss)), 'nonfinite supervised loss')
-                engine.backward(loss)
-                engine.step()
-                token_counts = [a+b for a,b in zip(token_counts,batch_counts)]
-                if engine.micro_steps % 16 == 0 and engine.global_steps % 10 == 0:
-                    local_rng = dict(python=random.getstate(),numpy=np.random.get_state(),
-                                     torch=torch.get_rng_state(),cuda=torch.cuda.get_rng_state(rank),
-                                     token_counts=token_counts)
-                    rngs = [None]*8
-                    torch.distributed.all_gather_object(rngs,local_rng)
-                    state = dict(task=index,epoch=epoch,micro=micro+1,rng=rngs,
-                                 config_sha256=digest(cfg))
-                    tag = f'update-{engine.global_steps}'
-                    engine.save_checkpoint(str(root/'native'),tag=tag,client_state=state)
-                    if rank == 0:
-                        atomic(pointer,dict(tag=tag,config_sha256=digest(cfg)))
-            # Save only at accumulation boundaries. Task-final exports preserve
-            # residual gradients in the live engine, matching upstream carry.
+                for micro, (batch, batch_counts) in enumerate(loader):
+                    if index == cursor['task'] and epoch == cursor['epoch'] and micro < cursor['micro']:
+                        continue
+                    if restore_rng is not None:
+                        random.setstate(restore_rng['python'])
+                        np.random.set_state(restore_rng['numpy'])
+                        torch.set_rng_state(restore_rng['torch'])
+                        torch.cuda.set_rng_state(restore_rng['cuda'], rank)
+                        restore_rng = None
+                    engine.train()
+                    batch = {k:v.to(rank) for k,v in batch.items()}
+                    loss = engine(**batch, use_cache=False).loss
+                    need(bool(torch.isfinite(loss)), 'nonfinite supervised loss')
+                    engine.backward(loss)
+                    engine.step()
+                    token_counts = [a+b for a,b in zip(token_counts,batch_counts)]
+                    if engine.micro_steps % 16 == 0 and engine.global_steps % 10 == 0:
+                        local_rng = dict(python=random.getstate(),numpy=np.random.get_state(),
+                                         torch=torch.get_rng_state(),cuda=torch.cuda.get_rng_state(rank),
+                                         token_counts=token_counts)
+                        rngs = [None]*8
+                        torch.distributed.all_gather_object(rngs,local_rng)
+                        state = dict(task=index,epoch=epoch,micro=micro+1,rng=rngs,
+                                     config_sha256=digest(cfg))
+                        tag = f'update-{engine.global_steps}'
+                        engine.save_checkpoint(str(root/'native'),tag=tag,client_state=state)
+                        if rank == 0:
+                            atomic(pointer,dict(tag=tag,config_sha256=digest(cfg)))
+                # Save only at accumulation boundaries. Task-final exports preserve
+                # residual gradients in the live engine, matching upstream carry.
         plans = [export_plan(root, index+1) if rank == 0 else None]
         torch.distributed.broadcast_object_list(plans, src=0)
         plan = plans[0]
         if not plan['reuse']:
             target = Path(plan['target'])
-            engine.save_16bit_model(str(target), 'pytorch_model.bin')
+            with phase('export') if rank == 0 else nullcontext():
+                engine.save_16bit_model(str(target), 'pytorch_model.bin')
             if rank == 0:
                 engine.module.config.save_pretrained(target)
                 tokenizer.save_pretrained(target)
-                finish_export(root, index+1, target)
+                hash_jobs.append(hash_pool.submit(finish_export, root, index+1, target))
         torch.distributed.barrier()
     counts_by_rank = [None]*8
     torch.distributed.all_gather_object(counts_by_rank, token_counts)
     if rank == 0:
+        # Publication failures propagate before the complete export inventory is sealed.
+        with phase('export'):
+            for job in hash_jobs:
+                job.result()
+        hash_pool.shutdown(wait=True)
         seal(root/'token-counts.json',[sum(values) for values in zip(*counts_by_rank)])
         exports = {'base':cfg['base']}
         exports.update({f's8-s{seed}-{i}':load(root/f'export-{i}.json') for i in range(1,9)})

@@ -1,0 +1,30 @@
+{
+  "schema": "trace-operator-inputs.v1",
+  "required_operator_fields": {
+    "metric_authorities": "Task/panel -> staged scorer path, function, key, scale_to_100, dependencies; uses_source for SARI.",
+    "admission_evidence": "Probe name -> measured JSON evidence file reference. Never a bare valid:true.",
+    "native_probes": "Study -> named probe -> command manifest reference (argv and files)."
+  },
+  "native_probe_order": [
+    "noise_floor",
+    "world_size_reduction",
+    "ema_recurrence",
+    "native_resume",
+    "export_identity",
+    "freeze_bit_equality",
+    "likelihood",
+    "scorer_concurrency"
+  ],
+  "file_reference": {
+    "path": "STAGED_FILE",
+    "sha256": "OPTIONAL_EXPECTED_SHA256"
+  },
+  "metric_authority": {
+    "path": "STAGED_UPSTREAM_SCORER",
+    "function": "UPSTREAM_CALLABLE",
+    "key": "UPSTREAM_RESULT_KEY",
+    "scale_to_100": 100,
+    "dependencies": [],
+    "uses_source": false
+  }
+}

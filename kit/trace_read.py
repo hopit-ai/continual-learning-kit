@@ -90,7 +90,8 @@ def pack(records, key, values, prefix=()):
 
 def pages(payload, authority, kind='ESSENTIAL'):
     import hashlib
-    lines = [record_line(k,v) for k,v in sorted(payload['records'].items())]
+    lines = [(v if k=='judge-profile' else record_line(k,v))
+             for k,v in sorted(payload['records'].items())]
     need(all(line.isascii() and len(line)<90 for line in lines),
          'return record too long '+str([line.split('=')[0] for line in lines if len(line)>=90]))
     chunks = [lines[i:i+69] for i in range(0,len(lines),69)] or [[]]
@@ -113,7 +114,7 @@ def split_return(payload, authority):
     # volumes need more than the pasted allowance.
     first = ('reporting', 'technical_synthetic', 'registration', 'binding', 'config',
              'seeds', 'departures.', 'licence.', 'audit', 'OP.', 'effect.', 'gpu_h.',
-             'failures', 'EOS.', 'EOSr.', 'cap_rates.', 'utilisation', 'missing.')
+             'phase.', 'judge-profile', 'failures', 'EOS.', 'EOSr.', 'cap_rates.', 'utilisation', 'missing.')
     candidates.sort(key=lambda item: (not item[0].startswith(first), item[0]))
     selected = dict(candidates[:3*69-3])
     spill = len(candidates)-len(selected)
@@ -142,6 +143,9 @@ def parse_pages(texts):
             if line.startswith(('KIT ', 'ESSENTIAL ', 'FULL ', 'TRANSCRIPTION-', 'CHECKSUM ', 'SHA256 ')):
                 continue
             try:
+                if line.startswith('TRACE|judge-profile|'):
+                    records['judge-profile'] = line
+                    continue
                 key, raw = line.split('=',1)
                 need(re.fullmatch(r'[A-Za-z0-9_.-]+',key) is not None, 'invalid record key')
                 value = json.loads(raw, parse_constant=reject_nonfinite)
@@ -296,6 +300,8 @@ def collect(cfg):
             numeric[study][str(seed)] = sufficient
             judges = load(root/'judge'/f'{study}-{seed}'/'summary.json')
             for state,panels in judges.items():
+                if state=='_profile':
+                    continue
                 # Panel and order counts stay independently recoverable.
                 pack(records,f'J.{study}.{seed}.{state}',
                      [[v for order in panels[panel] for v in order]
@@ -323,6 +329,15 @@ def collect(cfg):
                  for k in ('identity','leakage','freeze_bit_equality','scorer_fixtures','licences')]
     for phase, hours in phases.items():
         records['gpu_h.'+phase] = round(hours,6)
+    if cfg.get('judge_throughput_probe'):
+        from kit.trace_judge import probe_essential as essential, decision_receipt
+        records['judge-profile'] = essential(decision_receipt(cfg))
+        for study in studies:
+            for seed in SEEDS:
+                records[f'profile.{study}.{seed}'] = load(
+                    root/'judge'/f'{study}-{seed}'/'profile.json')['profile']
+    from kit.trace_jobs import timing_rows as phase_rows
+    records.update(phase_rows(root))
     records['gpu_h.total'] = round(math.fsum(phases.values()),6)
     records['failures'] = sum(r['status']!='COMPLETE' for r in ledger)
     records['warnings'] = sum(len(r.get('warnings',[])) for r in ledger)

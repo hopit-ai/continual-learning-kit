@@ -1,0 +1,11 @@
+Hard exports: python -m deletion_tuning.deletion_export merge --backend fsdp ...
+Scorer inventory: python -m deletion_tuning.deletion_jobs inventory --out rows.json
+Set DELETION_ROOT to the checkout and DELETION_CONFIG to deletion.json.
+Stage on CPU: deletion_tuning/jobs/run-task.sh prepare-SEED-PANEL
+Score with your own sbatch: deletion_tuning/jobs/run-task.sh score-SEED-PANEL
+Submit each lane as soon as its own frontier exists; lanes run in parallel.
+Collect: python -m deletion_tuning.deletion_return collect \
+  --config deletion.json --out deletion-return
+Paste deletion-return/return-1.txt, return-2.txt and return-3.txt verbatim.
+These are ESSENTIAL: counts, damage, guards and actual DELETION|... Part 3.
+Keep deletion-return/full/ and raw attempts local, including deletion-lr.v1.

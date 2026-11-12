@@ -1,0 +1,162 @@
+[
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-5"
+    },
+    "prediction": "Answer: -5",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-5"
+    },
+    "prediction": "Answer: -4",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-4"
+    },
+    "prediction": "Answer: -4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-4"
+    },
+    "prediction": "Answer: -3",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-3"
+    },
+    "prediction": "Answer: -3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-3"
+    },
+    "prediction": "Answer: -2",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-2"
+    },
+    "prediction": "Answer: -2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-2"
+    },
+    "prediction": "Answer: -1",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-1"
+    },
+    "prediction": "Answer: -1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "-1"
+    },
+    "prediction": "Answer: 0",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "0"
+    },
+    "prediction": "Answer: 0",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "0"
+    },
+    "prediction": "Answer: 1",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "1"
+    },
+    "prediction": "Answer: 1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "1"
+    },
+    "prediction": "Answer: 2",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "2"
+    },
+    "prediction": "Answer: 2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "2"
+    },
+    "prediction": "Answer: 3",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "3"
+    },
+    "prediction": "Answer: 3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "3"
+    },
+    "prediction": "Answer: 4",
+    "score": 0.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "4"
+    },
+    "prediction": "Answer: 4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "panel": "math",
+      "answer": "4"
+    },
+    "prediction": "Answer: 5",
+    "score": 0.0
+  }
+]

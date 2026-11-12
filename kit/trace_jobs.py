@@ -9,7 +9,31 @@ import os
 import subprocess
 import time
 import uuid
+from contextlib import contextmanager
 from kit.trace_common import *
+
+
+def configured_inventory(cfg):
+    if cfg.get('efficiency'):
+        from kit.trace_train import efficiency_inventory as efficient
+        value = efficient(cfg.get('studies'))
+    else:
+        value = inventory(cfg.get('studies'))
+    if cfg.get('judge_throughput_probe'):
+        rows=[]
+        for row in value['rows']:
+            if row['phase']=='score':
+                gate='admit-'+row['id']
+                rows.append(dict(row,id=gate,phase='judge-admit',gpus=0,cpus=1,mem_mb=256))
+                row=dict(row,depends=[gate])
+            rows.append(row)
+            if row['phase']=='score':
+                rows.append(dict(id='finalize-'+row['id'],phase='judge-finalize',gpus=0,cpus=1,mem_mb=256,
+                                 study=row['study'],seed=row['seed'],depends=[],
+                                 depends_on=[dict(id=row['id'],type='afterany'),
+                                             dict(id=gate,type='afterany')]))
+        value=dict(value,rows=rows)
+    return value
 
 
 def scientific_config(cfg):
@@ -28,9 +52,22 @@ def row_receipt(out, row_id):
 
 
 def execute(cfg,row,attempt,standin):
+    if row['phase']=='judge-finalize':
+        from kit.trace_judge import finalize_probe
+        scorer=f'score-{row["study"]}-{row["seed"]}'
+        # A scheduler finalizer also works after SIGKILL or cancellation without
+        # a scorer receipt. The scorer lock protects direct invocations/retries.
+        with lock(Path(cfg['out'])/'locks'/(scorer+'.lock')):
+            return finalize_probe(cfg,f'{row["study"]}-{row["seed"]}')
     if standin:
         from kit.trace_rehearsal import standin_row
         return standin_row(cfg,row,attempt)
+    if row['phase']=='judge-admit':
+        from kit.trace_judge import admit
+        return admit(cfg,f'{row["study"]}-{row["seed"]}')
+    if row['phase'] in ('score-prep','prep-stage','train-stage','export-stage','assemble'):
+        from kit.trace_train import execute_efficiency as efficient
+        return efficient(cfg,row)
     if row['phase']=='prepare':
         from kit.trace_prepare import prepare
         return prepare(cfg)
@@ -60,11 +97,30 @@ def execute(cfg,row,attempt,standin):
         return run(cfg,row['study'],row['seed'])
     if row['phase']=='score':
         from kit.trace_score import lane
-        lane(cfg,row['study'],row['seed'],attempt.name)
+        from kit.trace_jobs import timing_phase as phase
+        with phase('score'):
+            lane(cfg,row['study'],row['seed'],attempt.name)
+        os.environ.pop('TRACE_TOKEN_CACHE', None)
         from kit.trace_judge import run as judge
-        return judge(cfg,row['study'],row['seed'])
+        with phase('judge'):
+            return judge(cfg,row['study'],row['seed'])
     from kit.trace_read import collect
     return collect(cfg)
+
+
+@contextmanager
+def probe_completion(cfg,row):
+    """Persist the claimed scorer's decision across preflight and execution exits."""
+    error=None
+    try:
+        yield
+    except BaseException as failure:
+        error=failure
+        raise
+    finally:
+        if cfg.get('judge_throughput_probe') and row['phase']=='score':
+            from kit.trace_judge import finalize_probe
+            finalize_probe(cfg,f'{row["study"]}-{row["seed"]}',error)
 
 
 def run(config_path,row_id,standin=False):
@@ -73,10 +129,10 @@ def run(config_path,row_id,standin=False):
     need(bool(original.get('technical_synthetic'))==standin, 'synthetic/production mode differs')
     cfg = dict(original,_config_path=str(Path(config_path).resolve()))
     out = Path(cfg['out'])
-    rows = inventory(cfg.get('studies'))['rows']
+    rows = configured_inventory(cfg)['rows']
     row = next((r for r in rows if r['id']==row_id),None)
     need(row is not None, 'unknown TRACE allocation row')
-    with lock(out/'locks'/(row_id+'.lock')):
+    with lock(out/'locks'/(row_id+'.lock')),probe_completion(cfg,row):
         # Check all dependencies before taking a GPU or publishing an attempt.
         dependencies = row['depends']
         if row['phase'] == 'collect' and not standin:
@@ -101,24 +157,39 @@ def run(config_path,row_id,standin=False):
         if state_path.exists():
             receipt = row_receipt(out,row_id)
             need(receipt['config_sha256']==digest(cfg), 'completed row config changed')
-            return receipt
+            # A previous afterany run may have preceded the scorer's claim.
+            # Finalizers must recheck under its lock on every submission.
+            if row['phase'] != 'judge-finalize':
+                return receipt
         attempt = out/'attempts'/row_id/uuid.uuid4().hex
         attempt.mkdir(parents=True)
         started = time.time()
+        from kit.trace_jobs import timing_finish as finish
+        phase_file = attempt/'phase-times.jsonl'
+        os.environ.update(V7H_PHASE_FILE=str(phase_file),V7H_PHASE_GPUS=str(0 if standin else row['gpus']))
         value = dict(row=row_id,config_sha256=digest(cfg),technical_synthetic=standin,
-                     status='RUNNING',gpus=0 if standin else row['gpus'],started=started,
+                     row_type=row['phase'],status='RUNNING',gpus=0 if standin else row['gpus'],started=started,
                      gpu_hours=0.,warnings=[])
         atomic(attempt/'receipt.json',value)
         try:
-            result = execute(cfg,row,attempt,standin)
+            if cfg.get('efficiency') and row['phase']=='score':
+                os.environ['TRACE_TOKEN_CACHE'] = str(out/'token-cache')
+            from contextlib import nullcontext
+            with timing_phase('score' if row['phase']=='targets' else 'prep') if row['phase'] in (
+                    'prepare','targets','bind','qualify','score-prep','prep-stage','assemble') else nullcontext():
+                result = execute(cfg,row,attempt,standin)
             value['result'] = result
             scope = []
             if row['phase'] in ('prepare','targets','bind'):
                 names = {'prepare':'prepared','targets':'targets','bind':'binding'}
                 scope = [p for p in [out/(names[row['phase']]+'.json'),
                     out/'audit'/'manual-review.json'] if p.exists()]
-            elif row['phase']=='train':
+            elif row['phase'] in ('train','prep-stage','train-stage','export-stage','assemble'):
                 scope = list((out/'training'/f'{row["study"]}-{row["seed"]}').rglob('*.json'))
+            elif row['phase']=='score-prep':
+                scope = list((out/'token-cache').glob('*.json'))
+            elif row['phase']=='qualify':
+                scope = [p for p in attempt.glob('*.json') if p.name != 'receipt.json']
             elif row['phase']=='score':
                 scope = [*(out/'scores'/f'{row["study"]}-{row["seed"]}').rglob('*.json'),
                          *(out/'judge'/f'{row["study"]}-{row["seed"]}').rglob('*.json')]
@@ -127,6 +198,8 @@ def run(config_path,row_id,standin=False):
                          out/'return-numeric.json',out/'full/return-numeric.json']
             value['artifacts_sha256'] = {str(p.relative_to(out)):sha(p) for p in scope}
             value['status'] = 'PENDING' if isinstance(result, dict) and result.get('status') == 'PENDING' else 'COMPLETE'
+        except FileNotFoundError as error:
+            value.update(status='PENDING', error_type=type(error).__name__)
         except BaseException as error:
             value.update(status='INTERRUPTED' if isinstance(error,KeyboardInterrupt) else 'ERROR',
                          error_type=type(error).__name__)
@@ -136,6 +209,7 @@ def run(config_path,row_id,standin=False):
             # In an enclosing row wrapper these clocks include all native stages,
             # loads, exports, failures and idle periods. Queue time is excluded.
             value['gpu_hours'] = value['gpus']*(value['ended']-started)/3600
+            value['phase_gpu_seconds'] = finish(phase_file,value['ended']-started,value['gpus'])
             previous = [load(p) for p in (out/'attempts').glob('*/*/receipt.json')
                         if p != attempt/'receipt.json']
             if value['ended']-started > 86400:
@@ -152,8 +226,10 @@ def run(config_path,row_id,standin=False):
             atomic(attempt/'receipt.json',value)
         if value['status'] == 'PENDING':
             return value
-        seal(state_path,dict(path=str((attempt/'receipt.json').relative_to(out)),
-                             sha256=sha(attempt/'receipt.json')))
+        # Keep every attempt immutable; finalizers publish their latest check.
+        writer = atomic if row['phase']=='judge-finalize' else seal
+        writer(state_path,dict(path=str((attempt/'receipt.json').relative_to(out)),
+                               sha256=sha(attempt/'receipt.json')))
         return value
 
 
@@ -167,11 +243,12 @@ def main():
     if args.action in ('inventory','price'):
         import json
         scope = load(args.config).get('studies') if args.config else None
-        print(json.dumps(inventory(scope) if args.action=='inventory' else estimates(),indent=2))
+        print(json.dumps((configured_inventory(load(args.config)) if args.config else inventory(scope))
+                         if args.action=='inventory' else estimates(),indent=2))
     else:
         need(args.config and args.row,'config and row required')
         cfg = load(args.config)
-        row = next(r for r in inventory(cfg.get('studies'))['rows'] if r['id']==args.row)
+        row = next(r for r in configured_inventory(cfg)['rows'] if r['id']==args.row)
         if not args.standin and row['gpus'] and os.environ.get('UTIL_WATCH_ACTIVE')!='1':
             from kit.util_watch import use_holder_slice
             cfg = load(args.config)
@@ -183,8 +260,66 @@ def main():
             command += ['--',sys.executable,'-I',str(KIT/'trace_jobs.py'),'run',
                         '--config',args.config,'--row',args.row]
             raise SystemExit(subprocess.call(command))
-        run(args.config,args.row,args.standin)
+        try:
+            receipt = run(args.config,args.row,args.standin)
+        except FileNotFoundError:
+            return 75
+        return 75 if receipt['status'] == 'PENDING' else 0
+
+
+
+
+from pathlib import Path
+import fcntl
+import json
+import os
+import time
+
+PHASES=('train','score','judge','export','prep','idle-in-allocation')
+
+
+@contextmanager
+def timing_phase(name):
+    started=time.monotonic()
+    try:
+        yield
+    finally:
+        path=os.environ.get('V7H_PHASE_FILE')
+        if path:
+            seconds=(time.monotonic()-started)*int(os.environ['V7H_PHASE_GPUS'])
+            with open(path,'a') as stream:
+                fcntl.flock(stream,fcntl.LOCK_EX)
+                stream.write(json.dumps([name,seconds])+'\n')
+                fcntl.flock(stream,fcntl.LOCK_UN)
+
+
+def timing_finish(path,elapsed,gpus):
+    totals=dict.fromkeys(PHASES,0.)
+    if Path(path).exists():
+        for line in Path(path).read_text().split('\n'):
+            if not line:
+                continue
+            name,seconds=json.loads(line)
+            totals[name]+=seconds
+    totals['idle-in-allocation']=max(0.,elapsed*gpus-sum(totals.values()))
+    return totals
+
+
+def timing_rows(root):
+    from kit.nm_common import load
+    totals={}
+    for path in Path(root).glob('attempts/*/*/receipt.json'):
+        receipt=load(path)
+        if 'phase_gpu_seconds' not in receipt:
+            continue
+        kind=receipt.get('row_type',receipt['row'].split('-')[0])
+        values=totals.setdefault(kind,dict.fromkeys(PHASES,0.))
+        for name,seconds in receipt['phase_gpu_seconds'].items():
+            values[name]+=seconds
+    # Order is fixed and documented; integer seconds keep lines below 90 chars.
+    return {'phase.'+kind:[round(values[p],3) for p in PHASES]
+            for kind,values in totals.items()}
 
 
 if __name__=='__main__':
-    main()
+    raise SystemExit(main())

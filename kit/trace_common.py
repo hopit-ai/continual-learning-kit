@@ -28,7 +28,9 @@ def offline():
 
 def bound_file(ref):
     path = Path(ref['path'])
-    need(path.is_file() and sha(path) == ref['sha256'], 'input identity differs')
+    if not path.is_file():
+        raise FileNotFoundError('bound input is not staged')
+    need(sha(path) == ref['sha256'], 'input identity differs')
     return path
 
 
@@ -157,6 +159,74 @@ def inventory(studies=None):
 
 
 def estimates():
-    return dict(s8=[1350, 1500], gold=[400, 500], verified=[400, 500],
+    return dict(s8=[1350, 1500], gold=[400, 500], **{'27b': [400, 500]},
                 preparation=[40, 120], judge=[75, 300], total=[2265, 2920],
                 estimated_ceiling_gpu_h=3500, judge_calls=109884)
+
+
+from contextlib import contextmanager
+from pathlib import Path
+import os
+import shutil
+import tempfile
+from kit.nm_common import need, sha
+
+
+def scratch():
+    return os.environ.get('V7H_LOCAL_ROOT') or os.environ.get('SLURM_TMPDIR')
+
+
+def local_file(path):
+    path=Path(path)
+    if not scratch():
+        return path
+    target=Path(scratch())/'v7h-inputs'/sha(path)/path.name
+    target.parent.mkdir(parents=True,exist_ok=True)
+    if not target.exists():
+        with tempfile.NamedTemporaryFile(dir=target.parent,delete=False) as stream:
+            temporary=Path(stream.name)
+        shutil.copyfile(path,temporary)
+        need(sha(temporary)==sha(path),'node-local input changed')
+        os.replace(temporary,target)
+    need(sha(target)==sha(path),'node-local replica changed')
+    return target
+
+
+def publish_tree(source,destination):
+    source,destination=Path(source),Path(destination)
+    destination.mkdir(parents=True,exist_ok=True)
+    # Complete markers follow their data. Row completion is published by caller.
+    paths=sorted((p for p in source.rglob('*') if p.is_file()),
+                 key=lambda p: (p.name in ('complete.json','lane.json','exports.json'),str(p)))
+    for path in paths:
+        target=destination/path.relative_to(source)
+        target.parent.mkdir(parents=True,exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=target.parent,delete=False) as stream:
+            temporary=Path(stream.name)
+        shutil.copyfile(path,temporary)
+        need(sha(path)==sha(temporary),'durable publication changed')
+        os.replace(temporary,target)
+
+
+@contextmanager
+def output_tree(destination):
+    if not scratch():
+        yield Path(destination)
+        return
+    with tempfile.TemporaryDirectory(prefix='v7h-row-',dir=scratch()) as work:
+        try:
+            yield Path(work)
+        finally:
+            # Include interrupted work; only the outer complete receipt commits it.
+            publish_tree(work,destination)
+
+
+def stage_command(command,files):
+    mapping={str(p):str(local_file(p)) for p in files}
+    return [replace_paths(arg,mapping) for arg in command]
+
+
+def replace_paths(value,mapping):
+    for original,replica in sorted(mapping.items(),key=lambda p:-len(p[0])):
+        value=value.replace(original,replica)
+    return value

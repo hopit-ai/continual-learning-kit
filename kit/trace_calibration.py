@@ -11,10 +11,16 @@ from kit.trace_judge import calibration_summary, RUBRIC
 
 def packets(pairs):
     from collections import Counter
+    need(len(pairs) == 90 and len({p['id'] for p in pairs}) == 90,
+         'ninety unique calibration pairs required')
     need(Counter(p['panel'] for p in pairs)==
          Counter({'Self-Instruct':30,'LIMA':30,'CoNa':30}), 'calibration panels differ')
     requests = []
     for pair in pairs:
+        need(set(pair) == {'id', 'panel', 'prompt', 'a', 'b', 'checkpoint_independent'},
+             'calibration row schema differs')
+        need(all(isinstance(pair[k], str) and pair[k].strip() for k in ('id', 'prompt', 'a', 'b')),
+             'empty calibration text')
         need(pair.get('checkpoint_independent') is True, 'checkpoint-linked calibration')
         reverse = int(digest(pair['id'])[:8],16)%2 == 1
         a,b = (pair['b'],pair['a']) if reverse else (pair['a'],pair['b'])

@@ -22,10 +22,15 @@ def run(cfg):
     root = Path(cfg['out'])
     prepared = load(root/'prepared.json')
     need(prepared['config_sha256'] == digest(cfg), 'target preparation identity differs')
-    from kit.v4_teacher import VLLMGenerator
-    from transformers import AutoTokenizer
-    generator = VLLMGenerator(cfg['teacher']['model'], 2560, input_cap=5632, tensor_parallel_size=2)
-    tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
+    # Journals with completed verification need neither engine nor tokenizer.
+    generator = tok = None
+    def engine():
+        nonlocal generator
+        if generator is None:
+            from kit.v4_teacher import VLLMGenerator
+            generator = VLLMGenerator(cfg['teacher']['model'], 2560, input_cap=5632,
+                                       tensor_parallel_size=2)
+        return generator
     accepted = {}
     for task in SUBSET:
         rows = prepared['selected'][task]
@@ -49,7 +54,7 @@ def run(cfg):
                     pending.append(record)
                 records.append(record)
             if pending:
-                outputs = generator.generate_many([r['request'] for r in pending])
+                outputs = engine().generate_many([r['request'] for r in pending])
                 need(len(outputs)==len(pending), 'teacher batch incomplete')
                 for record,raw in zip(pending,outputs):
                     saved = dict(request=record['request'],raw=raw,verification=None,verified=None)
@@ -60,6 +65,9 @@ def run(cfg):
                 saved, row = record['saved'],record['row']
                 if saved['verified'] is not None:
                     continue
+                if tok is None:
+                    from transformers import AutoTokenizer
+                    tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
                 raw = saved['raw']
                 text = raw['text']
                 valid = (raw.get('finish_reason')=='stop' and len(tok.encode(
@@ -77,6 +85,7 @@ def run(cfg):
                     saved['verified'] = valid and verified_answer(task,text,row['answer'])
                     atomic(record['path'],saved)
             if checks:
+                engine()
                 generator.max_new_tokens, generator.input_cap = 256,7936
                 try:
                     outputs = generator.generate_many([request for _,request in checks])

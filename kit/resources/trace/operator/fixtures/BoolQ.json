@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 0.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 1.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 2.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 3.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 4.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 5.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 6.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 7.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 8.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 9.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 10.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 11.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 12.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 13.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 14.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 15.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 16.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 17.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 18.",
+      "answer": "true"
+    },
+    "prediction": "true",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "BoolQ",
+      "panel": "BoolQ",
+      "prompt": "Boolean question 19.",
+      "answer": "false"
+    },
+    "prediction": "false",
+    "score": 100.0
+  }
+]

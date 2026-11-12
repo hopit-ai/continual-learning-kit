@@ -1,0 +1,12 @@
+{
+  "technical_synthetic": null,
+  "registration_sha256": null,
+  "input_sha256": null,
+  "rows": null,
+  "training_only": null,
+  "summaries": null,
+  "summary_ids": [],
+  "material_mismatches": null,
+  "invalid_targets": null,
+  "leaked_targets": null
+}

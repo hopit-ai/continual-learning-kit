@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 0 + 1.",
+      "answer": "1"
+    },
+    "prediction": "1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 1 + 1.",
+      "answer": "2"
+    },
+    "prediction": "2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 2 + 1.",
+      "answer": "3"
+    },
+    "prediction": "3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 3 + 1.",
+      "answer": "4"
+    },
+    "prediction": "4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 4 + 1.",
+      "answer": "5"
+    },
+    "prediction": "5",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 5 + 1.",
+      "answer": "6"
+    },
+    "prediction": "6",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 6 + 1.",
+      "answer": "7"
+    },
+    "prediction": "7",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 7 + 1.",
+      "answer": "8"
+    },
+    "prediction": "8",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 8 + 1.",
+      "answer": "9"
+    },
+    "prediction": "9",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 9 + 1.",
+      "answer": "10"
+    },
+    "prediction": "10",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 10 + 1.",
+      "answer": "11"
+    },
+    "prediction": "11",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 11 + 1.",
+      "answer": "12"
+    },
+    "prediction": "12",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 12 + 1.",
+      "answer": "13"
+    },
+    "prediction": "13",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 13 + 1.",
+      "answer": "14"
+    },
+    "prediction": "14",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 14 + 1.",
+      "answer": "15"
+    },
+    "prediction": "15",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 15 + 1.",
+      "answer": "16"
+    },
+    "prediction": "16",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 16 + 1.",
+      "answer": "17"
+    },
+    "prediction": "17",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 17 + 1.",
+      "answer": "18"
+    },
+    "prediction": "18",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 18 + 1.",
+      "answer": "19"
+    },
+    "prediction": "19",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "GSM8K",
+      "panel": "GSM8K",
+      "prompt": "Compute 19 + 1.",
+      "answer": "20"
+    },
+    "prediction": "20",
+    "score": 100.0
+  }
+]

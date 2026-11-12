@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 0: choose the label.",
+      "answer": "A"
+    },
+    "prediction": "A",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 1: choose the label.",
+      "answer": "B"
+    },
+    "prediction": "B",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 2: choose the label.",
+      "answer": "C"
+    },
+    "prediction": "C",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 3: choose the label.",
+      "answer": "D"
+    },
+    "prediction": "D",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 4: choose the label.",
+      "answer": "A"
+    },
+    "prediction": "A",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 5: choose the label.",
+      "answer": "B"
+    },
+    "prediction": "B",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 6: choose the label.",
+      "answer": "C"
+    },
+    "prediction": "C",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 7: choose the label.",
+      "answer": "D"
+    },
+    "prediction": "D",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 8: choose the label.",
+      "answer": "A"
+    },
+    "prediction": "A",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 9: choose the label.",
+      "answer": "B"
+    },
+    "prediction": "B",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 10: choose the label.",
+      "answer": "C"
+    },
+    "prediction": "C",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 11: choose the label.",
+      "answer": "D"
+    },
+    "prediction": "D",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 12: choose the label.",
+      "answer": "A"
+    },
+    "prediction": "A",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 13: choose the label.",
+      "answer": "B"
+    },
+    "prediction": "B",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 14: choose the label.",
+      "answer": "C"
+    },
+    "prediction": "C",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 15: choose the label.",
+      "answer": "D"
+    },
+    "prediction": "D",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 16: choose the label.",
+      "answer": "A"
+    },
+    "prediction": "A",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 17: choose the label.",
+      "answer": "B"
+    },
+    "prediction": "B",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 18: choose the label.",
+      "answer": "C"
+    },
+    "prediction": "C",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "MMLU",
+      "panel": "MMLU",
+      "prompt": "Question 19: choose the label.",
+      "answer": "D"
+    },
+    "prediction": "D",
+    "score": 100.0
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "schema": "trace-qualification-command.v1",
+  "study": "s8",
+  "argv": [
+    "{trainer_python}",
+    "-I",
+    "{kit}/trace_operator.py",
+    "qualify"
+  ],
+  "files": []
+}

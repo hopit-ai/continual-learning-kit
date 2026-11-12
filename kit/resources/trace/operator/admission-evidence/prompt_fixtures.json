@@ -1,0 +1,10 @@
+{
+  "technical_synthetic": null,
+  "registration_sha256": null,
+  "input_sha256": null,
+  "rows": null,
+  "cases_per_task": {},
+  "semantic_changes": null,
+  "leaked_targets": null,
+  "missing_roles_or_eos": null
+}

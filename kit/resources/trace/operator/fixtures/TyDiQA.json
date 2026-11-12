@@ -1,0 +1,222 @@
+[
+  {
+    "row": {
+      "id": "fixture-00",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 0: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 0"
+    },
+    "prediction": "alpha beta gamma delta summary number 0",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-01",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 1: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 1"
+    },
+    "prediction": "alpha beta gamma delta summary number 1",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-02",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 2: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 2"
+    },
+    "prediction": "alpha beta gamma delta summary number 2",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-03",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 3: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 3"
+    },
+    "prediction": "alpha beta gamma delta summary number 3",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-04",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 4: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 4"
+    },
+    "prediction": "alpha beta gamma delta summary number 4",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-05",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 5: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 5"
+    },
+    "prediction": "alpha beta gamma delta summary number 5",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-06",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 6: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 6"
+    },
+    "prediction": "alpha beta gamma delta summary number 6",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-07",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 7: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 7"
+    },
+    "prediction": "alpha beta gamma delta summary number 7",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-08",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 8: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 8"
+    },
+    "prediction": "alpha beta gamma delta summary number 8",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-09",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 9: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 9"
+    },
+    "prediction": "alpha beta gamma delta summary number 9",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-10",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 10: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 10"
+    },
+    "prediction": "alpha beta gamma delta summary number 10",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-11",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 11: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 11"
+    },
+    "prediction": "alpha beta gamma delta summary number 11",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-12",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 12: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 12"
+    },
+    "prediction": "alpha beta gamma delta summary number 12",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-13",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 13: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 13"
+    },
+    "prediction": "alpha beta gamma delta summary number 13",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-14",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 14: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 14"
+    },
+    "prediction": "alpha beta gamma delta summary number 14",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-15",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 15: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 15"
+    },
+    "prediction": "alpha beta gamma delta summary number 15",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-16",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 16: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 16"
+    },
+    "prediction": "alpha beta gamma delta summary number 16",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-17",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 17: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 17"
+    },
+    "prediction": "alpha beta gamma delta summary number 17",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-18",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 18: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 18"
+    },
+    "prediction": "alpha beta gamma delta summary number 18",
+    "score": 100.0
+  },
+  {
+    "row": {
+      "id": "fixture-19",
+      "task": "TyDiQA",
+      "panel": "TyDiQA",
+      "prompt": "Source passage number 19: alpha beta gamma delta.",
+      "answer": "alpha beta gamma delta summary number 19"
+    },
+    "prediction": "alpha beta gamma delta summary number 19",
+    "score": 100.0
+  }
+]

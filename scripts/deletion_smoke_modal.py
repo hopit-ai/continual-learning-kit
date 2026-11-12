@@ -5,6 +5,7 @@ No imports of Modal occur in the code uploaded to the container.
 """
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -14,7 +15,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from deletion_tuning.deletion_logic import smoke_price
 
-IMAGE_ID = 'im-OYRoRmNvKAyaYcZwv7v6rB'
 FILES = ('kit/sdft_actor.py', 'kit/sdft_objective.py', 'kit/p3b_loss.py', 'kit/sdft_verl.py',
          'deletion_tuning/__init__.py', 'deletion_tuning/deletion_actor.py',
          'deletion_tuning/deletion_logic.py', 'deletion_tuning/deletion_mask.py', 'deletion_tuning/deletion_smoke.py',
@@ -24,7 +24,10 @@ FILES = ('kit/sdft_actor.py', 'kit/sdft_objective.py', 'kit/p3b_loss.py', 'kit/s
          'deletion_tuning/vendor/deleting_weights/LICENSE', 'deletion_tuning/vendor/deleting_weights/PROVENANCE.json')
 
 
-def launch(receipt, log_path=None):
+def launch(receipt, log_path=None, *, image_id=None):
+    image_id = image_id or os.environ.get('DELETION_MODAL_IMAGE_ID')
+    if not image_id:
+        raise ValueError('provide --image-id or DELETION_MODAL_IMAGE_ID before launch')
     import asyncio
     import hashlib
     import signal
@@ -38,7 +41,7 @@ def launch(receipt, log_path=None):
     receipt.parent.mkdir(parents=True, exist_ok=True)
     with receipt.open('x') as handle:
         json.dump(dict(status='STARTING', price=price), handle)
-    record = dict(status='STOP', price=price, image_id=IMAGE_ID, image_build_seconds=0)
+    record = dict(status='STOP', price=price, image_id=image_id, image_build_seconds=0)
     sandbox = None
     started = time.monotonic()
     def _term(signum, frame):
@@ -48,7 +51,7 @@ def launch(receipt, log_path=None):
         import modal  # host only
         record['code_sha256'] = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in FILES}
         # from_id performs no image build. Missing image is a STOP.
-        image = modal.Image.from_id(IMAGE_ID)
+        image = modal.Image.from_id(image_id)
         app = modal.App('deletion-06b-smoke')
         # detach=True: a dropped local connection cannot stop the app; the Sandbox timeout bounds cost.
         with app.run(detach=True):
@@ -107,12 +110,13 @@ def launch(receipt, log_path=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--launch', action='store_true')
+    parser.add_argument('--image-id', default=os.environ.get('DELETION_MODAL_IMAGE_ID'))
     parser.add_argument('--receipt', type=Path, default=ROOT / 'tmp/deletion-smoke-receipt.json')
     args = parser.parse_args()
     if args.launch:
-        launch(args.receipt)
+        launch(args.receipt, image_id=args.image_id)
     else:
-        print(json.dumps(dict(status='PRICED, UNLAUNCHED', image_id=IMAGE_ID,
+        print(json.dumps(dict(status='PRICED, UNLAUNCHED', image_id=args.image_id,
                               source='https://modal.com/pricing', rate_date='2026-11-11', **smoke_price()), indent=2))
 
 
