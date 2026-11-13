@@ -1,222 +1,250 @@
 [
   {
     "row": {
-      "id": "fixture-00",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-0",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 0: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 0"
+      "answer": [
+        "blue whale",
+        "whale"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 0",
-    "score": 100.0
+    "prediction": "The blue whale.\nwrong",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-01",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-1",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 1: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 1"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 1",
-    "score": 100.0
+    "prediction": "blue, red",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-02",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-2",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 2: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 2"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 2",
-    "score": 100.0
+    "prediction": "BLUE!",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-03",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-3",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 3: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 3"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 3",
-    "score": 100.0
+    "prediction": "blue whale",
+    "score": 66.66666666666667
   },
   {
     "row": {
-      "id": "fixture-04",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-4",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 4: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 4"
+      "answer": [
+        "blue",
+        "green"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 4",
-    "score": 100.0
+    "prediction": "wrong",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-05",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-5",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 5: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 5"
+      "answer": [
+        "blue whale",
+        "whale"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 5",
-    "score": 100.0
+    "prediction": "The blue whale.\nwrong",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-06",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-6",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 6: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 6"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 6",
-    "score": 100.0
+    "prediction": "blue, red",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-07",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-7",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 7: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 7"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 7",
-    "score": 100.0
+    "prediction": "BLUE!",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-08",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-8",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 8: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 8"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 8",
-    "score": 100.0
+    "prediction": "blue whale",
+    "score": 66.66666666666667
   },
   {
     "row": {
-      "id": "fixture-09",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-9",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 9: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 9"
+      "answer": [
+        "blue",
+        "green"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 9",
-    "score": 100.0
+    "prediction": "wrong",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-10",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-10",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 10: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 10"
+      "answer": [
+        "blue whale",
+        "whale"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 10",
-    "score": 100.0
+    "prediction": "The blue whale.\nwrong",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-11",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-11",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 11: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 11"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 11",
-    "score": 100.0
+    "prediction": "blue, red",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-12",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-12",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 12: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 12"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 12",
-    "score": 100.0
+    "prediction": "BLUE!",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-13",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-13",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 13: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 13"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 13",
-    "score": 100.0
+    "prediction": "blue whale",
+    "score": 66.66666666666667
   },
   {
     "row": {
-      "id": "fixture-14",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-14",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 14: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 14"
+      "answer": [
+        "blue",
+        "green"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 14",
-    "score": 100.0
+    "prediction": "wrong",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-15",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-15",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 15: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 15"
+      "answer": [
+        "blue whale",
+        "whale"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 15",
-    "score": 100.0
+    "prediction": "The blue whale.\nwrong",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-16",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-16",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 16: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 16"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 16",
-    "score": 100.0
+    "prediction": "blue, red",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-17",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-17",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 17: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 17"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 17",
-    "score": 100.0
+    "prediction": "BLUE!",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-18",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-18",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 18: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 18"
+      "answer": [
+        "blue"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 18",
-    "score": 100.0
+    "prediction": "blue whale",
+    "score": 66.66666666666667
   },
   {
     "row": {
-      "id": "fixture-19",
-      "task": "TyDiQA",
+      "id": "TyDiQA-fixture-19",
       "panel": "TyDiQA",
-      "prompt": "Source passage number 19: alpha beta gamma delta.",
-      "answer": "alpha beta gamma delta summary number 19"
+      "answer": [
+        "blue",
+        "green"
+      ],
+      "subset": "english"
     },
-    "prediction": "alpha beta gamma delta summary number 19",
-    "score": 100.0
+    "prediction": "wrong",
+    "score": 0
   }
 ]

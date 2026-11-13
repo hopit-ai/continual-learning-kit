@@ -1,222 +1,982 @@
 [
   {
     "row": {
-      "id": "fixture-00",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/0",
       "panel": "MMLU",
-      "prompt": "Question 0: choose the label.",
-      "answer": "A"
+      "subset": "college_biology",
+      "answer": "A",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "A",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-01",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/1",
       "panel": "MMLU",
-      "prompt": "Question 1: choose the label.",
-      "answer": "B"
+      "subset": "college_biology",
+      "answer": "B",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "B",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-02",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/2",
       "panel": "MMLU",
-      "prompt": "Question 2: choose the label.",
-      "answer": "C"
+      "subset": "college_biology",
+      "answer": "C",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "C",
+    "prediction": {
+      "losses": [
+        2.0,
+        3.0,
+        0.5,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-03",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/3",
       "panel": "MMLU",
-      "prompt": "Question 3: choose the label.",
-      "answer": "D"
+      "subset": "college_biology",
+      "answer": "D",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "D",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/4",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "A",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-04",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/5",
       "panel": "MMLU",
-      "prompt": "Question 4: choose the label.",
-      "answer": "A"
+      "subset": "college_biology",
+      "answer": "B",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "A",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/6",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "C",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/7",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "D",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        2.0,
+        3.0,
+        4.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-05",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/8",
       "panel": "MMLU",
-      "prompt": "Question 5: choose the label.",
-      "answer": "B"
+      "subset": "college_biology",
+      "answer": "A",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "B",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-06",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/9",
       "panel": "MMLU",
-      "prompt": "Question 6: choose the label.",
-      "answer": "C"
+      "subset": "college_biology",
+      "answer": "B",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "C",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/10",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "C",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/11",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "D",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        2.0,
+        3.0,
+        4.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-07",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/12",
       "panel": "MMLU",
-      "prompt": "Question 7: choose the label.",
-      "answer": "D"
+      "subset": "college_biology",
+      "answer": "A",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "D",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-08",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/13",
       "panel": "MMLU",
-      "prompt": "Question 8: choose the label.",
-      "answer": "A"
+      "subset": "college_biology",
+      "answer": "B",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "A",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-09",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/14",
       "panel": "MMLU",
-      "prompt": "Question 9: choose the label.",
-      "answer": "B"
+      "subset": "college_biology",
+      "answer": "C",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "B",
+    "prediction": {
+      "losses": [
+        2.0,
+        3.0,
+        0.5,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-10",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/15",
       "panel": "MMLU",
-      "prompt": "Question 10: choose the label.",
-      "answer": "C"
+      "subset": "college_biology",
+      "answer": "D",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "C",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/MMLU/college_biology/16",
+      "panel": "MMLU",
+      "subset": "college_biology",
+      "answer": "A",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-11",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/17",
       "panel": "MMLU",
-      "prompt": "Question 11: choose the label.",
-      "answer": "D"
+      "subset": "college_biology",
+      "answer": "B",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "D",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5,
+        4.0,
+        5.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-12",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/18",
       "panel": "MMLU",
-      "prompt": "Question 12: choose the label.",
-      "answer": "A"
+      "subset": "college_biology",
+      "answer": "C",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "A",
-    "score": 100.0
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
+    "score": 0.0
   },
   {
     "row": {
-      "id": "fixture-13",
-      "task": "MMLU",
+      "id": "trace-general/MMLU/college_biology/19",
       "panel": "MMLU",
-      "prompt": "Question 13: choose the label.",
-      "answer": "B"
+      "subset": "college_biology",
+      "answer": "D",
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: A"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: B"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: C"
+        },
+        {
+          "render_mode": "raw",
+          "prompt": "The following are multiple choice questions (with answers) about  college biology.\n\nDev 0\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 1\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 2\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 3\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nDev 4\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D\n\nQuestion?\nA. One\nB. Two\nC. Three\nD. Four\nAnswer: D"
+        }
+      ],
+      "shot_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "prompt": "Question?"
     },
-    "prediction": "B",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-14",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 14: choose the label.",
-      "answer": "C"
+    "prediction": {
+      "losses": [
+        2.0,
+        3.0,
+        4.0,
+        0.5
+      ]
     },
-    "prediction": "C",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-15",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 15: choose the label.",
-      "answer": "D"
-    },
-    "prediction": "D",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-16",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 16: choose the label.",
-      "answer": "A"
-    },
-    "prediction": "A",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-17",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 17: choose the label.",
-      "answer": "B"
-    },
-    "prediction": "B",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-18",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 18: choose the label.",
-      "answer": "C"
-    },
-    "prediction": "C",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-19",
-      "task": "MMLU",
-      "panel": "MMLU",
-      "prompt": "Question 19: choose the label.",
-      "answer": "D"
-    },
-    "prediction": "D",
     "score": 100.0
   }
 ]

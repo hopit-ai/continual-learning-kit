@@ -1,222 +1,202 @@
 [
   {
     "row": {
-      "id": "fixture-00",
-      "task": "BBH",
+      "id": "BBH-fixture-0",
       "panel": "BBH",
-      "prompt": "Return answer0.",
-      "answer": "answer0"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer0",
-    "score": 100.0
+    "prediction": "The answer is (B).",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-01",
-      "task": "BBH",
+      "id": "BBH-fixture-1",
       "panel": "BBH",
-      "prompt": "Return answer1.",
-      "answer": "answer1"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer1",
-    "score": 100.0
+    "prediction": "The answer is (A).",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-02",
-      "task": "BBH",
+      "id": "BBH-fixture-2",
       "panel": "BBH",
-      "prompt": "Return answer2.",
-      "answer": "answer2"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer2",
-    "score": 100.0
+    "prediction": "The answer is yes.\nMore",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-03",
-      "task": "BBH",
+      "id": "BBH-fixture-3",
       "panel": "BBH",
-      "prompt": "Return answer3.",
-      "answer": "answer3"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer3",
-    "score": 100.0
+    "prediction": "yes!",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-04",
-      "task": "BBH",
+      "id": "BBH-fixture-4",
       "panel": "BBH",
-      "prompt": "Return answer4.",
-      "answer": "answer4"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer4",
-    "score": 100.0
+    "prediction": "The answer is (B).",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-05",
-      "task": "BBH",
+      "id": "BBH-fixture-5",
       "panel": "BBH",
-      "prompt": "Return answer5.",
-      "answer": "answer5"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer5",
-    "score": 100.0
+    "prediction": "The answer is (A).",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-06",
-      "task": "BBH",
+      "id": "BBH-fixture-6",
       "panel": "BBH",
-      "prompt": "Return answer6.",
-      "answer": "answer6"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer6",
-    "score": 100.0
+    "prediction": "The answer is yes.\nMore",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-07",
-      "task": "BBH",
+      "id": "BBH-fixture-7",
       "panel": "BBH",
-      "prompt": "Return answer7.",
-      "answer": "answer7"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer7",
-    "score": 100.0
+    "prediction": "yes!",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-08",
-      "task": "BBH",
+      "id": "BBH-fixture-8",
       "panel": "BBH",
-      "prompt": "Return answer8.",
-      "answer": "answer8"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer8",
-    "score": 100.0
+    "prediction": "The answer is (B).",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-09",
-      "task": "BBH",
+      "id": "BBH-fixture-9",
       "panel": "BBH",
-      "prompt": "Return answer9.",
-      "answer": "answer9"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer9",
-    "score": 100.0
+    "prediction": "The answer is (A).",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-10",
-      "task": "BBH",
+      "id": "BBH-fixture-10",
       "panel": "BBH",
-      "prompt": "Return answer10.",
-      "answer": "answer10"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer10",
-    "score": 100.0
+    "prediction": "The answer is yes.\nMore",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-11",
-      "task": "BBH",
+      "id": "BBH-fixture-11",
       "panel": "BBH",
-      "prompt": "Return answer11.",
-      "answer": "answer11"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer11",
-    "score": 100.0
+    "prediction": "yes!",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-12",
-      "task": "BBH",
+      "id": "BBH-fixture-12",
       "panel": "BBH",
-      "prompt": "Return answer12.",
-      "answer": "answer12"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer12",
-    "score": 100.0
+    "prediction": "The answer is (B).",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-13",
-      "task": "BBH",
+      "id": "BBH-fixture-13",
       "panel": "BBH",
-      "prompt": "Return answer13.",
-      "answer": "answer13"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer13",
-    "score": 100.0
+    "prediction": "The answer is (A).",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-14",
-      "task": "BBH",
+      "id": "BBH-fixture-14",
       "panel": "BBH",
-      "prompt": "Return answer14.",
-      "answer": "answer14"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer14",
-    "score": 100.0
+    "prediction": "The answer is yes.\nMore",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-15",
-      "task": "BBH",
+      "id": "BBH-fixture-15",
       "panel": "BBH",
-      "prompt": "Return answer15.",
-      "answer": "answer15"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer15",
-    "score": 100.0
+    "prediction": "yes!",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-16",
-      "task": "BBH",
+      "id": "BBH-fixture-16",
       "panel": "BBH",
-      "prompt": "Return answer16.",
-      "answer": "answer16"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer16",
-    "score": 100.0
+    "prediction": "The answer is (B).",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-17",
-      "task": "BBH",
+      "id": "BBH-fixture-17",
       "panel": "BBH",
-      "prompt": "Return answer17.",
-      "answer": "answer17"
+      "answer": "(B)",
+      "subset": "temporal_sequences"
     },
-    "prediction": "answer17",
-    "score": 100.0
+    "prediction": "The answer is (A).",
+    "score": 0
   },
   {
     "row": {
-      "id": "fixture-18",
-      "task": "BBH",
+      "id": "BBH-fixture-18",
       "panel": "BBH",
-      "prompt": "Return answer18.",
-      "answer": "answer18"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer18",
-    "score": 100.0
+    "prediction": "The answer is yes.\nMore",
+    "score": 100
   },
   {
     "row": {
-      "id": "fixture-19",
-      "task": "BBH",
+      "id": "BBH-fixture-19",
       "panel": "BBH",
-      "prompt": "Return answer19.",
-      "answer": "answer19"
+      "answer": "yes",
+      "subset": "navigate"
     },
-    "prediction": "answer19",
-    "score": 100.0
+    "prediction": "yes!",
+    "score": 0
   }
 ]

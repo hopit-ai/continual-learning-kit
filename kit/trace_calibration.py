@@ -5,11 +5,13 @@ import sys
 if __package__ in (None,''):
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import argparse
+import re
 from kit.trace_common import *
-from kit.trace_judge import calibration_summary, RUBRIC
+from kit.trace_judge import calibration_summary, RUBRIC, declared_raters
 
 
-def packets(pairs):
+def packets(pairs, rater_names=None):
+    names = declared_raters(rater_names)
     from collections import Counter
     need(len(pairs) == 90 and len({p['id'] for p in pairs}) == 90,
          'ninety unique calibration pairs required')
@@ -30,19 +32,24 @@ def packets(pairs):
     blind = [dict(id=r['id'],messages=r['messages']) for r in requests]
     return dict(mapping={r['id']:r['reverse'] for r in requests},
                 raters={name:dict(model=name,effort='high',requests=blind)
-                        for name in ('gpt-6-astra','Fable')})
+                        for name in names})
 
 
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--pairs',required=True,type=Path)
     parser.add_argument('--out',required=True,type=Path)
+    parser.add_argument('--raters', nargs=2, metavar=('FIRST', 'SECOND'))
     args=parser.parse_args()
     pairs=load(args.pairs)
-    value=packets(pairs)
+    value=packets(pairs, args.raters)
+    filenames = [re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')+'-high.json'
+                 for name in value['raters']]
+    need(len(set(filenames)) == len(filenames) and all(f != '-high.json' for f in filenames),
+         'rater packet filenames collide or are empty')
     seal(args.out/'mapping.json',value['mapping'])
-    for name,packet in value['raters'].items():
-        seal(args.out/(name+'-high.json'),packet)
+    for filename,packet in zip(filenames,value['raters'].values()):
+        seal(args.out/filename,packet)
     print('Prepared 180 blind frontier-rater requests. GPU-h 0, paid calls 0.')
 
 

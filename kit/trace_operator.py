@@ -262,6 +262,18 @@ def stage_assets(config):
 
 def bind(config, destination):
     """Bind local assets and emit all operator-owned adapter/command manifests."""
+    from kit.trace_general_metrics import PANELS, VENDOR, verify_vendor
+    overrides = set(config.get('operator', {}).get('metric_authorities', {})) & set(PANELS)
+    studies = config.get('studies', ['s8', *SOURCES])
+    if 's8' in studies:
+        need(not overrides, 'TRACE general metric_authorities are kit-supplied; remove: '+', '.join(sorted(overrides)))
+    elif overrides:
+        import warnings
+        warnings.warn('Ignoring unused TRACE general metric_authorities: '+', '.join(sorted(overrides)),
+                      stacklevel=2)
+        config = copy.deepcopy(config)
+        for key in overrides:
+            config['operator']['metric_authorities'].pop(key)
     cfg = stage_assets(config)
     root = Path(destination).resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -271,19 +283,25 @@ def bind(config, destination):
     vendor = KIT/'resources/trace/vendor/hf-datasets-2.21.0-sari'
     metric_files = [reference(KIT/'trace_datasets.py'),
                     *(reference(vendor/name) for name in ('sari.py', 'LICENSE', 'PROVENANCE.json'))]
+    if 's8' in studies:
+        verify_vendor()
+        metric_files += [reference(KIT/name) for name in
+                         ('trace_general_metrics.py', 'trace_general_build.py', 'trace_general_score.py')]
+        metric_files += [reference(p) for p in sorted(VENDOR.rglob('*')) if p.is_file()
+                         and '__pycache__' not in p.parts and p.suffix != '.pyc']
     cfg['metrics'] = {}
     for name in metric_names:
         fixtures = load(RESOURCE/'fixtures'/f'{name}.json')
-        if name not in ('instruction', 'maths'):
+        if name not in ('instruction', 'maths', *GENERAL):
             authority = cfg['operator']['metric_authorities'][name]
             for fixture in fixtures:
                 fixture['row']['metric_authority'] = authority
         path = root/'fixtures'/f'{name}.json'
         seal(path, fixtures)
-        cfg['metrics'][name] = dict(**reference(KIT/'trace_metrics.py'),
+        cfg['metrics'][name] = dict(**reference(KIT/('trace_general_metrics.py' if name in GENERAL else 'trace_metrics.py')),
             function='general' if name in ('instruction', 'maths') else 'score',
             fixtures=reference(path), dependencies=metric_files)
-        if name not in ('instruction', 'maths'):
+        if name not in ('instruction', 'maths', *GENERAL):
             cfg['metrics'][name]['authority'] = authority
     from kit.trace_score import metric_adapter
     for ref in cfg['metrics'].values():

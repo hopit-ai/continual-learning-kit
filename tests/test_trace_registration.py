@@ -73,7 +73,7 @@ class ProtocolTests(unittest.TestCase):
     def test_calibration_uses_original_frontier_agreement(self):
         pairs=[dict(id=str(i),panel=('Self-Instruct','LIMA','CoNa')[i//30]) for i in range(90)]
         labels=[dict(id=str(i),labels=[0,0]) for i in range(90)]
-        raters={'gpt-6-astra':{str(i):0 for i in range(90)},'Fable':{str(i):0 for i in range(90)}}
+        raters={'gpt-6-astra':{str(i):0 for i in range(90)},'Claude Opus':{str(i):0 for i in range(90)}}
         result=calibration_summary(pairs,labels,raters)
         self.assertEqual(result['all']['H'],1)
         self.assertEqual(result['all']['J_minus_H_interval'],[0,0])
@@ -514,6 +514,7 @@ class ProtocolTests(unittest.TestCase):
                 with patch('kit.trace_prepare.model_record'), \
                      patch('kit.trace_prepare.bound_json',side_effect=lambda x:x), \
                      patch('kit.trace_prepare.read_rows',side_effect=lambda x:x), \
+                     patch('kit.trace_general_build.validate', return_value=True), \
                      patch('kit.trace_prepare.audit_rows',return_value=dict(flagged=[],unresolved=0)), \
                      patch('kit.trace_sft.sft_census',return_value=(encoded,summary)), \
                      patch.dict(sys.modules,transformers=fake):

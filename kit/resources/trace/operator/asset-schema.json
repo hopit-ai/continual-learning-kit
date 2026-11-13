@@ -1,7 +1,7 @@
 {
   "schema": "trace-operator-inputs.v1",
   "required_operator_fields": {
-    "metric_authorities": "Task/panel -> staged scorer path, function, key, scale_to_100, dependencies; uses_source for SARI.",
+    "metric_authorities": "Eight TRACE tasks only -> staged scorer path, function, key, scale_to_100, dependencies; uses_source for SARI. Six general overrides are refused when s8 is selected, otherwise ignored with a warning naming the keys.",
     "admission_evidence": "Probe name -> measured JSON evidence file reference. Never a bare valid:true.",
     "native_probes": "Study -> named probe -> command manifest reference (argv and files)."
   },
@@ -26,5 +26,9 @@
     "scale_to_100": 100,
     "dependencies": [],
     "uses_source": false
+  },
+  "optional_config_fields": {
+    "calibration_raters": "Exactly two ordered distinct rater names. Default [\"gpt-6-astra\", \"Claude Opus\"]. These names must match the raters JSON keys exactly.",
+    "raters": "File reference to JSON keyed exactly \"gpt-6-astra\" and \"Claude Opus\" by default, each mapping sealed pair IDs to labels -1, 0, 1. Use calibration_raters to declare other exact keys."
   }
 }

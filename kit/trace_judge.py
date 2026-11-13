@@ -51,17 +51,30 @@ def judge_pairs(cfg, pairs, *, profile=None, audit=None):
     return results, raw
 
 
-def calibration_summary(pairs, labels, raters, adjudicated=None):
+# Frozen declaration: docs/phase4/trace-calibration-raters-DECLARATION-20261112.md
+DEFAULT_RATERS = ('gpt-6-astra', 'Claude Opus')
+
+
+def declared_raters(names=None):
+    names = DEFAULT_RATERS if names is None else names
+    need(isinstance(names, (tuple, list)) and len(names) == 2 and
+         all(isinstance(n, str) and n.strip() for n in names) and len(set(names)) == 2,
+         'exactly two distinct declared rater names required')
+    return tuple(names)
+
+
+def calibration_summary(pairs, labels, raters, adjudicated=None, *, rater_names=None):
+    names = declared_raters(rater_names)
     need(len(pairs)==90 and len({p['id'] for p in pairs})==90, 'ninety unique pairs required')
     lookup = {r['id']:r for r in labels}
     need(set(lookup)=={p['id'] for p in pairs}, 'calibration labels incomplete')
-    need(set(raters)=={'gpt-6-astra','Fable'}, 'frontier rater identities differ')
+    need(set(raters)==set(names), 'rater keys differ; expected '+', '.join(names))
     result = {}
     for panel in ('all','Self-Instruct','LIMA','CoNa'):
         members = [p for p in pairs if panel=='all' or p['panel']==panel]
         h,j,o = [],[],[]
         for pair in members:
-            a,b = [raters[r][pair['id']] for r in ('gpt-6-astra','Fable')]
+            a,b = [raters[r][pair['id']] for r in names]
             need(a in (-1,0,1) and b in (-1,0,1), 'invalid rater label')
             first,second = lookup[pair['id']]['labels']
             h.append(int(a==b))
@@ -69,13 +82,13 @@ def calibration_summary(pairs, labels, raters, adjudicated=None):
             j.append(sum(v is not None and v==r for v in (first,second) for r in (a,b))/4)
             o.append(int(first is None or second is None or first!=second))
         H,J,O = map(statistics.mean,(h,j,o))
-        first_rater = [raters['gpt-6-astra'][p['id']] for p in members]
-        second_rater = [raters['Fable'][p['id']] for p in members]
+        first_rater = [raters[names[0]][p['id']] for p in members]
+        second_rater = [raters[names[1]][p['id']] for p in members]
         expected = math.fsum(first_rater.count(label)*second_rater.count(label)/len(h)**2
                             for label in (-1,0,1))
         kappa = (H-expected)/(1-expected) if expected<1 else None
         rater_cells = {}
-        for name in ('gpt-6-astra','Fable'):
+        for name in names:
             for order in (0,1):
                 values = [int(lookup[p['id']]['labels'][order] is not None and
                               lookup[p['id']]['labels'][order]==raters[name][p['id']])
@@ -109,7 +122,7 @@ def calibration_summary(pairs, labels, raters, adjudicated=None):
         result[panel] = dict(n=len(h),H_interval=wilson(h),kappa=kappa,
             per_rater=per_rater,consensus_agreement=consensus,
             rater_prevalence={name:{str(label):sum(raters[name][p['id']]==label for p in members)
-                for label in (-1,0,1)} for name in raters},H=H,J=J,O=O,judge_minus_raters=J-H,
+                for label in (-1,0,1)} for name in names},H=H,J=J,O=O,judge_minus_raters=J-H,
             order_minus_rater_disagreement=O+H-1,J_minus_H_interval=interval(0),
             O_minus_disagreement_interval=interval(1),reporting='DESCRIPTIVE')
     return result
@@ -162,7 +175,7 @@ def run(cfg, study, seed):
             labels, raw = departure.execute_probe(cfg,pairs,protocol['calibration'],environment,binding)
             if departure.recover_d1(cfg,binding,science,protocol['calibration']) is None:
                 departure.probe_failure(cfg,RuntimeError('D1 evidence incomplete'),replace=True)
-                labels,raw=judge_pairs(cfg,pairs,profile='DEFAULT')
+                # Keep the just-produced D1 science labels even if calibration failed.
                 recovering=True
                 recovered=None
         elif probe and first_lane and state['id']==first_state and recovered is not None:
@@ -540,8 +553,7 @@ def probe_cell(cfg,pairs,profile):
     environment=hardware()
     started=time.monotonic()
     audit={}
-    with probe_deadline():
-        labels,raw=judge_pairs(cfg,pairs,profile=profile,audit=audit)
+    labels,raw=judge_pairs(cfg,pairs,profile=profile,audit=audit)
     seconds=time.monotonic()-started
     need(digest(normalized_uuid(current_uuid()))==gpu,'probe physical GPU changed')
     need(hardware()==environment,'probe environment changed')
@@ -553,7 +565,7 @@ def probe_cell(cfg,pairs,profile):
 
 
 def execute_probe(cfg,science,calibration,environment,binding):
-    """D1 science supplies registered labels; all subsequent calls are probe-only."""
+    """D1 supplies registered cells; only F1/D2/F2 have a probe deadline."""
     path=probe_root(cfg)/'receipt.json'
     need(not path.exists() and not (probe_root(cfg)/'started.json').exists(),'probe is single-shot')
     passes={}
@@ -565,7 +577,12 @@ def execute_probe(cfg,science,calibration,environment,binding):
             selected='DEFAULT' if name[0]=='D' else 'FAST'
             passes[name]={}
             for key,pairs in (('science',science),('calibration',calibration)):
-                passes[name][key]=probe_cell(cfg,pairs,selected)
+                if name=='D1':
+                    # Registered science and calibration have no probe-specific limit.
+                    passes[name][key]=probe_cell(cfg,pairs,selected)
+                else:
+                    with probe_deadline():
+                        passes[name][key]=probe_cell(cfg,pairs,selected)
                 if name=='D1' and key=='science':
                     registered=passes[name][key]
                 if name=='D1':
@@ -596,12 +613,13 @@ def execute_probe(cfg,science,calibration,environment,binding):
             from kit.trace_judge import calibration_summary
             try:
                 raters=bound_json(cfg['raters'])
-                result['J']={n:calibration_summary(calibration,run['calibration']['labels'],raters)
+                result['J']={n:calibration_summary(calibration,run['calibration']['labels'],raters,
+                    rater_names=cfg.get('calibration_raters'))
                              for n,run in passes.items()}
-            except (FileNotFoundError,ValueError,KeyError):
-                result['J_status']='PENDING'
+            except (FileNotFoundError,ValueError,KeyError) as error:
+                result['J_status']='PENDING: '+str(error)
         else:
-            result['J_status']='PENDING'
+            result['J_status']='PENDING: raters JSON absent'
         validate_receipt(result)
         seal(path,result)
     except BaseException as error:

@@ -181,9 +181,23 @@ def stage_incoming(cfg,study,seed,stage):
     return load(Path(cfg['out'])/'training'/f'{study}-{seed}'/stage['incoming']/'exports.json')['40']
 
 
+def stream_sha(path):
+    """Hash checkpoint files with bounded memory, preserving the SHA-256 bytes."""
+    import hashlib
+    checksum=hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for chunk in iter(lambda:stream.read(8*1024*1024),b''):
+            checksum.update(chunk)
+    return checksum.hexdigest()
+
+
 def export_stage_cpu(prepared,root,python):
     """Same merger argv and files as NM; a verified seal commits each merge."""
     from kit.nm_prepare import verify_model
+    from types import FunctionType
+    # Keep the sealed verifier's code and checks, with a private hash binding.
+    # A global monkeypatch would also affect concurrent inherited callers.
+    verify_model=FunctionType(verify_model.__code__,dict(verify_model.__globals__,sha=stream_sha))
     root=Path(root)
     need(load(root/'native-receipt.json')['status']=='COMPLETE','native stage incomplete')
     exports={'0':prepared['incoming']}
@@ -191,7 +205,7 @@ def export_stage_cpu(prepared,root,python):
         source=root/'native'/f'global_step_{step}'/'actor'
         need(source.is_dir(),'native export checkpoint absent')
         binding=digest(dict(prepared=prepared,step=step,
-            source={str(p.relative_to(source)):sha(p) for p in source.rglob('*') if p.is_file()}))
+            source={str(p.relative_to(source)):stream_sha(p) for p in source.rglob('*') if p.is_file()}))
         receipt=root/f'merge-{step}.json'
         if receipt.exists():
             saved=load(receipt)
@@ -199,16 +213,16 @@ def export_stage_cpu(prepared,root,python):
             record=saved['export']
             verify_model(record)
             for name,checksum in record['files'].items():
-                need(sha(Path(record['model'])/name)==checksum,'merge file changed')
+                need(stream_sha(Path(record['model'])/name)==checksum,'merge file changed')
         else:
             target=root/f'hf-step{step}'
             subprocess.run([python,'-m','verl.model_merger','merge','--backend','fsdp',
                 '--local_dir',str(source),'--target_dir',str(target)],cwd=prepared['cwd'],
                 env=dict(os.environ,CUDA_VISIBLE_DEVICES=''),check=True)
-            files={p.name:sha(p) for p in sorted([*target.glob('*.safetensors'),
+            files={p.name:stream_sha(p) for p in sorted([*target.glob('*.safetensors'),
                                                 *target.glob('*.safetensors.index.json')])}
             need(files,'CPU export weights absent')
-            files['config.json']=sha(target/'config.json')
+            files['config.json']=stream_sha(target/'config.json')
             record=dict(model=str(target),sha256=digest(files),files=files)
             verify_model(record)
             seal(receipt,dict(binding=binding,export=record))

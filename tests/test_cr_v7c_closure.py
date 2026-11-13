@@ -41,11 +41,46 @@ A2_CODE_PATHS_SHA256 = '5b6d917ef8a0875f927695d287199b490d5443e037ea12f39d6c0479
 TRACE_CODE_PATHS = (
     'jobs/trace/run-task.sh',
     'resources/trace/vendor/hf-datasets-2.21.0-sari/sari.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/SuperGLUE_BoolQ/SuperGLUE_BoolQ_ppl.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/SuperGLUE_BoolQ/SuperGLUE_BoolQ_ppl_314b96.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/bbh/bbh_gen.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/bbh/bbh_gen_5b92b0.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/gsm8k/gsm8k_gen.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/gsm8k/gsm8k_gen_1d7fe4.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/mmlu/mmlu_ppl.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/mmlu/mmlu_ppl_ac766d.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/piqa/piqa_ppl.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/piqa/piqa_ppl_1cf9f0.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/tydiqa/tydiqa_gen.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/datasets/tydiqa/tydiqa_gen_978d2a.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/summarizers/groups/bbh.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/summarizers/groups/mmlu.py',
+    'resources/trace/vendor/opencompass-0.1.5/configs/summarizers/groups/tydiqa.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/datasets/bbh.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/datasets/boolq.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/datasets/gsm8k.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/datasets/mmlu.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/datasets/tydiqa.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/models/huggingface.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_evaluator/hf_metrics/accuracy.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_evaluator/icl_base_evaluator.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_evaluator/icl_hf_evaluator.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_inferencer/icl_ppl_inferencer.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_prompt_template.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_retriever/icl_base_retriever.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_retriever/icl_fix_k_retriever.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/openicl/icl_retriever/icl_zero_retriever.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/tasks/openicl_infer.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/utils/prompt.py',
+    'resources/trace/vendor/opencompass-0.1.5/opencompass/utils/text_postprocessors.py',
     'trace_calibration.py',
     'trace_calibration_build.py',
     'trace_common.py',
     'trace_datasets.py',
     'trace_entry.py',
+    'trace_general_build.py',
+    'trace_general_metrics.py',
+    'trace_general_score.py',
     'trace_jobs.py',
     'trace_judge.py',
     'trace_metrics.py',
@@ -61,7 +96,7 @@ TRACE_CODE_PATHS = (
     'trace_targets.py',
     'trace_train.py',
 )
-TRACE_CODE_PATHS_SHA256 = 'a30d77e1ee5cb04057f21ef882eaf91d92360f2d316597ed3a515ae9cc9fb07e'
+TRACE_CODE_PATHS_SHA256 = 'e359065054c1141179c5a57543c16c3256e3b92f1fedf9abc71da15033ca12b6'
 
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
@@ -174,7 +209,7 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
     assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
-    assert len(TRACE_CODE_PATHS) == 21
+    assert len(TRACE_CODE_PATHS) == 56
     assert tuple(sorted(TRACE_CODE_PATHS)) == TRACE_CODE_PATHS
     assert hashlib.sha256(('\n'.join(TRACE_CODE_PATHS)+'\n').encode()).hexdigest() == TRACE_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)

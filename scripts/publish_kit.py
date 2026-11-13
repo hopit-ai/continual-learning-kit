@@ -35,6 +35,7 @@ PUBLIC_TAG = "kit-b0-v3"
 K1A_TAG = "kit-k1a-v1"
 TESTS = ("test_kit_runner.py", "test_kit_report.py", "test_kit_stage_local.py", "test_kit_bed_finqa.py", "test_kit_bed_gsm8k.py",
          "test_kit_k4a.py", "test_kit_k1c.py", "test_kit_scorecard.py", "test_kit_plasticity.py", "test_kit_bed_code.py", "test_kit_k5.py", "test_kit_k4.py", "test_kit_density.py", "test_kit_k3_dose.py", "test_kit_collect.py", "test_kit_repertoire.py", "test_kit_k2b.py", "test_kit_long_cap.py", "test_kit_budget.py", "test_kit_k1c_audit.py", "test_kit_pilot_report.py", "test_kit_control_report.py", "test_kit_pilot_campaign.py", "test_kit_k1c_control.py", "test_kit_bed_authors.py", "test_kit_pilot_launchers.py")
+TESTS += ("test_trace_general.py",)
 TESTS += ("test_kit_phase0_public.py", "test_kit_phase0_g7_public.py", "test_kit_finqa_phase0_carry.py", "test_kit_phase0_host.py", "test_kit_phase0_host_review.py", "test_kit_phase0_host_round2.py", "test_kit_phase0_storage.py", "test_kit_phase0_lustre.py", "test_kit_teacher_config_shape.py")
 TESTS += ("test_kit_phase0_timing.py",)
 TESTS += ("test_kit_phase0_closed_r3.py", "test_kit_finqa_host.py", "test_kit_finqa_retention.py")
@@ -58,6 +59,7 @@ TESTS += ("test_cr_v7c_closure.py",)
 # The separate private registration parity test runs when its document exists.
 TESTS += ("test_trace_registration.py",)
 TESTS += ("test_trace_metrics.py",)
+TESTS += ("test_trace_probe.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
 TESTS += ("kit_authority.py", "util70_fixtures.py",)
 # Public deletion mechanics. Manager-only binding checks depend on private reads.
@@ -282,6 +284,8 @@ NumGLUE-cm and NumGLUE-ds use ODC-By, with underlying content grants required.
 Py150 requires per-file MIT/BSD/Apache source notices. C-STANCE and 20Minuten
 require applicable grants before affected tasks run. Evaluation and original-tokenizer
 terms are recorded in kit/resources/trace/registration.md section 8.
+TRACE calibration prompt sources are Self-Instruct (Apache-2.0), LIMA and CoNa.
+Only prompt hashes and IDs ship; the authored answers are ours.
 Qwen/Qwen2.5-7B-Instruct (local judge) is Apache-2.0. Retain its licence and notices
 with staged model files. TRACE code is Apache-2.0 subject to individual file headers.
 
@@ -289,6 +293,12 @@ kit/resources/trace/vendor/hf-datasets-2.21.0-sari/sari.py is copied unchanged
 from huggingface/datasets tag 2.21.0, metrics/sari/sari.py, Apache-2.0.
 Copyright 2020 The HuggingFace Datasets Authors and the current dataset script
 contributor. Its LICENSE and PROVENANCE.json accompany the source.
+
+kit/resources/trace/vendor/opencompass-0.1.5/ contains unchanged files from
+open-compass/opencompass tag 0.1.5, commit 9b21613d171ccac154530a3c7bbeba6743b469f4
+(https://github.com/open-compass/opencompass), Apache-2.0. Its LICENSE and
+PROVENANCE.json accompany the source. The local accuracy metric retains its
+HuggingFace Datasets Authors copyright and Apache-2.0 header.
 
 kit/run_sdpo_toolalpaca.sh launches, and does not include, lasgroup/SDPO
 (https://github.com/lasgroup/SDPO), which carries its own licence.

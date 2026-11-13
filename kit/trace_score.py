@@ -16,9 +16,12 @@ def metric_adapter(ref):
     path = bound_file(ref)
     for dependency in ref.get('dependencies', []):
         bound_file(dependency)
-    spec = importlib.util.spec_from_file_location('trace_metric_'+sha(path), path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    if path.resolve() == (KIT/'trace_general_metrics.py').resolve():
+        from kit import trace_general_metrics as module
+    else:
+        spec = importlib.util.spec_from_file_location('trace_metric_'+sha(path), path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
     fn = getattr(module, ref['function'])
     if 'authority' in ref:
         implementation = fn
@@ -26,13 +29,18 @@ def metric_adapter(ref):
             return implementation(dict(row, metric_authority=ref['authority']), prediction)
     fixtures = bound_json(ref['fixtures'])
     need(len(fixtures) >= 20, 'twenty metric fixtures required')
-    for fixture in fixtures:
-        actual = fn(fixture['row'], fixture['prediction'])
+    batch = module.score_many if path.resolve() == (KIT/'trace_general_metrics.py').resolve() else None
+    actuals = (batch([f['row'] for f in fixtures], [f['prediction'] for f in fixtures])
+               if batch else [fn(f['row'], f['prediction']) for f in fixtures])
+    need(len(actuals) == len(fixtures), 'scorer fixture results missing')
+    for fixture, actual in zip(fixtures, actuals):
         need(type(actual) in (float, int) and math.isfinite(actual) and
              0 <= actual <= 100 and
              type(fixture['score']) in (float, int) and math.isfinite(fixture['score']) and
              0 <= fixture['score'] <= 100 and
              abs(actual-fixture['score']) <= 1e-6, 'scorer fixture mismatch')
+    if batch:
+        fn.score_many = batch
     return fn
 
 
@@ -93,7 +101,9 @@ def generation(model, tokenizer, rows, prompt_cap, response_cap, temperature, se
                      finish_reason=o.outputs[0].finish_reason,
                      tokens=len(o.outputs[0].token_ids), prompt_tokens=len(ids),
                      prompt_cap_hit=uncut > prompt_cap,
-                     response_cap_hit=len(o.outputs[0].token_ids) >= response_cap)
+                     response_cap_hit=len(o.outputs[0].token_ids) >= response_cap,
+                     **(dict(prompt_truncated_tokens=max(0,uncut-prompt_cap))
+                        if r.get('render_mode') else {}))
                 for r,o,ids,uncut in zip(rows,outputs,token_ids,uncut_lengths)]
     finally:
         shutdown_since(scope)
@@ -134,15 +144,38 @@ def score_state(cfg, study, seed, state, model):
         results['knowledge'] = aggregate(values)
         atomic(work/'knowledge.json', dict(records=reference, values=values))
         if study == 's8':
+            from kit.trace_general_score import likelihood, likelihood_runtime, aggregate as general_aggregate
+            ppl_outputs = {}
+            with likelihood_runtime(model, cfg['base']['model']) as runtime:
+                for panel, spec in panels['trace_general'].items():
+                    if spec['mode'] == 'ppl':
+                        ppl_outputs[panel] = likelihood(model, spec['rows'], cfg['base']['model'], runtime=runtime)
             for panel, spec in panels['trace_general'].items():
-                # Frozen few-shot messages, extraction and decoding are node inputs.
                 rows = spec['rows']
-                outputs = generation(model, cfg['base']['model'], rows,
-                             spec['prompt_cap'], spec['response_cap'], spec['temperature'], seed)
+                if spec['mode'] == 'ppl':
+                    outputs = ppl_outputs[panel]
+                    predictions = [o['selected'] for o in outputs]
+                else:
+                    outputs = generation(model, cfg['base']['model'], rows,
+                                 spec['prompt_cap'], spec['response_cap'], spec['temperature'], seed)
+                    predictions = [o['text'] for o in outputs]
                 fn = metric_adapter(cfg['metrics'][panel])
-                values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
-                results[panel] = aggregate(values)
-                atomic(work/(panel+'.json'), dict(outputs=outputs, values=values))
+                values = fn.score_many(rows, predictions)
+                results[panel] = general_aggregate(panel, rows, values)
+                if spec['mode'] == 'ppl':
+                    audit = dict(prompt_cap_hits=sum(o['prompt_cap_hits'] for o in outputs),
+                                 truncated_tokens=sum(o['truncated_tokens'] for o in outputs),
+                                 shot_dropped_items=sum(any(len(ids) < 5 for ids in
+                                     o.get('shot_ids_by_label', {}).values()) for o in outputs)
+                                     if panel == 'MMLU' else 0)
+                else:
+                    audit = dict(prompt_cap_hits=sum(o['prompt_cap_hit'] for o in outputs),
+                                 truncated_tokens=sum(o['prompt_truncated_tokens'] for o in outputs),
+                                 response_cap_hits=sum(o['response_cap_hit'] for o in outputs))
+                if audit['prompt_cap_hits']:
+                    import warnings
+                    warnings.warn(f"{panel}: {audit['prompt_cap_hits']} prompt cap hits", stacklevel=2)
+                atomic(work/(panel+'.json'), dict(outputs=outputs, values=values, audit=audit))
         outputs = generation(model, cfg['base']['model'], panels['open'], 2048, 2048, .1, seed)
         atomic(work/'open.json', outputs)
         atomic(work/'result.json', results)
@@ -191,7 +224,8 @@ def tokenizer_identity(tokenizer):
 
 
 def encode_tokens(tok,rows,prompt_cap):
-    prompts=[tok.apply_chat_template(r.get('messages') or [dict(role='user',content=r['prompt'])],
+    prompts=[r['prompt'] if r.get('render_mode') == 'raw' else
+             tok.apply_chat_template(r.get('messages') or [dict(role='user',content=r['prompt'])],
              tokenize=False,add_generation_prompt=True,enable_thinking=False) for r in rows]
     ids=[tok.encode(p,add_special_tokens=False) for p in prompts]
     return dict(token_ids=[x[-prompt_cap:] for x in ids],uncut_lengths=[len(x) for x in ids])
@@ -228,7 +262,8 @@ def token_groups(protocol,study):
         yield [r for r in general if r['panel'] in aliases],2048
     if study=='s8':
         for spec in panels['trace_general'].values():
-            yield spec['rows'],spec['prompt_cap']
+            if spec['mode'] == 'generation':
+                yield spec['rows'],spec['prompt_cap']
     yield panels['open'],2048
 
 

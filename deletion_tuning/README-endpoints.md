@@ -119,10 +119,9 @@ The evidence document contains:
   Put detailed forced changes in the local document, without pasting paths,
   machine identities or execution identifiers.
 
-The shipped LR validator currently requires model_geometry `[4096,32]`; the
-inherited HF verifier requires 36 layers. This pre-existing mismatch must be
-resolved in the production qualification implementation before an actual 8B
-handoff. The endpoint adapters deliberately reuse both validators unchanged.
+The shipped LR validator requires model_geometry `[4096,36]`, matching the
+Qwen3-8B hidden size and layer count checked by the inherited HF verifier.
+The endpoint adapters reuse both validators with this consistent geometry.
 
 ## Collect and read on CPU
 

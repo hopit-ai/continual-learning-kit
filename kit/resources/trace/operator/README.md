@@ -63,21 +63,7 @@ The expected 90-pair JSONL SHA-256 is
 Normal TRACE prepare invokes the same `node_assemble` implementation.
 Changed bound sources, sidecars, selections or existing seals fail validation.
 
-For the manager's independent reconstruction, keep sources under
-`references/self-instruct-0b26ccaa/` and `references/trace-upstream-462e39f6/`
-using the exact filenames above. The manager command also validates the local
-relation key at `docs/phase4/trace-calibration-LOCAL-KEY-20261112.json`.
-
-```bash
-python -I scripts/trace_calibration_assemble_v7h.py --root . --out calibration-manager
-python -I kit/trace_calibration.py --pairs calibration-manager/sealed/pairs.json --out rater-packets
-```
-
-The manager command produces the same sealed bytes and blinded high-effort
-packets for Astra and Fable. Send each rater only its packet's `requests`.
-Keep the LOCAL relation key and packet mapping on the manager. Full prompts,
-sealed rows and human answers stay in local staging. Return IDs, orders and
-labels through the existing return contract. Assembly uses local CPU files.
+The programme manager reconstructs the same seal independently.
 
 ## Node: file bindings and receipts
 
@@ -100,7 +86,7 @@ perfect-answer invariants; they do not establish all extraction, normalisation
 or partial-credit conventions. Additional upstream edge fixtures are needed
 for full Q qualification. The installed source scorer remains authoritative.
 
-`operator.metric_authorities` maps each task/panel to an upstream file reference,
+`operator.metric_authorities` maps each TRACE task to an upstream file reference,
 `function`, result `key`, `scale_to_100`, `dependencies` file references and
 `uses_source` for SARI. Use the exact admitted TRACE extraction callable, not a
 newly approximated metric. Its interface receives prediction/reference lists,
@@ -119,6 +105,9 @@ is added after the evaluation directory during the upstream call.
 The result key accepts a string or a nonempty JSON list of string/integer steps.
 20Minuten uses `["sari", 0, "sari"]` to unwrap upstream's tuple result.
 
+Rights: fuzzywuzzy 0.18.0 (GPL-2.0) is installed by the operator on the node.
+It is not vendored or distributed by the kit.
+
 Use a metric environment with rouge 1.0.1, fuzzywuzzy 0.18.0, sacrebleu 2.4.3,
 sacremoses 0.1.1 and packaging 26.3 (the vendored SARI script imports it).
 Do not install python-Levenshtein: Py150 edit
@@ -134,18 +123,8 @@ the local vendored source, with no network fetch.
 
 The authored fixtures test perfect-answer invariants only. They leave
 extraction, normalisation and partial-credit edge conventions unqualified.
-The six general OpenCompass metrics require separate upstream verification.
-
-On the manager checkout, verify the eight task metrics with a metric venv.
-The verification script copies upstream code to temporary staging before use.
-It writes per-task fixture counts and failures and exits nonzero on a failure.
-The script stays manager-only and is excluded from the public export.
-
-```bash
-METRIC_PY=/local/metric-venv/bin/python
-"$METRIC_PY" -I scripts/trace_metric_upstream_verify.py \
-  references/trace-upstream-462e39f6 tmp/metric-upstream-report.json
-```
+The six general OpenCompass metrics use the kit bridge and the independent
+verification command documented below.
 
 `operator.admission_evidence` maps the six names in admission-template.json to
 measured detailed JSON file references. The template deliberately says invalid;
@@ -243,7 +222,124 @@ inventory already exposes all safe row-level parallelism; no edges changed.
 Exact replacement lines for the queued TRACE insert (plain ASCII, each <90):
 
 ```text
-Calibration: 90 sealed pairs; same blind pairs go to Astra/Fable high.
+Calibration: 90 sealed pairs; same blind pairs go to Astra/Claude Opus high.
 Order: CPU prepare -> 2-GPU targets -> CPU bind -> qualify -> train/score.
 Paste ESSENTIAL return-*.txt only (<=3 parts); retain FULL on node.
 ```
+
+### Frozen S8 general panels (kit-message-v7i)
+
+The kit supplies the six general metric authorities from OpenCompass **0.1.5**,
+commit `9b21613d171ccac154530a3c7bbeba6743b469f4` (22 Sep 2023). Byte-identical
+source, Apache-2.0 LICENSE and per-file hashes are in
+`kit/resources/trace/vendor/opencompass-0.1.5/`. When `s8` is selected, bind refuses MMLU, BBH, GSM8K,
+TyDiQA, PIQA or BoolQ in `operator.metric_authorities`. Other study scopes
+ignore these unused keys with a warning naming them. The eight TRACE task
+authorities remain operator-supplied. The bridge executes the pinned evaluators
+and postprocessors unchanged, with scoped package glue and local HF accuracy.
+It restores import state on success and failure. It downloads nothing. General accuracy requires the real NumPy and
+scikit-learn libraries in the staged metric environment; model scoring uses
+the node's existing torch/transformers stack. No package installation occurs
+during build or scoring.
+
+Build `trace_general` on CPU from a JSON manifest using:
+
+```sh
+python3 -I kit/trace_general_build.py --manifest general-inputs.json --out trace-general.json
+```
+
+Set manifest `schema` to `trace-general-inputs.v1`. Its `datasets` object must
+have exactly MMLU, BBH, GSM8K, TyDiQA, PIQA and BoolQ. Each panel has an explicit
+nonempty dataset `revision` and `files`, a dictionary from each required logical
+filename below to `{"path": "/staged/file", "sha256": "<64 hex digits>"}`.
+Paths may differ from logical filenames; hashes must already be supplied.
+Merge the emitted object into `panels['trace_general']` alongside the unchanged
+`general-v1` and `open`, then hash-bind the complete panels JSON as usual.
+All raw data must already be staged under applicable grants. No dataset bytes
+are included in the kit. File hashes, revisions, per-file and subset counts,
+config hashes and fixed shot IDs are recorded in the built artifact.
+
+| Panel | Exact logical files and raw schema |
+|---|---|
+| MMLU | `dev/<subject>_dev.csv` and `test/<subject>_test.csv` for all 57 `mmlu_all_sets` in `configs/datasets/mmlu/mmlu_ppl_ac766d.py`; headerless UTF-8 CSV: question, A, B, C, D, target label. Dev rows 0–4, in order, are the fixed five shots. |
+| BBH | `<task>.json` for all 27 tasks in `bbh_gen_5b92b0.py`'s two task lists; object `{"examples": [{"input": "...", "target": "..."}]}`. The three CoT examples come verbatim from the corresponding vendored `bbh/lib_prompt/<task>.txt`. |
+| GSM8K | `test.jsonl`: HF `gsm8k/main` test rows with `question` and original `answer` containing `#### `. The pinned dataset postprocessor removes the prefix and commas; the pinned config supplies its four fixed demonstration rounds. |
+| TyDiQA | `<language>/validation.jsonl`, one per all 11 `langs` in `tydiqa_gen_978d2a.py`: HF gold-passage validation rows with `passage_text`, `question_text`, `answers: {"text": ["gold", "alternative"]}`. Golds remain nonempty lists; 0-shot. |
+| PIQA | `validation.jsonl`: HF validation rows with `goal`, `sol1`, `sol2`, integer `label` 0 or 1; 0-shot. |
+| BoolQ | `val.jsonl`: the pinned SuperGLUE BoolQ val export, with `passage`, `question`, and string `label` (`"true"` or `"false"`). The builder requires exactly these two strings, maps them to 1/0, and refuses JSON booleans, integers and other values with a clear error. 0-shot. |
+
+`trace_general_build.expected_files(panel)` returns the complete exact logical
+file inventory. Configs are read as AST data, never imported by the builder;
+prompt words and exemplars come from the vendored files. Preparation rejects
+legacy general shapes, missing subsets, wrong rendering modes and changed caps.
+
+Rendering is frozen: plain-string templates are **raw text**, without a chat
+template. HUMAN/BOT rounds become user/assistant messages using Qwen3's native
+chat template with thinking disabled. For PPL the label is the assistant turn,
+and the entire rendered sequence is scored. MMLU and PIQA use raw text; BoolQ
+uses rounds. For each candidate the sequential bf16 model supplies float32
+logits. The pinned `_get_ppl` reduction sums shifted token cross-entropies,
+ignores pad targets and divides by the full non-pad input length (including the
+initial token), with no answer-only mask or `normalizing_str`. Tokenization
+matches upstream `get_logits` (default special tokens, max length 2048 and the
+tokenizer's truncation side). In label order, MMLU drops the LAST dev example
+while `len(tokenizer.encode(rendered_prompt)) > 2048` and shots remain. The
+reduced shot list carries forward across labels. Each row records the shot IDs
+used per label and residual truncation after all shots are exhausted. First
+minimum wins ties. Full-precision repeat tolerance is at most 1e-6 (registration H).
+
+Generation is greedy, temperature 0: GSM8K 512, BBH 512 and TyDiQA 50 new tokens.
+The prompt cap is 2048 with existing left truncation. No extra stop strings are
+introduced. Prompt-cap hits, truncated token counts and response-cap hits are
+recorded; truncation warns and continues. PPL records per-label losses and
+its cap/truncation counts too. Existing TRACE-task and general-v1 rendering
+and decoding retain their prior behaviour.
+
+MMLU/PIQA/BoolQ use the pinned AccEvaluator on the selected label; GSM8K uses
+its pinned prediction extractor and AccEvaluator on build-time-processed gold;
+BBH uses MCQ postprocessing on prediction and gold for its 17 MCQ tasks and
+BBHEvaluator for its 10 free-form tasks; TyDiQA uses TydiQAEvaluator F1 over a
+list of golds. The primary panel score is the naive mean of subset scores:
+57 MMLU subjects, 27 BBH tasks, 11 TyDiQA languages; the other panels each have
+one subset. Per-subset scores and pooled item mean are retained, plus the
+pinned `mmlu-weighted` group descriptively. The primary `sum/n` represents
+subset means so the existing TRACE return reconstructs the same panel score.
+
+The six general fixture sets exercise their real kit scorers (at least twenty
+each), including label-selection ties and both BBH evaluator branches. On the
+manager side, run the independent upstream check offline, after copying out
+of the read-only references tree (the script does the copying):
+
+```sh
+python3 -I scripts/trace_general_upstream_verify.py references/opencompass-0.1.5-9b21613d general-verification.json
+```
+
+It runs every fixture and additional extraction/tie cases, upstream template /
+retriever prompt comparisons, and CPU fake-logit loss parity in a separate
+`python -I` worker. Native bf16 GPU behaviour and repeatability still require
+the node's qualification; CPU parity is not a GPU qualification receipt.
+
+
+### Calibration rater JSON and configuration
+
+The node config's `raters` file reference points to a JSON object keyed exactly
+`"gpt-6-astra"` and `"Claude Opus"`. Each value maps every sealed pair ID to a
+label in -1, 0, 1. To use another declared pair, set the top-level config key
+`"calibration_raters": ["FIRST", "SECOND"]` and use those exact keys in the
+raters JSON. Exactly two distinct names are required and their order is kept.
+The default is `["gpt-6-astra", "Claude Opus"]`. Packet filenames are
+`gpt-6-astra-high.json` and `claude-opus-high.json`, with the original rater
+names preserved inside each packet. `J_status` includes the pending reason,
+including mismatched rater keys or an absent raters JSON.
+
+The manager can count MMLU shot-dropping on staged rows with a local Qwen3
+tokenizer directory. This CPU command downloads nothing.
+
+```sh
+python3 -I scripts/trace_general_mmlu_census.py --panels staged-general.json --tokenizer /local/Qwen3-tokenizer
+```
+
+`--panels` accepts the general builder output or `prepared.json`. The report
+counts items needing shot-dropping and items remaining over 2048, both overall
+and per subject. Rebuild older staged MMLU rows to include the shot-rendering
+metadata used by the dropping loop.

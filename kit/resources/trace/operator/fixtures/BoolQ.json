@@ -1,222 +1,982 @@
 [
   {
     "row": {
-      "id": "fixture-00",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/0",
       "panel": "BoolQ",
-      "prompt": "Boolean question 0.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-01",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/1",
       "panel": "BoolQ",
-      "prompt": "Boolean question 1.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-02",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/2",
       "panel": "BoolQ",
-      "prompt": "Boolean question 2.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-03",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/3",
       "panel": "BoolQ",
-      "prompt": "Boolean question 3.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/BoolQ/BoolQ/4",
+      "panel": "BoolQ",
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-04",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/5",
       "panel": "BoolQ",
-      "prompt": "Boolean question 4.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/BoolQ/BoolQ/6",
+      "panel": "BoolQ",
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-05",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/7",
       "panel": "BoolQ",
-      "prompt": "Boolean question 5.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-06",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/8",
       "panel": "BoolQ",
-      "prompt": "Boolean question 6.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-07",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/9",
       "panel": "BoolQ",
-      "prompt": "Boolean question 7.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/BoolQ/BoolQ/10",
+      "panel": "BoolQ",
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
+    },
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-08",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/11",
       "panel": "BoolQ",
-      "prompt": "Boolean question 8.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-09",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/12",
       "panel": "BoolQ",
-      "prompt": "Boolean question 9.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-10",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/13",
       "panel": "BoolQ",
-      "prompt": "Boolean question 10.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-11",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/14",
       "panel": "BoolQ",
-      "prompt": "Boolean question 11.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-12",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/15",
       "panel": "BoolQ",
-      "prompt": "Boolean question 12.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        1.0,
+        1.0
+      ]
+    },
+    "score": 0.0
+  },
+  {
+    "row": {
+      "id": "trace-general/BoolQ/BoolQ/16",
+      "panel": "BoolQ",
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
+    },
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-13",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/17",
       "panel": "BoolQ",
-      "prompt": "Boolean question 13.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-14",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/18",
       "panel": "BoolQ",
-      "prompt": "Boolean question 14.",
-      "answer": "true"
+      "subset": "BoolQ",
+      "answer": 0,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "true",
+    "prediction": {
+      "losses": [
+        0.5,
+        3.0
+      ]
+    },
     "score": 100.0
   },
   {
     "row": {
-      "id": "fixture-15",
-      "task": "BoolQ",
+      "id": "trace-general/BoolQ/BoolQ/19",
       "panel": "BoolQ",
-      "prompt": "Boolean question 15.",
-      "answer": "false"
+      "subset": "BoolQ",
+      "answer": 1,
+      "labels": [
+        0,
+        1
+      ],
+      "label_prompts": [
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "No"
+            }
+          ]
+        },
+        {
+          "render_mode": "chat",
+          "messages": [
+            {
+              "role": "user",
+              "content": "The sky is blue.\nQuestion: Is the sky blue?"
+            },
+            {
+              "role": "assistant",
+              "content": "Yes"
+            }
+          ]
+        }
+      ],
+      "shot_ids": [],
+      "prompt": "Is the sky blue"
     },
-    "prediction": "false",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-16",
-      "task": "BoolQ",
-      "panel": "BoolQ",
-      "prompt": "Boolean question 16.",
-      "answer": "true"
+    "prediction": {
+      "losses": [
+        2.0,
+        0.5
+      ]
     },
-    "prediction": "true",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-17",
-      "task": "BoolQ",
-      "panel": "BoolQ",
-      "prompt": "Boolean question 17.",
-      "answer": "false"
-    },
-    "prediction": "false",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-18",
-      "task": "BoolQ",
-      "panel": "BoolQ",
-      "prompt": "Boolean question 18.",
-      "answer": "true"
-    },
-    "prediction": "true",
-    "score": 100.0
-  },
-  {
-    "row": {
-      "id": "fixture-19",
-      "task": "BoolQ",
-      "panel": "BoolQ",
-      "prompt": "Boolean question 19.",
-      "answer": "false"
-    },
-    "prediction": "false",
     "score": 100.0
   }
 ]

@@ -145,8 +145,8 @@ def prepare(cfg):
     general, _ = load_panel()
     need(panels['general-v1'] == general, 'frozen general-v1 membership changed')
     if 's8' in active:
-        need(set(panels['trace_general']) == {'MMLU', 'BBH', 'GSM8K', 'TyDiQA', 'PIQA', 'BoolQ'},
-             'TRACE general panel inventory differs')
+        from kit.trace_general_build import validate as validate_general
+        validate_general(panels['trace_general'])
     need(Counter(r['panel'] for r in panels['open']) ==
          Counter({'Self-Instruct':175, 'LIMA':300, 'CoNa':178}), 'open panel IDs/count differ')
     if isinstance(cfg['calibration'],dict) and cfg['calibration'].get('schema') == 'trace-calibration-assembly.v1':

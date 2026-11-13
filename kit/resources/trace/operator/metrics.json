@@ -7,14 +7,14 @@
     }
   },
   "BBH": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/BBH.json"
     }
   },
   "BoolQ": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/BoolQ.json"
@@ -35,14 +35,14 @@
     }
   },
   "GSM8K": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/GSM8K.json"
     }
   },
   "MMLU": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/MMLU.json"
@@ -70,7 +70,7 @@
     }
   },
   "PIQA": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/PIQA.json"
@@ -91,7 +91,7 @@
     }
   },
   "TyDiQA": {
-    "path": "{kit}/trace_metrics.py",
+    "path": "{kit}/trace_general_metrics.py",
     "function": "score",
     "fixtures": {
       "path": "{operator}/fixtures/TyDiQA.json"

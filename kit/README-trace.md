@@ -86,8 +86,8 @@ SEC clearance has `reserved_outcomes_opened: false`, `intersections: 0` and
 `panels` contains `general-v1`, `trace_general` and `open`. General-v1 must
 match the shipped kit population byte-for-value, including original `math`,
 `knowledge` and `ifeval` panel keys. TRACE general keys are MMLU, BBH, GSM8K,
-TyDiQA, PIQA and BoolQ. Each has `rows`, `prompt_cap`, `response_cap` and
-`temperature`, with frozen shot messages in each row. Open rows have `id`,
+TyDiQA, PIQA and BoolQ. Each uses the pinned builder schema described below, including
+`rows`, inference settings, subset counts and dataset provenance. Open rows have `id`,
 `panel` and `prompt`, with 175 Self-Instruct, 300 LIMA and 178 CoNa rows.
 
 Calibration rows have opaque `id`, `panel`, `prompt`, `a`, `b` and
@@ -99,13 +99,16 @@ this build downloads nothing. Author and review the requested answers manually
 or with an authorised agent; no API authoring is part of this build.
 The builder emits sealed JSONL, its SHA-256 and the matching JSON array.
 Keep its LOCAL quality/order key on our side. Use `trace_calibration.py --pairs pairs.json
---out packets` on our side to create independent Astra/Fable high packets.
+--out packets` on our side to create independent Astra/Claude Opus high packets.
 That command expects a JSON array converted from the sealed calibration JSONL.
-Only ID/messages go to the raters. Keep reversal mapping locally. Opus
-adjudicates disagreements after the original independent labels are retained.
+The packet API accepts exactly two ordered declared rater names, defaulting to
+`gpt-6-astra` and `Claude Opus`; the CLI accepts `--raters FIRST SECOND`.
+Follow the frozen rater declaration for opaque tokens and blinding. Keep the
+reversal mapping locally. GPT-6.1-Sol adjudicates disagreements after the
+original independent labels are retained.
 The local judge labels both orders. The numeric return includes its labels.
 The paper states calibration against frontier-model raters. Human-rater count
-is zero. Exact Fable/Opus backend and paid-token authority bind before calls.
+is zero. Resolved rater backends and paid-token authority bind before calls.
 
 ### Metric and admission authorities
 
@@ -135,9 +138,9 @@ Python >=3.12. BLEU is computed upstream and unused by registered keys.
 `datasets` need not be installed for metrics. The bridge supplies a scoped
 compatibility module and loads the hash-bound vendored datasets 2.21.0 SARI
 script locally, with no network fetch. Its licence and provenance ship beside it.
-The fixtures test perfect-answer invariants only. General OpenCompass metrics
-still need separate upstream verification. The operator README documents the
-manager-only `scripts/trace_metric_upstream_verify.py` command and metric venv.
+The task fixtures test perfect-answer invariants. The operator README documents
+the manager-only task verification command and metric venv; the six general
+scorers have a separate independent upstream parity check described below.
 
 `admission` includes `original_tokenizer_census`, `supervised_masks`,
 `prompt_fixtures`, `scorer_fixtures`, `demo_fidelity_gold` and
@@ -179,7 +182,8 @@ Use `bindings/config.json` as TRACE_CONFIG. The binder checks the actual staged
 metric callable against every expected fixture score to 1e-6 before publishing
 the config. Source-dependent fixtures are contract cases, not a claim that an
 absent upstream scorer has been tested. Preserve source licences and supply the
-exact upstream function, result key and units in `operator.metric_authorities`.
+exact upstream task function, result key and units in `operator.metric_authorities`.
+General panel authorities are supplied by the kit and refuse overrides.
 The frozen instruction/maths callable and fixtures need no upstream code.
 
 Native numerical probes and CPU semantic/fidelity observations require the
@@ -298,3 +302,120 @@ estimates and guard intervals. Each seed remains one paired observation.
 The owner includes tagged TRACE in the v6b-reading message. If its tag is still
 pending when the reading arrives, TRACE follows in the next send. Inventory
 TRACE as three descriptive comparisons.
+
+### Frozen S8 general panels (kit-message-v7i)
+
+The kit supplies the six general metric authorities from OpenCompass **0.1.5**,
+commit `9b21613d171ccac154530a3c7bbeba6743b469f4` (22 Sep 2023). Byte-identical
+source, Apache-2.0 LICENSE and per-file hashes are in
+`resources/trace/vendor/opencompass-0.1.5/`. When `s8` is selected, bind refuses MMLU, BBH, GSM8K,
+TyDiQA, PIQA or BoolQ in `operator.metric_authorities`. Other study scopes
+ignore these unused keys with a warning naming them. The eight TRACE task
+authorities remain operator-supplied. The bridge executes the pinned evaluators
+and postprocessors unchanged, with scoped package glue and local HF accuracy.
+It restores import state on success and failure. It downloads nothing. General accuracy requires the real NumPy and
+scikit-learn libraries in the staged metric environment; model scoring uses
+the node's existing torch/transformers stack. No package installation occurs
+during build or scoring.
+
+Build `trace_general` on CPU from a JSON manifest using:
+
+```sh
+python3 -I kit/trace_general_build.py --manifest general-inputs.json --out trace-general.json
+```
+
+Set manifest `schema` to `trace-general-inputs.v1`. Its `datasets` object must
+have exactly MMLU, BBH, GSM8K, TyDiQA, PIQA and BoolQ. Each panel has an explicit
+nonempty dataset `revision` and `files`, a dictionary from each required logical
+filename below to `{"path": "/staged/file", "sha256": "<64 hex digits>"}`.
+Paths may differ from logical filenames; hashes must already be supplied.
+Merge the emitted object into `panels['trace_general']` alongside the unchanged
+`general-v1` and `open`, then hash-bind the complete panels JSON as usual.
+All raw data must already be staged under applicable grants. No dataset bytes
+are included in the kit. File hashes, revisions, per-file and subset counts,
+config hashes and fixed shot IDs are recorded in the built artifact.
+
+| Panel | Exact logical files and raw schema |
+|---|---|
+| MMLU | `dev/<subject>_dev.csv` and `test/<subject>_test.csv` for all 57 `mmlu_all_sets` in `configs/datasets/mmlu/mmlu_ppl_ac766d.py`; headerless UTF-8 CSV: question, A, B, C, D, target label. Dev rows 0–4, in order, are the fixed five shots. |
+| BBH | `<task>.json` for all 27 tasks in `bbh_gen_5b92b0.py`'s two task lists; object `{"examples": [{"input": "...", "target": "..."}]}`. The three CoT examples come verbatim from the corresponding vendored `bbh/lib_prompt/<task>.txt`. |
+| GSM8K | `test.jsonl`: HF `gsm8k/main` test rows with `question` and original `answer` containing `#### `. The pinned dataset postprocessor removes the prefix and commas; the pinned config supplies its four fixed demonstration rounds. |
+| TyDiQA | `<language>/validation.jsonl`, one per all 11 `langs` in `tydiqa_gen_978d2a.py`: HF gold-passage validation rows with `passage_text`, `question_text`, `answers: {"text": ["gold", "alternative"]}`. Golds remain nonempty lists; 0-shot. |
+| PIQA | `validation.jsonl`: HF validation rows with `goal`, `sol1`, `sol2`, integer `label` 0 or 1; 0-shot. |
+| BoolQ | `val.jsonl`: the pinned SuperGLUE BoolQ val export, with `passage`, `question`, and string `label` (`"true"` or `"false"`). The builder requires exactly these two strings, maps them to 1/0, and refuses JSON booleans, integers and other values with a clear error. 0-shot. |
+
+`trace_general_build.expected_files(panel)` returns the complete exact logical
+file inventory. Configs are read as AST data, never imported by the builder;
+prompt words and exemplars come from the vendored files. Preparation rejects
+legacy general shapes, missing subsets, wrong rendering modes and changed caps.
+
+Rendering is frozen: plain-string templates are **raw text**, without a chat
+template. HUMAN/BOT rounds become user/assistant messages using Qwen3's native
+chat template with thinking disabled. For PPL the label is the assistant turn,
+and the entire rendered sequence is scored. MMLU and PIQA use raw text; BoolQ
+uses rounds. For each candidate the sequential bf16 model supplies float32
+logits. The pinned `_get_ppl` reduction sums shifted token cross-entropies,
+ignores pad targets and divides by the full non-pad input length (including the
+initial token), with no answer-only mask or `normalizing_str`. Tokenization
+matches upstream `get_logits` (default special tokens, max length 2048 and the
+tokenizer's truncation side). In label order, MMLU drops the LAST dev example
+while `len(tokenizer.encode(rendered_prompt)) > 2048` and shots remain. The
+reduced shot list carries forward across labels. Each row records the shot IDs
+used per label and residual truncation after all shots are exhausted. First
+minimum wins ties. Full-precision repeat tolerance is at most 1e-6 (registration H).
+
+Generation is greedy, temperature 0: GSM8K 512, BBH 512 and TyDiQA 50 new tokens.
+The prompt cap is 2048 with existing left truncation. No extra stop strings are
+introduced. Prompt-cap hits, truncated token counts and response-cap hits are
+recorded; truncation warns and continues. PPL records per-label losses and
+its cap/truncation counts too. Existing TRACE-task and general-v1 rendering
+and decoding retain their prior behaviour.
+
+MMLU/PIQA/BoolQ use the pinned AccEvaluator on the selected label; GSM8K uses
+its pinned prediction extractor and AccEvaluator on build-time-processed gold;
+BBH uses MCQ postprocessing on prediction and gold for its 17 MCQ tasks and
+BBHEvaluator for its 10 free-form tasks; TyDiQA uses TydiQAEvaluator F1 over a
+list of golds. The primary panel score is the naive mean of subset scores:
+57 MMLU subjects, 27 BBH tasks, 11 TyDiQA languages; the other panels each have
+one subset. Per-subset scores and pooled item mean are retained, plus the
+pinned `mmlu-weighted` group descriptively. The primary `sum/n` represents
+subset means so the existing TRACE return reconstructs the same panel score.
+
+The six general fixture sets exercise their real kit scorers (at least twenty
+each), including label-selection ties and both BBH evaluator branches. On the
+manager side, run the independent upstream check offline, after copying out
+of the read-only references tree (the script does the copying):
+
+```sh
+python3 -I scripts/trace_general_upstream_verify.py references/opencompass-0.1.5-9b21613d general-verification.json
+```
+
+It runs every fixture and additional extraction/tie cases, upstream template /
+retriever prompt comparisons, and CPU fake-logit loss parity in a separate
+`python -I` worker. Native bf16 GPU behaviour and repeatability still require
+the node's qualification; CPU parity is not a GPU qualification receipt.
+
+
+### Calibration rater JSON and configuration
+
+The node config's `raters` file reference points to a JSON object keyed exactly
+`"gpt-6-astra"` and `"Claude Opus"`. Each value maps every sealed pair ID to a
+label in -1, 0, 1. To use another declared pair, set the top-level config key
+`"calibration_raters": ["FIRST", "SECOND"]` and use those exact keys in the
+raters JSON. Exactly two distinct names are required and their order is kept.
+The default is `["gpt-6-astra", "Claude Opus"]`. Packet filenames are
+`gpt-6-astra-high.json` and `claude-opus-high.json`, with the original rater
+names preserved inside each packet. `J_status` includes the pending reason,
+including mismatched rater keys or an absent raters JSON.
+
+The manager can count MMLU shot-dropping on staged rows with a local Qwen3
+tokenizer directory. This CPU command downloads nothing.
+
+```sh
+python3 -I scripts/trace_general_mmlu_census.py --panels staged-general.json --tokenizer /local/Qwen3-tokenizer
+```
+
+`--panels` accepts the general builder output or `prepared.json`. The report
+counts items needing shot-dropping and items remaining over 2048, both overall
+and per subject. Rebuild older staged MMLU rows to include the shot-rendering
+metadata used by the dropping loop.
