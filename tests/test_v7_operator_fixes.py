@@ -1,4 +1,5 @@
 """V7 operator fixes: CPU SDK doubles, real subprocesses and measured telemetry."""
+from env_redaction import RedactedEnv
 import inspect
 import json
 import os
@@ -253,7 +254,7 @@ with p.engine_startup(dict(gpu_memory_utilization=.42)):
     children = []
     for lane, gpu, visible in [('first', 'GPU-a', '0'), ('second', 'GPU-a', '5'), ('third', 'GPU-b', '0')]:
         job_tmp=tmp_path/lane;job_tmp.mkdir()
-        env = dict(os.environ, KIT_LANE_JOB=lane, KIT_LANE_CONCURRENCY='3',
+        env = RedactedEnv(os.environ, KIT_LANE_JOB=lane, KIT_LANE_CONCURRENCY='3',
                    M2_ASSIGNED_GPU_UUID=gpu+'-'+tmp_path.name, CUDA_VISIBLE_DEVICES=visible,
                    TMPDIR=str(job_tmp),TMP=str(job_tmp),TEMP=str(job_tmp))
         children.append(subprocess.Popen([sys.executable, '-c', code, str(tmp_path), str(events)], env=env))
@@ -424,6 +425,7 @@ def test_finished_diagnostic_engine_shutdown_precedes_likelihood_child(tmp_path,
         (root/'responses.jsonl').write_text(''.join(json.dumps(dict(id=r['id'],response='Answer: A',output_tokens=3,finish_reason='stop'))+'\n' for r in rows))
     monkeypatch.setattr(bed,'cmd_generate',generate)
     def child(command,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
         assert events==['shutdown'] and life._engines[-1] is sentinel
         assert kw['env']['KIT_INFERENCE_WORKLOAD']=='likelihood'
         events.append('likelihood-child')
@@ -573,6 +575,6 @@ def test_public_export_ships_worker_and_runs_operator_regressions(tmp_path,monke
     done=subprocess.run([sys.executable,'-m','pytest','-q','tests/test_v7_operator_fixes.py',
         '-k','not public_export','--basetemp=tmp/v7-fx-export-tests','-p','no:cacheprovider'],
         cwd=target,capture_output=True,text=True,timeout=60,
-        env={k:v for k,v in os.environ.items() if k != 'PYTEST_ADDOPTS'})
+        env=RedactedEnv({k:v for k,v in os.environ.items() if k != 'PYTEST_ADDOPTS'}))
     assert done.returncode==0,done.stdout+done.stderr
     assert 'passed' in done.stdout and 'deselected' in done.stdout

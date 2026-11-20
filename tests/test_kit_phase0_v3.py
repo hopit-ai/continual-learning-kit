@@ -1,4 +1,5 @@
 """Phase-0 v3 regressions, including verbatim ports from 13cff0f and 63bc3c6."""
+from env_redaction import RedactedEnv
 import json,sys
 from pathlib import Path
 import pytest
@@ -213,6 +214,7 @@ def test_partner_rehash_measurement_plan_binding_and_real_runner(tmp_path,monkey
     row=next(row for row in campaign['rows'] if row['id']=='verify-prepare').copy();row.update(needs=[],pilot=False,bars=[])
     observed=[]
     def execute(argv,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
         observed.append((kw['timeout'],kw['env']['V4_COMMAND_TIMEOUT']))
         p.verify_prepare(work);kw['log'].parent.mkdir(parents=True,exist_ok=True);kw['log'].write_text('real immutable verifier passed\n')
         return {'returncode':0,'failure_type':None,'seconds':84}
@@ -234,7 +236,7 @@ def test_real_probe_program_publishes_before_sleep_with_warm_import(tmp_path):
     state=tmp_path/'slurm';state.mkdir();(state/'config.json').write_text(json.dumps({'GPUImportDelay':2.2}))
     folder=tmp_path/'probe';folder.mkdir();owners=tmp_path/'owners';owners.mkdir()
     command=[sys.executable,'-c',code,str(folder),'5','5',str(owners),'yes',str(state),'0']
-    proc=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={})
+    proc=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=RedactedEnv({}))
     try:
         limit=time.monotonic()+4.5
         while not (folder/'gpu.json').exists() and proc.poll() is None and time.monotonic()<limit:time.sleep(.02)

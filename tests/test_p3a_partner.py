@@ -1,4 +1,5 @@
 """Plain jobs on CPU fixtures: ordering, recovery, input identity and readout."""
+from env_redaction import RedactedEnv
 import json
 import os
 from pathlib import Path
@@ -39,7 +40,7 @@ def fixture(root):
 
 def run(script, out, *args, expected=0, warnings=False):
     result = subprocess.run([sys.executable, str(c.KIT / script), '--out', str(out), '--standin', *map(str,args)], capture_output=True, text=True,
-        env={**os.environ, 'CUDA_VISIBLE_DEVICES': '', 'HF_HUB_OFFLINE': '1'})
+        env=RedactedEnv({**os.environ, 'CUDA_VISIBLE_DEVICES': '', 'HF_HUB_OFFLINE': '1'}))
     assert result.returncode == expected, result.stdout + result.stderr
     assert warnings or 'WARNING: ' not in result.stdout, result.stdout
     return result.stdout

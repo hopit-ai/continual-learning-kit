@@ -9,6 +9,9 @@ from kit.nm_common import atomic, load, sha, digest, need, ready, Pending, Inval
 from kit.m3_mode import CONFIRMATION_SEEDS as SEEDS, CONFIRMATION_ARMS as ARMS
 
 BASELINE = '059d6293'
+# Approved v7c source; its existing reviewed seal matches this commit exactly.
+V7C_BASELINE = '921e8e4613a542f3108a26fd7e7c1bc5938e3a61'
+V7C_RECEIPT_SHA256 = '04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380'
 FINQA_PENDING = 'FinQA native reproduction proof missing; owner escalation'
 # The node inventory is itself pinned by the operator, and must enumerate ALL
 # realised inputs, not merely pointers to the original generation protocols.
@@ -288,6 +291,8 @@ def diff_receipt(out, *, base=BASELINE):
                     'owner-v6-howchange':dict(resources=[dict(path='kit/'+p,sha256=h) for p,h in OWNER_RESOURCES],
                         scope='exact file and hunk sha256 pairs only; owner-approved coverage closure')},
                 code=code_seal())
+    if base == V7C_BASELINE:
+        return v7c_delta(out, result)
     try:
         found=subprocess.run(['git','rev-parse','--verify',base+'^{commit}'],cwd=root,capture_output=True,text=True)
     except OSError as error:
@@ -342,6 +347,65 @@ def diff_receipt(out, *, base=BASELINE):
     atomic(out,result);return result
 
 
+def v7c_delta(out, result):
+    """Hash-only inherited transitions; full hunks start at v7i plus redaction."""
+    import difflib
+    resource = KIT/'resources/cr-confirmation'
+    inherited = resource/'diff-receipt-v7c.json'
+    ready(sha(inherited) == V7C_RECEIPT_SHA256, 'inherited v7c review changed; owner escalation')
+    old = load(inherited)['code']
+    baseline = load(resource/'v7i-baseline.json')
+    base = baseline['code']
+    public = baseline['v7i_code']
+    transitions = baseline['inherited']
+    expected = [(name, old.get(name), public.get(name))
+                for name in sorted(set(old) | set(public)) if old.get(name) != public.get(name)]
+    ready([(v['seal_path'], v['v7c_sha256'], v['v7i_sha256']) for v in transitions
+           if v['category'] == 'inherited-public-tag'] == expected,
+          'inherited file inventory changed; owner escalation')
+    redactions = [(name, public.get(name), base.get(name))
+                  for name in sorted(set(public) | set(base)) if public.get(name) != base.get(name)]
+    ready([(v['seal_path'], v['v7i_sha256'], v['review_base_sha256']) for v in transitions
+           if v['category'] == 'test-redaction-cherry-pick'] == redactions,
+          'test redaction inventory changed; owner escalation')
+    ready(all(v['category'] in ('inherited-public-tag', 'test-redaction-cherry-pick')
+              and v.get('source_commit') and 'patch' not in v and 'text' not in v
+              for v in transitions), 'inherited provenance invalid; owner escalation')
+    current = code_seal()
+    for name in sorted(set(base) | set(current)):
+        if base.get(name) == current.get(name):
+            continue
+        file = os.path.normpath('kit/'+name)
+        before = baseline['files'].get(name, '') if name in base else ''
+        ready(isinstance(before, str) and (name not in base or digest_text(before) == base[name]),
+              'review baseline text absent or changed: '+file+'; owner escalation')
+        after = (KIT/name).read_text() if name in current else ''
+        hunks = []
+        for line in difflib.unified_diff(before.splitlines(True), after.splitlines(True)):
+            if line.startswith('@@'): hunks.append([])
+            if hunks: hunks[-1].append(line)
+        for hunk in hunks:
+            trace_lines = set(baseline.get('line_provenance', {}).get('trace_lines', {}).get(name, []))
+            changed = [line for line in hunk[1:] if line[:1] in ('+', '-')]
+            trace = any(digest_text(line) in trace_lines for line in changed)
+            cr_origin = any(digest_text(line) not in trace_lines for line in changed)
+            result['hunks'].append(dict(file=file, header=hunk[0].strip(), sha256=digest(hunk),
+                category=('owner-v7i1-fix (CR+TRACE)' if trace and cr_origin else
+                          'owner-v7i1-fix (TRACE)' if trace else 'owner-v7i1-fix'),
+                origins=(['CR'] if cr_origin else []) + (['TRACE'] if trace else []),
+                suggested_category=None, patch=''.join(hunk)))
+    result.update(baseline_commit=V7C_BASELINE, review_base_commit=baseline['review_base_commit'],
+                  baseline_sha256=sha(resource/'v7i-baseline.json'), inherited=transitions,
+                  reason='Inherited transitions bind hashes only; owner approves only post-v7i/redaction hunks.')
+    atomic(out, result)
+    return result
+
+
+def digest_text(text):
+    from kit.nm_common import raw_hash
+    return raw_hash(text.encode())
+
+
 def verify_diff(ref):
     ready(isinstance(ref,dict), 'diff_receipt must be an object; owner escalation')
     ready(isinstance(ref.get('path'),str) and bool(ref['path']), 'diff receipt path required; owner escalation')
@@ -349,6 +413,8 @@ def verify_diff(ref):
     ready(sha(ref['path'])==ref.get('sha256'), 'diff receipt hash mismatch; owner escalation')
     doc=load(ref['path'])
     ready(isinstance(doc,dict), 'diff receipt must contain a JSON object; owner escalation')
+    if doc.get('schema') == 'cr-diff.v7i1':
+        return verify_v7i1_diff(doc)
     ready(doc.get('baseline')==BASELINE and doc.get('status')=='COMPLETE' and doc.get('review'), 'baseline diff review incomplete; owner escalation')
     ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; owner escalation')
     ready(check_categories(doc.get('hunks', [])), 'unapproved diff hunk; owner escalation')
@@ -370,6 +436,40 @@ def verify_diff(ref):
     ready(actual.get('baseline_commit')==doc.get('baseline_commit') and
           [(h['file'],h['sha256']) for h in actual['hunks']]==[(h['file'],h['sha256']) for h in doc['hunks']],
           'baseline unavailable or diff hunk inventory changed; owner escalation')
+    return doc
+
+
+def verify_v7i1_diff(doc):
+    """Retain v7c's reviewed seal and require separate approval of its exact delta."""
+    ready(doc.get('release') == 'kit-message-v7i1' and doc.get('baseline') == V7C_BASELINE
+          and doc.get('baseline_commit') == V7C_BASELINE,
+          'v7i1 baseline differs; owner escalation')
+    def complete_record(key, status, fields):
+        record = doc.get(key)
+        return (isinstance(record, dict) and record.get('status') == status
+                and all(isinstance(record.get(k), str) and record[k].strip()
+                        and not record[k].strip().upper().startswith('PENDING') for k in fields))
+    ready(doc.get('status') == 'COMPLETE'
+          and complete_record('review', 'COMPLETE', ('reviewer', 'date', 'evidence'))
+          and complete_record('owner_approval', 'APPROVED', ('quote', 'date')),
+          'v7i1 baseline diff review incomplete; owner escalation')
+    inherited = KIT/'resources/cr-confirmation/diff-receipt-v7c.json'
+    ready(doc.get('inherited_review') == dict(path='kit/resources/cr-confirmation/diff-receipt-v7c.json',
+          sha256=V7C_RECEIPT_SHA256) and sha(inherited) == V7C_RECEIPT_SHA256,
+          'inherited v7c review changed; owner escalation')
+    ready(doc.get('code') == code_seal(), 'confirmation code changed since diff review; owner escalation')
+    hunks = doc.get('hunks')
+    ready(isinstance(hunks, list) and hunks and all(isinstance(h, dict)
+          and h.get('category') in ('owner-v7i1-fix', 'owner-v7i1-fix (TRACE)',
+                                    'owner-v7i1-fix (CR+TRACE)') for h in hunks),
+          'unapproved v7i1 diff hunk; owner escalation')
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix='cr-v7i1-diff-') as temporary:
+        actual = diff_receipt(Path(temporary)/'diff.json', base=V7C_BASELINE)
+    ready(actual.get('baseline_commit') == V7C_BASELINE
+          and all(doc.get(k) == actual.get(k) for k in
+                  ('review_base_commit', 'baseline_sha256', 'inherited', 'hunks')),
+          'review baseline unavailable or diff hunk inventory changed; owner escalation')
     return doc
 
 

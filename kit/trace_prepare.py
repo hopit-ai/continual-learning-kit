@@ -33,9 +33,7 @@ def cohort(rows, lengths):
 
 def census(rows, tokenizer):
     """No model or data acquisition. Counts use the staged tokenizer."""
-    from kit.trace_prompt import install
-    install()
-    from kit.sdft_objective import teacher_messages
+    from kit.trace_prompt import teacher_messages
     def encoded(messages):
         return tokenizer.apply_chat_template(messages, tokenize=True,
                     add_generation_prompt=True, enable_thinking=False)
@@ -43,10 +41,17 @@ def census(rows, tokenizer):
     for row in rows:
         messages = [dict(role='user', content=row['prompt'])]
         result[row['id']] = dict(student=len(encoded(messages)),
-            gold_teacher=len(encoded(teacher_messages(messages, row['answer']))),
+            gold_teacher=len(encoded(teacher_messages(messages, row['answer'], released_prompt=row['prompt']))),
             gold_response=len(tokenizer.encode(row['answer']+tokenizer.eos_token,
                                                add_special_tokens=False)))
     return result
+
+
+def verbatim_targets(rows):
+    """Descriptive only: no membership, length or selection rule is changed."""
+    ids = [row['id'] for row in rows
+           if len(row['answer'].strip()) > 40 and row['answer'].strip() in row['prompt']]
+    return dict(count=len(ids), ids=ids)
 
 
 def licence_blocks(rights, studies):
@@ -136,6 +141,8 @@ def prepare(cfg):
             tests[task] = [r for r in splits['test'] if test_lengths[r['id']]['student'] <= 2048]
             need(tests[task], 'empty length-eligible test split')
             seal(out/'census'/f'{task}.json', dict(train=lengths, test=test_lengths,
+                 released_prompt_verbatim_targets={split:verbatim_targets(values)
+                     for split, values in splits.items()},
                  exclusions=excluded, selected_ids=[r['id'] for r in chosen],
                  excluded_tests=[r['id'] for r in splits['test'] if r not in tests[task]]))
     panels = bound_json(cfg['panels'])
@@ -183,15 +190,14 @@ def bind(cfg):
     need(set(demos) == {r['id'] for rows in prepared['selected'].values() for r in rows},
          '27B fixed cohort incomplete')
     from transformers import AutoTokenizer
-    from kit.trace_prompt import install
-    install()
-    from kit.sdft_objective import teacher_messages
+    from kit.trace_prompt import teacher_messages
     tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
     for task, rows in prepared['selected'].items():
         for row in rows:
             target = demos[row['id']]['text']
             need(demos[row['id']]['verified'] is True, '27B demo verification incomplete')
-            teacher = teacher_messages([dict(role='user', content=row['prompt'])], target)
+            teacher = teacher_messages([dict(role='user', content=row['prompt'])], target,
+                                       released_prompt=row['prompt'])
             need(len(tok.apply_chat_template(teacher, tokenize=True, add_generation_prompt=True,
                        enable_thinking=False)) <= 6144, '27B teacher prompt overlength')
             need(len(tok.encode(target+tok.eos_token, add_special_tokens=False)) <= 2048,

@@ -1,4 +1,5 @@
 """CPU regressions for the four execution/retry defects; GPU work is substituted."""
+from env_redaction import RedactedEnv
 import json
 import os
 from pathlib import Path
@@ -76,7 +77,7 @@ def test_failed_sft_merge_fails_runner_and_retry_only_recovers_export(tmp_path, 
     for name, body in [("git", "[[ \"$*\" != *rev-parse* ]] || echo 7c457fc1b1f636ae794eb0362ba37d4743b06fbc"),
                        ("pip", "exit 0"), ("nvidia-smi", "exit 0")]:
         path = helpers / name; path.write_text("#!/bin/bash\n" + body + "\n"); path.chmod(0o755)
-    env = dict(WORK=str(tmp_path), V4_FINQA_CAMPAIGN="1", V4_PHASE0_MODE="0",
+    env = RedactedEnv(WORK=str(tmp_path), V4_FINQA_CAMPAIGN="1", V4_PHASE0_MODE="0",
                ARM=arm, NAME=ident, MODEL_DIR=str(model), SDPO_DIR=str(sdpo),
                TRAIN_FILE=str(scheduled / "train.parquet"), VAL_FILE=str(scheduled / "val.parquet"),
                DATA_MANIFEST=str(scheduled / "manifest.json"), SEED="101", STEPS="40",
@@ -100,6 +101,7 @@ def test_failed_sft_merge_fails_runner_and_retry_only_recovers_export(tmp_path, 
     before = {p.relative_to(out): p.read_bytes() for p in (out / "train").rglob("*.pt")}
     mergers = []
     def gpu_merge(argv, env=None):
+        env = RedactedEnv(env) if env is not None else None
         assert "verl.model_merger" in argv  # a second trainer invocation is forbidden
         destination = Path(argv[argv.index("--target_dir") + 1]); mergers.append(destination)
         export(destination)
@@ -150,6 +152,7 @@ def test_score_retry_preserves_each_incomplete_attempt_and_reuses_complete_score
     calls = []
     def generate(argv, env=None):
         # Real scorer fresh_dir behavior; an engine crash leaves this directory.
+        env = RedactedEnv(env) if env is not None else None
         out = scorer.fresh_dir(Path(argv[argv.index("--out") + 1]))
         number = os.environ["V4_RUNNER_ATTEMPT"]; calls.append(number)
         (out / "partial.jsonl").write_text("engine-attempt-" + number)
@@ -193,6 +196,7 @@ def test_restoration_retry_preserves_old_legs_and_cannot_use_stale_kill_marker(t
     out = base / "restoration/S"
     def launch(command, **kwargs):
         if command[0] == "ray": return {"returncode": 0}
+        kwargs['env'] = RedactedEnv(kwargs['env'])
         env = kwargs["env"]; leg = env["V4_RESTORE_LEG"]; launches.append((generation[0], leg))
         if leg == "uninterrupted":
             assert not out.exists() or not any(out.iterdir()), "old observations must be preserved elsewhere"
@@ -254,7 +258,9 @@ def test_score_for_another_checkpoint_is_kept_aside_and_rescored(tmp_path,monkey
     monkeypatch.setenv('V4_RUNNER_ATTEMPT','2');monkeypatch.setenv('V4_CURRENT_ROW','baseline-general-v1-2048')
     monkeypatch.setattr(ops.t,'local_identity',lambda model,name:{'model':name,'hash':'new'})
     ran=[]
-    def run(argv,env):ran.append(argv);Path(argv[argv.index('--out')+1]).mkdir(parents=True)
+    def run(argv,env):
+        env = RedactedEnv(env)
+        ran.append(argv);Path(argv[argv.index('--out')+1]).mkdir(parents=True)
     monkeypatch.setattr(ops,'run',run)
     out=ops.paths(tmp_path,'main')/'eval'/'baseline-general-v1-2048';out.mkdir(parents=True)
     (out/'forgetting.json').write_text('{}');(out/'checkpoint-identity.json').write_text('{"hash": "old"}')

@@ -1,4 +1,5 @@
 """CPU-only package-B jobs; no model downloads, CUDA or trainer dependency."""
+from env_redaction import RedactedEnv
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from kit.p3b_reset import indices, reset_tensors
 
 
 def run(script, out, *args, code=0, stub=None):
-    env={**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','HF_DATASETS_OFFLINE':'1'}
+    env=RedactedEnv({**os.environ,'CUDA_VISIBLE_DEVICES':'','HF_HUB_OFFLINE':'1','HF_DATASETS_OFFLINE':'1'})
     if stub: env['PYTHONPATH']=str(stub)+os.pathsep+str(c.KIT.parent)
     result=subprocess.run([sys.executable,str(c.KIT / ('p3b_'+script+'.py')),'--out',str(out),'--standin',*map(str,args)],env=env,text=True,capture_output=True)
     assert result.returncode==code,result.stdout+result.stderr

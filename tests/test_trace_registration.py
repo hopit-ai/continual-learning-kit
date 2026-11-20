@@ -275,12 +275,12 @@ class ProtocolTests(unittest.TestCase):
 
     def test_short_label_prompt_adapter(self):
         from kit.trace_prompt import check_clean
-        check_clean([dict(role='user',content='Classify A versus B')],'A')
+        check_clean([dict(role='user',content='Classify A versus B')],'A', 'Classify A versus B')
         with self.assertRaises(ValueError):
-            check_clean([dict(role='user',content='q',demonstration='A')],'A')
+            check_clean([dict(role='user',content='q',demonstration='A')],'A', 'q')
         text='complete privileged solution '*4
         with self.assertRaises(ValueError):
-            check_clean([dict(role='user',content=text)],text)
+            check_clean([dict(role='user',content=text)],text, 'released question')
 
     def test_bpe_newline_suffix_is_censused_before_gpu(self):
         from kit.trace_sft import sft_census
@@ -532,7 +532,7 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaises(ValueError): compute_score('contract_nli','','')
         with patch('kit.trace_train.nm_converted_rows',return_value=([
                 dict(data_source='contract_nli',extra_info=dict(m3_domain='trace_FOMC'))],{})):
-            rows,_=converted_trace_rows()
+            rows,_=converted_trace_rows([])
             self.assertEqual(rows[0]['data_source'],'trace')
             self.assertEqual(rows[0]['extra_info']['m3_domain'],'trace_FOMC')
         scoped=c.inventory(list(c.SOURCES))

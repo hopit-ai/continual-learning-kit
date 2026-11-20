@@ -1,4 +1,5 @@
 """Public, offline regressions for the confirmed host-venv site."""
+from env_redaction import RedactedEnv
 import copy
 import json
 import os
@@ -215,6 +216,7 @@ def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path
     endpoints=[];monkeypatch.setattr(s,'check_network',lambda urls:endpoints.extend(urls))
     commands=[]
     def command(argv,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
         commands.append((argv,kw['env']));kw['log'].write_text('No broken requirements found.\n' if argv[1:]==['-m','pip','check'] else 'owned CPU stand-in\n')
         return {'returncode':0,'failure_type':None,'seconds':1}
     monkeypatch.setattr(p,'bounded_command',command)
@@ -236,7 +238,7 @@ def test_real_build_recipe_preserves_base_and_uses_owned_offline_caches(tmp_path
 def test_storage_cli_exports_and_refuses_low_space_without_partial_exports(tmp_path):
     """Runbook command substitution must receive valid exports or a clear nonzero refusal."""
     script=ROOT/'kit/v4_phase0_site.py';work=tmp_path/'work'
-    env={**os.environ,'TASK_ROOT':str(tmp_path/'task')}
+    env=RedactedEnv({**os.environ,'TASK_ROOT':str(tmp_path/'task')})
     done=subprocess.run([sys.executable,str(script),'storage','--work',str(work)],env=env,capture_output=True,text=True)
     assert done.returncode==0 and 'export TMPDIR=' in done.stdout
     denied=subprocess.run([sys.executable,str(script),'storage','--work',str(work),'--min-gib','999999999'],env=env,capture_output=True,text=True)
@@ -322,6 +324,7 @@ def test_partner_84_second_rehash_measure_plan_and_real_runner(tmp_path,monkeypa
     row=next(row for row in campaign['rows'] if row['id']=='verify-prepare').copy();row.update(needs=[],pilot=False,bars=[])
     observed=[]
     def execute(argv,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
         observed.append((kw['timeout'],kw['env']['V4_COMMAND_TIMEOUT']))
         p.verify_prepare(work);kw['log'].parent.mkdir(parents=True,exist_ok=True);kw['log'].write_text('real immutable verifier passed\n')
         return {'returncode':0,'failure_type':None,'seconds':84}

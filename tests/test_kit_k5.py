@@ -22,6 +22,7 @@ fixtures cannot drift from the campaign either. Nothing here needs a GPU, a netw
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import importlib.util
 import json
 import os
@@ -452,7 +453,7 @@ def test_the_plan_prints_every_row_and_executes_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          env={**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"},
+                          env=RedactedEnv({**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"}),
                           capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     printed = [line for line in done.stdout.split("\n") if line.startswith("[")]

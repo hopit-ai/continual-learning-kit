@@ -19,6 +19,12 @@ def configured_inventory(cfg):
         value = efficient(cfg.get('studies'))
     else:
         value = inventory(cfg.get('studies'))
+        # The registered legacy train rows hold eight GPUs for an entire
+        # sequence. They have no per-stage CPU preparation dependency.
+        need(cfg.get('technical_synthetic') or not any(
+            row['phase'] == 'train' and row['study'] in SOURCES for row in value['rows']),
+            'Production TRACE gold/27b requires CPU preparation before GPU admission; '
+            'set efficiency: true and use the prep-stage/train-stage dependencies')
     if cfg.get('judge_throughput_probe'):
         rows=[]
         for row in value['rows']:
@@ -242,8 +248,7 @@ def main():
     args = parser.parse_args()
     if args.action in ('inventory','price'):
         import json
-        scope = load(args.config).get('studies') if args.config else None
-        print(json.dumps((configured_inventory(load(args.config)) if args.config else inventory(scope))
+        print(json.dumps(configured_inventory(load(args.config) if args.config else {})
                          if args.action=='inventory' else estimates(),indent=2))
     else:
         need(args.config and args.row,'config and row required')

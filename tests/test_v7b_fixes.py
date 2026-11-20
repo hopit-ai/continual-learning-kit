@@ -1,4 +1,5 @@
 """V7b public export and native environment regressions, CPU only."""
+from env_redaction import RedactedEnv
 import importlib
 import json
 import os
@@ -16,7 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 ])
 def test_scorer_environment_fixture_preserves_native_mapping_and_restores_writes(module_name):
     module=importlib.import_module(module_name)
-    environment=os.environ;before=dict(environment)
+    environment=os.environ;before=RedactedEnv(environment)
     fixture=module.restore_environment.__wrapped__()
     next(fixture)
     try:
@@ -28,7 +29,7 @@ def test_scorer_environment_fixture_preserves_native_mapping_and_restores_writes
         assert observed=='v7b-native-fixture'
     finally:
         with pytest.raises(StopIteration):next(fixture)
-    assert os.environ is environment and dict(os.environ)==before
+    assert os.environ is environment and RedactedEnv(os.environ)==before
     observed=json.loads(subprocess.check_output([sys.executable,'-I','-c',
         'import json,os;print(json.dumps(os.environ.get("VLLM_BATCH_INVARIANT")))'],text=True))
     assert observed==before.get('VLLM_BATCH_INVARIANT')

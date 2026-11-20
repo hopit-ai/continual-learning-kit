@@ -1,4 +1,5 @@
 """Real delegated preparation and multiprocessing integration for scoped items 6/7."""
+from env_redaction import RedactedEnv
 import hashlib
 import json
 import os
@@ -124,7 +125,7 @@ def test_parent_and_delegated_prepare_preserve_all_receipts(prepared_site,monkey
     assert (work/'v4/report-inputs/import-smoke-phase0.json').is_file()
     assert (work/'v4/report-inputs/launch-inputs-phase0.json').is_file()
     archive=work.parent/'return.tar.gz'
-    done=subprocess.run([sys.executable,str(ROOT/'kit/collect.py'),'--work',str(work),'--out',str(archive)],env=os.environ.copy(),capture_output=True,text=True,timeout=30)
+    done=subprocess.run([sys.executable,str(ROOT/'kit/collect.py'),'--work',str(work),'--out',str(archive)],env=RedactedEnv(os.environ),capture_output=True,text=True,timeout=30)
     assert done.returncode==0,done.stdout+done.stderr
     from kit.v4_archive import Archive
     with Archive(archive) as returned:
@@ -134,7 +135,7 @@ def test_parent_and_delegated_prepare_preserve_all_receipts(prepared_site,monkey
 @pytest.fixture
 def frozen_site(prepared_site):
     work,trainer,paths,p=prepared_site
-    done=subprocess.run([str(trainer),str(p.KIT/'v4_phase0.py'),'prepare','--work',str(work),'--verified-environments'],env=os.environ.copy(),capture_output=True,text=True,timeout=30)
+    done=subprocess.run([str(trainer),str(p.KIT/'v4_phase0.py'),'prepare','--work',str(work),'--verified-environments'],env=RedactedEnv(os.environ),capture_output=True,text=True,timeout=30)
     assert done.returncode==0,done.stdout+done.stderr
     return work,p.frozen_launch_environment(work)
 
@@ -149,7 +150,7 @@ p=c.arbitrary_address('AF_UNIX')
 print(json.dumps({'path':p,'bytes':len(os.fsencode(p))}))
 u._run_finalizers()
 '''
-    done=subprocess.run([sys.executable,'-c',code],env={**os.environ,**launch},capture_output=True,text=True,timeout=10)
+    done=subprocess.run([sys.executable,'-c',code],env=RedactedEnv({**os.environ,**launch}),capture_output=True,text=True,timeout=10)
     assert done.returncode==0,done.stderr
     observed=json.loads(done.stdout)
     assert observed['path'].startswith(launch['TMPDIR']+'/pymp-') and '/listener-' in observed['path']
@@ -175,9 +176,10 @@ def test_real_generated_payload_keeps_short_tmpdir_and_shared_caches(frozen_site
     python.chmod(0o755)
     payload=tmp_path/'job.sh'
     payload.write_text(script({'phase':'phase0','stage':'phase0','launch_environment':launch,'block':'qualification','block_limit':100},work,ROOT/'kit'))
-    done=subprocess.run(['bash',str(payload)],env={**os.environ,'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'SLURM_JOB_ID':'123'},capture_output=True,text=True,timeout=10)
+    done=subprocess.run(['bash',str(payload)],env=RedactedEnv({**os.environ,'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'SLURM_JOB_ID':'123'}),capture_output=True,text=True,timeout=10)
     assert done.returncode==2,done.stdout+done.stderr
     doc=json.loads(observed.read_text())
+    doc['env']=RedactedEnv(doc['env'])
     assert doc['tempdir']==launch['TMPDIR']==os.environ['TEST_JOB_TMP']
     assert Path(launch['RAY_TMPDIR']).is_dir()
     assert all(Path(doc['env'][key]).is_relative_to(work.parent/'cache') for key in CACHE_KEYS if key!='TMPDIR')
@@ -192,7 +194,7 @@ fd=os.open('/dev/null',os.O_RDONLY)
 try:r.DupFd(fd)
 finally:os.close(fd);u._run_finalizers()
 '''
-    done=subprocess.run([sys.executable,'-c',code],env={**os.environ,**launch,'TMPDIR':str(old)},capture_output=True,text=True,timeout=10)
+    done=subprocess.run([sys.executable,'-c',code],env=RedactedEnv({**os.environ,**launch,'TMPDIR':str(old)}),capture_output=True,text=True,timeout=10)
     assert done.returncode!=0 and 'AF_UNIX path too long' in done.stderr,done.stderr
 
 
@@ -214,7 +216,7 @@ if proc.is_alive():proc.terminate();proc.join();raise RuntimeError('tensor trans
 assert proc.exitcode==0
 u._run_finalizers()
 '''
-    done=subprocess.run([sys.executable,'-c',code],env={**os.environ,**launch},capture_output=True,text=True,timeout=30)
+    done=subprocess.run([sys.executable,'-c',code],env=RedactedEnv({**os.environ,**launch}),capture_output=True,text=True,timeout=30)
     if done.returncode and 'Operation not permitted' in done.stderr:pytest.skip('sandbox denies real Unix socket/shared-memory creation')
     assert done.returncode==0,done.stdout+done.stderr
 
@@ -277,7 +279,7 @@ def test_containment_entry_keeps_short_job_tmpdir_for_contained_steps(tmp_path,m
     seen={}
     def fake_main(argv):
         # What start_step would receive: dict(os.environ), and the listener path multiprocessing would build.
-        seen['env']=dict(os.environ)
+        seen['env']=RedactedEnv(os.environ)
         seen['listener']=os.path.join(_tempfile.gettempdir(),'pymp-'+'k'*8,'listener-'+'k'*8)
         return 0
     monkeypatch.setattr(p4_contain,'_main',fake_main)

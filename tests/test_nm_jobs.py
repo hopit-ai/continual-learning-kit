@@ -1,3 +1,4 @@
+from env_redaction import RedactedEnv
 from pathlib import Path
 import os
 import subprocess
@@ -22,6 +23,7 @@ def test_watcher_holder_scope_matches_row_and_child_exit_is_preserved(tmp_path,m
     for key,value in allocation.items():monkeypatch.setenv(key,value)
     monkeypatch.delenv('UTIL_WATCH_ACTIVE',raising=False)
     def child(command,*,env,pass_fds):
+        env = RedactedEnv(env)
         scope=command[command.index('--expect-gpus'):command.index('--')]
         assert scope==['--expect-gpus',str(gpus),*(['--holder-slice'] if gpus==1 and holder else [])]
         assert ('UTIL_HOLDER_SLICE' in env)==(gpus==1 and 'UTIL_HOLDER_SLICE' in allocation)
@@ -32,7 +34,7 @@ def test_watcher_holder_scope_matches_row_and_child_exit_is_preserved(tmp_path,m
 
 
 def invoke(config,task):
-    return subprocess.run(['bash',str(KIT/'jobs/nm/run-task.sh'),task],env=dict(os.environ,KIT=str(KIT),NM_CONFIG=str(config),JOB_PY=sys.executable),capture_output=True,text=True)
+    return subprocess.run(['bash',str(KIT/'jobs/nm/run-task.sh'),task],env=RedactedEnv(os.environ,KIT=str(KIT),NM_CONFIG=str(config),JOB_PY=sys.executable),capture_output=True,text=True)
 
 
 def test_manifest_is_explicit_topological_right_sized_and_frozen_file():
@@ -124,7 +126,7 @@ def test_explicit_pending_row_resubmits_fresh_attempt(tmp_path):
 
 def test_child_cannot_run_unwatched(tmp_path):
     p=tmp_path/'config.json';atomic(p,dict(out=str(tmp_path/'out'),technical_synthetic=True))
-    result=subprocess.run([sys.executable,'-I',str(KIT/'nm_execute.py'),'--config',str(p),'--task','NM-grpo-bind','--attempt',str(tmp_path/'attempt')],env={k:v for k,v in os.environ.items() if k!='UTIL_WATCH_ACTIVE'},capture_output=True,text=True)
+    result=subprocess.run([sys.executable,'-I',str(KIT/'nm_execute.py'),'--config',str(p),'--task','NM-grpo-bind','--attempt',str(tmp_path/'attempt')],env=RedactedEnv({k:v for k,v in os.environ.items() if k!='UTIL_WATCH_ACTIVE'}),capture_output=True,text=True)
     assert result.returncode!=0 and 'requires watcher' in result.stderr
 
 
@@ -192,6 +194,7 @@ def test_inherited_watcher_marker_warns_and_runs_scientific_child(tmp_path,monke
     monkeypatch.setenv('UTIL_WATCH_ACTIVE','1')
     calls=[]
     def child(command,*,env,pass_fds):
+        env = RedactedEnv(env)
         assert 'UTIL_WATCH_ACTIVE' not in env
         assert command.count(str(KIT/'util_watch.py'))==1
         calls.append(command)

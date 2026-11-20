@@ -1,4 +1,5 @@
 """Exact seals and committed prospective transitions; no GPU/network calls."""
+from env_redaction import RedactedEnv
 import hashlib,json,subprocess
 from pathlib import Path
 import pytest
@@ -186,7 +187,11 @@ def test_export_cpu_gate_supplies_an_explicit_build_seal(authority,monkeypatch,t
     target=tmp_path/'export';path=target/'kit/resources/v6/infrastructure-update.json';path.parent.mkdir(parents=True)
     path.write_bytes(authority[1].read_bytes());calls=[]
     monkeypatch.setattr(m2_privacy,'scan',lambda *a,**kw:[])
-    monkeypatch.setattr(publish_kit.subprocess,'run',lambda *a,**kw:calls.append(kw) or NS(returncode=0,stdout='1 passed'))
+    def run(*args,**kwargs):
+        kwargs['env']=RedactedEnv(kwargs['env'])
+        calls.append(kwargs)
+        return NS(returncode=0,stdout='1 passed')
+    monkeypatch.setattr(publish_kit.subprocess,'run',run)
     publish_kit.check(target)
     assert calls[0]['env']['KIT_V6_AUTHORITY_SHA']==sha(path.read_bytes())
     assert not list(target.glob('.publish-tests-*'))
@@ -208,3 +213,18 @@ def test_generator_cli_uses_the_explicit_release_base(repo,tmp_path,monkeypatch)
     assert doc['base_commit']==base and doc['target_commit']==target
     assert not uncovered_pins(doc,root,target)
     assert 'pre-v6' in generator.__doc__ and '68100bf6' in generator.__doc__
+
+
+def test_a4_common_matches_immutable_authority_new_hash():
+    authority = json.loads((infra.ROOT/infra.AUTHORITY).read_text())
+    pinned = {r['new_sha256'] for r in authority['files'] if r['path']=='kit/a4_common.py'}
+    assert {sha((infra.ROOT/'kit/a4_common.py').read_bytes())} == pinned
+
+
+def test_every_infrastructure_authority_file_matches_an_allowed_hash():
+    authority = infra.validate(json.loads((infra.ROOT/infra.AUTHORITY).read_text()))
+    allowed = {}
+    for row in authority['files']:
+        allowed.setdefault(row['path'], set()).update((row['pinned_sha256'], row['new_sha256']))
+    for name, hashes in allowed.items():
+        assert sha((infra.ROOT/name).read_bytes()) in hashes, name

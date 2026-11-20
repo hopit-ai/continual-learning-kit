@@ -31,6 +31,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from env_redaction import RedactedEnv
 
 
 # ------------------------------------------------------------------ the shell that runs pytest decides nothing here
@@ -50,7 +51,7 @@ def shell() -> dict:
     README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
     default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
     names = _launcher_variables()
-    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+    return RedactedEnv({k: v for k, v in __import__("os").environ.items() if k not in names})
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
@@ -111,7 +112,7 @@ SELF_DISTILLATION_KEYS = (
 def dry_run(script=LAUNCHER, **extra):
     """A launcher's DRY_RUN argv (`--config-name ...` onward), with a clean environment."""
     done = subprocess.run(["bash", str(script)], capture_output=True, text=True,
-                          env={**shell(), **DRY_ENV, **extra})
+                          env=shell() | DRY_ENV | extra)
     return done.returncode, done.stdout.splitlines(), done.stderr
 
 
@@ -544,7 +545,7 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          capture_output=True, text=True, env={**shell(), "WORK": str(work)})
+                          capture_output=True, text=True, env=shell() | {"WORK": str(work)})
     assert done.returncode == 0, done.stderr
     assert list(work.iterdir()) == []
     assert "PILOT" in done.stdout

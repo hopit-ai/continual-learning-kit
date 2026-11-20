@@ -194,8 +194,8 @@ def reproduce(source, cfg, attempt, *, verified_inventory=None):
         schedules = source.get('v6a_schedules')
         ready(isinstance(schedules, dict) and set(schedules) == set(map(str, OLD)),
               'FinQA v6a schedules missing; owner escalation')
-        python = cfg.get('job_python', sys.executable)
-        ready(isinstance(python, str) and bool(python), 'FinQA job_python must be a nonempty string; owner escalation')
+        python = cfg.get('bind_python')
+        ready(isinstance(python, str) and bool(python), 'FinQA bind_python is required and must be a nonempty string; owner escalation')
         if not cfg.get('technical_synthetic'):
             ready(checked.access('path', cfg.get('tokenizer'), 'FinQA tokenizer') is not None,
                   'FinQA tokenizer path invalid; owner escalation')

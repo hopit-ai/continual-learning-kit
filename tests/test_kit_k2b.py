@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from env_redaction import RedactedEnv
 
 
 # ------------------------------------------------------------------ the shell that runs pytest decides nothing here
@@ -34,7 +35,7 @@ def shell() -> dict:
     README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
     default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
     names = _launcher_variables()
-    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+    return RedactedEnv({k: v for k, v in __import__("os").environ.items() if k not in names})
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
@@ -323,7 +324,7 @@ EXPECTED = [
 
 
 def dry(**extra):
-    env = {k: v for k, v in shell().items() if k not in ("SEED", "STEPS", "SAVE_FREQ", "NGPU", "LR", "FILE_LOG")}
+    env = RedactedEnv({k: v for k, v in shell().items() if k not in ("SEED", "STEPS", "SAVE_FREQ", "NGPU", "LR", "FILE_LOG")})
     env.update(SDPO_DIR="/sdpo", MODEL_DIR="/m/Qwen3-1.7B", NAME="sft-seed3-a1", TRAIN_FILE="/d/sft/train.parquet",
                VAL_FILE="/d/sft/heldout.parquet", WORK="/w", DRY_RUN="1", STEPS="40", SAVE_FREQ="40", SEED="3", NGPU="8", FILE_LOG="1")
     env.update(extra)
@@ -401,9 +402,9 @@ def stubbed(tmp_path):
     pq.write_table(pa.Table.from_pylist([{"prompt": "p", "response": "Answer: 1"}] * 8), val)
     (binaries / "python").write_text(STUB)
     (binaries / "python").chmod(0o755)
-    env = {**shell(), "PATH": "%s:%s" % (binaries, os.environ["PATH"]), "RECORD": str(record), "REAL_PYTHON": sys.executable,
+    env = RedactedEnv({**shell(), "PATH": "%s:%s" % (binaries, os.environ["PATH"]), "RECORD": str(record), "REAL_PYTHON": sys.executable,
            "SDPO_DIR": str(sdpo), "MODEL_DIR": str(model), "NAME": "sft-seed0-a1", "TRAIN_FILE": str(train), "VAL_FILE": str(val),
-           "WORK": str(work), "DRY_RUN": "0", "STEPS": "40", "SAVE_FREQ": "40", "SEED": "0", "NGPU": "8"}
+           "WORK": str(work), "DRY_RUN": "0", "STEPS": "40", "SAVE_FREQ": "40", "SEED": "0", "NGPU": "8"})
     return {"env": env, "record": record, "out": work / "runs" / "sft-seed0-a1", "train": train, "tmp": tmp_path}
 
 
@@ -426,7 +427,7 @@ def test_the_launcher_trains_merges_and_writes_run_grpos_summary_plus_the_route(
     summary = json.loads((out / "train-summary.json").read_text())
     assert sorted(summary) == sorted(grpo_summary_keys() + ["route"])
     assert summary["route"] == "sft" and summary["returncode"] == 0 and summary["merged"] == 1 and summary["steps"] == 40
-    child = dict(line.split("=", 1) for line in (stubbed["record"] / "call-0.env").read_text().split("\n") if "=" in line)
+    child = RedactedEnv(line.split("=", 1) for line in (stubbed["record"] / "call-0.env").read_text().split("\n") if "=" in line)
     assert child["PYTHONPATH"].startswith(stubbed["env"]["SDPO_DIR"]) and child["WANDB_MODE"] == "disabled"
     assert child["VERL_FILE_LOGGER_PATH"] == "%s/metrics.jsonl" % out
     again = subprocess.run(["bash", str(SCRIPT)], env=stubbed["env"], capture_output=True, text=True)
@@ -438,7 +439,7 @@ def test_the_launcher_refuses_a_file_that_is_not_one_pass_of_40_steps(stubbed):
     import pyarrow.parquet as pq                                                    # noqa: PLC0415
     short = stubbed["tmp"] / "short.parquet"
     pq.write_table(pa.Table.from_pylist([{"prompt": "p", "response": "r"}] * 640), short)
-    done = subprocess.run(["bash", str(SCRIPT)], env={**stubbed["env"], "TRAIN_FILE": str(short)}, capture_output=True, text=True)
+    done = subprocess.run(["bash", str(SCRIPT)], env=stubbed["env"] | {"TRAIN_FILE": str(short)}, capture_output=True, text=True)
     assert done.returncode == 2 and "640 rows" in done.stderr
     assert not list(stubbed["record"].glob("call-*.argv")), "the trainer never started"
 

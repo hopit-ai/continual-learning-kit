@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import pytest
+from env_redaction import RedactedEnv
 from kit import cr_confirmation as cr, cr_jobs, m3_schedule, m3_contract, m3_read
 from kit.nm_common import atomic,load,sha,Pending,Invalid,KIT
 
@@ -228,7 +229,7 @@ def test_separate_830_budget_cannot_consume_six_row_branch(tmp_path,monkeypatch)
     monkeypatch.setenv('SLURM_JOB_START_TIME','100')
     monkeypatch.setattr('kit.nm_budget.time.time',lambda:100)
     attempt=tmp_path/'attempts/NM-cr-train/nonce';attempt.mkdir(parents=True)
-    row=dict(id='NM-cr-train',family='cr',gpus=8);record=dict(slurm_job_id='123')
+    row=dict(id='NM-cr-train',family='cr',gpus=8);record=dict(slurm_job_id='123',started=100)
     cfg=dict(budget=dict(branch='CR_confirmation',approved_gpu_hours=830,approval_reference='owner 6 November',row_max_seconds={'NM-cr-train':3600}))
     assert reserve(tmp_path,cfg,row,record,attempt)==3600
     cfg['budget'].update(branch='I0',approved_gpu_hours=1270)
@@ -352,7 +353,7 @@ def test_notready_mapping_is_scoped_to_confirmation(tmp_path,monkeypatch,family)
     from kit import nm_execute,nm_jobs,nm_pipeline
     from kit.p3b_common import NotReady
     def unavailable(*a,**kw):raise NotReady('missing frozen input')
-    cfg=dict(out=str(tmp_path/'six'),cr_confirmation=dict(out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A')))
+    cfg=dict(out=str(tmp_path/'six'),cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A')))
     config=tmp_path/'launch.json';atomic(config,cfg)
     attempt=tmp_path/'attempt'
     monkeypatch.setenv('UTIL_WATCH_ACTIVE','1')
@@ -567,7 +568,7 @@ def test_final_read_requires_complete_finqa_proof(tmp_path,monkeypatch,proof):
 
 @pytest.mark.parametrize('hosts',[None,[],['gpu-node-1'],['CPU-STANDIN','gpu-node-1'],['CPU-STANDIN.example']])
 def test_synthetic_rejects_non_standin_hosts_before_bypasses(tmp_path,hosts):
-    cfg=dict(out=str(tmp_path/'confirmation'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),
+    cfg=dict(bind_python=sys.executable,out=str(tmp_path/'confirmation'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),
         technical_synthetic=True,hosts=hosts)
     with pytest.raises(Invalid,match='non-stand-in host refused'):
         cr_jobs.settings(dict(out=str(tmp_path/'dispatch'),technical_synthetic=True,cr_confirmation=cfg))
@@ -765,7 +766,7 @@ def test_diff_receipt_without_git_diagnostics_is_pending(tmp_path, monkeypatch, 
 @pytest.mark.parametrize('entry',['child','wrapper'])
 def test_cr_bind_settings_errors_are_owner_pending(tmp_path,trigger,entry):
     cfg=dict(out=str(tmp_path/'dispatch'),technical_synthetic=True,
-        cr_confirmation=dict(out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['CPU-STANDIN']))
+        cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['CPU-STANDIN']))
     if trigger=='out-missing':del cfg['cr_confirmation']['out']
     elif trigger=='out-type':cfg['cr_confirmation']['out']=17
     elif trigger=='out-relative':cfg['cr_confirmation']['out']='relative'
@@ -775,7 +776,7 @@ def test_cr_bind_settings_errors_are_owner_pending(tmp_path,trigger,entry):
     config=tmp_path/'launch.json';atomic(config,cfg)
     if trigger=='config-json':config.write_text('{bad JSON')
     attempt=tmp_path/'attempt'
-    env=dict(os.environ,UTIL_WATCH_ACTIVE='1')
+    env=RedactedEnv(os.environ,UTIL_WATCH_ACTIVE='1')
     if entry=='child':
         command=[sys.executable,'-I',str(KIT/'nm_execute.py'),'--config',str(config),
             '--task','NM-cr-bind','--attempt',str(attempt)]
@@ -802,7 +803,7 @@ def test_cr_bind_settings_errors_are_owner_pending(tmp_path,trigger,entry):
 def test_cr_bind_later_inputs_publish_final_status_once(tmp_path,monkeypatch,trigger):
     from kit import nm_execute
     native=tmp_path/'native.json';atomic(native,dict(nodes=['allowed'],message2_nodes=[]))
-    cfg=dict(out=str(tmp_path/'dispatch'),cr_confirmation=dict(out=str(tmp_path/'cr'),
+    cfg=dict(out=str(tmp_path/'dispatch'),cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'cr'),
         v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['allowed']))
     crcfg=cfg['cr_confirmation']
     receipt=tmp_path/'diff.json';receipt.write_text('{malformed')
@@ -849,7 +850,7 @@ def test_cr_bind_later_inputs_publish_final_status_once(tmp_path,monkeypatch,tri
 def test_cr_bind_parent_input_errors_are_pending(tmp_path,monkeypatch,trigger):
     from kit import nm_jobs
     cfg=dict(out=str(tmp_path/'dispatch'),job_python=sys.executable,
-        infrastructure_update='a'*64,cr_confirmation=dict(out=str(tmp_path/'cr'),
+        infrastructure_update='a'*64,cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'cr'),
         v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['allowed']))
     if trigger=='authority-type':cfg['infrastructure_update']=[]
     elif trigger=='python-type':cfg['job_python']=[]
@@ -874,10 +875,10 @@ def test_refused_confirmation_tree_receives_no_error_attempt(tmp_path):
     # tree it refused; error attempts go beside the dispatch root.
     dispatch=tmp_path/'dispatch'
     cfg=dict(out=str(dispatch),technical_synthetic=True,
-        cr_confirmation=dict(out=str(dispatch),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['CPU-STANDIN']))
+        cr_confirmation=dict(bind_python=sys.executable,out=str(dispatch),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['CPU-STANDIN']))
     config=tmp_path/'launch.json';atomic(config,cfg)
     done=subprocess.run([sys.executable,'-I',str(KIT/'nm_jobs.py'),'run','--config',str(config),'--task','NM-cr-bind'],
-        env=dict(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
+        env=RedactedEnv(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
     assert done.returncode==75,done.stdout+done.stderr
     reports=list(tmp_path.rglob('input-binding.json'));assert len(reports)==1
     assert reports[0].is_relative_to(dispatch/'cr-input-errors')
@@ -887,10 +888,10 @@ def test_refused_confirmation_tree_receives_no_error_attempt(tmp_path):
 def test_settings_stage_host_refusal_is_failed_with_receipt(tmp_path):
     # Opus round 2, finding 3: a host-policy refusal stays FAILED but leaves a receipt.
     cfg=dict(out=str(tmp_path/'dispatch'),technical_synthetic=True,
-        cr_confirmation=dict(out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['real-node']))
+        cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'cr'),v6a_root=str(tmp_path/'v6a'),v6b_root=str(tmp_path/'v6b'),six_row_root=str(tmp_path/'root-A'),hosts=['real-node']))
     config=tmp_path/'launch.json';atomic(config,cfg)
     done=subprocess.run([sys.executable,'-I',str(KIT/'nm_jobs.py'),'run','--config',str(config),'--task','NM-cr-bind'],
-        env=dict(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
+        env=RedactedEnv(os.environ,UTIL_WATCH_ACTIVE='1'),capture_output=True,text=True)
     assert done.returncode==2,done.stdout+done.stderr
     assert 'Traceback' not in done.stdout+done.stderr
     receipts=list(tmp_path.rglob('receipt.json'));assert len(receipts)==1

@@ -1,6 +1,7 @@
 """Partner's phase 0 v6 run, 10 October: four TP-2 teacher engines capturing CUDA graphs at once took 27 minutes,
 then the first sample_tokens RPC timed out. Generation engines are now always eager; Astra's review of v7 added
 report-failure propagation, a fresh-process batch-invariance fallback and tenfold distributed deadlines."""
+from env_redaction import RedactedEnv
 import dataclasses
 import json
 import os
@@ -29,7 +30,7 @@ def fake_vllm(monkeypatch):
     class LLM:
         fail=False
         def __init__(self,**kwargs):
-            seen.append({**kwargs,'invariant':os.environ['VLLM_BATCH_INVARIANT']})
+            seen.append(RedactedEnv({**kwargs,'invariant':os.environ['VLLM_BATCH_INVARIANT']}))
             if LLM.fail:raise RuntimeError('invariant kernels unavailable')
         def get_tokenizer(self):return object()
     @dataclasses.dataclass
@@ -61,7 +62,9 @@ def test_batch_fallback_restarts_in_a_fresh_process_with_the_flag_off(fake_vllm,
     waits=[]
     LLM,seen=fake_vllm;LLM.fail=True;calls=[]
     events=[]
-    def execve(path,argv,env):events.append('exec');calls.append(env);raise SystemExit(0)
+    def execve(path,argv,env):
+        env = RedactedEnv(env)
+        events.append('exec');calls.append(env);raise SystemExit(0)
     monkeypatch.setattr(t.os,'execve',execve)
     import psutil
     class Worker:

@@ -628,7 +628,8 @@ def test_successful_probe_deadlines_exclude_both_registered_d1_calls(tmp_path,mo
 
 
 def scorer_config(tmp_path):
-    cfg=dict(out=str(tmp_path/'run'),studies=['gold'],technical_synthetic=False,judge_throughput_probe=True)
+    cfg=dict(out=str(tmp_path/'run'),studies=['gold'],technical_synthetic=False,
+             judge_throughput_probe=True,efficiency=True)
     config=tmp_path/'config.json'
     c.atomic(config,cfg)
     runtime=dict(cfg,_config_path=str(config.resolve()))
@@ -640,7 +641,7 @@ def scorer_config(tmp_path):
 def test_probe_finalizers_are_cpu_afterany_inventory_rows():
     for efficiency in (False,True):
         rows=jobs.configured_inventory(dict(studies=['gold'],judge_throughput_probe=True,
-                                             efficiency=efficiency))['rows']
+                                             efficiency=efficiency,technical_synthetic=True))['rows']
         for scorer in (row for row in rows if row['phase']=='score'):
             finalizer=next(row for row in rows if row['id']=='finalize-'+scorer['id'])
             assert finalizer['gpus']==0 and finalizer['cpus']==1
@@ -694,7 +695,8 @@ def cpu_fifo_probe_schedule(value,cpus):
 @pytest.mark.parametrize('efficiency',[False,True])
 def test_astra_cpu_fifo_admission_fanout_leaves_scorer_and_finalizer_capacity(cpus,efficiency):
     import shlex
-    value=jobs.configured_inventory(dict(judge_throughput_probe=True,efficiency=efficiency))
+    value=jobs.configured_inventory(dict(judge_throughput_probe=True,efficiency=efficiency,
+                                         technical_synthetic=True))
     gates=[r for r in value['rows'] if r['phase']=='judge-admit']
     assert len(gates)==9  # Full three-study, three-seed fan-out.
     assert all(r['cpus']==1 and r['gpus']==0 and r['mem_mb']==256 for r in gates)
@@ -762,7 +764,7 @@ def test_killed_claimed_scorer_is_released_by_cpu_finalizer(tmp_path,monkeypatch
     assert initial['status']=='COMPLETE' and initial['result']==dict(first=False)
     original_receipt=jobs.row_receipt
     def dependency(out,row_id):
-        if row_id=='train-gold-101':
+        if row_id in ('train-gold-101','score-prep'):
             return dict(config_sha256=c.digest(cfg),technical_synthetic=False)
         return original_receipt(out,row_id)
     monkeypatch.setattr(jobs,'row_receipt',dependency)

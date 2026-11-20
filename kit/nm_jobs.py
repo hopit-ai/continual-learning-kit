@@ -130,10 +130,18 @@ def run(config,task):
     synthetic=cfg.get('technical_synthetic') is True
     # Always start a new attempt. No historical assignment is an admission pin.
     nonce=uuid.uuid4().hex;attempt=out/'attempts'/task/nonce;attempt.mkdir(parents=True,exist_ok=False)
+    monotonic_start=time.monotonic();tree_evidence={"teardown_confirmed": True}
     started=time.time();record=dict(schema=SCHEMA,task=task,family=row['family'],phase=row['phase'],gpus=row['gpus'],
         nonce=nonce,hostname=socket.gethostname(),status='RUNNING',started=started,ended=None,
         slurm_job_id=os.environ.get('SLURM_JOB_ID'),technical_synthetic=synthetic,artifacts={})
-    if row['family']=='cr':record.update({k:row[k] for k in ('arm','seed','stage','lane') if k in row})
+    if row['family']=='cr':
+        record.update({k:row[k] for k in ('arm','seed','stage','lane') if k in row})
+        if row['gpus'] and not synthetic:
+            from kit.a4_common import _slurm_times
+            holder_start=os.environ.get('SLURM_JOB_START_TIME')
+            if holder_start is None and record['slurm_job_id']:
+                holder_start=_slurm_times(record['slurm_job_id']).get('allocation_started_at')
+            if holder_start is not None:record['allocation_started_at']=float(holder_start)
     atomic(attempt/'receipt.json',record);code=1
     def input_error(error):
         from kit.cr_confirmation import input_failure
@@ -206,8 +214,14 @@ def run(config,task):
                         env['PATH']=str(KIT/'jobs/nm/sim')+os.pathsep+env.get('PATH','')
                         env['CUDA_VISIBLE_DEVICES']=','.join(str(i) for i in range(row['gpus']))
                     from kit.a4_common import gpu_run,job_deadline
+                    tree_options={}
+                    if row['family']=='cr' and row['gpus'] and not synthetic:
+                        tree_evidence['teardown_confirmed']=False
+                        from kit.cr_process import gpu_run as cr_gpu_run
+                        gpu_run=cr_gpu_run
+                        tree_options['evidence']=tree_evidence
                     with job_deadline(limit) if limit else nullcontext():
-                        code=gpu_run(command,env=env,pass_fds=fds).returncode
+                        code=gpu_run(command,env=env,pass_fds=fds,**tree_options).returncode
                 record['status']='COMPLETE' if code==0 else 'PENDING' if code in (3,75,124,137,143,-9,-15) else 'FAILED'
                 if record['status']=='PENDING':code=PENDING
                 if (attempt/'output.json').is_file():
@@ -228,13 +242,31 @@ def run(config,task):
         else:
             record.update(status='FAILED',error=type(error).__name__+': '+str(error));code=2;print('STOP:',record['error'])
     finally:
+        elapsed=time.monotonic()-monotonic_start
         record.update(ended=time.time(),exit_code=code)
+        if row['family']=='cr':
+            record.update(monotonic_elapsed_seconds=elapsed, wrapper_completed=True,
+                          teardown_confirmed=tree_evidence['teardown_confirmed'])
         # CPU collector reconciles actual scheduler end. No inferred GPU cost ceiling.
-        record['process_gpu_hours']=0 if synthetic else row['gpus']*(record['ended']-started)/3600
+        record['process_gpu_hours']=0 if synthetic else row['gpus']*(elapsed if row['family']=='cr' else record['ended']-started)/3600
         record['allocation_gpu_hours']=0 if synthetic or not row['gpus'] else None
         record['cost_status']='TECHNICAL-ONLY' if synthetic else 'PENDING scheduler end' if row['gpus'] else 'COMPLETE'
-        atomic(attempt/'receipt.json',record)
-        atomic(out/'state'/(task+'.json'),dict(receipt=str((attempt/'receipt.json').relative_to(out)),sha256=sha(attempt/'receipt.json')))
+        if row['family']=='cr' and row['gpus'] and not synthetic:
+            from kit.nm_budget import finish_cr_row,lock,complete_binding,receipt_bindings
+            with lock(out):
+                # Reject changes to an existing pointer before publishing ours.
+                pointer=out/'state'/(task+'.json')
+                if pointer.is_file():
+                    existing=load(pointer)
+                    need(sha(out/existing['receipt'])==existing['sha256'],
+                         'CR existing state receipt hash mismatch')
+                finish_cr_row(record)
+                atomic(attempt/'receipt.json',record)
+                complete_binding(attempt/'receipt.json',record)
+                atomic(out/'state'/(task+'.json'),dict(receipt=str((attempt/'receipt.json').relative_to(out)),sha256=sha(attempt/'receipt.json')))
+        else:
+            atomic(attempt/'receipt.json',record)
+            atomic(out/'state'/(task+'.json'),dict(receipt=str((attempt/'receipt.json').relative_to(out)),sha256=sha(attempt/'receipt.json')))
     return code
 
 

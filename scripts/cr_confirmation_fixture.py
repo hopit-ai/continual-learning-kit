@@ -1,4 +1,5 @@
 """CPU-only, real-shaped inputs for the CR native FinQA regeneration tests."""
+import sys
 from pathlib import Path
 import os
 from unittest.mock import patch
@@ -85,6 +86,6 @@ def build(directory):
         pools_manifest=str(pools/'manifest.json'),base_binding=base_binding,hellaswag_manifest=str(hellaswag/'manifest.json'),
         native_inventory=str(native),math_source=paths['math-mode'])
     inventory=directory/'node-inventory.json';atomic(inventory,doc)
-    return dict(out=str(directory/'confirmation'),v6a_root=str(v6a),
+    return dict(bind_python=sys.executable,out=str(directory/'confirmation'),v6a_root=str(v6a),
         six_row_root=str(directory/'root-A'),v6b_root=str(directory/'v6b'),hosts=['CPU-STANDIN'],
         realised_inputs=dict(path=str(inventory),sha256=sha(inventory)),technical_synthetic=True),inventory

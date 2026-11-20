@@ -1,4 +1,5 @@
 """Combined v6b integration contracts; all inputs are CPU fixtures."""
+from env_redaction import RedactedEnv
 import json
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -45,7 +46,11 @@ def test_4a_dispatch_is_independent_and_config_is_sealed(doc,monkeypatch):
     doc['technical_synthetic']=False;s=doc['settings'];calls=[]
     monkeypatch.setenv('UTIL_WATCH_ACTIVE','1')
     monkeypatch.setattr(c.socket,'gethostname',lambda:'tier-fixture')
-    assert c.execute(doc,'A4-bind',runner=lambda cmd,**kw:(calls.append((cmd,kw)) or NS(returncode=75)))==75
+    def runner(command,**kwargs):
+        kwargs['env']=RedactedEnv(kwargs['env'])
+        calls.append((command,kwargs))
+        return NS(returncode=75)
+    assert c.execute(doc,'A4-bind',runner=runner)==75
     cmd,kw=calls[0]
     assert cmd==['bash',str(c.KIT/'jobs/a4/run-task.sh'),'A4-bind']
     assert kw['env']['A4_CONFIG']==s['a4_config']

@@ -1,4 +1,5 @@
 """Staged v6a execution and evidence regressions; labelled CPU inputs only."""
+from env_redaction import RedactedEnv
 import json
 import os
 from pathlib import Path
@@ -36,7 +37,10 @@ def test_manifest_only_kcr_reference_and_report_no_other_sources(staged):
 
 def test_v6a_dispatch_ignores_core_send_date_preflight_and_unrelated_settings(staged):
     doc,_,_=staged;calls=[]
-    def runner(command,**kwargs):calls.append((command,kwargs));return NS(returncode=0)
+    def runner(command,**kwargs):
+        kwargs['env']=RedactedEnv(kwargs['env'])
+        calls.append((command,kwargs))
+        return NS(returncode=0)
     assert combined.execute(doc,'REF-m3-assign',runner=runner)==0
     assert len(calls)==1 and '--schedule-checkpoints' in calls[0][0]
     env=calls[0][1]['env']
@@ -331,7 +335,7 @@ def test_wrapper_reference_and_report_roots_do_not_read_other_group_settings(tmp
     manifest=tmp_path/'manifest.json'
     combined.write(manifest,dict(settings=dict(control_root=str(tmp_path/'control with spaces')),
         tasks=[dict(id='REF-m3-assign',group='reference',gpus=0),dict(id='REPORT-text',group='report',gpus=0)]))
-    env=dict(os.environ,KIT=str(kit),COMBINED_MANIFEST=str(manifest),JOB_PY=sys.executable)
+    env=RedactedEnv(os.environ,KIT=str(kit),COMBINED_MANIFEST=str(manifest),JOB_PY=sys.executable)
     env.pop('UTIL_WATCH_ACTIVE',None)
     for ident in ('REF-m3-assign','REPORT-text'):
         done=subprocess.run(['bash',str(combined.KIT/'jobs/combined/run-task.sh'),ident],env=env,capture_output=True,text=True)
@@ -399,7 +403,7 @@ def test_wrapper_path_setup_failure_runs_child_once_unwatched(tmp_path):
     (kit/'combined_send.py').write_text('import os;assert os.environ["UTIL_WATCH_ACTIVE"]=="1";open('+repr(str(marker))+',"a").write("once\\n");raise SystemExit(37)\n')
     shim=tmp_path/'python';shim.write_text('#!'+sys.executable+'\nimport os,sys\nif "import json,sys,uuid" in " ".join(sys.argv):raise SystemExit(9)\nos.execv(sys.executable,[sys.executable,*sys.argv[1:]])\n');shim.chmod(0o755)
     manifest=tmp_path/'manifest.json';atomic(manifest,dict(mode='v6a',settings={},tasks=[dict(id='REPORT-text',group='report',gpus=0)]))
-    env=dict(os.environ,KIT=str(kit),JOB_PY=str(shim),COMBINED_MANIFEST=str(manifest));env.pop('UTIL_WATCH_ACTIVE',None)
+    env=RedactedEnv(os.environ,KIT=str(kit),JOB_PY=str(shim),COMBINED_MANIFEST=str(manifest));env.pop('UTIL_WATCH_ACTIVE',None)
     done=subprocess.run(['bash',str(combined.KIT/'jobs/v6a/run.sh'),'REPORT-text'],env=env,capture_output=True,text=True)
     assert done.returncode==37 and marker.read_text()=='once\n' and 'path unavailable' in done.stderr
 

@@ -1,4 +1,5 @@
 """Main-only deletion guards, durable evidence, interruption and peak admission."""
+from env_redaction import RedactedEnv
 import hashlib
 import json
 from pathlib import Path
@@ -444,6 +445,7 @@ def test_real_restoration_driver_retires_each_arm_before_next_launch(tmp_path,mo
     monkeypatch.setattr(ops,'launcher_env',lambda work,arm,name,*args,**kwargs:{'TEST_ARM':arm,'TEST_NAME':name})
     def launch(command,**kwargs):
         if command[0]=='ray':return {'returncode':0}
+        kwargs['env'] = RedactedEnv(kwargs['env'])
         env=kwargs['env'];arm=env['TEST_ARM'];leg=env['V4_RESTORE_LEG']
         timeouts.append(kwargs['timeout']);events.append((arm,leg))
         if leg=='uninterrupted':
@@ -463,7 +465,9 @@ def test_real_restoration_driver_retires_each_arm_before_next_launch(tmp_path,mo
     monkeypatch.setattr(runner,'bounded_command',launch)
     class Killed:
         pid=999999;returncode=None
-        def __init__(self,*args,**kwargs):events.append((kwargs['env']['TEST_ARM'],'killed'))
+        def __init__(self,*args,**kwargs):
+            kwargs['env'] = RedactedEnv(kwargs['env'])
+            events.append((kwargs['env']['TEST_ARM'],'killed'))
         def poll(self):return None
         def wait(self,timeout):self.returncode=-9;return -9
     monkeypatch.setattr(restore.subprocess,'Popen',Killed)

@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from env_redaction import RedactedEnv
 
 # ------------------------------------------------------------------ the shell that runs pytest decides nothing here
 def _launcher_variables() -> frozenset:
@@ -33,7 +34,7 @@ def shell() -> dict:
     README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
     default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
     names = _launcher_variables()
-    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+    return RedactedEnv({k: v for k, v in __import__("os").environ.items() if k not in names})
 
 KIT = Path(__file__).resolve().parents[1] / "kit"
 GRPO, SDPO = KIT / "run_grpo_toolalpaca.sh", KIT / "run_sdpo_toolalpaca.sh"
@@ -41,7 +42,7 @@ KNOBS = ("DATASET", "LR", "MINI_BATCH", "TEACHER_RATE", "KEEP_TRAINER_CKPT", "LO
 
 
 def dry(script: Path, **extra):
-    env = {k: v for k, v in shell().items() if k not in KNOBS}
+    env = RedactedEnv({k: v for k, v in shell().items() if k not in KNOBS})
     env.update({"SDPO_DIR": "/ref/SDPO", "MODEL_DIR": "/models/Qwen3-8B", "NAME": "run-a1", "WORK": "/work", "DRY_RUN": "1", **extra})
     done = subprocess.run(["bash", str(script)], env=env, capture_output=True, text=True)
     return done.returncode, done.stdout.split("\n")[:-1], done.stderr
@@ -186,7 +187,7 @@ def run_for_real(tmp_path: Path, script: Path, name: str, **extra) -> tuple:
             subprocess.run(git + command, check=True, capture_output=True)
         model.mkdir()
         (model / "config.json").write_text("{}")
-    env = {k: v for k, v in shell().items() if k not in KNOBS and k != "PYTHONPATH"}
+    env = RedactedEnv({k: v for k, v in shell().items() if k not in KNOBS and k != "PYTHONPATH"})
     env.update({"SDPO_DIR": str(checkout), "MODEL_DIR": str(model), "NAME": name, "WORK": str(work), "STEPS": "2", **extra})
     env.pop("FAKE_MERGE", None) if "FAKE_MERGE" not in extra else None
     env.pop("FAKE_RESOLVE", None) if "FAKE_RESOLVE" not in extra else None

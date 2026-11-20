@@ -1,4 +1,5 @@
 """Frozen confirmation closure and owner-conditioned cache isolation."""
+from env_redaction import RedactedEnv
 import ast
 import hashlib
 import os
@@ -215,7 +216,7 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)
     assert not uncovered_imports(KIT, FROZEN_DEPENDENCIES)
     assert not a2_references(KIT, cr.code_seal())
-    assert len(FROZEN_DEPENDENCIES) == 477
+    assert len(FROZEN_DEPENDENCIES) == 479
     assert set(cr.code_seal()) == set(FROZEN_DEPENDENCIES) | {p for p, _ in cr.OWNER_RESOURCES}
 
 
@@ -278,7 +279,7 @@ def test_cr_row_never_consults_inherited_model_cache(tmp_path, entry):
     cache.write_text('must never read this invalid cache')
     config = tmp_path/'launch.json'
     atomic(config, dict(out=str(tmp_path/'B'), technical_synthetic=True,
-        cr_confirmation=dict(out=str(tmp_path/'C'), six_row_root=str(tmp_path/'A'),
+        cr_confirmation=dict(bind_python=sys.executable,out=str(tmp_path/'C'), six_row_root=str(tmp_path/'A'),
                              v6a_root=str(tmp_path/'v6a'), v6b_root=str(tmp_path/'v6b'), hosts=['CPU-STANDIN'])))
     proof = tmp_path/'proof.json'
     script = tmp_path/'probe.py'
@@ -322,7 +323,7 @@ else:
         cr_jobs.operation(cfg, {'phase': 'qualify'}, attempt, Path(PROOF).parent/'C')
 '''.replace('ROOT', repr(str(KIT.parent))).replace('PROOF', repr(str(proof)))
         .replace('ENTRY', repr(entry)).replace('CONFIG', repr(str(config))))
-    env = dict(os.environ)
+    env = RedactedEnv(os.environ)
     env.update({name: str(cache) for name in cr_jobs.MODEL_CACHE_ENV})
     env['M2_EXECUTION_PHASE'] = 'gpu'
     for key in ('KIT_V6A', 'KIT_V6_AUTHORITY_SHA', 'M2_INFRA_AUTHORITY_SHA256', 'UTIL_WATCH_ACTIVE'):

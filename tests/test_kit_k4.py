@@ -30,6 +30,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from env_redaction import RedactedEnv
 
 
 # ------------------------------------------------------------------ the shell that runs pytest decides nothing here
@@ -49,7 +50,7 @@ def shell() -> dict:
     README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
     default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
     names = _launcher_variables()
-    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+    return RedactedEnv({k: v for k, v in __import__("os").environ.items() if k not in names})
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
@@ -107,7 +108,7 @@ BED_ENV = {"TRAIN_FILE": "/work/data/spider/train.parquet",
 
 def dry(script: Path, **extra):
     done = subprocess.run(["bash", str(script)], capture_output=True, text=True,
-                          env={**shell(), **COMMON, **extra})
+                          env=shell() | COMMON | extra)
     return done.returncode, [line for line in done.stdout.split("\n") if line], done.stderr
 
 
@@ -205,12 +206,12 @@ def test_the_launcher_refuses_to_run_either_sdpo_arm_with_no_hints(tmp_path, fee
            "MODEL_DIR": str(tmp_path / "model"), "TRAIN_FILE": str(tmp_path / "train.parquet"),
            "VAL_FILE": str(tmp_path / "heldout.parquet"), "TASK": "datasets/spider_sql"}
     done = subprocess.run(["bash", str(BED_LAUNCHER)], capture_output=True, text=True,
-                          env={**shell(), **env})
+                          env=shell() | env)
     assert done.returncode != 0 and "HINTS_FILE" in done.stderr
     empty = tmp_path / "empty.jsonl"
     empty.write_text("")
     done = subprocess.run(["bash", str(BED_LAUNCHER)], capture_output=True, text=True,
-                          env={**shell(), **env, "HINTS_FILE": str(empty)})
+                          env=shell() | env | {"HINTS_FILE": str(empty)})
     assert done.returncode == 2 and "missing or empty" in done.stderr
 
 
@@ -1009,7 +1010,7 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          capture_output=True, text=True, env={**shell(), "WORK": str(work)})
+                          capture_output=True, text=True, env=shell() | {"WORK": str(work)})
     assert done.returncode == 0, done.stderr
     assert list(work.iterdir()) == []
     assert "PILOT" in done.stdout

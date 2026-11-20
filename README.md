@@ -1,11 +1,11 @@
 # continual-learning-kit
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7c` clone,
-> checked against the owner's commit and receipt SHA256
-> `04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380`.
-> Clone any newer tag into a **NEW directory**, never into the v7c clone.
-> On a newer tag, the CR refusal "confirmation code changed since diff review"
-> is expected, not a defect. A newer tag's launch JSON carries no `cr_confirmation`.
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> checked against the owner's commit and receipt SHA256 from the approved send.
+> Clone this tag into a **NEW directory**, never into an existing experiment clone.
+> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
+> A code-seal mismatch requires a new reviewed receipt.
 
 The current combined message 2+3 entry point is [COMBINED SEND](kit/README-combined.md).
 Message-3 joins only on Opus SEND by 2 November; tier failures never block core.

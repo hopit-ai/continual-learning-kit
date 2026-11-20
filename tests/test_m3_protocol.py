@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
+from env_redaction import RedactedEnv
 from util70_fixtures import prospective_build_authority
 
 from kit import m3_schedule as plan
@@ -800,7 +801,7 @@ def fallback_targets(tmp_path_factory):
     import os
     from kit import m3_pools
     out = tmp_path_factory.mktemp('m3-fallback') / 'm3'; manifest.init_root(out)
-    saved = dict(os.environ)
+    saved = RedactedEnv(os.environ)
     try:
         m3_pools.math_resolve(_math_args(out)); m3_pools.math_targets(_math_args(out)); m3_pools.math_finish(_math_args(out))
     finally: os.environ.clear(); os.environ.update(saved)  # the protocol sets CUDA_VISIBLE_DEVICES like m2_targets

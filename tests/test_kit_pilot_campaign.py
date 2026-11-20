@@ -6,6 +6,7 @@ implicit, and every output where the collector packs it.
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import importlib.util
 import os
 import re
@@ -140,7 +141,7 @@ def test_every_command_is_valid_shell_and_quotes_the_work_directory():
 
 
 def test_the_runner_plans_it_with_nothing_implicit(tmp_path):
-    env = {**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "SDPO_DIR": "/x", "MODEL_DIR": "/x"}
+    env = RedactedEnv({**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "SDPO_DIR": "/x", "MODEL_DIR": "/x"})
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)], capture_output=True, text=True, env=env)
     assert done.returncode == 0, done.stderr
     assert "IMPLICIT ORDER" not in done.stdout + done.stderr
@@ -188,9 +189,9 @@ def test_disk_is_checked_before_anything_runs_and_trainer_checkpoints_are_not_ke
     assert "shutil.disk_usage" in first and "K8B_MIN_FREE_GB" in first and "'650'" in first and first.rstrip().endswith('"{work}"')
     # ... on a work folder that does not exist yet, which is what the README's command starts from (review, round 2)
     fresh = tmp_path / "not" / "there" / "yet"
-    done = subprocess.run(["bash", "-c", first.replace("{work}", str(fresh))], env={**os.environ, "K8B_MIN_FREE_GB": "0"}, capture_output=True, text=True)
+    done = subprocess.run(["bash", "-c", first.replace("{work}", str(fresh))], env=RedactedEnv({**os.environ, "K8B_MIN_FREE_GB": "0"}), capture_output=True, text=True)
     assert done.returncode == 0 and fresh.is_dir(), done.stderr
-    done = subprocess.run(["bash", "-c", first.replace("{work}", str(fresh))], env={**os.environ, "K8B_MIN_FREE_GB": "99999999"}, capture_output=True, text=True)
+    done = subprocess.run(["bash", "-c", first.replace("{work}", str(fresh))], env=RedactedEnv({**os.environ, "K8B_MIN_FREE_GB": "99999999"}), capture_output=True, text=True)
     assert done.returncode == 1 and "GB free under" in done.stderr
     training = TRAIN + [BY_ID["pilot-%s" % name] for name in ("g8", "g32", "sema", "sfrz", "chain")]
     assert len(training) == 29 and all(row["env"]["KEEP_TRAINER_CKPT"] == "0" for row in training)

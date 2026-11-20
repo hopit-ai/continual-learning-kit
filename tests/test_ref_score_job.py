@@ -1,4 +1,5 @@
 """v5 reference guard job, reader isolation, and hardware checks; CPU fixtures only."""
+from env_redaction import RedactedEnv
 import csv
 import json
 from pathlib import Path
@@ -432,6 +433,7 @@ def test_each_reference_attempt_scores_a_fresh_complete_nonce_tree(root,monkeypa
         child=copy(a);child.panel=panel;job.prepare(child)
     attempts=[]
     def execute(commands,directory,*,env,pass_fds,concurrency):
+        env = RedactedEnv(env)
         attempts.append(env['KIT_LANE_JOB'])
         assert pass_fds==(17,) and env['M3_GPU_LOCK_FDS']=='[17]' and concurrency==2
         assert not list(Path(env['REF_ATTEMPT_ROOT']).rglob('ref-identity.json'))

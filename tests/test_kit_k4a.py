@@ -28,6 +28,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from env_redaction import RedactedEnv
 
 
 # ------------------------------------------------------------------ the shell that runs pytest decides nothing here
@@ -47,7 +48,7 @@ def shell() -> dict:
     README tells people to `export NGPU=8`, and a suite run in that shell failed a test that expects the launcher's
     default of four GPUs (found on 1 October 2026, verifying the public tag from a fresh clone)."""
     names = _launcher_variables()
-    return {k: v for k, v in __import__("os").environ.items() if k not in names}
+    return RedactedEnv({k: v for k, v in __import__("os").environ.items() if k not in names})
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT = ROOT / "kit"
@@ -147,7 +148,7 @@ DECLARED = {
 def dry_run(**extra):
     """The launcher's argv, with everything that would touch a disk skipped."""
     done = subprocess.run(["bash", str(LAUNCHER)], capture_output=True, text=True,
-                          env={**shell(), **DRY_ENV, **extra})
+                          env=shell() | DRY_ENV | extra)
     return done.returncode, done.stdout.splitlines(), done.stderr
 
 
@@ -250,7 +251,7 @@ RIGHT = [("get_weather", {"city": "Zurich", "unit": "C"}), ("send_email", {"to":
 def test_the_soft_reward_loads_the_authors_checker_and_never_a_copy_of_its_own(soft):
     assert Path(soft.AUTHORS.__file__).resolve() == REFERENCE_TOOLUSE.resolve()
     with pytest.raises(soft.AuthorsCheckerMissing):
-        old = dict(os.environ)
+        old = RedactedEnv(os.environ)
         try:
             os.environ.pop("SDPO_TOOLUSE", None)
             os.environ.pop("SDPO_DIR", None)
@@ -544,7 +545,7 @@ def test_planning_the_campaign_creates_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          capture_output=True, text=True, env={**shell(), "WORK": str(work)})
+                          capture_output=True, text=True, env=shell() | {"WORK": str(work)})
     assert done.returncode == 0, done.stderr
     assert list(work.iterdir()) == []
     assert "PILOT" in done.stdout

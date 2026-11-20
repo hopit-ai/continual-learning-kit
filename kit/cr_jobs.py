@@ -15,6 +15,39 @@ MODEL_CACHE_ENV = ('M2_MODEL_HASH_RECEIPTS_FILE', 'M2_MODEL_HASH_RECEIPTS_FILE_S
                    'M2_MODEL_HASH_RECEIPTS_SHA256', 'M2_EXECUTION_PHASE')
 
 
+def training_command(a, *args, **kwargs):
+    """CR-only isolated entry, preserving the authority-pinned M3 driver bytes."""
+    from kit import m3_train
+    command, env = m3_train.command(a, *args, **kwargs)
+    need(command[:3] == [a.trainer_python, '-m', 'kit.m3_entry'],
+         'CR M3 training entry differs')
+    bootstrap = ('import runpy,sys;sys.path[:0]=' + repr([str(KIT.parent), str(a.sdpo.resolve())])
+                 + ";runpy.run_module('kit.m3_entry',run_name='__main__')")
+    return [a.trainer_python, '-I', '-c', bootstrap, *command[3:]], env
+
+
+def isolated_training_job(a):
+    # The row runs in its own NM worker process. Give its M3 entry functions a
+    # private globals dictionary; never mutate the shared module's command.
+    from kit import m3_train
+    from types import FunctionType
+    def isolated_run(command, *args, **kwargs):
+        # HF export is also launched by this driver, outside command().
+        if command[:4] == [a.trainer_python, '-I', '-m', 'verl.model_merger']:
+            bootstrap = ('import runpy,sys;sys.path[:0]=' + repr([str(KIT.parent), str(a.sdpo.resolve())])
+                         + ";runpy.run_module('verl.model_merger',run_name='__main__')")
+            command = [a.trainer_python, '-I', '-c', bootstrap, *command[4:]]
+        return m3_train.subprocess.run(command, *args, **kwargs)
+    scope = dict(vars(m3_train), command=training_command,
+                 subprocess=NS(**dict(vars(m3_train.subprocess), run=isolated_run)))
+    for name, value in vars(m3_train).items():
+        if isinstance(value, FunctionType) and value.__globals__ is vars(m3_train):
+            scope[name] = FunctionType(value.__code__, scope, name, value.__defaults__, value.__closure__)
+            scope[name].__kwdefaults__ = value.__kwdefaults__
+    scope['command'] = training_command
+    return scope['job'](a)
+
+
 def clear_model_cache_environment():
     for name in MODEL_CACHE_ENV:
         os.environ.pop(name, None)
@@ -30,6 +63,8 @@ def settings(cfg):
     ready(isinstance(cr.get('other_roots',[]),list),'other_roots must be an array')
     ready(isinstance(cfg.get('job_python',sys.executable),str) and bool(cfg.get('job_python',sys.executable)),
           'job_python must be a nonempty executable path')
+    ready(isinstance(cr.get('bind_python'),str) and bool(cr['bind_python']),
+          'bind_python is required for CR native regeneration')
     ready(cr.get('six_row_root') and cr.get('v6b_root'),
           'six_row_root and v6b_root required for CR isolation')
     isolated(cr,cfg['out'])
@@ -230,6 +265,9 @@ def operation(cfg,row,attempt,out):
                 # rechecks. Retain row diagnostics only when they failed.
                 binding.pop('diff_receipt',None)
                 binding.pop('native_inventory',None)
+        if sys.platform.startswith('linux') and not cfg.get('technical_synthetic'):
+            from kit.cr_process import cpu_preflight
+            cpu_preflight()  # CPU teardown check before any GPU row is eligible.
         binding=bind_inputs(cfg,attempt,validate=validate)
         seal(out/'confirmation-binding.json',binding)
         seal(out/'launch/cr.json',launch)
@@ -241,7 +279,7 @@ def operation(cfg,row,attempt,out):
             atomic(attempt/'qualification.json',dict(status='TECHNICAL-ONLY',technical_synthetic=True,
                 reason='CPU fixture exercises scheduling only; eight-GPU preflight remains PENDING'))
         else:
-            m3_train.job(a)
+            isolated_training_job(a)
             if cfg.get('technical_synthetic') and phase=='export':
                 for step in (10,20,30,40):
                     atomic(m3_train.run_root(out,row['arm'],row['seed'],row['stage'])/f'hf-step{step}/config.json',dict(technical_synthetic=True))

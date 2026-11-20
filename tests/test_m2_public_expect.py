@@ -1,3 +1,4 @@
+from env_redaction import RedactedEnv
 from util70_fixtures import prospective_build_authority
 """V5: node-local archive binding must match every public content field."""
 import copy
@@ -108,7 +109,7 @@ def job(a):check_public(a.expect,{},{},{})
 def configure(p):p.add_argument('--expect',type=Path,required=True)
 raise SystemExit(entry(job,configure,'public-check'))
 """
-    done=subprocess.run([sys.executable,'-I','-c',program,str(ROOT),'--out',str(tmp_path/'state'),'--expect',str(missing)],capture_output=True,text=True,env=dict(os.environ,KIT_V6_AUTHORITY_SHA=hashlib.sha256((ROOT/'kit/resources/v6/infrastructure-update.json').read_bytes()).hexdigest()))
+    done=subprocess.run([sys.executable,'-I','-c',program,str(ROOT),'--out',str(tmp_path/'state'),'--expect',str(missing)],capture_output=True,text=True,env=RedactedEnv(os.environ,KIT_V6_AUTHORITY_SHA=hashlib.sha256((ROOT/'kit/resources/v6/infrastructure-update.json').read_bytes()).hexdigest()))
     assert done.returncode==2
     assert 'public send expectation unreadable or invalid' in done.stdout
     assert 'Traceback' not in done.stdout+done.stderr

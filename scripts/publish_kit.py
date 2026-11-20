@@ -54,16 +54,17 @@ TESTS += ("test_v6a.py", "test_v6b.py",)
 TESTS += ("test_v7_operator_fixes.py",)
 TESTS += ("test_nm_actor.py", "test_nm_binding.py", "test_nm_budget.py", "test_nm_data.py", "test_nm_jobs.py", "test_nm_math.py", "test_nm_pipeline.py", "test_nm_prepare.py", "test_nm_read.py", "test_nm_return.py", "test_nm_text.py",)
 TESTS += ("test_cr_confirmation.py", "test_cr_finqa.py", "test_v7_operator_fixes.py", "test_v7b_fixes.py",)
-TESTS += ("test_cr_v7c_closure.py",)
+TESTS += ("test_cr_v7c_closure.py", "test_cr_round2.py",)
 # A2 public checks use shipped kit files and explicit synthetic CPU identities.
 # The separate private registration parity test runs when its document exists.
-TESTS += ("test_trace_registration.py",)
+TESTS += ("test_trace_registration.py", "test_kitfix_trace.py",)
 TESTS += ("test_trace_metrics.py",)
 TESTS += ("test_trace_probe.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
 TESTS += ("kit_authority.py", "util70_fixtures.py",)
 # Public deletion mechanics. Manager-only binding checks depend on private reads.
 TESTS += ("test_deletion_logic.py", "test_deletion_torch.py", "test_deletion_isolation.py",)
+TESTS += ("test_env_redaction.py",)
 # Runtime hashes and the S reader require these exact source bytes on the node.
 # Copying them grants no launch authority; Modal smokes remain manager-run.
 RUNTIME_FILES = ("scripts/check_pinned_inputs.py", "scripts/screen_s_analysis.py",
@@ -85,6 +86,8 @@ RUNTIME_FILES += ("scripts/apache-2.0.txt",
 RUNTIME_FILES += ("scripts/deletion_smoke_modal.py",)
 # Retain source-registration parity checks alongside the bundled runtime copy.
 RUNTIME_FILES += ("docs/phase4/trace-registration-DRAFT-20261111.md",)
+# Retain the public template so a standalone export can itself be rebuilt.
+RUNTIME_FILES += ("tests/env_redaction.py", "tests/public_conftest.py")
 K2_TAG = "kit-k2-v2"
 K3_TAG = "kit-k3-v1"
 K1C_TAG = "kit-k1c-v1"
@@ -191,12 +194,12 @@ PUBLIC_TEST_ARGS = ('-m', 'pytest', '-q', 'tests', '--ignore=tests/test_x_smoke_
 
 README = """# continual-learning-kit
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7c` clone,
-> checked against the owner's commit and receipt SHA256
-> `04861c64970d3fb8e04936ec2042852120cc94cd04fb063a5084bb71066df380`.
-> Clone any newer tag into a **NEW directory**, never into the v7c clone.
-> On a newer tag, the CR refusal "confirmation code changed since diff review"
-> is expected, not a defect. A newer tag's launch JSON carries no `cr_confirmation`.
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> checked against the owner's commit and receipt SHA256 from the approved send.
+> Clone this tag into a **NEW directory**, never into an existing experiment clone.
+> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
+> A code-seal mismatch requires a new reviewed receipt.
 
 The current combined message 2+3 entry point is [COMBINED SEND](kit/README-combined.md).
 Message-3 joins only on Opus SEND by 2 November; tier failures never block core.
@@ -338,6 +341,7 @@ def build(target: Path, tag=None) -> Path:
     campaign.write_text(public_repository_names(campaign.read_text()))
     for name in TESTS:
         shutil.copy(ROOT / "tests" / name, target / "tests" / name)
+    shutil.copy(ROOT / "tests/public_conftest.py", target / "tests/conftest.py")
     for name in RUNTIME_FILES:
         destination=target/name;destination.parent.mkdir(parents=True,exist_ok=True)
         shutil.copyfile(ROOT/name,destination)

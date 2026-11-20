@@ -6,6 +6,7 @@ the frozen-panel loader is replaced (no scientific freeze exists yet).
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import copy
 import csv
 import hashlib
@@ -599,7 +600,7 @@ def test_job_templates_are_isolated_and_exit_zero(tmp_path):
         dict(id='SP-fail', kind='sp-sidecar', after=[], dependency='afterany', writes='{sp}', uses_gpu=False, blocks=[],
              commands=[[sys.executable, '-c', 'raise SystemExit(3)']])])
     (tmp_path / 'side.json').write_text(json.dumps(side))
-    env = dict(KIT=str(ROOT / 'kit'), SP_ROOT=str(tmp_path / 'sp'), SIDECAR=str(tmp_path / 'side.json'), TASK='SP-fail',
+    env = RedactedEnv(KIT=str(ROOT / 'kit'), SP_ROOT=str(tmp_path / 'sp'), SIDECAR=str(tmp_path / 'side.json'), TASK='SP-fail',
                JOB_PY=sys.executable, PATH='/usr/bin:/bin')
     assert subprocess.run(['bash', str(jobs / 'run-task.sh')], env=env).returncode == 0
     assert state(tmp_path / 'sp', 'SP-fail')['status'] == 'FAILED'

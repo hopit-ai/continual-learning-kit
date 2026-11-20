@@ -1,4 +1,5 @@
 """Offline fixture tests for next-message scripts, scientific rules and legacy isolation."""
+from env_redaction import RedactedEnv
 import argparse
 from collections import Counter
 import copy
@@ -256,7 +257,7 @@ def test_reader_amendments_and_undefined_denominators():
 def test_public_cli_failure_codes_and_traceback(tmp_path):
     def cli(script,*args,code):
         result=subprocess.run([sys.executable,str(c.KIT/script),'--out',str(tmp_path/'out'),'--standin',*map(str,args)],capture_output=True,text=True,
-            env={**os.environ,'HF_HUB_OFFLINE':'1','HF_DATASETS_OFFLINE':'1'})
+            env=RedactedEnv({**os.environ,'HF_HUB_OFFLINE':'1','HF_DATASETS_OFFLINE':'1'}))
         assert result.returncode==code,result.stdout+result.stderr
         return result
     cli('next_collect.py','--archive',tmp_path/'empty.tar.gz',code=3)

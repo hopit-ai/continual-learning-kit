@@ -1,4 +1,5 @@
 """Plan 15.21/15.22 through real runner, planner, retry and warning paths; CPU only."""
+from env_redaction import RedactedEnv
 import json
 import os
 from pathlib import Path
@@ -236,7 +237,7 @@ def test_prior_unknown_job_is_not_charged_as_forever_running(tmp_path,monkeypatc
 
 def test_launcher_configuration_findings_warn_and_preserve_local_value(tmp_path):
     kit=Path(__file__).resolve().parents[1]/'kit'
-    env={**os.environ,'KIT':str(kit),'WORK':str(tmp_path),'V4_FINQA_CAMPAIGN':'1','V4_PHASE0_MODE':'0','LR':'2e-5'}
+    env=RedactedEnv({**os.environ,'KIT':str(kit),'WORK':str(tmp_path),'V4_FINQA_CAMPAIGN':'1','V4_PHASE0_MODE':'0','LR':'2e-5'})
     command='source "$KIT/v4_profile.sh"; printf "LOCAL_LR=%s\n" "$LR"'
     done=subprocess.run(['bash','-c',command],env=env,capture_output=True,text=True)
     assert done.returncode==0 and 'LOCAL_LR=2e-5' in done.stdout and 'WARNING:' in done.stdout
@@ -317,6 +318,7 @@ def test_retirement_deadline_warning_cannot_block_real_train_consumer(tmp_path,m
     monkeypatch.setattr(ops.t,'local_identity',lambda *a:dict(model_file_hashes={'CPU adapter':'pinned'}))
     calls=[]
     def external_training(command,env):
+        env = RedactedEnv(env)
         calls.append(command);(tmp_path/'runs/q-F-finqa/env').mkdir(parents=True)
     monkeypatch.setattr(ops,'run',external_training)
     assert ops.main(['train','--work',str(tmp_path),'--phase','qualification','--row','train-q-F-finqa','--slot','q-F-finqa'])==0

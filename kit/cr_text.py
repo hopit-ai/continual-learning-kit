@@ -76,8 +76,21 @@ def payload(full,full_detail=False):
     for key,value in r.get('lane_hashes',{}).items():rows.append(trow('lane',key,value))
     rows.append(trow('account','status',full.get('accounting',{}).get('status','PENDING process/allocation reconciliation')))
     account=full.get('accounting',{})
-    for field in ('gpu_hours','process_gpu_hours','attempts'):
+    for warning in sorted(set(account.get('warnings', []))):
+        from kit.nm_budget import CR_WARN
+        label = {CR_WARN: 'WARN_CR_830_GPU_HOURS_WARN_ONLY',
+                 'WARN CR rows exceed scheduler holder GPU-hours':
+                 'WARN_CR_ROWS_EXCEED_HOLDER_GPU_HOURS'}.get(warning, 'WARN_CR_ACCOUNTING_OTHER')
+        rows.append('W|NM-cr|'+label+'|1')
+    for field in ('gpu_hours','process_gpu_hours','attempts',
+                  'holder_gpu_hours','holder_row_gpu_hours','holder_unattributed_gpu_hours'):
         rows.append(trow('account',field,account.get(field)))
+    for index, holder in enumerate(account.get('holders', []), 1):
+        # Stable anonymous holder ordinals preserve audit arithmetic in text;
+        # scheduler identifiers remain in the local accounting artifact.
+        for field in ('allocated_gpus','holder_gpu_hours','row_gpu_hours',
+                      'holder_unattributed_gpu_hours'):
+            rows.append(trow('holder',str(index)+'.'+field,holder.get(field)))
     rows.append(trow('account','reconciliation_request','per-arm/seed/stage:process/allocated-GPUh;train/prep/qualification/native/reference/export/idle/failed;v6a-298.3-coverage'))
     rows.append(trow('account','wall_time_risk_gt24',True))
     return rows+['T|CHECKSUM-SCOPE|advisory-only|TRANSCRIPTION-UNVERIFIED-never-rejects']

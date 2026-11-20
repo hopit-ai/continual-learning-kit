@@ -1,4 +1,5 @@
 """Allocation/job boundaries using CPU fixtures; no GPU or remote execution."""
+from env_redaction import RedactedEnv
 import copy
 import json
 import os
@@ -256,7 +257,9 @@ def test_tier_cpu_child_gets_the_manifest_bound_seal(tmp_path,monkeypatch):
     doc=dict(infrastructure_update=runtime['authority'],lane_runtime=runtime,technical_synthetic=True,tasks=[dict(id='M3-init',kind='prepare',requires=[],gpus=0,commands=[['python','fake.py']])])
     monkeypatch.setattr(m3_manifest,'load',lambda *a:doc)
     calls=[]
-    def run(command,**kw):calls.append(kw['env']);return NS(returncode=0)
+    def run(command,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
+        calls.append(kw['env']);return NS(returncode=0)
     monkeypatch.setattr(m3_manifest.subprocess,'run',run)
     assert m3_manifest.run_task('ignored','M3-init',tmp_path,{})==0
     assert calls[0]['KIT_V6_AUTHORITY_SHA']==runtime['authority']

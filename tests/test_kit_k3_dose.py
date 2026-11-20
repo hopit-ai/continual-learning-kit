@@ -35,6 +35,7 @@ Everything builds its own fixtures; nothing here needs a GPU, a network or a tra
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import importlib.util
 import json
 import os
@@ -239,7 +240,7 @@ def test_the_plan_prints_every_row_and_executes_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)],
-                          env={**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"},
+                          env=RedactedEnv({**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"}),
                           capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     printed = [line for line in done.stdout.split("\n") if line.startswith("[")]
@@ -749,7 +750,7 @@ def test_probe_2s_plan_prints_every_row_and_executes_nothing(tmp_path):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN2)],
-                          env={**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"},
+                          env=RedactedEnv({**os.environ, "WORK": str(work), "SDPO_DIR": "/s", "MODEL_DIR": "/m"}),
                           capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     assert "campaign k3-dose-2 (40 rows)" in done.stdout
@@ -1127,8 +1128,8 @@ def _plan3(tmp_path, *extra):
     work = tmp_path / "work"
     work.mkdir()
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", *extra, str(CAMPAIGN3)],
-                          env={**os.environ, "WORK": str(work), "SPIDER_ROOT": "/s", "GSM8K_ROOT": "/g",
-                               "SDPO_DIR": "/d"}, capture_output=True, text=True)
+                          env=RedactedEnv({**os.environ, "WORK": str(work), "SPIDER_ROOT": "/s", "GSM8K_ROOT": "/g",
+                               "SDPO_DIR": "/d"}), capture_output=True, text=True)
     assert done.returncode == 0, done.stdout + done.stderr
     assert list(work.iterdir()) == [], "planning must create nothing"
     return done.stdout

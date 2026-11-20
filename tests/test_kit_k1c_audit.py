@@ -6,6 +6,7 @@ output where the collector will pack it, every bar reading a number that the too
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import importlib.util
 import json
 import os
@@ -104,7 +105,7 @@ def test_every_command_is_valid_shell_and_quotes_the_work_directory():
 
 
 def test_the_runner_plans_it_with_nothing_implicit(tmp_path):
-    env = {**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "GSM8K_ROOT": "/x", "FINQA_ROOT": "/x", "K0_REPORT": "/x"}
+    env = RedactedEnv({**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "GSM8K_ROOT": "/x", "FINQA_ROOT": "/x", "K0_REPORT": "/x"})
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)], capture_output=True, text=True, env=env)
     assert done.returncode == 0, done.stderr
     assert "IMPLICIT ORDER" not in done.stdout + done.stderr and done.stdout.count("\n[") + done.stdout.startswith("[") >= 66

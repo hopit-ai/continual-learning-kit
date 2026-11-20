@@ -165,7 +165,7 @@ def test_confirmation_text_contains_proof_hashes_and_all_seven_still_fit(native,
 @pytest.mark.parametrize('trigger', [
     'b-work-null', 'corpus-null', 'b-work-null-after-hash-failure', 'tokenizer-array',
     'discovery-symlink-loop', 'membership-symlink-loop', 'stored-manifest-array',
-    'stored-row-null', 'stored-extra-info-null', 'job-python-null',
+    'stored-row-null', 'stored-extra-info-null', 'bind-python-null',
 ])
 def test_malformed_finqa_inputs_are_proof_errors_and_outer_pending(native, tmp_path, monkeypatch, trigger):
     cfg, path = native
@@ -202,7 +202,7 @@ def test_malformed_finqa_inputs_are_proof_errors_and_outer_pending(native, tmp_p
         manifest = load(target.parent/'manifest.json')
         manifest['train_sha256'] = sha(target)
         atomic(target.parent/'manifest.json', manifest)
-    elif trigger == 'job-python-null': cfg['job_python'] = None
+    elif trigger == 'bind-python-null': cfg['bind_python'] = None
     # The symlink loop cannot be rehashed, but the rest of the inventory is valid.
     for row in doc['sources']:
         if trigger == 'membership-symlink-loop' and row['path'] == str(loop): continue
@@ -218,7 +218,7 @@ def test_malformed_finqa_inputs_are_proof_errors_and_outer_pending(native, tmp_p
     assert report['escalation'] == proof['escalation'] == 'owner'
     assert proof['errors'] and not (attempt/'finqa-generated').exists()
     assert not any('input checking failed' in e for e in report['errors']+proof['errors'])
-    if trigger.startswith('stored-') or trigger == 'job-python-null':
+    if trigger.startswith('stored-') or trigger == 'bind-python-null':
         assert proof == load(attempt/'finqa-reproduction.json')
     if trigger == 'stored-row-null' or trigger == 'stored-extra-info-null':
         assert any('training rows/extra_info invalid' in e for e in proof['errors'])
@@ -272,7 +272,7 @@ def test_standalone_reproduction_returns_pending_proof(native, tmp_path, monkeyp
     source = load(path)['task_sources']['finqa']
     if trigger == 'null-source': source = None
     elif trigger == 'null-config': cfg = None
-    elif trigger == 'null-python': cfg['job_python'] = None
+    elif trigger == 'null-python': cfg['bind_python'] = None
     elif trigger == 'null-schedules': source['v6a_schedules'] = None
     else:
         def discovery(*args): raise AttributeError('unexpected discovery error')

@@ -2,13 +2,13 @@
 import ray
 from verl.single_controller.base.decorator import register, Dispatch
 from kit import nm_native
-from kit.trace_prompt import install
+from kit.trace_prompt import install_prepared
 
 
 class TraceWorker(nm_native.NMWorker):
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
     def init_model(self):
-        install()
+        install_prepared(self.config.nm.receipt)
         return super().init_model()
 
 
@@ -19,5 +19,5 @@ class TraceTaskRunner(nm_native.NMTaskRunner):
         return TraceWorker,group
 
     def run(self,config):
-        install()
+        install_prepared(config.nm.receipt)
         return super().run(config)

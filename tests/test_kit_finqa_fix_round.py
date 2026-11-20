@@ -1,4 +1,5 @@
 """Round-2 regressions: real orchestration/consumers, explicit CPU model adapters."""
+from env_redaction import RedactedEnv
 import contextlib
 import hashlib
 import io
@@ -132,7 +133,9 @@ def test_4_resume_recovers_mid_export_only_from_verified_state(tmp_path,monkeypa
     from kit.sim.v4_merge_standin import export as cpu_export
     run=tmp_path/'runs/slot';old=state(run,'D',20);r.durable_state(run,'D',20);new=state(run,'D',40)
     calls=[]
-    def merge(argv,env):calls.append(argv);cpu_export(Path(argv[argv.index('--target_dir')+1]))
+    def merge(argv,env):
+        env = RedactedEnv(env)
+        calls.append(argv);cpu_export(Path(argv[argv.index('--target_dir')+1]))
     monkeypatch.setattr(ops,'run',merge);monkeypatch.setattr(r,'reload_weights',lambda *a:{'tensor_count':1,'dtype':'BF16'})
     if changed:(old/'data.pt').write_bytes(b'changed')
     if changed:
@@ -224,7 +227,7 @@ def test_9_runbook_failure_returns_without_logging_out(tmp_path):
     start=text.index('finqa_host_exports()');end=text.index('\n}',start)+2
     function=text[start:end]
     stub=tmp_path/'v4_finqa_site.py';stub.write_text('raise SystemExit(2)\n')
-    result=subprocess.run(['/bin/bash','-c',function+'\nfinqa_host_exports inherit\nstatus=$?\nprintf "SURVIVED:%s\\n" "$status"'],env={**os.environ,'KIT':str(tmp_path),'WORK':str(tmp_path)},capture_output=True,text=True)
+    result=subprocess.run(['/bin/bash','-c',function+'\nfinqa_host_exports inherit\nstatus=$?\nprintf "SURVIVED:%s\\n" "$status"'],env=RedactedEnv({**os.environ,'KIT':str(tmp_path),'WORK':str(tmp_path)}),capture_output=True,text=True)
     assert result.returncode==0 and 'SURVIVED:2' in result.stdout and 'STOP' in result.stderr
 
 
@@ -257,8 +260,8 @@ def test_A2_new_shell_tag_exports_and_real_main_prepare(host,tmp_path,monkeypatc
     assert site.main(['exports','--work',str(work)])==0
     exports=capsys.readouterr().out
     # A fresh login shell receives only frozen exports, plus the NEW tag supplied by the owner.
-    shell=subprocess.run(['/bin/bash','-c',exports+'\n'+sys.executable+' -c '+__import__('shlex').quote('import os,json;print(json.dumps(dict(os.environ)))')],env={'PATH':os.environ['PATH'],'V4_KIT_TAG':'new-main-tag'},capture_output=True,text=True,check=True)
-    fresh=json.loads(shell.stdout);assert fresh['V4_KIT_TAG']=='new-main-tag'
+    shell=subprocess.run(['/bin/bash','-c',exports+'\n'+sys.executable+' -c '+__import__('shlex').quote('import os,json;print(json.dumps(dict(os.environ)))')],env=RedactedEnv({'PATH':os.environ['PATH'],'V4_KIT_TAG':'new-main-tag'}),capture_output=True,text=True,check=True)
+    fresh=RedactedEnv(json.loads(shell.stdout));assert fresh['V4_KIT_TAG']=='new-main-tag'
     assert fresh['MODEL_DIR']==doc['environment']['MODEL_DIR'] and fresh['V4_TRAINER_ACTIVATE']==doc['trainer_activate']
     with monkeypatch.context() as context:
         for key in list(os.environ):context.delenv(key,raising=False)
@@ -287,6 +290,7 @@ def test_A_liveness_step20_real_save_hook_outlives_retirement_cap(tmp_path,monke
     def slow_hash(path):
         clock[0]+=1;events.append('hash');return original(path)
     def slow_merge(argv,env):
+        env = RedactedEnv(env)
         clock[0]+=1;events.append('merge');cpu_export(Path(argv[argv.index('--target_dir')+1]))
     def slow_reload(path):
         clock[0]+=1;events.append('reload');return {'tensor_count':1,'dtype':'BF16'}

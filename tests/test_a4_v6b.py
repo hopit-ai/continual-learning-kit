@@ -9,6 +9,7 @@ import sys
 from types import SimpleNamespace as NS
 
 import pytest
+from env_redaction import RedactedEnv
 from kit import a4_common as c,a4_jobs as jobs,a4_read,a4_bind,a4_sim
 
 
@@ -89,7 +90,7 @@ def rehearsal(tmp_path_factory):
         'elif "utilization.gpu" in query: print("\\n".join(f"{i}, GPU-CPU-STANDIN-{i}, 90, 1024" for i in range(8)))\n'
         'elif query=="--query-gpu=index,uuid": print("\\n".join(f"{i}, GPU-CPU-STANDIN-{i}" for i in range(8)))\n')
     smi.chmod(0o755)
-    env={k:v for k,v in os.environ.items() if not k.startswith(('SLURM_','CUDA_','M2_','M3_','UTIL_','KIT_LANE_'))}
+    env=RedactedEnv({k:v for k,v in os.environ.items() if not k.startswith(('SLURM_','CUDA_','M2_','M3_','UTIL_','KIT_LANE_'))})
     env.update(KIT=str(c.KIT),A4_CONFIG=str(config),JOB_PY=sys.executable,PATH=str(binary)+os.pathsep+os.environ['PATH'])
     log=root/'wrapper.log';calls=[]
     def call(task,expected=0):
@@ -170,7 +171,7 @@ def test_missing_complete_comparison_never_joins_partial_attempts(rehearsal):
 
 
 def test_watcher_expected_zero_bypasses_nvml_and_records_count(tmp_path):
-    env=dict(os.environ,CUDA_VISIBLE_DEVICES='')
+    env=RedactedEnv(os.environ,CUDA_VISIBLE_DEVICES='')
     done=subprocess.run([sys.executable,'-I',str(c.KIT/'util_watch.py'),'--out',str(tmp_path/'util.jsonl'),'--expect-gpus','0','--',sys.executable,'-I','-c','raise SystemExit(75)'],env=env,capture_output=True,text=True)
     assert done.returncode==75
     summary=json.loads((tmp_path/'util.summary.json').read_text())
@@ -247,6 +248,7 @@ def test_cpu_export_merges_without_visible_gpu(tmp_path,monkeypatch):
     c.atomic(tmp_path/'data'/run.name/'prepared.json',dict(empty=False,observed=dict(technical_synthetic=True),scheduled_tokens=dict(input=1,response_including_eos=1)))
     calls=[]
     def merge(command,**kw):
+        kw['env'] = RedactedEnv(kw['env'])
         calls.append(command);assert kw['env']['CUDA_VISIBLE_DEVICES']==''
         assert command[command.index('--local_dir')+1]==str(run/'sdft/global_step_40/actor')
         (run/'hf-step40').mkdir();return NS(returncode=0)

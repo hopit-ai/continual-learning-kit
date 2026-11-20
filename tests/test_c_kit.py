@@ -1,4 +1,5 @@
 """Offline C protocol tests and a full plain-job technical rehearsal, all rows."""
+from env_redaction import RedactedEnv
 import copy
 import csv
 import json
@@ -297,7 +298,7 @@ def test_cli_failure_exit_codes_and_help(tmp_path):
     # A child interpreter reads the shipped file, independent of this process's
     # disposable authority fixture; bind that child's exact input explicitly.
     seal=c.s.file_hash(c.KIT/'resources/v6/infrastructure-update.json')
-    done=subprocess.run([sys.executable,str(c.KIT/'c_score.py'),'--out',str(tmp_path/'pending'),'--standin','--arm','base','--seed','101','--step','0','--panel-set','test'],capture_output=True,text=True,env=dict(os.environ,KIT_V6_AUTHORITY_SHA=seal,M2_INFRA_AUTHORITY_SHA256=seal))
+    done=subprocess.run([sys.executable,str(c.KIT/'c_score.py'),'--out',str(tmp_path/'pending'),'--standin','--arm','base','--seed','101','--step','0','--panel-set','test'],capture_output=True,text=True,env=RedactedEnv(os.environ,KIT_V6_AUTHORITY_SHA=seal,M2_INFRA_AUTHORITY_SHA256=seal))
     assert done.returncode==3 and 'NOT READY' in done.stdout
 
 
@@ -541,7 +542,7 @@ def test_message_readme_exit_trap_captures_parent_with_c_out(tmp_path, exit_code
     printer=tmp_path/'print-only'
     printer.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$CALLS"\n')
     printer.chmod(0o755)
-    env=dict(os.environ,TRAINER_PY=str(printer),KIT=str(c.KIT),OUT=str(tmp_path/'parent'),
+    env=RedactedEnv(os.environ,TRAINER_PY=str(printer),KIT=str(c.KIT),OUT=str(tmp_path/'parent'),
              C_OUT=str(tmp_path/'parent/C'),DURABLE=str(tmp_path/'durable'),SCORE_GPU='0',CALLS=str(tmp_path/'calls'))
     # README-c uses OUT=C_OUT and commands ending with || exit $?.
     script=boundary+'\nOUT="$C_OUT"\n'+f'(exit {exit_code}) || exit $?\n'
@@ -729,7 +730,7 @@ def test_message_term_forwards_to_background_child_then_saves(tmp_path, cooperat
         'subprocess.Popen([sys.executable,"-c",'+repr(grandchild)+'])\n'+
         'while not Path(os.environ["READY"]+"-grandchild").exists(): time.sleep(.01)\n'+
         'Path(os.environ["READY"]).write_text("ready")\nwhile True: time.sleep(0.1)\n')
-    env=dict(os.environ,TRAINER_PY=str(printer),KIT=str(c.KIT),PARENT_OUT=str(tmp_path/'out'),
+    env=RedactedEnv(os.environ,TRAINER_PY=str(printer),KIT=str(c.KIT),PARENT_OUT=str(tmp_path/'out'),
              DURABLE_ROOT=str(tmp_path/'durable'),TERM_LEAD_SECONDS='2',SAVE_ALLOWANCE_SECONDS='1',
              EVENTS=str(tmp_path/'events'),READY=str(tmp_path/'ready'))
     script='source "$KIT/message_job.sh"\nrun_stage '+sys.executable+' '+str(worker)+'\n'

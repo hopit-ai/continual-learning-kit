@@ -6,6 +6,7 @@ settings, one GPU for scoring, and outputs the collector packs.
 """
 from __future__ import annotations
 
+from env_redaction import RedactedEnv
 import importlib.util
 import os
 import subprocess
@@ -114,6 +115,6 @@ def test_shell_runner_and_collector(tmp_path):
             names = {"eval": ("bed-score.json", "tokens.jsonl"), "forgetting": ("forgetting.json", "tokens.jsonl")}.get(folder, ("sweep.json", "rollout-stats.json", "budget-report.json", "control-report.json", "control-report.md"))
             probes = [Path(out)] if out.endswith(".json") else [Path(out) / name for name in names]
             assert all(collect.wanted(probe, Path(".")) for probe in probes), row["id"]
-    env = {**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "SDPO_DIR": "/x", "GSM8K_ROOT": "/x"}
+    env = RedactedEnv({**os.environ, "WORK": str(tmp_path), "KIT": str(KIT), "SDPO_DIR": "/x", "GSM8K_ROOT": "/x"})
     done = subprocess.run([sys.executable, str(KIT / "runner.py"), "plan", str(CAMPAIGN)], capture_output=True, text=True, env=env)
     assert done.returncode == 0 and "IMPLICIT ORDER" not in done.stdout + done.stderr, done.stderr

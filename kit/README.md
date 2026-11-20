@@ -1,5 +1,19 @@
 # kit/
 
+## What changed in v7i1
+
+CR now has a required `bind_python` setting for native FinQA regeneration in the
+training environment; scoring keeps `job_python`. CR rows in a holder reserve
+and reconcile their own GPU wall time, release reservations when they end, and
+warn above 830 GPU-hours. Training starts the M3 entry point with isolated
+imports. The CR code seal and review receipt are rebuilt with inherited hash provenance and new hunks.
+CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner approval
+APPROVED. Never edit it; if it reads PENDING, ask the owner. `six_row_root` is only an isolation label;
+an empty, separate folder passes. Use a new `kit-message-v7i1` clone for CR.
+Scientific endpoints, thresholds, hyperparameters, data, seeds and registered
+settings are unchanged.
+
+
 What a GPU partner receives. Nothing here depends on Modal, and nothing here is confidential: it launches public code and summarises results.
 
 | File | What it is |

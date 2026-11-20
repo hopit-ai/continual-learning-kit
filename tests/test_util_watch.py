@@ -8,6 +8,7 @@ import sys
 import time
 
 import pytest
+from env_redaction import RedactedEnv
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -21,7 +22,7 @@ def env(tmp_path):
         'Path(os.environ["FAKE_CALLED"]).touch()\n'
         'print(os.environ.get("FAKE_GPU_ROWS","0, GPU-a, 20, 120\\n1, GPU-b, 80, 340"))\n')
     binary.chmod(0o755)
-    result={k:v for k,v in os.environ.items() if not k.startswith(('SLURM_','CUDA_','NVIDIA_','UTIL_'))}
+    result=RedactedEnv({k:v for k,v in os.environ.items() if not k.startswith(('SLURM_','CUDA_','NVIDIA_','UTIL_'))})
     result.update(PATH=str(tmp_path)+os.pathsep+os.environ['PATH'],CUDA_VISIBLE_DEVICES='0,1',FAKE_CALLED=str(tmp_path/'queried'))
     return result
 

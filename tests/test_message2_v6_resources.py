@@ -1,4 +1,5 @@
 """CPU-only tests for right-sized handoffs, admission and checkpoint commands."""
+from env_redaction import RedactedEnv
 import copy,json,os,sys,threading
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -145,11 +146,12 @@ def test_native_training_consumes_cpu_plan_once_and_never_serializes_inherited_s
     a=NS(out=out,standin=False,sdpo=None,stage='legal',seed=101)
     monkeypatch.setenv('M2_EXECUTION_PHASE','stage');monkeypatch.setenv('CUDA_VISIBLE_DEVICES','')
     monkeypatch.setenv('PRIVATE_TEST_TOKEN','never serialize')
-    train.prepare_training(a,['native-trainer'],dict(os.environ,RUNTIME_OVERRIDE='frozen'),run,[native])
+    train.prepare_training(a,['native-trainer'],RedactedEnv(os.environ,RUNTIME_OVERRIDE='frozen'),run,[native])
     value=json.loads(train.prepared_path(a).read_text())
     assert value['env']=={'RUNTIME_OVERRIDE':'frozen'}
     calls=[]
     def execute(command,**kwargs):
+        kwargs['env'] = RedactedEnv(kwargs['env'])
         calls.append(command);assert kwargs['env']['CUDA_VISIBLE_DEVICES']=='GPU-3'
         native.mkdir(parents=True);(native/'rank0.pt').write_bytes(b'complete native state')
         return NS(returncode=0)
@@ -184,7 +186,7 @@ def test_concurrent_checkpoint_processes_can_bind_common_lane_metadata(tmp_path)
     path=tmp_path/'scoring-assignment.json'
     assignment.freeze(path,dict(schema='message2-scoring-assignment.v2',assignments={'core|101':dict(node='node0',uuid='CPU-STANDIN',environment='CPU-STANDIN')}))
     program="import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from kit.m2_handoff import scoring_identity;scoring_identity(Path(sys.argv[2]),'0',True)"
-    env=dict(os.environ,M2_ASSIGNMENT=str(path),M2_FAMILY='core',M2_FAMILY_SEED='101',M2_STANDIN_NODE='node0',M2_EXECUTION_PHASE='gpu')
+    env=RedactedEnv(os.environ,M2_ASSIGNMENT=str(path),M2_FAMILY='core',M2_FAMILY_SEED='101',M2_STANDIN_NODE='node0',M2_EXECUTION_PHASE='gpu')
     children=[subprocess.Popen([sys.executable,'-I','-c',program,str(Path(__file__).resolve().parents[1]),str(tmp_path)],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE) for _ in range(3)]
     for child in children:
         stdout,stderr=child.communicate(timeout=30)

@@ -1,4 +1,5 @@
 """Integration-only contracts: no scientific implementation is replaced here."""
+from env_redaction import RedactedEnv
 import copy
 import hashlib
 import json
@@ -164,7 +165,7 @@ def test_kcr_shell_wrapper_handles_no_submission_timestamp_and_optional_timestam
     capture=tmp_path/'argv.json';shim=tmp_path/'python-shim'
     shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nif sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
     shim.chmod(0o755)
-    env=dict(os.environ,KIT=str(c.KIT),M3_OUT=str(tmp_path/'m3'),M3_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
+    env=RedactedEnv(os.environ,KIT=str(c.KIT),M3_OUT=str(tmp_path/'m3'),M3_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
     c.write(env['M3_MANIFEST'],dict(tasks=[dict(id='M3-init',gpus=0)]))
     env.pop('M3_SUBMITTED_AT',None)
     wrapper=c.KIT/'jobs/message3/run-task.sh'
@@ -228,7 +229,7 @@ def test_combined_shell_wrapper_invokes_selected_python(tmp_path,holder_slice,gp
     capture=tmp_path/'argv.json';shim=tmp_path/'job-python'
     shim.write_text('#!'+sys.executable+'\nimport json,os,sys\nif sys.argv[1:3]==["-I","-c"]:os.execv(sys.executable,[sys.executable,*sys.argv[1:]])\nopen(os.environ["CAPTURE"],"w").write(json.dumps(sys.argv[1:]))\n')
     shim.chmod(0o755)
-    env=dict(os.environ,KIT=str(c.KIT),COMBINED_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
+    env=RedactedEnv(os.environ,KIT=str(c.KIT),COMBINED_MANIFEST=str(tmp_path/'launch.json'),JOB_PY=str(shim),CAPTURE=str(capture))
     env.pop('UTIL_WATCH_ACTIVE',None)
     for key in ('SLURM_GPUS_ON_NODE','SLURM_JOB_GPUS','SLURM_STEP_GPUS'):env.pop(key,None)
     env.pop('UTIL_HOLDER_SLICE',None)

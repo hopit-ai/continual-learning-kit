@@ -14,7 +14,7 @@ evaluation and gated original-tokenizer conditions. Preserve staged notices.
 ## CPU commands
 
 ```bash
-python -I kit/trace_jobs.py inventory
+python -I kit/trace_jobs.py inventory --config local-config.json
 python -I kit/trace_jobs.py price
 python -I kit/trace_rehearsal.py --out /tmp/trace-cpu-new
 python -m unittest discover -s tests -p 'test_trace_registration.py' -v
@@ -59,6 +59,26 @@ The top-level config contains the following fields.
 | metrics | Task/panel names mapped to callable/fixture references |
 | qualification | s8/gold/27b mapped to installed-stack command manifest refs |
 
+Production inventories containing gold/27b require `efficiency: true`.
+Omitting it or setting it to false refuses the inventory before submission,
+with a message to set `efficiency: true`. The legacy eight-GPU sequence rows
+cannot acquire per-stage CPU dependencies without changing their registered
+structure. Their row definitions and synthetic rehearsals remain available;
+direct legacy gold/27b training and combined prepare/train calls are refused.
+S8-only inventories do not require this option.
+
+For gold/27b, each CPU `prep-stage` runs the configured `trainer_python -I`
+with that interpreter's Hydra `OverridesParser` and OmegaConf. Every built
+override must resolve to its registered value and the reward path must be
+`trace_entry.py`. Missing Hydra, parse errors or mismatches stop preparation
+before GPU admission. `trainer-preflight.json` records the actual Hydra and
+OmegaConf versions and binds the command and expected values; `prep-key.json`
+includes this receipt. Native stages require that binding. Older preparation
+without this receipt needs a fresh stage directory and CPU preparation.
+The kit does not fix Hydra/OmegaConf versions in `v4_phase0_site.BASE_VERSIONS`;
+trainer constraints inherit the staged base inventory. Exact trainer pins are
+UNVERIFIED until the node records its installed versions and passes preflight.
+
 Each task row has `id`, `task`, `group`, `prompt` and `answer`, preserving the
 released source membership. Namespace groups across source datasets. The full
 released train dose is 5,000 rows/task. Parent groups are split-disjoint.
@@ -82,6 +102,38 @@ FOMC, MeetingBank and NumGLUE-cm. Set `studies: ["gold", "27b"]` for that scope.
 Preparation reports blocked studies while binding cleared contrasts.
 SEC clearance has `reserved_outcomes_opened: false`, `intersections: 0` and
 `near_match_clearance: true` backed by existing custodian/hash evidence.
+
+### Known input-check gaps
+
+The input requirements above still apply. This fix tag documents six gaps in
+v7i's enforcement; their code fixes are deferred to a later tag. Operators must
+check these conditions against their staged inputs before preparation:
+
+1. `exclusions` accepts any unique-ID JSONL, including an empty file. The kit
+   does not verify that all required exclusion populations are present.
+2. Exclusion matching reads `prompt` and `answer`. Rows containing only `text`
+   (the NM `excluded_superset` format) silently match nothing; supply explicit
+   `prompt`/`answer` fields for the text to be screened.
+3. `sec_clearance` checks only the three literal fields stated above. It does
+   not tie them to the clearance ledger's identity, and failure raises a hard
+   error even though registration §9 calls for PENDING.
+4. `licences` checks only `permitted` and a nonempty `evidence_sha256`. Dates,
+   scope and source grants are unchecked, and the evidence hash is not resolved
+   against evidence bytes.
+5. Panels and calibration participate in the overlap audit only when they are
+   explicitly included in `exclusions`; supplying their separate config fields
+   does not add them to that audit.
+6. The kit has no converter from the released TRACE format to the task-row
+   JSONL schema above. Stage converted inputs separately and verify source
+   membership and content; no converter or exclusion builder is added here.
+
+The TRACE prompt adapter checks student inputs against their released prompts
+and still rejects structured demonstration markers. A summary that is an
+agenda title read aloud in a released MeetingBank transcript is allowed.
+Preparation records counts and IDs of verbatim targets longer than 40
+characters for each split descriptively; this adds no exclusion or selection
+rule and retains the released 5,000-row training population before the existing
+length and subset rules.
 
 `panels` contains `general-v1`, `trace_general` and `open`. General-v1 must
 match the shipped kit population byte-for-value, including original `math`,
@@ -200,7 +252,8 @@ remaining native-probe integration dependency.
 ## Run with operator-owned sbatch
 
 The inventory prints allocation rows, GPU counts and dependency row IDs.
-Use `inventory --config local-config.json` to print the selected study scope.
+Use `inventory --config local-config.json` to print the selected study scope;
+set `efficiency: true` for any production scope containing gold/27b.
 Submit those plain rows with your own sbatch and afterok dependencies. The
 CPU prepare precedes targets; CPU bind follows targets and precedes GPU
 qualification and training. Qualification flows directly into
@@ -212,12 +265,14 @@ Within each allocation use the same command shape.
 ```bash
 export KIT=/local/staged/kit
 export TRACE_CONFIG=/local/trace-config.json
-bash "$KIT/jobs/trace/run-task.sh" train-gold-101
+bash "$KIT/jobs/trace/run-task.sh" native-gold-s101-parent
 ```
 
-Replace the example row ID with the inventory row. `prepare`, `bind` and
-`collect` are CPU rows. `targets` uses two GPUs. Training and qualification
-use eight. Each scoring row uses one physical GPU for the complete comparison,
+Replace the example row ID with the inventory row. Each gold/27b native row
+depends on its CPU `prep-stage`; submit that edge with `afterok`, so a failed
+Hydra preflight prevents GPU allocation. `prepare`, `bind`, `prep-stage`,
+`export-stage`, `assemble` and `collect` are CPU rows. `targets` uses two GPUs.
+Training and qualification use eight. Each scoring row uses one physical GPU for the complete comparison,
 all general-v1 states and local judging. CPU prepare precedes targets, which
 must finish before CPU bind can validate and seal the 27B schedules.
 
