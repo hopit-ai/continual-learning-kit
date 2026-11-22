@@ -346,8 +346,9 @@ product incumbent. No K, C0, combined winner or historical n=6 analysis is run.
 This build does not grant tag/send authority.
 
 For v7i1, submit only [CR rows.json](resources/cr-confirmation/rows.json) from
-the v7i1 folder. Keep the original six-row inventory and v7b folder for the frozen
-six registrations. [rows-v7.json](resources/nm/rows-v7.json) is a combined
+the v7i1 folder. Keep the original six-row inventory for the frozen six
+registrations, using a fresh v7i2 clone, launch JSON and dispatch root for the
+scheduler checkpoint fix. [rows-v7.json](resources/nm/rows-v7.json) is a combined
 reference inventory; do not deploy all seven from one folder or parent root.
 The additional [78 explicit rows](resources/cr-confirmation/rows.json) comprise
 52 CPU rows, 20 eight-GPU rows (18 scientific stages and two qualifications), and
@@ -393,8 +394,9 @@ No cross-attempt stitching is permitted.
 
 For the revised v7i1 deployment, create a **CR-only launch JSON** with its own
 parent `out`. Run only `NM-cr-*` from the v7i1 code folder. All six other families
-(v2b, GRPO, OPR, Fisher, iSDFT, Freeze) use the unchanged v7b code folder and
-existing six-row parent root. The CR parent, `cr_confirmation.out`, six-row root
+(v2b, GRPO, OPR, Fisher, iSDFT, Freeze) use a fresh v7i2 clone, regenerated
+launch JSON bound to infrastructure_update `89f7b8dd…` and a fresh six-row
+parent root. Their registered settings are unchanged. The CR parent, `cr_confirmation.out`, six-row root
 and v6a/v6b roots must be separate, non-nested trees. CR has its own dispatch
 and return-cycle pointer. See [CR status and deployment](README-v7c.md).
 
@@ -402,14 +404,14 @@ and return-cycle pointer. See [CR status and deployment](README-v7c.md).
 {
   "out": "/durable/v7i1-cr-parent",
   "job_python": "/durable/envs/kit/bin/python",
-  "infrastructure_update": "4daf1f7f5624e3f9190831a1832d1183cb8b4032d310a9d0d027562ff058f400",
+  "infrastructure_update": "89f7b8dd80dc111f65978cf887469044c54feda070150303194390ee5057a32e",
   "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
   "cr_confirmation": {
     "bind_python": "/durable/envs/trainer/bin/python",
     "out": "/durable/cr-confirmation",
     "v6a_root": "/durable/restored-v6a",
     "v6b_root": "/durable/restored-v6b",
-    "six_row_root": "/durable/v7b-six-row-parent",
+    "six_row_root": "/durable/v7i2-six-row-parent",
     "other_roots": [],
     "hosts": ["approved-non-core-node"],
     "realised_inputs": {"path": "/durable/node-v6a-inventory.json", "sha256": "OWNER_BOUND_SHA256"},
@@ -662,7 +664,7 @@ path carries a **>24 h risk**; no measured utilisation or timing is asserted.
 
 Paste CR's newest return cycle from the **CR-only parent**
 `out/return-cycle.json`. It contains at most **four ESSENTIAL parts for CR**,
-with FULL detail retained locally. The six-row return stays in its v7b parent. CR `T|NM|count` rows hold integer correct/total counts in
+with FULL detail retained locally. The six-row return stays in its separate six-family parent. CR `T|NM|count` rows hold integer correct/total counts in
 seed order 104–106; the CPU importer recomputes the primary and every guard rather
 than trusting printed summaries. No old seed contributes. Prominent primary and
 three IFEval endpoint lines accompany the counts. A PENDING/UNVERIFIED provenance

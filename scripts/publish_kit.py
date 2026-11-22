@@ -58,6 +58,7 @@ TESTS += ("test_cr_v7c_closure.py", "test_cr_round2.py",)
 # A2 public checks use shipped kit files and explicit synthetic CPU identities.
 # The separate private registration parity test runs when its document exists.
 TESTS += ("test_trace_registration.py", "test_kitfix_trace.py",)
+TESTS += ("test_kitfix_v7i2.py", "test_trace_repair.py",)
 TESTS += ("test_trace_metrics.py",)
 TESTS += ("test_trace_probe.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
@@ -76,6 +77,7 @@ RUNTIME_FILES += ("scripts/v6a_dryrun.py", "scripts/v6b_dryrun.py",)
 RUNTIME_FILES += ("scripts/cr_confirmation_dryrun.py", "scripts/cr_confirmation_fixture.py",)
 RUNTIME_FILES += ("docs/phase2/v4-frozen-gate-commands.md",
                   "docs/phase3/evidence/screen-s/finqa-arc-feasibility-20261025.json",)
+RUNTIME_FILES += ("scripts/receipt_kitfix_v7i2.py", "notebooks/kitfix_v7i2_receipt.ipynb",)
 # Standalone registration comparisons need the original source documents even
 # when unrelated phase-3 runtime documents also create docs/phase3 in an export.
 RUNTIME_FILES += ("docs/phase3/hard-math-screen-preregistration-20261020.md",

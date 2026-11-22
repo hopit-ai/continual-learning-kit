@@ -14,8 +14,9 @@ The original v7c receipt stays unchanged as historical review evidence.
 
 ## Folder and root selection
 
-Keep v2b, GRPO, OPR, Fisher, iSDFT and Freeze on the **unchanged kit-message-v7b
-folder, six-row launch JSON and parent root A**. Use v7i1 for **only `NM-cr-*`**.
+Use a **fresh kit-message-v7i2 clone, regenerated six-row launch JSON and fresh
+parent root A** for v2b, GRPO, OPR, Fisher, iSDFT and Freeze. Their registered
+settings are unchanged; v7i2 fixes their scheduler checkpoint save. Use v7i1 for **only `NM-cr-*`**.
 Give CR its own parent dispatch root B, launch JSON and confirmation data tree C.
 A, B, C, restored v6a and restored v6b must be pairwise separate, non-nested trees.
 CR writes B's own `return-cycle.json` with at most four ESSENTIAL parts; the
@@ -56,11 +57,11 @@ The [existing operator instructions](README-next-message.md) explain the inputs.
 {
   "out": "/durable/v7i1-cr-parent-B",
   "job_python": "/durable/envs/kit/bin/python",
-  "infrastructure_update": "4daf1f7f5624e3f9190831a1832d1183cb8b4032d310a9d0d027562ff058f400",
+  "infrastructure_update": "89f7b8dd80dc111f65978cf887469044c54feda070150303194390ee5057a32e",
   "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
   "cr_confirmation": {
     "out": "/durable/v7i1-cr-data-C",
-    "six_row_root": "/durable/v7b-six-row-parent-A",
+    "six_row_root": "/durable/v7i2-six-row-parent-A",
     "v6a_root": "/durable/restored-v6a",
     "v6b_root": "/durable/restored-v6b",
     "other_roots": [],

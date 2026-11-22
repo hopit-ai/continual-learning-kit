@@ -416,7 +416,7 @@ def verify_diff(ref):
     if doc.get('schema') == 'cr-diff.v7i1':
         return verify_v7i1_diff(doc)
     ready(doc.get('baseline')==BASELINE and doc.get('status')=='COMPLETE' and doc.get('review'), 'baseline diff review incomplete; owner escalation')
-    ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; owner escalation')
+    ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; CR runs only from kit-message-v7i1; use a fresh kit-message-v7i1 clone; owner escalation')
     ready(check_categories(doc.get('hunks', [])), 'unapproved diff hunk; owner escalation')
     fixes = [{k:h[k] for k in ('file', 'header', 'sha256')}
              for h in doc['hunks'] if h['category'] == 'owner-v7c-fix']
@@ -457,7 +457,7 @@ def verify_v7i1_diff(doc):
     ready(doc.get('inherited_review') == dict(path='kit/resources/cr-confirmation/diff-receipt-v7c.json',
           sha256=V7C_RECEIPT_SHA256) and sha(inherited) == V7C_RECEIPT_SHA256,
           'inherited v7c review changed; owner escalation')
-    ready(doc.get('code') == code_seal(), 'confirmation code changed since diff review; owner escalation')
+    ready(doc.get('code') == code_seal(), 'confirmation code changed since diff review; CR runs only from kit-message-v7i1; use a fresh kit-message-v7i1 clone; owner escalation')
     hunks = doc.get('hunks')
     ready(isinstance(hunks, list) and hunks and all(isinstance(h, dict)
           and h.get('category') in ('owner-v7i1-fix', 'owner-v7i1-fix (TRACE)',

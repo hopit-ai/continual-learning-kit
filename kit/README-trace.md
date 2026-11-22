@@ -11,6 +11,58 @@ ODC-By plus underlying content grants, and Py150 requires per-file source
 notices. C-STANCE and 20Minuten need applicable grants. Section 8 records the
 evaluation and gated original-tokenizer conditions. Preserve staged notices.
 
+
+## Declared departures (owner, 22 Nov 2026)
+
+For gold/27b, the third subset task is NumGLUE-ds instead of NumGLUE-cm.
+TRACE's NumGLUE-cm has only 282 distinct training items; all of NumGLUE
+Task 1 has 404 items, against the registered 500 distinct training contents.
+All other subset rules stay unchanged: 500 distinct contents, 1,280 exposures
+per stage, task order, caps and seeds. NumGLUE-ds uses the existing accuracy
+metric path and requires its own data rights and metric authority.
+
+The owner-approved rule-based overlap adjudication in
+[rule-20261122.md](resources/trace-repair/rule-20261122.md) replaces per-pair
+manual adjudication for gold/27b. The sealed registration remains unchanged.
+S8 is untouched by both departures: it keeps all eight released tasks and
+released dose. S8 overlap adjudication is NOT in scope.
+
+## Repair gold/27b overlaps before preparation
+
+Use a fresh v7i2 clone and the same hash-bound preparation config, with
+`studies: ["gold", "27b"]` and FOMC, MeetingBank and NumGLUE-ds inputs.
+Stage every exclusion population with the kit's existing row format and hash
+checks. Run on CPU, before any GPU allocation:
+
+```sh
+python -m kit.trace_repair --config preparation.json --out repaired-inputs
+```
+
+Optionally add `--manual-review previous-stage/audit/manual-review.json`;
+its pairs must exactly match the recomputed audit. The tool drops only
+training IDs required by R1–R5, preserves IDs and order, and leaves eval/test
+unchanged. It writes repaired train files, a repair manifest and a rule-hash-bound
+`audit_review.json`. A PENDING result publishes no final files: inspect its
+per-task counts and rules, repair the bound inputs and rerun into a fresh directory.
+
+Merge the printed train, `audit_review` and `repair_manifest` SHA256 bindings
+into your original config, retaining eval/test and exclusions. Preparation
+requires the hash-bound manifest for rule-evidenced gold/27b reviews. It checks
+train hashes against manifest outputs, eval/test/exclusions against inputs,
+and the shipped rule and review hashes. It also reapplies R1–R4 to each current
+rule-evidenced pair; only R4 template siblings with different quantities can
+remain cleared. Stale bindings or verdicts return PENDING with the binding or
+pair named. Rerun repair on current inputs to refresh them. Manual reviews keep
+their existing procedure.
+
+Choose a **fresh preparation stage
+directory**, then rerun preparation and its length census. A successful repair
+requires at least 500 distinct contents per task; preparation still requires
+500 length-eligible distinct contents. Supply NumGLUE-ds in scoped licence,
+metric-authority, fixture and operator-check evidence lists. The dynamic subset
+checks, rehearsal, scoring and reading follow that task choice.
+
+
 ## CPU commands
 
 ```bash
@@ -49,7 +101,8 @@ The top-level config contains the following fields.
 | trainer_python, score_python | Installed-stack interpreters |
 | studies | Optional array of s8, gold, 27b. Default all three |
 | datasets | Required cleared tasks, each with train/eval/test JSONL references |
-| audit_review | Optional hash-bound JSON manual adjudication list |
+| audit_review | Hash-bound overlap review array; gold/27b repair emits it |
+| repair_manifest | Hash-bound repair manifest; required for rule-evidenced gold/27b reviews |
 | licences | JSON rights inventory reference |
 | sec_clearance | Existing hash-only clearance JSON reference |
 | exclusions | Existing panels/replay/few-shot exclusion JSONL reference |
@@ -80,8 +133,9 @@ trainer constraints inherit the staged base inventory. Exact trainer pins are
 UNVERIFIED until the node records its installed versions and passes preflight.
 
 Each task row has `id`, `task`, `group`, `prompt` and `answer`, preserving the
-released source membership. Namespace groups across source datasets. The full
-released train dose is 5,000 rows/task. Parent groups are split-disjoint.
+released source membership. Namespace groups across source datasets. S8 keeps
+the released train dose of 5,000 rows/task. Gold/27b use the repaired candidate
+superset described above. Parent groups are split-disjoint.
 Preparation audits the entire training candidate superset before subset ranking.
 Normalised prompt/answer pairs are deduplicated before choosing the fixed
 500 distinct contents/task. Full S8 retains its released dose and records
@@ -90,7 +144,9 @@ once. It records candidates in `audit/manual-review.json`. Preparation returns
 PENDING while any candidate lacks adjudication. Supply `audit_review` as a
 hash-bound JSON array, each entry with candidate `id`, `disposition: "cleared"`
 or `"confirmed_overlap"`, and `evidence_sha256`. Rerun preparation after binding
-the review. Confirmed overlaps and held-out source groups require data repair.
+the review. For gold/27b, generate that review with the repair tool above.
+S8 keeps its existing adjudication procedure; S8 overlap repair is out of scope.
+Confirmed overlaps and held-out source groups require data repair.
 The exclusion ledger includes IFEval, knowledge, maths, FinQA, ContractNLI,
 MATH, replay, calibration and all few-shot populations.
 
@@ -98,7 +154,7 @@ The rights inventory keys cover the requested tasks plus `original_tokenizer`,
 `base`, `teacher`, `judge`, `panels` and `calibration`. Each entry includes
 `permitted: true`, dated `evidence_sha256`, scope and source-grant records.
 Missing task grants mark affected studies PENDING. Gold and 27b require only
-FOMC, MeetingBank and NumGLUE-cm. Set `studies: ["gold", "27b"]` for that scope.
+FOMC, MeetingBank and NumGLUE-ds. Set `studies: ["gold", "27b"]` for that scope.
 Preparation reports blocked studies while binding cleared contrasts.
 SEC clearance has `reserved_outcomes_opened: false`, `intersections: 0` and
 `near_match_clearance: true` backed by existing custodian/hash evidence.

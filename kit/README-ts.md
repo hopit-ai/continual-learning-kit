@@ -2,6 +2,9 @@
 
 **DRAFT - NOT FOR SEND**
 
+Use a fresh `kit-message-v7i2` clone for the scheduler checkpoint fix, replacing
+v7d/v7e code. Regenerate launch bindings. The gates below still apply.
+
 This build implements the owner-approved four-arm SDPO-source adaptation. Registration, realised replay binding, mechanical GPU qualification, measured pricing and separate run approval remain pending. Seeds are 101–103. Each arm starts from the original base for its seed, then inherits its own preceding stage final along FinQA → ContractNLI → hard MATH.
 
 ## Arms and objective

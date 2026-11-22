@@ -1,5 +1,6 @@
 """Offline node-input audits and outcome-independent subset binding."""
 from collections import Counter
+from kit.nm_common import Invalid
 from kit.trace_common import *
 from kit.trace_overlap import audit_rows
 
@@ -70,6 +71,34 @@ def licence_blocks(rights, studies):
     return result
 
 
+
+def repair_reviews(ref, evidence):
+    """Load a repair-backed audit_review; return (reviews, problem). Hashes are
+    checked afterwards by repair_binding_problems, which names a stale binding."""
+    if not (isinstance(ref, dict) and isinstance(ref.get('path'), str) and ref['path']
+            and isinstance(ref.get('sha256'), str)):
+        return None, 'reference is missing or malformed'
+    try:
+        reviews = load(ref['path'])
+    except (OSError, ValueError, RecursionError):
+        return None, 'is missing or unreadable'
+    if not isinstance(reviews, list):
+        return None, 'is not an array of review entries'
+    for index, review in enumerate(reviews):
+        if not (isinstance(review, dict) and all(isinstance(review.get(key), str) and review[key]
+                for key in ('id', 'disposition', 'evidence_sha256'))):
+            return None, f'entry {index} lacks a valid id, disposition or evidence_sha256'
+        if review['evidence_sha256'] != evidence or review['disposition'] != 'cleared':
+            return None, (f'entry {index} is not a cleared rule review; a repair-backed '
+                          'config takes only the repair tool\'s reviews')
+    if len({review['id'] for review in reviews}) != len(reviews):
+        return None, 'contains duplicate review ids'
+    try:
+        digest(reviews)  # the audit hashes reviews canonically; refuse values it cannot hash
+    except (TypeError, ValueError, RecursionError):
+        return None, 'is not canonically serialisable JSON'
+    return reviews, None
+
 def prepare(cfg):
     offline()
     out = Path(cfg['out'])
@@ -100,12 +129,43 @@ def prepare(cfg):
     need(exclusion['reserved_outcomes_opened'] is False and exclusion['intersections'] == 0
          and exclusion['near_match_clearance'] is True, 'SEC hash clearance incomplete')
     need(required_tasks <= set(cfg['datasets']) <= set(TASKS), 'TRACE task inventory differs')
+    from kit.trace_repair import RULE, repair_binding_problems, rule_review_problems
+    evidence = sha(RULE)
+    if cfg.get('repair_manifest'):
+        # Repair-backed: every audit_review problem is a named PENDING, and the
+        # manifest bindings are always validated, whatever evidence the file holds.
+        reviews, problem = repair_reviews(cfg.get('audit_review'), evidence)
+        if problem:
+            return dict(status='PENDING', blocked_studies=blocked, problems=['audit_review ' + problem])
+        rule_reviews = True
+    else:
+        # Manual-review configs keep their previous behaviour exactly.
+        try:
+            reviews = bound_json(cfg['audit_review']) if cfg.get('audit_review') else []
+        except Invalid:
+            # A rule review with a stale config hash needs a named PENDING result.
+            # All non-rule evidence retains the existing bound_json exception.
+            reviews = load(cfg['audit_review']['path'])
+            if not any(r.get('evidence_sha256') == evidence for r in reviews):
+                raise
+        rule_reviews = any(r.get('evidence_sha256') == evidence for r in reviews)
+    if rule_reviews:
+        problems = repair_binding_problems(cfg, studies)
+        if problems:
+            return dict(status='PENDING', blocked_studies=blocked, problems=problems)
     datasets = {task: {split: read_rows(ref) for split, ref in splits.items()}
                 for task, splits in cfg['datasets'].items() if task in required_tasks}
     need(all(set(s) == {'train', 'eval', 'test'} for s in datasets.values()),
          'released splits incomplete')
-    reviews = bound_json(cfg['audit_review']) if cfg.get('audit_review') else []
-    audit = audit_rows(datasets, read_rows(cfg['exclusions']), reviews)
+    exclusions = read_rows(cfg['exclusions'])
+    if rule_reviews:
+        audit = audit_rows(datasets, exclusions)
+        problems = rule_review_problems(datasets, exclusions, audit['flagged'], reviews)
+        if problems:
+            seal(out/'audit'/'manual-review.json', dict(pairs=audit['flagged']))
+            return dict(status='PENDING', audit=audit, blocked_studies=blocked,
+                        problems=problems, manual_review='audit/manual-review.json')
+    audit = audit_rows(datasets, exclusions, reviews)
     seal(out/'audit'/'manual-review.json', dict(pairs=audit['flagged']))
     if audit['unresolved'] or not active:
         return dict(status='PENDING', audit=audit, blocked_studies=blocked,

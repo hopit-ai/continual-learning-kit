@@ -9,7 +9,7 @@ from kit.nm_common import BASE, SEEDS, atomic, canonical, digest, load, need, sh
 KIT = Path(__file__).resolve().parent
 TASKS = ('C-STANCE', 'FOMC', 'MeetingBank', 'Py150', 'ScienceQA',
          'NumGLUE-cm', 'NumGLUE-ds', '20Minuten')
-SUBSET = ('FOMC', 'MeetingBank', 'NumGLUE-cm')
+SUBSET = ('FOMC', 'MeetingBank', 'NumGLUE-ds')
 SOURCES = ('gold', '27b')
 EPOCHS = (1, 1, 5, 5, 1, 5, 5, 5)
 JUDGE = dict(model='Qwen/Qwen2.5-7B-Instruct',

@@ -209,6 +209,7 @@ FROZEN_DEPENDENCIES = (
     'nm_bind.py',
     'nm_budget.py',
     'nm_common.py',
+    'nm_counters.py',
     'nm_data.py',
     'nm_development.py',
     'nm_entry.py',

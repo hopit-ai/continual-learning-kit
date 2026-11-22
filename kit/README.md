@@ -1,5 +1,28 @@
 # kit/
 
+## What changed in v7i2
+
+NM, TRACE and teacher-signal training now count scheduler steps without putting
+a callable in the checkpoint state. Optimizer and EMA counting is unchanged.
+The launch authority examples now bind infrastructure_update
+`89f7b8dd80dc111f65978cf887469044c54feda070150303194390ee5057a32e`.
+TRACE gold/27b uses NumGLUE-ds as its third task and the owner-approved overlap
+repair tool. See [the declared departures and repair instructions](README-trace.md).
+S8 keeps all eight released tasks and released dose; S8 overlap adjudication
+is out of scope. Endpoints, thresholds, hyperparameters, seeds and registered
+settings are unchanged apart from those declared TRACE data departures.
+
+## Which tag runs what
+
+| Work | Tag and next step |
+| --- | --- |
+| CR | **kit-message-v7i1**, unchanged. It trains through `m3_runner.py` with `count_scheduler_steps` and is unaffected by the NM crash. v7i2 refuses CR on its code seal. |
+| TRACE gold/27b | **kit-message-v7i2**. Use a fresh clone and fresh preparation stage directory, NumGLUE-ds and the repair tool. |
+| v2b, GRPO, OPR, Fisher, iSDFT, Freeze | **kit-message-v7i2**, replacing v7b. Use a fresh clone and fresh dispatch root; regenerate the launch JSON with infrastructure_update `89f7b8dd…`. Their registered settings are unchanged. |
+| Teacher-signal lanes | **kit-message-v7i2**, replacing v7d/v7e. Use a fresh clone and launch binding. Existing registration, replay-binding, qualification and run-approval gates still apply. |
+| A2 | **kit-message-v7f**. |
+| Deletion tuning | **kit-message-v7i**. |
+
 ## What changed in v7i1
 
 CR now has a required `bind_python` setting for native FinQA regeneration in the

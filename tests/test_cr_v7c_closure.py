@@ -92,12 +92,13 @@ TRACE_CODE_PATHS = (
     'trace_prompt.py',
     'trace_read.py',
     'trace_rehearsal.py',
+    'trace_repair.py',
     'trace_score.py',
     'trace_sft.py',
     'trace_targets.py',
     'trace_train.py',
 )
-TRACE_CODE_PATHS_SHA256 = 'e359065054c1141179c5a57543c16c3256e3b92f1fedf9abc71da15033ca12b6'
+TRACE_CODE_PATHS_SHA256 = '9d57df871afd462a44ccda5bbbbacbbc2422ddfb5a62c326802a3c7d754725ac'
 
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
@@ -210,13 +211,13 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
     assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
-    assert len(TRACE_CODE_PATHS) == 56
+    assert len(TRACE_CODE_PATHS) == 57
     assert tuple(sorted(TRACE_CODE_PATHS)) == TRACE_CODE_PATHS
     assert hashlib.sha256(('\n'.join(TRACE_CODE_PATHS)+'\n').encode()).hexdigest() == TRACE_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)
     assert not uncovered_imports(KIT, FROZEN_DEPENDENCIES)
     assert not a2_references(KIT, cr.code_seal())
-    assert len(FROZEN_DEPENDENCIES) == 479
+    assert len(FROZEN_DEPENDENCIES) == 480
     assert set(cr.code_seal()) == set(FROZEN_DEPENDENCIES) | {p for p, _ in cr.OWNER_RESOURCES}
 
 

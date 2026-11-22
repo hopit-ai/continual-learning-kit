@@ -13,6 +13,7 @@ from kit.nm_common import *
 from kit import nm_loss,nm_actor
 from kit.nm_model import prepared_reference
 from kit.m3_runner import teacher_batch
+from kit.nm_counters import install_counters
 
 
 def check_config(config):
@@ -120,12 +121,7 @@ class NMWorker(SdftActorRolloutRefWorker):
                 weight=torch.ones_like(base) if weights is None else weights[names[id(p)]].reshape(-1)[start:start+base.numel()]
                 segments.append((p,start,base,weight))
             nm_actor.install_penalty(self.actor,nm_loss.WeightedAnchor(segments),n['penalty'],n.get('measurement',False))
-        self._nm_steps=dict(optimizer=0,scheduler=0,ema=0)
-        for owner,method,key in [(self.actor_optimizer,'step','optimizer'),(self.actor_lr_scheduler,'step','scheduler'),(self.actor,'_update_teacher','ema')]:
-            original=getattr(owner,method)
-            def counted(*args,_original=original,_key=key,**kwargs):
-                value=_original(*args,**kwargs);self._nm_steps[_key]+=1;return value
-            counted._wrapped_by_lr_sched=True;setattr(owner,method,counted)
+        install_counters(self)
         return result
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
     def save_checkpoint(self,local_path,hdfs_path=None,global_step=0,max_ckpt_to_keep=None):
