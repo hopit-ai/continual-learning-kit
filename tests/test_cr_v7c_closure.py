@@ -74,8 +74,10 @@ TRACE_CODE_PATHS = (
     'resources/trace/vendor/opencompass-0.1.5/opencompass/tasks/openicl_infer.py',
     'resources/trace/vendor/opencompass-0.1.5/opencompass/utils/prompt.py',
     'resources/trace/vendor/opencompass-0.1.5/opencompass/utils/text_postprocessors.py',
+    'trace_answers.py',
     'trace_calibration.py',
     'trace_calibration_build.py',
+    'trace_cohort.py',
     'trace_common.py',
     'trace_datasets.py',
     'trace_entry.py',
@@ -98,7 +100,7 @@ TRACE_CODE_PATHS = (
     'trace_targets.py',
     'trace_train.py',
 )
-TRACE_CODE_PATHS_SHA256 = '9d57df871afd462a44ccda5bbbbacbbc2422ddfb5a62c326802a3c7d754725ac'
+TRACE_CODE_PATHS_SHA256 = 'ba0826c4466db32cf1c901123f6898443cefcfb0647ef5dc5703a62bc4b8d95a'
 
 def uncovered_imports(kit, frozen):
     """Conservative plugin coverage plus every explicit repository import.
@@ -211,13 +213,13 @@ def test_confirmation_imports_and_runtime_plugins_are_covered():
     assert tuple(sorted(A2_CODE_PATHS)) == A2_CODE_PATHS
     assert hashlib.sha256(('\n'.join(A2_CODE_PATHS)+'\n').encode()).hexdigest() == A2_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in A2_CODE_PATHS)
-    assert len(TRACE_CODE_PATHS) == 57
+    assert len(TRACE_CODE_PATHS) == 59
     assert tuple(sorted(TRACE_CODE_PATHS)) == TRACE_CODE_PATHS
     assert hashlib.sha256(('\n'.join(TRACE_CODE_PATHS)+'\n').encode()).hexdigest() == TRACE_CODE_PATHS_SHA256
     assert all((KIT/name).is_file() for name in TRACE_CODE_PATHS)
     assert not uncovered_imports(KIT, FROZEN_DEPENDENCIES)
     assert not a2_references(KIT, cr.code_seal())
-    assert len(FROZEN_DEPENDENCIES) == 480
+    assert len(FROZEN_DEPENDENCIES) == 483
     assert set(cr.code_seal()) == set(FROZEN_DEPENDENCIES) | {p for p, _ in cr.OWNER_RESOURCES}
 
 

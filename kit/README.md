@@ -1,5 +1,21 @@
 # kit/
 
+## What changed in v7i3
+
+CR drops every task-training row flagged by the unchanged frozen panel/holdout
+matcher before scheduling, for all three stages and every arm. This is a declared
+departure from v6a's exact rows. Unfiltered v6a/B byte proofs still run; each stage
+seals exclusions and counts, then the unchanged schedulers produce 1,280 exposures.
+Use the new CR receipt `diff-receipt-v7i3.json`; check its sha256 against our message.
+Only the owner can approve it; the hunk review is an internal owner step.
+
+TRACE gold/27b reads formatted final answers, re-checks saved journals and shares
+one verified cohort between both sources. NumGLUE-ds uses 1% agreement; exhausted
+rows leave both sources, with a 400-row floor and unchanged 1,280-exposure dose.
+Registered exact-match scores remain unchanged; a separate exploratory final-answer
+score accompanies the return. See [the v7i3 steps](README-trace.md#v7i3-answer-reading-and-shared-cohort).
+The freeze-arm crash awaits a traceback and is outside this fix.
+
 ## What changed in v7i2
 
 NM, TRACE and teacher-signal training now count scheduler steps without putting
@@ -16,8 +32,8 @@ settings are unchanged apart from those declared TRACE data departures.
 
 | Work | Tag and next step |
 | --- | --- |
-| CR | **kit-message-v7i1**, unchanged. It trains through `m3_runner.py` with `count_scheduler_steps` and is unaffected by the NM crash. v7i2 refuses CR on its code seal. |
-| TRACE gold/27b | **kit-message-v7i2**. Use a fresh clone and fresh preparation stage directory, NumGLUE-ds and the repair tool. |
+| CR | **kit-message-v7i3**. Fresh CR-only root; new diff-receipt-v7i3.json and owner hunk approval required. |
+| TRACE gold/27b | **kit-message-v7i3**. Fresh preparation; keep NumGLUE-ds and overlap repair, bind saved target journals, then re-verify. |
 | v2b, GRPO, OPR, Fisher, iSDFT, Freeze | **kit-message-v7i2**, replacing v7b. Use a fresh clone and fresh dispatch root; regenerate the launch JSON with infrastructure_update `89f7b8dd…`. Their registered settings are unchanged. |
 | Teacher-signal lanes | **kit-message-v7i2**, replacing v7d/v7e. Use a fresh clone and launch binding. Existing registration, replay-binding, qualification and run-approval gates still apply. |
 | A2 | **kit-message-v7f**. |
@@ -30,9 +46,9 @@ training environment; scoring keeps `job_python`. CR rows in a holder reserve
 and reconcile their own GPU wall time, release reservations when they end, and
 warn above 830 GPU-hours. Training starts the M3 entry point with isolated
 imports. The CR code seal and review receipt are rebuilt with inherited hash provenance and new hunks.
-CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner approval
-APPROVED. Never edit it; if it reads PENDING, ask the owner. `six_row_root` is only an isolation label;
-an empty, separate folder passes. Use a new `kit-message-v7i1` clone for CR.
+That historical release requires diff-receipt-v7i1.json with completed review and
+owner approval. Current CR work uses v7i3 and its new receipt as described above.
+`six_row_root` is an isolation label; an empty, separate folder passes.
 Scientific endpoints, thresholds, hyperparameters, data, seeds and registered
 settings are unchanged.
 

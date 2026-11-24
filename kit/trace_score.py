@@ -118,7 +118,7 @@ def score_state(cfg, study, seed, state, model):
     from kit.trace_common import output_tree
     with output_tree(work) as work:
         work.mkdir(parents=True, exist_ok=True)
-        results = {}
+        results, exploratory = {}, {}
         for task in tasks:
             rows = protocol['datasets'][task]['test'] if study == 's8' else protocol['tests'][task]
             outputs = generation(model, cfg['base']['model'], rows, 1024 if study=='s8' else 2048,
@@ -126,6 +126,10 @@ def score_state(cfg, study, seed, state, model):
             fn = metric_adapter(cfg['metrics'][task])
             values = [fn(row,output['text']) for row,output in zip(rows,outputs)]
             results[task] = aggregate(values)
+            if study in SOURCES and task in ('FOMC','NumGLUE-ds'):
+                from kit.trace_answers import exploratory_score
+                exploratory[task] = aggregate([exploratory_score(task,row,output['text'])
+                                               for row,output in zip(rows,outputs)])
             atomic(work/(task+'.json'), dict(outputs=outputs, values=values))
         general = panels['general-v1']
         for panel in ('instruction','maths'):
@@ -179,6 +183,8 @@ def score_state(cfg, study, seed, state, model):
         outputs = generation(model, cfg['base']['model'], panels['open'], 2048, 2048, .1, seed)
         atomic(work/'open.json', outputs)
         atomic(work/'result.json', results)
+        if exploratory:
+            atomic(work/'exploratory.json', dict(exploratory_final_answer=exploratory))
 
 
 def lane(cfg, study, seed, attempt):

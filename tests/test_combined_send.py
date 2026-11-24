@@ -122,9 +122,9 @@ def test_all_tier_files_in_publisher_scope_and_private_runtime_maps_not_copied(t
         assert expected and expected<=set(files)
         assert all(c.sha(target/p)==c.sha(root/p) for p in expected)
     assert c.sha(target/'kit/resources/sp/FROZEN.json')==c.sha(root/'kit/resources/sp/FROZEN.json')
-    assert not m2_privacy.scan(target)
+    assert not publish_kit.scan_publication(target)
     leak=target/'kit/resources/sp/runtime-local.json';leak.write_text(json.dumps({'job_id':123456789}))
-    assert m2_privacy.scan(target)==['kit/resources/sp/runtime-local.json:1']
+    assert publish_kit.scan_publication(target)==['kit/resources/sp/runtime-local.json:1']
 
 
 @pytest.mark.parametrize('changed_hash',[False,True])

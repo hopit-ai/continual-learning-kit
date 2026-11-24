@@ -35,6 +35,7 @@ def summary(name, patch=''):
     additions = '\n'.join(line[1:] for line in patch.splitlines() if line.startswith('+'))
     purposes = {
         'scripts/publish_kit.py': (
+            ('def scan_publication', 'Run the authority-pinned frozen privacy scanner unchanged over the complete publication scope, including appended runtime files.'),
             ('test_cr_round2.py', 'Export CR CPU supervision and accounting regressions so the node-side preflight command works.'),
         ),
         'scripts/cr_confirmation_fixture.py': (
@@ -120,7 +121,9 @@ def line_origins(baseline):
     return dict(trace_tip=TRACE_TIP, cr_tip=CR_TIP, trace_lines=origins)
 
 
-def reseal(*, send_docs=None):
+def reseal(*, send_docs=None, schema='cr-diff.v7i1', release='kit-message-v7i1', review_inputs=None,
+           packet_title='CR v7i1 hunks', packet_receipt='diff-receipt-v7i1.json',
+           packet_settings='Registered settings, data, seeds, thresholds and endpoints are unchanged.'):
     old = load(RECEIPT) if RECEIPT.is_file() else {}
     inherited = RESOURCE/'diff-receipt-v7c.json'
     if sha(inherited) != cr.V7C_RECEIPT_SHA256:
@@ -179,25 +182,31 @@ def reseal(*, send_docs=None):
         doc = cr.diff_receipt(Path(folder)/'delta.json', base=cr.V7C_BASELINE)
     if not doc.get('baseline_commit'):
         raise RuntimeError('v7c baseline unavailable; cannot reseal')
-    doc.update(schema='cr-diff.v7i1', release='kit-message-v7i1',
+    doc.update(schema=schema, release=release,
         inherited_review=dict(path='kit/resources/cr-confirmation/diff-receipt-v7c.json',
                               sha256=cr.V7C_RECEIPT_SHA256),
         allowed_categories=['owner-v7i1-fix', 'owner-v7i1-fix (TRACE)', 'owner-v7i1-fix (CR+TRACE)'], category_definitions={},
         reason='Inherited public transitions bind hashes only; new hunks start at v7i plus test redaction; new approvals required.')
     doc['review'] = dict(status='PENDING', reviewer='PENDING', date='PENDING', evidence='PENDING')
     doc['owner_approval'] = dict(status='PENDING', quote='PENDING', date='PENDING')
-    # Carry approval only for identical bytes and ordered exact hunk pairs.
-    if all(old.get(k) == doc.get(k) for k in ('code', 'hunks', 'baseline_commit', 'baseline_sha256', 'inherited', 'inherited_review', 'release')):
+    if review_inputs is not None:
+        doc['review_inputs'] = review_inputs
+    # Compare every generated identity input, including the requested release.
+    # Approval records and explanatory prose are not reviewed byte identities.
+    def identity(record):
+        return {k:v for k,v in record.items() if k not in
+                ('review', 'owner_approval', 'status', 'escalation', 'reason')}
+    if identity(old) == identity(doc):
         for key in ('review', 'owner_approval', 'status', 'escalation'):
             if key in old:
                 doc[key] = old[key]
     atomic(RECEIPT, doc)
-    lines = ['# CR v7i1 hunks for owner approval', '',
+    lines = ['# '+packet_title+' for owner approval', '',
              'Review: '+doc['review']['status']+'. Owner approval: '+doc['owner_approval']['status']+'.', '',
              'No approval is supplied by this script. The manager fills the receipt review and owner_approval fields after the corresponding approvals, then sets status to COMPLETE and escalation to null.', '',
-             'The original reviewed v7c receipt is unchanged. Only the new hunks below request owner approval. Inherited provenance follows, with hashes only. Registered settings, data, seeds, thresholds and endpoints are unchanged.', '',
+             'The original reviewed v7c receipt is unchanged. Only the new hunks below request owner approval. Inherited provenance follows, with hashes only. '+packet_settings, '',
              'New-hunk review base: v7i (`e9d517b6`) plus test redaction (`1d6d5251`).', '',
-             'Inherited baseline: `'+doc['baseline_commit']+'`. Receipt: `kit/resources/cr-confirmation/diff-receipt-v7i1.json`.', '']
+             'Inherited baseline: `'+doc['baseline_commit']+'`. Receipt: `kit/resources/cr-confirmation/'+packet_receipt+'`.', '']
     trace_count = sum(h['origins'] == ['TRACE'] for h in doc['hunks'])
     mixed_count = sum(h['origins'] == ['CR', 'TRACE'] for h in doc['hunks'])
     inherited_count = sum(v['category']=='inherited-public-tag' for v in doc['inherited'])
@@ -208,8 +217,8 @@ def reseal(*, send_docs=None):
     lines += [f"{len(doc['hunks'])} new hunks for approval ({counts}), {inherited_count} inherited files and {redaction_count} test-redaction transition, hashes only.", '']
     for n, h in enumerate(doc['hunks'], 1):
         lines += [f"## Hunk {n}: {h['file']} ({h['category']})", '', ((summary(h['file'], h['patch']) if 'CR' in h['origins'] else '') + (' TRACE-origin change in this shared file (line provenance against the recorded branch tips).' if 'TRACE' in h['origins'] else '')).strip(), '',
-                  'Exact hunk SHA256: `'+h['sha256']+'`.', '', '```diff',
-                  '--- v7i-plus-test-redaction/'+h['file'], '+++ '+h['file'], h['patch'].rstrip(), '```', '']
+                  'Exact hunk SHA256: `'+h['sha256']+'`.', '',
+                  '```diff\n--- v7i-plus-test-redaction/'+h['file']+'\n+++ '+h['file']+'\n'+h['patch']+'```', '']
     lines += ['## Inherited provenance (hashes only)', '',
         'These inherited files shipped in public tags but were never CR-reviewed. None is on the CR training/scoring path. The m2_expect → m2_privacy import is inside the M2 public-send projection; CR does not call that projection or the M2 bind/rescore dispatch; these optional imports are not on its training/scoring path. The all-row CPU import trace checks their absence (production GPU execution remains UNVERIFIED). The publisher is build-time only; teacher-signal modules dispatch separately from CR.', '',
         '| File | Category | Before SHA256 | After SHA256 | First public tag / commit (or private source) |',

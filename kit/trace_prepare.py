@@ -102,6 +102,8 @@ def repair_reviews(ref, evidence):
 def prepare(cfg):
     offline()
     out = Path(cfg['out'])
+    for ref in cfg.get('target_journals', []):
+        bound_file(ref)
     need(cfg['base']['revision'] == BASE and cfg['judge']['revision'] == JUDGE['revision'],
          'registered model revision differs')
     studies = cfg.get('studies', ['s8', *SOURCES])
@@ -247,12 +249,12 @@ def bind(cfg):
     need(prepared['audit']['unresolved'] == 0, 'overlap review PENDING')
     need(prepared['registration_sha256'] == sha(REG), 'TRACE registration changed')
     demos = load(Path(cfg['out'])/'targets.json') if prepared['selected'] else {}
-    need(set(demos) == {r['id'] for rows in prepared['selected'].values() for r in rows},
-         '27B fixed cohort incomplete')
+    from kit.trace_cohort import shared_rows
+    selected = shared_rows(cfg['out'], prepared, demos) if prepared['selected'] else {}
     from transformers import AutoTokenizer
     from kit.trace_prompt import teacher_messages
     tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
-    for task, rows in prepared['selected'].items():
+    for task, rows in selected.items():
         for row in rows:
             target = demos[row['id']]['text']
             need(demos[row['id']]['verified'] is True, '27B demo verification incomplete')
@@ -280,5 +282,6 @@ def bind(cfg):
     need(all(probes[k]['valid'] is True and probes[k]['evidence_sha256'] for k in required),
          'admission identity/scorer/leakage probe unresolved')
     return seal(Path(cfg['out'])/'binding.json', dict(prepared_sha256=sha(Path(cfg['out'])/'prepared.json'),
-                targets_sha256=sha(Path(cfg['out'])/'targets.json') if prepared['selected'] else None, probes=probes,
+                targets_sha256=sha(Path(cfg['out'])/'targets.json') if prepared['selected'] else None,
+                cohort_sha256=sha(Path(cfg['out'])/'cohort.json') if prepared['selected'] else None, probes=probes,
                 config_sha256=digest(cfg), registration_sha256=sha(REG)))

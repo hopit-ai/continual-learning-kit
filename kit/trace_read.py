@@ -140,7 +140,7 @@ def parse_pages(texts):
             if lines[-1][7:] != hashlib.sha256(body.encode('ascii',errors='replace')).hexdigest():
                 checksums.append(page)
         for number, line in enumerate(lines,1):
-            if line.startswith(('KIT ', 'ESSENTIAL ', 'FULL ', 'TRANSCRIPTION-', 'CHECKSUM ', 'SHA256 ')):
+            if line.startswith(('KIT ', 'ESSENTIAL ', 'FULL ', 'TRANSCRIPTION-', 'CHECKSUM ', 'SHA256 ', 'T|WARNINGS|TRACE-v7i3|')):
                 continue
             try:
                 if line.startswith('TRACE|judge-profile|'):
@@ -445,4 +445,14 @@ def collect(cfg):
         old.unlink()
     for index,text in enumerate(full_texts,1):
         (full_root/f'return-{index}.txt').write_text(text)
+    if set(studies) & set(SOURCES):
+        from kit.trace_cohort import NOTES
+        exploratory = {str(p.relative_to(root/'scores')):load(p)['exploratory_final_answer']
+                       for p in sorted((root/'scores').rglob('exploratory.json'))}
+        note_lines = list(NOTES) + ['TRACE v7i3 exploratory_final_answer (DESCRIPTIVE, separate from registered fields): '+
+                                   json.dumps(exploratory, sort_keys=True)]
+        note_lines = ['T|WARNINGS|TRACE-v7i3|'+line for line in note_lines]
+        (root/'departure-notes.txt').write_text('\n'.join(note_lines)+'\n')
+        for line in note_lines:
+            print(line)
     return essential

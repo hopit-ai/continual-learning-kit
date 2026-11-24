@@ -1,9 +1,9 @@
 # Message after return 2
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i3` clone,
 > checked against the owner's commit and receipt SHA256 from the approved send.
 > Clone this tag into a **NEW directory**, never into an existing experiment clone.
-> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 > approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 > A code-seal mismatch requires a new reviewed receipt.
 
@@ -345,8 +345,8 @@ v8 task-learning comparator only. It does not change v7's other six rows or the
 product incumbent. No K, C0, combined winner or historical n=6 analysis is run.
 This build does not grant tag/send authority.
 
-For v7i1, submit only [CR rows.json](resources/cr-confirmation/rows.json) from
-the v7i1 folder. Keep the original six-row inventory for the frozen six
+For v7i3, submit only [CR rows.json](resources/cr-confirmation/rows.json) from
+the v7i3 folder. Keep the original six-row inventory for the frozen six
 registrations, using a fresh v7i2 clone, launch JSON and dispatch root for the
 scheduler checkpoint fix. [rows-v7.json](resources/nm/rows-v7.json) is a combined
 reference inventory; do not deploy all seven from one folder or parent root.
@@ -369,7 +369,7 @@ and dependencies. There are no target-generation/reconstruction rows.
 Use the **same real wrapper** as the six rows:
 
 ```bash
-export KIT=/durable/kit-message-v7i1/kit NM_CONFIG=/durable/v7i1-cr-launch.json
+export KIT=/durable/kit-message-v7i3/kit NM_CONFIG=/durable/v7i3-cr-launch.json
 export JOB_PY=/durable/envs/job/bin/python
 # Submit explicitly, adding partition/account/node/time settings at your site.
 sbatch --parsable --nodes=1 --cpus-per-task=8 \
@@ -392,8 +392,8 @@ native trainer runs. All attempts retain their nonces, leases, watcher data and
 costs. Scoring recovery re-runs the **entire seed/lane in one fresh allocation**.
 No cross-attempt stitching is permitted.
 
-For the revised v7i1 deployment, create a **CR-only launch JSON** with its own
-parent `out`. Run only `NM-cr-*` from the v7i1 code folder. All six other families
+For the revised v7i3 deployment, create a **CR-only launch JSON** with its own
+parent `out`. Run only `NM-cr-*` from the v7i3 code folder. All six other families
 (v2b, GRPO, OPR, Fisher, iSDFT, Freeze) use a fresh v7i2 clone, regenerated
 launch JSON bound to infrastructure_update `89f7b8dd…` and a fresh six-row
 parent root. Their registered settings are unchanged. The CR parent, `cr_confirmation.out`, six-row root
@@ -402,7 +402,7 @@ and return-cycle pointer. See [CR status and deployment](README-v7c.md).
 
 ```json
 {
-  "out": "/durable/v7i1-cr-parent",
+  "out": "/durable/v7i3-cr-parent",
   "job_python": "/durable/envs/kit/bin/python",
   "infrastructure_update": "89f7b8dd80dc111f65978cf887469044c54feda070150303194390ee5057a32e",
   "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
@@ -415,7 +415,7 @@ and return-cycle pointer. See [CR status and deployment](README-v7c.md).
     "other_roots": [],
     "hosts": ["approved-non-core-node"],
     "realised_inputs": {"path": "/durable/node-v6a-inventory.json", "sha256": "OWNER_BOUND_SHA256"},
-    "diff_receipt": {"path": "/durable/kit-message-v7i1/kit/resources/cr-confirmation/diff-receipt-v7i1.json", "sha256": "PENDING_OWNER_APPROVED_RECEIPT_SHA256"},
+    "diff_receipt": {"path": "/durable/kit-message-v7i3/kit/resources/cr-confirmation/diff-receipt-v7i3.json", "sha256": "PENDING_OWNER_APPROVED_RECEIPT_SHA256"},
     "operator_receipt": {"path": "/durable/operator-qualification.json", "sha256": "QUALIFIED_RECEIPT_SHA256"},
     "trainer_python": "/durable/envs/trainer/bin/python",
     "sdpo": "/durable/pinned-SDPO",
@@ -438,10 +438,10 @@ into `cr_confirmation.budget.row_max_seconds` (all **78** rows):
 ```python
 import json
 from pathlib import Path
-launch = json.loads(Path("/durable/v7i1-cr-launch.json").read_text())
+launch = json.loads(Path("/durable/v7i3-cr-launch.json").read_text())
 launch["cr_confirmation"]["budget"]["row_max_seconds"] = json.loads(
-    Path("/durable/kit-message-v7i1/kit/resources/cr-confirmation/row-max-seconds.json").read_text())
-Path("/durable/v7i1-cr-launch.json").write_text(json.dumps(launch, indent=2) + "\n")
+    Path("/durable/kit-message-v7i3/kit/resources/cr-confirmation/row-max-seconds.json").read_text())
+Path("/durable/v7i3-cr-launch.json").write_text(json.dumps(launch, indent=2) + "\n")
 ```
 
 GPU bounds use the registration's repricing **upper** GPU-hours divided by
@@ -463,7 +463,7 @@ is permitted. Use the shipped complete **78-entry** `row_max_seconds` map.
 The launch JSON requires the **current owner-bound send approval**, separately
 bound as `send_approval: OWNER_BOUND_CR_SEND_APPROVAL`; historical pricing
 quotes do not supply that approval. CR code remains sealed and runs only from
-the approved public **kit-message-v7i1** tag.
+the approved public **kit-message-v7i3** tag.
 The parent launch still binds `infrastructure_update`, `job_python` and the
 separate send approval. Never infer an infrastructure seal from the local file.
 CR rows read **`cr_confirmation.budget`**, not a top-level `budget`. Reservations
@@ -627,10 +627,10 @@ that CPU rehearsal did not exercise.
 The current receipt binds v7c → v7i inherited files by hashes and public-tag
 provenance only, plus the test-redaction cherry-pick by hashes. Those inherited
 files shipped publicly but were never CR-reviewed. Only full hunks from
-v7i plus the cherry-pick to v7i1 request new owner approval. No private baseline
+v7i plus the cherry-pick to v7i3 request new owner approval. No private baseline
 Git objects are needed in the clone. See [the operator note](README-v7c.md).
 
-CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 Use the receipt SHA256 and tag commit stated in the owner's send message; stop
 if either differs. Bind the shipped path and approved SHA256 as shown above.
@@ -671,3 +671,19 @@ three IFEval endpoint lines accompany the counts. A PENDING/UNVERIFIED provenanc
 status cannot be repaired by counts. Use `nm_return.py --text PART... --out PATH`
 to reproduce the pasted result. Checksums remain advisory transcription aids;
 local independent provenance verification stays UNVERIFIED/PARTNER-COMPUTED.
+
+## CR v7i3 task-row departure (owner, 23 Nov 2026)
+
+Before each CR task-training corpus is cycled, the unchanged `m3_pools.Matcher`
+removes every frozen panel/holdout hit. This applies to FinQA, ContractNLI and
+hard MATH, identically for G and CR and all seeds. Each targets-STAGE manifest
+seals `exclusions.jsonl` (row ID, panel hit, rule branch, Jaccard, edit similarity),
+counts, source hash and panel identities. The unfiltered v6a seeds 101–103 and
+stored B schedules must still reproduce byte for byte. FinQA then calls B's
+unchanged scheduler on the filtered COMMON corpus; other stages call the
+unchanged `cycle`. Each delivers 1,280 exposures. The unmodified `task_evidence`
+checks the filtered schedules. This explicitly departs from v6a's exact task rows.
+
+Use `diff-receipt-v7i3.json`; the new receipt stays PENDING until the owner supplies
+their own hunk approval (an internal owner review; nothing to do on your side
+beyond checking the receipt sha256 in our message). Historical v7i1 clones retain their original behavior.

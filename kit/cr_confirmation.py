@@ -413,10 +413,12 @@ def verify_diff(ref):
     ready(sha(ref['path'])==ref.get('sha256'), 'diff receipt hash mismatch; owner escalation')
     doc=load(ref['path'])
     ready(isinstance(doc,dict), 'diff receipt must contain a JSON object; owner escalation')
+    if doc.get('schema') == 'cr-diff.v7i3':
+        return verify_v7i3_diff(doc)
     if doc.get('schema') == 'cr-diff.v7i1':
         return verify_v7i1_diff(doc)
     ready(doc.get('baseline')==BASELINE and doc.get('status')=='COMPLETE' and doc.get('review'), 'baseline diff review incomplete; owner escalation')
-    ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; CR runs only from kit-message-v7i1; use a fresh kit-message-v7i1 clone; owner escalation')
+    ready(doc.get('code')==code_seal(), 'confirmation code changed since diff review; CR requires kit-message-v7i3 with its new reviewed diff-receipt-v7i3.json; owner escalation')
     ready(check_categories(doc.get('hunks', [])), 'unapproved diff hunk; owner escalation')
     fixes = [{k:h[k] for k in ('file', 'header', 'sha256')}
              for h in doc['hunks'] if h['category'] == 'owner-v7c-fix']
@@ -457,7 +459,7 @@ def verify_v7i1_diff(doc):
     ready(doc.get('inherited_review') == dict(path='kit/resources/cr-confirmation/diff-receipt-v7c.json',
           sha256=V7C_RECEIPT_SHA256) and sha(inherited) == V7C_RECEIPT_SHA256,
           'inherited v7c review changed; owner escalation')
-    ready(doc.get('code') == code_seal(), 'confirmation code changed since diff review; CR runs only from kit-message-v7i1; use a fresh kit-message-v7i1 clone; owner escalation')
+    ready(doc.get('code') == code_seal(), 'confirmation code changed since diff review; CR requires kit-message-v7i3 with its new reviewed diff-receipt-v7i3.json; owner escalation')
     hunks = doc.get('hunks')
     ready(isinstance(hunks, list) and hunks and all(isinstance(h, dict)
           and h.get('category') in ('owner-v7i1-fix', 'owner-v7i1-fix (TRACE)',
@@ -470,6 +472,15 @@ def verify_v7i1_diff(doc):
           and all(doc.get(k) == actual.get(k) for k in
                   ('review_base_commit', 'baseline_sha256', 'inherited', 'hunks')),
           'review baseline unavailable or diff hunk inventory changed; owner escalation')
+    return doc
+
+
+def verify_v7i3_diff(doc):
+    """Use the inherited exact-hunk gates with a fresh v7i3 code seal."""
+    ready(doc.get('release') == 'kit-message-v7i3', 'v7i3 release differs; owner escalation')
+    ready(doc.get('code') == code_seal(), 'v7i3 code changed; new reviewed receipt required')
+    ready(doc.get('status') == 'COMPLETE', 'v7i3 diff review/owner approval PENDING')
+    verify_v7i1_diff(dict(doc, schema='cr-diff.v7i1', release='kit-message-v7i1'))
     return doc
 
 
@@ -489,18 +500,18 @@ def task_binding(out, stage, root):
             ready(proof.get('code')=={name:sha(KIT/name) for name in B_CODE},'FinQA native code changed; owner escalation')
             ready(proof.get('status')=='COMPLETE' and not proof.get('errors') and proof.get('protocol')==PROTOCOL, FINQA_PENDING)
             manifest=load(Path(root)/'manifest.json')
-            ready(manifest.get('schedule_protocol')==PROTOCOL, FINQA_PENDING)
-            ready(load(Path(root)/'receipt.json')==proof,'FinQA reproduction receipt changed; owner escalation')
-            for seed in FRESH:
-                name=f'schedule-{seed}.jsonl';expected=proof.get('regenerated',{}).get(str(seed),{}).get('schedule_sha256')
-                ready(expected and manifest.get('files',{}).get(name)==expected and sha(Path(root)/name)==expected,
-                      'FinQA regenerated schedule mismatch; owner escalation')
+            from kit.cr_filter import verify
+            filtered=verify(root,stage,sha(path))
+            ready(filtered.get('unfiltered_reproduction')==proof,
+                  'FinQA unfiltered reproduction changed; owner escalation')
         except (Pending,OSError,KeyError,ValueError) as error:
             proof=dict(doc.get('finqa_reproduction',{}),status='PENDING',escalation='owner',
                 errors=['FinQA task binding: '+str(error)+'; owner escalation'])
             atomic(Path(out)/'finqa-task-check.json',proof)
             raise Pending(proof['errors'][0]) from error
         atomic(Path(out)/'finqa-task-check.json',proof)
+    from kit.cr_filter import verify
+    verify(root,stage,sha(path))
     return dict(confirmation_binding=sha(path), source=source, manifest_sha256=sha(Path(root)/'manifest.json'))
 
 

@@ -1,14 +1,14 @@
 # V7c operator note: CR-only, separate parent root
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i3` clone,
 > checked against the owner's commit and receipt SHA256 from the approved send.
 > Clone this tag into a **NEW directory**, never into an existing experiment clone.
-> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 > approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 > A code-seal mismatch requires a new reviewed receipt.
 
-<!-- v7i1-receipt-status -->
-CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+<!-- v7i3-receipt-status -->
+CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 The original v7c receipt stays unchanged as historical review evidence.
 
@@ -16,7 +16,7 @@ The original v7c receipt stays unchanged as historical review evidence.
 
 Use a **fresh kit-message-v7i2 clone, regenerated six-row launch JSON and fresh
 parent root A** for v2b, GRPO, OPR, Fisher, iSDFT and Freeze. Their registered
-settings are unchanged; v7i2 fixes their scheduler checkpoint save. Use v7i1 for **only `NM-cr-*`**.
+settings are unchanged; v7i2 fixes their scheduler checkpoint save. Use v7i3 for **only `NM-cr-*`**.
 Give CR its own parent dispatch root B, launch JSON and confirmation data tree C.
 A, B, C, restored v6a and restored v6b must be pairwise separate, non-nested trees.
 CR writes B's own `return-cycle.json` with at most four ESSENTIAL parts; the
@@ -36,31 +36,31 @@ patch is shipped. Public clones need no private Git objects to verify it.
 For example, after the release tag is approved:
 
 ```bash
-git clone "$KIT_REMOTE" /durable/kit-message-v7i1
-git -C /durable/kit-message-v7i1 checkout kit-message-v7i1
-git -C /durable/kit-message-v7i1 rev-parse HEAD
+git clone "$KIT_REMOTE" /durable/kit-message-v7i3
+git -C /durable/kit-message-v7i3 checkout kit-message-v7i3
+git -C /durable/kit-message-v7i3 rev-parse HEAD
 ```
 
 Before GPU rows, run on the Linux node's CPU: `python -m pytest -q tests/test_cr_round2.py -p no:cacheprovider` (includes the TERM-resistant detached-descendant check); Linux execution here is **UNVERIFIED**. The CPU bind row also runs a CUDA-free detached-worker teardown preflight with the same supervisor; missing `/proc` children inventory or unconfirmed teardown refuses binding. Later inventory failure prevents confirmed teardown.
 
 ## CR-only root-B launch
 
-Write `/durable/v7i1-cr-launch.json` using the following shape. Replace the node,
+Write `/durable/v7i3-cr-launch.json` using the following shape. Replace the node,
 input, tokenizer, trainer and approval values with the actual bound evidence.
 The receipt path is fixed; replace its PENDING hash only after owner approval.
 Before launch, check them against the owner's send message, which states the
 receipt SHA256 and the tag commit: stop if `sha256sum` of the receipt or
-`git -C /durable/kit-message-v7i1 rev-parse HEAD` differs from the owner's values.
+`git -C /durable/kit-message-v7i3 rev-parse HEAD` differs from the owner's values.
 The [existing operator instructions](README-next-message.md) explain the inputs.
 
 ```json
 {
-  "out": "/durable/v7i1-cr-parent-B",
+  "out": "/durable/v7i3-cr-parent-B",
   "job_python": "/durable/envs/kit/bin/python",
   "infrastructure_update": "89f7b8dd80dc111f65978cf887469044c54feda070150303194390ee5057a32e",
   "send_approval": "OWNER_BOUND_CR_SEND_APPROVAL",
   "cr_confirmation": {
-    "out": "/durable/v7i1-cr-data-C",
+    "out": "/durable/v7i3-cr-data-C",
     "six_row_root": "/durable/v7i2-six-row-parent-A",
     "v6a_root": "/durable/restored-v6a",
     "v6b_root": "/durable/restored-v6b",
@@ -68,7 +68,7 @@ The [existing operator instructions](README-next-message.md) explain the inputs.
     "hosts": ["APPROVED_NON_CORE_HOST"],
     "realised_inputs": {"path": "/durable/node-v6a-inventory.json", "sha256": "OWNER_BOUND_SHA256"},
     "diff_receipt": {
-      "path": "/durable/kit-message-v7i1/kit/resources/cr-confirmation/diff-receipt-v7i1.json",
+      "path": "/durable/kit-message-v7i3/kit/resources/cr-confirmation/diff-receipt-v7i3.json",
       "sha256": "PENDING_OWNER_APPROVED_RECEIPT_SHA256"
     },
     "operator_receipt": {"path": "/durable/operator-qualification.json", "sha256": "QUALIFIED_RECEIPT_SHA256"},
@@ -95,10 +95,10 @@ budget. Run this snippet with the selected environment's `python -I`:
 ```python
 import json
 from pathlib import Path
-path = Path('/durable/v7i1-cr-launch.json')
+path = Path('/durable/v7i3-cr-launch.json')
 launch = json.loads(path.read_text())
 launch['cr_confirmation']['budget']['row_max_seconds'] = json.loads(
-    Path('/durable/kit-message-v7i1/kit/resources/cr-confirmation/row-max-seconds.json').read_text())
+    Path('/durable/kit-message-v7i3/kit/resources/cr-confirmation/row-max-seconds.json').read_text())
 path.write_text(json.dumps(launch, indent=2) + '\n')
 ```
 
@@ -140,8 +140,8 @@ prospective bounds, not measured runtime or a spend estimate.
 After actual approvals and realised evidence are bound, invoke CR rows:
 
 ```bash
-export KIT=/durable/kit-message-v7i1/kit
-export NM_CONFIG=/durable/v7i1-cr-launch.json
+export KIT=/durable/kit-message-v7i3/kit
+export NM_CONFIG=/durable/v7i3-cr-launch.json
 export JOB_PY=/durable/envs/kit/bin/python
 bash "$KIT/jobs/nm/run-task.sh" NM-cr-bind
 ```
@@ -192,11 +192,11 @@ operation and bypasses the `v6a.py` manifest-executor rescore helpers.
 
 ## Resealing after merges
 
-Run `python -I scripts/reseal_cr_v7i1.py` from the full checkout after merging any
+Run `python -I scripts/reseal_cr_v7i3.py` from the full checkout after merging any
 sealed-file change. It binds inherited hashes against approved v7c commit
 `921e8e4613a542f3108a26fd7e7c1bc5938e3a61`, and regenerates only post-v7i/redaction hunks, the owner packet, and the CR
 resource SHA256SUMS. Later TRACE hunks in shared files are labelled
-`owner-v7i1-fix (TRACE)`; review them after the merge. It retains approvals only for identical code and hunk bytes;
+`owner-v7i3-fix (TRACE)`; review them after the merge. It retains approvals only for identical code and hunk bytes;
 changed bytes reset them to PENDING. The manager fills `review` and
 `owner_approval` after review and owner approval, sets `status` to COMPLETE and
 `escalation` to null, reruns resealing and verifies the final receipt. The new

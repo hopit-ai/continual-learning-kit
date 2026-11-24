@@ -1,9 +1,9 @@
 # continual-learning-kit
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i3` clone,
 > checked against the owner's commit and receipt SHA256 from the approved send.
 > Clone this tag into a **NEW directory**, never into an existing experiment clone.
-> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 > approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 > A code-seal mismatch requires a new reviewed receipt.
 

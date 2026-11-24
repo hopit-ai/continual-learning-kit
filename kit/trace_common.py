@@ -77,10 +77,10 @@ def lock(path):
 
 
 def schedule(rows, seed, task):
-    need(seed in SEEDS and len(rows) == 500, 'subset dose/seed differs')
+    need(seed in SEEDS and 400 <= len(rows) <= 500, 'subset dose/seed differs')
     ranked = sorted(rows, key=lambda r: (digest_string(
         f'trace-order-20261111|{seed}|{task}|{r["id"]}'), r['id']))
-    return ranked * 2 + ranked[:280]
+    return [ranked[i % len(ranked)] for i in range(1280)]
 
 
 def digest_string(value):

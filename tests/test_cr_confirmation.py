@@ -15,6 +15,17 @@ def confirmation(monkeypatch):
     monkeypatch.setenv('KIT_M3_MODE','cr-confirmation')
 
 
+def sealed_tasks(out,monkeypatch):
+    """Reader unit fixtures: stand-in filtered task seals for every CR stage.
+
+    v7i3 requires each stage's filtered task manifest; these tests exercise other
+    reader rules, so the seal check itself is stubbed (it has its own tests).
+    """
+    for stage in cr_jobs.STAGES:
+        atomic(out/('targets-'+stage)/'manifest.json',dict(stage=stage))
+    monkeypatch.setattr(cr,'task_binding',lambda *a:None)
+
+
 def evidence():
     cells={};assignments={}
     for arm,seed,stage,step,panel in cr.required_cells():
@@ -410,8 +421,11 @@ def test_confirmation_schedule_binding_rechecks_math_pool_and_eval_disjointness(
         name=f'schedule-{seed}.jsonl';t.write_jsonl(root/name,[pool[0]]*1280);names.append(name)
     def freeze():atomic(root/'manifest.json',files_manifest(root,names,population=500,technical_synthetic=True))
     freeze()
-    fresh=out/'targets-math_hard';atomic(fresh/'manifest.json',{})
+    fresh=out/'targets-math_hard'
     atomic(out/'confirmation-binding.json',dict(realised=dict(task_sources=dict(math_hard=dict(corpus='recorded')))))
+    from kit.cr_filter import write_stage
+    write_stage(fresh,{f'schedule-{seed}.jsonl':[pool[0]]*1280 for seed in (104,105,106)},[],
+                dict(stage='math_hard',confirmation_binding=sha(out/'confirmation-binding.json'),counts=dict(excluded=0)))
     a=NS(out=out,standin=True)
     assert m3_train.schedule_binding(a,'math_hard',fresh)['source']==dict(corpus='recorded')
     # Re-seal a held-out row so hashing alone cannot hide the scientific error.
@@ -433,6 +447,7 @@ def test_reader_reports_utilisation_definition_without_gating(tmp_path,monkeypat
     monkeypatch.setattr(cr_jobs,'bind_inputs',lambda *a:bound)
     monkeypatch.setattr(m3_read,'load_cells',lambda *a:(cells,assignment))
     monkeypatch.setattr(m3_train,'validate_stage_receipt',lambda *a:dict(status='PASS'))
+    sealed_tasks(out,monkeypatch)
     for seed in cr.SEEDS:
         for lane in ('native','reference'):
             nonce=f'{seed}-'+str(lane=='reference')
@@ -491,6 +506,7 @@ def test_reader_monitoring_never_changes_science(tmp_path,monkeypatch,kind):
     monkeypatch.setattr(cr_jobs,'bind_inputs',lambda *a:bound)
     monkeypatch.setattr(m3_read,'load_cells',lambda *a:(cells,assignment))
     monkeypatch.setattr(m3_train,'validate_stage_receipt',lambda *a:dict(status='PASS'))
+    sealed_tasks(out,monkeypatch)
     telemetry=dict(window_s=300,startup_grace_seconds=300,telemetry_complete=True,
                    mean_util=95,min_window_mean=90,holder_slice_telemetry_complete=True,holder_slices=['GPU-measured'])
     if kind=='low':telemetry.update(mean_util=10,min_window_mean=0)
@@ -532,7 +548,11 @@ def test_reader_keeps_strict_integrity_checks_with_missing_monitoring(tmp_path,m
     monkeypatch.setattr(cr_jobs,'bind_inputs',lambda *a:observed)
     monkeypatch.setattr(m3_read,'load_cells',lambda *a:(cells,assignment))
     monkeypatch.setattr(m3_train,'validate_stage_receipt',lambda *a:dict(status='PASS'))
+    sealed_tasks(out,monkeypatch)
     result=cr_jobs.read_result({},out)
+    reasons={'binding-missing':'realised input binding absent','binding-changed':'realised inputs changed',
+             'code-changed':'code changed after pre-data freeze'}
+    if kind in reasons:assert reasons[kind] in result['qualification_pending']
     expected='UNVERIFIED-HARDWARE' if kind in ('mixed-job','uuid','environment') else 'UNVERIFIED' if kind=='old-seed' else 'PENDING/INCOMPLETE'
     assert result['status']==expected
     assert result['utilisation_warnings']
@@ -555,6 +575,7 @@ def test_final_read_requires_complete_finqa_proof(tmp_path,monkeypatch,proof):
     monkeypatch.setattr(cr_jobs,'bind_inputs',recheck)
     monkeypatch.setattr(m3_read,'load_cells',lambda *a:(cells,assignment))
     monkeypatch.setattr(m3_train,'validate_stage_receipt',lambda *a:dict(status='PASS'))
+    sealed_tasks(out,monkeypatch)
     result=cr_jobs.read_result({},out)
     assert len(rechecks)==1
     if proof and proof.get('status')=='COMPLETE' and not proof.get('errors'):

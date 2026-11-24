@@ -58,7 +58,7 @@ TESTS += ("test_cr_v7c_closure.py", "test_cr_round2.py",)
 # A2 public checks use shipped kit files and explicit synthetic CPU identities.
 # The separate private registration parity test runs when its document exists.
 TESTS += ("test_trace_registration.py", "test_kitfix_trace.py",)
-TESTS += ("test_kitfix_v7i2.py", "test_trace_repair.py",)
+TESTS += ("test_kitfix_v7i3.py", "test_kitfix_v7i2.py", "test_trace_repair.py",)
 TESTS += ("test_trace_metrics.py",)
 TESTS += ("test_trace_probe.py",)
 TESTS += ("test_a2_review.py", "test_a2_sec_prompts.py", "test_a2_rewrite.py", "test_a2_arms.py",)
@@ -77,7 +77,10 @@ RUNTIME_FILES += ("scripts/v6a_dryrun.py", "scripts/v6b_dryrun.py",)
 RUNTIME_FILES += ("scripts/cr_confirmation_dryrun.py", "scripts/cr_confirmation_fixture.py",)
 RUNTIME_FILES += ("docs/phase2/v4-frozen-gate-commands.md",
                   "docs/phase3/evidence/screen-s/finqa-arc-feasibility-20261025.json",)
-RUNTIME_FILES += ("scripts/receipt_kitfix_v7i2.py", "notebooks/kitfix_v7i2_receipt.ipynb",)
+# The owner hunk packet (docs/send/v7i3-cr-hunks-for-owner-approval.md) is an
+# internal approval document and is not published.
+RUNTIME_FILES += ("docs/phase4/partner-return-20261123/release-notes.md",
+                  "scripts/reseal_cr_v7i3.py", "scripts/receipt_kitfix_cr.py", "scripts/receipt_kitfix_v7i2.py", "notebooks/kitfix_v7i2_receipt.ipynb",)
 # Standalone registration comparisons need the original source documents even
 # when unrelated phase-3 runtime documents also create docs/phase3 in an export.
 RUNTIME_FILES += ("docs/phase3/hard-math-screen-preregistration-20261020.md",
@@ -194,12 +197,42 @@ def separator_name_hits(text, names):
 PUBLIC_TEST_ARGS = ('-m', 'pytest', '-q', 'tests', '--ignore=tests/test_x_smoke_stage_audit.py')
 
 
+def publication_paths(root):
+    """Discover the complete declared source scope, including appended inputs."""
+    import ast
+    root=Path(root);publisher=root/'scripts/publish_kit.py'
+    if not publisher.exists():
+        return (p for p in root.rglob('*') if p.is_file())
+    entries={'TESTS':[], 'RUNTIME_FILES':[]}
+    for node in ast.parse(publisher.read_text()).body:
+        if isinstance(node,ast.Assign):
+            for target in node.targets:
+                if isinstance(target,ast.Name) and target.id in entries:
+                    entries[target.id]=list(ast.literal_eval(node.value))
+        elif isinstance(node,ast.AugAssign) and isinstance(node.target,ast.Name) and node.target.id in entries:
+            entries[node.target.id].extend(ast.literal_eval(node.value))
+    return [p for p in (root/'kit').rglob('*') if p.is_file()]+[
+        root/'tests'/name for name in entries['TESTS']]+[root/name for name in entries['RUNTIME_FILES']]
+
+
+def scan_publication(root,paths=None):
+    """The frozen privacy scanner, byte-for-byte, over the complete publication scope.
+
+    kit/m2_privacy.py stays authority-pinned and unchanged. The only addition is
+    publication_paths(), which also discovers appended RUNTIME_FILES entries.
+    No line or rule is exempted beyond the frozen scanner's own exemptions.
+    """
+    from kit import m2_privacy as privacy
+    root=Path(root)
+    return privacy.scan(root, paths=publication_paths(root) if paths is None else paths)
+
+
 README = """# continual-learning-kit
 
-> **CR safety for newer tags:** CR runs only from a `kit-message-v7i1` clone,
+> **CR safety for newer tags:** CR runs only from a `kit-message-v7i3` clone,
 > checked against the owner's commit and receipt SHA256 from the approved send.
 > Clone this tag into a **NEW directory**, never into an existing experiment clone.
-> CR refuses unless diff-receipt-v7i1.json records review COMPLETE and owner
+> CR refuses unless diff-receipt-v7i3.json records review COMPLETE and owner
 > approval APPROVED. Never edit it; if it reads PENDING, ask the owner.
 > A code-seal mismatch requires a new reviewed receipt.
 
@@ -485,7 +518,6 @@ def check(target: Path) -> None:
         raise SystemExit("export refused, %d denylist hits:\n  %s" % (len(hits), "\n  ".join(hits[:20])))
     # Match MESSAGE 2's privacy rules against every byte actually shipped,
     # including the selected standalone tests and generated root files.
-    from kit.m2_privacy import scan
     descriptor, token_path = tempfile.mkstemp(prefix='kit-private-tokens-', suffix='.json')
     previous = os.environ.get('KIT_PRIVATE_TOKENS_FILE')
     try:
@@ -493,7 +525,7 @@ def check(target: Path) -> None:
             os.fchmod(stream.fileno(), 0o600)
             json.dump(private_hook_tokens(names, storage), stream)
         os.environ['KIT_PRIVATE_TOKENS_FILE'] = token_path
-        private=scan(target, paths=(p for p in target.rglob('*') if p.is_file()))
+        private=scan_publication(target, paths=(p for p in target.rglob('*') if p.is_file()))
     finally:
         if previous is None:
             os.environ.pop('KIT_PRIVATE_TOKENS_FILE', None)

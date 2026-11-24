@@ -125,7 +125,7 @@ def test_final_read_retains_tampered_fresh_schedule_failure_after_successful_rec
     assert failed['qualification_pending']==cr.FINQA_PENDING
     assert failed['finqa_reproduction']==load(out/'finqa-task-check.json')
     assert failed['finqa_reproduction']['status']=='PENDING'
-    assert 'FinQA regenerated schedule mismatch' in failed['finqa_reproduction']['errors'][0]
+    assert 'CR filtered task seal changed' in failed['finqa_reproduction']['errors'][0]
     assert failed['decisions']=={'CR':'PENDING'} and failed['contrasts']['CR-G']['label']=='PENDING'
     full=dict(nm_family='cr',reading=failed,infrastructure_authority='a'*64)
     rows=payload(full)
@@ -309,3 +309,25 @@ def test_auxiliary_sources_and_legacy_empty_manifests(native,tmp_path,variant):
         report=cr.bind_inputs(cfg,attempt)
         assert report['status']==report['finqa_reproduction']['status']=='COMPLETE'
         assert report['sources'][-1]['expected']==report['sources'][-1]['observed']
+
+
+@pytest.mark.parametrize('stage',cr_jobs.STAGES)
+def test_final_read_requires_every_filtered_task_manifest(native,tmp_path,monkeypatch,stage):
+    from kit import m3_read
+    from test_cr_confirmation import evidence
+    cfg,_=native;out=Path(cfg['out']);binding=cr.bind_inputs(cfg,tmp_path/'binding')
+    atomic(out/'confirmation-binding.json',binding)
+    (out/'targets-math').symlink_to(Path(cfg['v6a_root']).parent/'targets-math',target_is_directory=True)
+    cr_jobs.prepare(cfg,out)
+    cells,assignment=evidence()
+    atomic(out/'m3-scoring-assignment.json',assignment)
+    monkeypatch.setattr(m3_read,'load_cells',lambda *a:(cells,assignment))
+    assert cr_jobs.read_result(cfg,out)['status']=='PASS'
+    manifest=(out/('targets-'+stage)/'manifest.json').resolve()
+    saved=manifest.read_bytes();manifest.unlink()
+    try:
+        failed=cr_jobs.read_result(cfg,out)
+        assert failed['status']!='PASS'
+        assert failed['decisions']=={'CR':'PENDING'}
+    finally:
+        manifest.write_bytes(saved)

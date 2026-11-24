@@ -29,7 +29,7 @@ released dose. S8 overlap adjudication is NOT in scope.
 
 ## Repair gold/27b overlaps before preparation
 
-Use a fresh v7i2 clone and the same hash-bound preparation config, with
+Use a fresh v7i3 clone and the same hash-bound preparation config, with
 `studies: ["gold", "27b"]` and FOMC, MeetingBank and NumGLUE-ds inputs.
 Stage every exclusion population with the kit's existing row format and hash
 checks. Run on CPU, before any GPU allocation:
@@ -530,3 +530,65 @@ python3 -I scripts/trace_general_mmlu_census.py --panels staged-general.json --t
 counts items needing shot-dropping and items remaining over 2048, both overall
 and per subject. Rebuild older staged MMLU rows to include the shot-rendering
 metadata used by the dropping loop.
+
+## v7i3 answer reading and shared cohort
+
+Use tag **kit-message-v7i3** for gold/27b, in a fresh clone and preparation root.
+Retain the v7i2 NumGLUE-ds replacement and overlap-repair config edits. The frozen
+registration/resources and registered exact-match metric adapters are unchanged.
+
+1. Preserve the old preparation's `target-journal/*.json` files, including failed
+   attempts and raw MeetingBank verification responses. Do not edit their contents
+   or rename the digest-and-attempt filenames.
+2. Before fresh preparation, add `target_journals` to the preparation config: an
+   array of `{ "path": "/durable/saved-journals/HASH-1.json", "sha256": "FULL_SHA256" }`
+   references, one for EVERY existing attempt (1–4). Compute each hash locally with
+   `sha256sum` or `shasum -a 256`. Bind the same staged data/model inputs, update
+   `out` to the fresh root and regenerate code-bound operator/admission evidence
+   for v7i3. In `operator.admission_evidence`, give BOTH `demo_fidelity_gold`
+   and `demo_fidelity_27b` a `{ "deferred_path": "/durable/fresh-gold-audit.json" }`
+   reference (use a different file for 27B). Their paths are fixed before
+   preparation; their result hashes are sealed by `bind` after the cohort is known. Do not copy old prepared, targets, schedules, binding or completion files.
+3. Run the CPU `prepare` row. The config hash binds all journal path+hash references.
+   Run `targets`: it verifies each hash and copies journals to the fresh root,
+   preserves request and raw output, and re-checks even prior `verified: false`
+   decisions. Attempts are visited in registered order 1,2,3,4; the first verified
+   attempt wins. Generation runs only for missing candidate attempts; an existing
+   MeetingBank verifier response is re-read, never regenerated. Missing verifier
+   calls alone may run. Fully saved attempts require no teacher generation.
+4. Inspect sealed `cohort.json`: kept/dropped IDs, attempt reasons, per-task counts,
+   preparation identity and target digest. Below 400 accepted rows in ANY task,
+   `TRACE_COHORT_FLOOR_PENDING` stops training and prints counts/reasons. Otherwise
+   both sources use exactly those kept IDs. Rerun the training-only 50-summary
+   fidelity audits on the kept cohort, writing each receipt to its already
+   declared deferred path, then run `bind` without changing the config.
+5. Run `bind` and downstream stages. The existing schedule ranked 500 rows by
+   registered hash, then used two copies plus 280 rows: 1,280 exposures. For a
+   400–500-row cohort it now repeats that same ranking to exactly 1,280 entries,
+   still forty updates of effective batch 32, with unchanged seeds and order key.
+   The binding seals `cohort.json`; gold and 27B use identical ordered IDs.
+
+The 27B verifier accepts the final `Answer:` / `Answer :` / `**Answer:**` line,
+unwraps balanced math delimiters, markdown and boxes. NumGLUE-ds requires one
+complete number, with correctly grouped thousands commas and a complete exponent
+if present. It permits a dollar prefix or one case-insensitive unit suffix
+(optionally followed by a period): g, gram(s), kg, kilogram(s), mg, milligram(s),
+mol, mole(s), %, percent, dollar(s), cent(s), l, liter(s), litre(s), ml,
+milliliter(s), or g/mol. Magnitude words, prose, dangling exponents, arithmetic,
+multiple numbers and second units reject. NumGLUE-ds agrees within 1% of absolute gold (zero requires
+exact zero). FOMC reads option names from each bound prompt's header (released
+prompts say A. dovish, B. hawkish, C. neutral); conflicting or multiple labels are
+rejected. MeetingBank strips a surrounding code fence and still requires exactly
+`supported` and `adequate_coverage`, each JSON boolean true. The original completion,
+response length and reasoning-word requirements still apply.
+
+Two printed v7i3 departure notes accompany `cohort.json` and are printed again by
+`collect` in `departure-notes.txt`. Paste them beside ESSENTIAL. The same file adds
+`exploratory_final_answer`: separate FOMC and NumGLUE-ds score aggregates by
+source, seed and state, computed from existing score outputs with the same
+normaliser and numeric tolerance. This adds no generation. Registered `result.json`
+and numeric return fields are unchanged. Notes use separate
+`T|WARNINGS|TRACE-v7i3|...` lines, which the TRACE reader skips. The frozen
+`scripts/read_text_return.py` has no exploratory TRACE field: do not pass
+`departure-notes.txt` to it. Paste these lines as a separate comment beside
+ESSENTIAL, outside the checksummed blocks. They are not registered scores. S8 remains on its registered eight-task behavior.

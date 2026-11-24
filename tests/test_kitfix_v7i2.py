@@ -128,7 +128,7 @@ def test_v7i2_refuses_cr_with_shipped_receipt_before_input_work(monkeypatch, tmp
     from kit.nm_common import Pending, sha
     path = Path(cr.__file__).parent/'resources/cr-confirmation/diff-receipt-v7i1.json'
     monkeypatch.setattr(cr, 'bind_inputs', lambda *a, **k: pytest.fail('input work preceded seal refusal'))
-    with pytest.raises(Pending, match='kit-message-v7i1'):
+    with pytest.raises(Pending, match='kit-message-v7i3'):
         cr.verify_diff(dict(path=str(path), sha256=sha(path)))
 
 

@@ -116,9 +116,12 @@ def admission(evidence, studies, defer_27b=False, cfg=None):
         required += list(ADMISSION[4:])
     receipt = {}
     for name in required:
-        if name == 'demo_fidelity_27b' and defer_27b:
-            continue
         ref = evidence[name]
+        if defer_27b and (name == 'demo_fidelity_27b' or
+                          name == 'demo_fidelity_gold' and set(ref)=={'deferred_path'}):
+            # Shared membership is known only after target verification. Pin
+            # the gold audit's destination now, then hash its result at bind.
+            continue
         if set(ref) == {'deferred_path'}:
             ref = reference(ref['deferred_path'])
         value = bound_json(ref)
@@ -140,7 +143,13 @@ def admission(evidence, studies, defer_27b=False, cfg=None):
         if cfg is not None and name.startswith('demo_fidelity'):
             prepared_path = Path(cfg['out'])/'prepared.json'
             if prepared_path.exists():
-                expected = fidelity_ids(load(prepared_path))
+                protocol = load(prepared_path)
+                cohort_path = Path(cfg['out'])/'cohort.json'
+                if cohort_path.exists() and (Path(cfg['out'])/'targets.json').exists():
+                    from kit.trace_cohort import shared_rows
+                    protocol = dict(protocol, selected=shared_rows(cfg['out'], protocol,
+                        load(Path(cfg['out'])/'targets.json')))
+                expected = fidelity_ids(protocol)
                 need(value['summary_ids'] == expected, 'fixed training summary inventory differs')
             if name == 'demo_fidelity_27b':
                 target_path = Path(cfg['out'])/'targets.json'
@@ -306,8 +315,8 @@ def bind(config, destination):
     from kit.trace_score import metric_adapter
     for ref in cfg['metrics'].values():
         metric_adapter(ref)
-    # Generated 27B demos cannot be audited until targets completes. Pin the
-    # audit plan now; its resulting receipt is sealed by the CPU bind row.
+    # Generated demos and final shared membership are known after targets.
+    # Deferred fidelity paths pin the plan; CPU bind seals both audit receipts.
     admission(cfg['operator']['admission_evidence'], studies, defer_27b=True, cfg=cfg)
     path = root/'admission-plan.json'
     seal(path, dict(schema='trace-admission-plan.v1',

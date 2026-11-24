@@ -1,20 +1,50 @@
-"""Bounded, batched 27B generation and verification on staged node inputs."""
+"""Bounded 27B generation, saved-attempt re-verification and shared cohort."""
 import json
-import re
+import shutil
 from kit.trace_common import *
+from kit.trace_answers import final_answer, agrees, meetingbank_verdict, number, label
 
 
-def verified_answer(task, text, gold):
-    answer = re.search(r'\nAnswer:\s*([^\n]+)\s*$', text)
-    if not answer or len(text[:answer.start()].split()) < 8:
-        return False
-    if task == 'FOMC':
-        return answer.group(1).strip().casefold() == gold.strip().casefold()
-    from decimal import Decimal, InvalidOperation
-    try:
-        return Decimal(answer.group(1).strip().replace(',', '')) == Decimal(gold.strip().replace(',', ''))
-    except InvalidOperation:
-        return False
+def answer_reason(task, text, gold, prompt=''):
+    lines = text.rstrip().splitlines()
+    value = final_answer(text)
+    if value is None:
+        return 'missing_final_answer'
+    if len(' '.join(lines[:-1]).split()) < 8:
+        return 'insufficient_reasoning'
+    if task == 'NumGLUE-ds' and number(value) is None:
+        return 'unparseable_number'
+    if task == 'FOMC' and label(value, prompt) is None:
+        return 'ambiguous_or_unparseable_label'
+    return 'verified' if agrees(task, value, gold, prompt) else 'answer_disagreement'
+
+
+def verified_answer(task, text, gold, prompt=''):
+    return answer_reason(task, text, gold, prompt) == 'verified'
+
+
+def import_journals(cfg, root):
+    """Copy only hash-bound saved journals; originals remain immutable."""
+    refs = cfg.get('target_journals', [])
+    need(isinstance(refs, list), 'target_journals must be an array of path+sha256 references')
+    imported = {}
+    for ref in refs:
+        path = bound_file(ref)
+        import re
+        need(re.fullmatch(r'[a-f0-9]{64}-[1-4]\.json', path.name), 'saved journal filename differs')
+        need(path.name not in imported, 'duplicate imported target journal')
+        imported[path.name] = ref['sha256']
+        target = root/'target-journal'/path.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        # Re-verification edits the fresh copy; never overwrite it on resume.
+        if not target.exists():
+            shutil.copyfile(path, target)
+        else:
+            original, current = load(path), load(target)
+            need(all(current.get(k)==original.get(k) for k in ('request','raw')) and
+                 (original.get('verification') is None or current.get('verification')==original['verification']),
+                 'imported journal raw/request changed')
+    seal(root/'imported-journals.json', imported)
 
 
 def run(cfg):
@@ -22,7 +52,7 @@ def run(cfg):
     root = Path(cfg['out'])
     prepared = load(root/'prepared.json')
     need(prepared['config_sha256'] == digest(cfg), 'target preparation identity differs')
-    # Journals with completed verification need neither engine nor tokenizer.
+    import_journals(cfg, root)
     generator = tok = None
     def engine():
         nonlocal generator
@@ -31,7 +61,15 @@ def run(cfg):
             generator = VLLMGenerator(cfg['teacher']['model'], 2560, input_cap=5632,
                                        tensor_parallel_size=2)
         return generator
-    accepted = {}
+    def complete(raw):
+        nonlocal tok
+        if raw.get('finish_reason') != 'stop':
+            return False
+        if tok is None:
+            from transformers import AutoTokenizer
+            tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
+        return len(tok.encode(raw['text']+tok.eos_token, add_special_tokens=False)) <= 2048
+    accepted, decisions = {}, {}
     for task in SUBSET:
         rows = prepared['selected'][task]
         for attempt, temperature in enumerate((0., .3, .6, .8), 1):
@@ -63,15 +101,8 @@ def run(cfg):
             checks = []
             for record in records:
                 saved, row = record['saved'],record['row']
-                if saved['verified'] is not None:
-                    continue
-                if tok is None:
-                    from transformers import AutoTokenizer
-                    tok = AutoTokenizer.from_pretrained(cfg['base']['model'], local_files_only=True)
-                raw = saved['raw']
-                text = raw['text']
-                valid = (raw.get('finish_reason')=='stop' and len(tok.encode(
-                         text+tok.eos_token,add_special_tokens=False))<=2048)
+                text = saved['raw']['text']
+                valid = complete(saved['raw'])
                 if task=='MeetingBank' and valid:
                     request = dict(messages=[dict(role='system',content=(
                         'Assess factual support and adequate coverage of the candidate summary '
@@ -80,10 +111,19 @@ def run(cfg):
                         dict(role='user',content=json.dumps(dict(source=row['prompt'],
                             reference=row['answer'],candidate=text)))],
                         attempt=attempt,seed=28100+attempt,temperature=0,top_p=1)
-                    checks.append((record,request))
+                    if saved.get('verification') is None:
+                        checks.append((record,request))
+                        continue
+                    need(saved['verification']['request']==request, '27B verifier journal request changed')
+                    verdict = saved['verification']['raw']
+                    passed = (verdict.get('finish_reason')=='stop' and
+                              meetingbank_verdict(verdict['text']) and len(text.split())>=8)
+                    reason = 'verified' if passed else 'verifier_rejected'
                 else:
-                    saved['verified'] = valid and verified_answer(task,text,row['answer'])
-                    atomic(record['path'],saved)
+                    reason = answer_reason(task,text,row['answer'],row['prompt']) if valid else 'incomplete_or_overlength'
+                    passed = reason == 'verified'
+                saved.update(verified=passed, verification_rule='v7i3', reason=reason)
+                atomic(record['path'],saved)
             if checks:
                 engine()
                 generator.max_new_tokens, generator.input_cap = 256,7936
@@ -95,17 +135,17 @@ def run(cfg):
                 for (record,request),raw in zip(checks,outputs):
                     saved = record['saved']
                     saved['verification'] = dict(request=request,raw=raw)
-                    try:
-                        saved['verified'] = (raw.get('finish_reason')=='stop' and
-                            json.loads(raw['text'])==dict(supported=True,adequate_coverage=True)
-                            and len(saved['raw']['text'].split())>=8)
-                    except (ValueError,TypeError):
-                        saved['verified'] = False
+                    passed = (raw.get('finish_reason')=='stop' and meetingbank_verdict(raw['text'])
+                              and len(saved['raw']['text'].split())>=8)
+                    saved.update(verified=passed, verification_rule='v7i3',
+                                 reason='verified' if passed else 'verifier_rejected')
                     atomic(record['path'],saved)
             for record in records:
-                saved = record['saved']
+                saved, row = record['saved'], record['row']
+                decisions.setdefault(row['id'], []).append(dict(attempt=attempt, reason=saved['reason'], journal_sha256=sha(record['path'])))
                 if saved['verified']:
-                    accepted[record['row']['id']] = dict(text=saved['raw']['text'],verified=True,
+                    accepted[row['id']] = dict(text=saved['raw']['text'],verified=True,
                         attempt=attempt,journal_sha256=sha(record['path']))
-    need(len(accepted)==1500,'fixed 27B cohort has exhausted/unverified rows')
+    from kit.trace_cohort import finish
+    finish(root, prepared, accepted, decisions)
     seal(root/'targets.json',accepted)

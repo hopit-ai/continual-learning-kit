@@ -11,6 +11,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from kit.trace_common import *
+from kit.nm_common import Pending
 
 
 def configured_inventory(cfg):
@@ -172,6 +173,7 @@ def run(config_path,row_id,standin=False):
         started = time.time()
         from kit.trace_jobs import timing_finish as finish
         phase_file = attempt/'phase-times.jsonl'
+        prior_phase_env={key:os.environ.get(key) for key in ('V7H_PHASE_FILE','V7H_PHASE_GPUS')}
         os.environ.update(V7H_PHASE_FILE=str(phase_file),V7H_PHASE_GPUS=str(0 if standin else row['gpus']))
         value = dict(row=row_id,config_sha256=digest(cfg),technical_synthetic=standin,
                      row_type=row['phase'],status='RUNNING',gpus=0 if standin else row['gpus'],started=started,
@@ -189,7 +191,7 @@ def run(config_path,row_id,standin=False):
             if row['phase'] in ('prepare','targets','bind'):
                 names = {'prepare':'prepared','targets':'targets','bind':'binding'}
                 scope = [p for p in [out/(names[row['phase']]+'.json'),
-                    out/'audit'/'manual-review.json'] if p.exists()]
+                    out/'audit'/'manual-review.json', out/'cohort.json', out/'imported-journals.json'] if p.exists()]
             elif row['phase'] in ('train','prep-stage','train-stage','export-stage','assemble'):
                 scope = list((out/'training'/f'{row["study"]}-{row["seed"]}').rglob('*.json'))
             elif row['phase']=='score-prep':
@@ -201,9 +203,12 @@ def run(config_path,row_id,standin=False):
                          *(out/'judge'/f'{row["study"]}-{row["seed"]}').rglob('*.json')]
             elif row['phase']=='collect':
                 scope = [*out.glob('return-*.txt'),*out.glob('full/return-*.txt'),
-                         out/'return-numeric.json',out/'full/return-numeric.json']
+                         out/'return-numeric.json',out/'full/return-numeric.json',
+                         *out.glob('departure-notes.txt')]
             value['artifacts_sha256'] = {str(p.relative_to(out)):sha(p) for p in scope}
             value['status'] = 'PENDING' if isinstance(result, dict) and result.get('status') == 'PENDING' else 'COMPLETE'
+        except Pending as error:
+            value.update(status='PENDING', error_type=type(error).__name__, reason=str(error))
         except FileNotFoundError as error:
             value.update(status='PENDING', error_type=type(error).__name__)
         except BaseException as error:
@@ -211,6 +216,11 @@ def run(config_path,row_id,standin=False):
                          error_type=type(error).__name__)
             raise
         finally:
+            for key,old in prior_phase_env.items():
+                if old is None:
+                    os.environ.pop(key,None)
+                else:
+                    os.environ[key]=old
             value['ended'] = time.time()
             # In an enclosing row wrapper these clocks include all native stages,
             # loads, exports, failures and idle periods. Queue time is excluded.

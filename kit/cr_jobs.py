@@ -170,35 +170,34 @@ def prepare(cfg,out):
         target.parent.mkdir(parents=True,exist_ok=True)
         if target.exists():need(target.read_bytes()==Path(source).read_bytes(),'realised binding changed')
         else:target.write_bytes(Path(source).read_bytes())
+    from kit import cr_filter
+    from kit.m3_pools import read_panels, parse_specs
+    panels, panel_ids = read_panels(parse_specs(cfg.get('panels')) | parse_specs(cfg.get('holdouts')),
+                                   bool(cfg.get('technical_synthetic')))
     for stage,source in doc['task_sources'].items():
+        root=out/('targets-'+stage)
+        metadata=dict(stage=stage, confirmation_binding=sha(out/'confirmation-binding.json'),
+                      source_sha256=sha(source['corpus']), panels=panel_ids,
+                      departure='Drop matcher-flagged task rows before cycling; 1280 exposures for every arm')
         if stage=='finqa':
-            from kit.cr_finqa import PROTOCOL
-            proof=observed['finqa_reproduction']
-            root=out/'targets-finqa';root.mkdir(exist_ok=True);names=[]
-            for seed in CR_SEEDS:
-                name=f'schedule-{seed}.jsonl';raw=(check/'finqa-generated'/name).read_bytes()
-                if (root/name).exists():ready((root/name).read_bytes()==raw,'FinQA fresh schedule changed; owner escalation')
-                else:(root/name).write_bytes(raw)
-                names.append(name)
-            seal(root/'receipt.json',proof);names.append('receipt.json')
-            seal(root/'manifest.json',files_manifest(root,names,schedule_protocol=PROTOCOL,seeds=list(CR_SEEDS)))
+            # bind_inputs has already proved v6a and B stored bytes on the
+            # UNFILTERED corpus. Filtering must not replace that proof.
+            metadata['unfiltered_reproduction']=observed['finqa_reproduction']
+            cr_filter.finqa(cfg,source,panels,check,root,metadata)
             continue
         corpus=t.read_jsonl(Path(source['corpus']))
         ready(bool(corpus),'recorded schedule corpus absent; owner escalation')
-        # This proves the frozen order algorithm against every realised source
-        # schedule; never infer target bytes/order from old output schedules.
         for seed,path in source['v6a_schedules'].items():
-            ready(cycle(corpus,int(seed),1280)==t.read_jsonl(Path(path)), 'v6a source/algorithm mismatch; owner escalation')
-        root=out/('targets-'+stage);root.mkdir(exist_ok=True);names=[]
-        for seed in CR_SEEDS:
-            name=f'schedule-{seed}.jsonl';expected=cycle(corpus,seed,1280)
-            if (root/name).exists():need(t.read_jsonl(root/name)==expected,'fresh task schedule changed')
-            else:t.write_jsonl(root/name,expected)
-            names.append(name)
-        seal(root/'manifest.json',files_manifest(root,names,source_sha256=sha(source['corpus']),seeds=list(CR_SEEDS)))
+            ready(cycle(corpus,int(seed),1280)==t.read_jsonl(Path(path)),
+                  'v6a source/algorithm mismatch; owner escalation')
+        kept,exclusions=cr_filter.exclude(corpus,panels)
+        metadata['counts']=dict(before=len(corpus),excluded=len(exclusions),after=len(kept))
+        cr_filter.write_stage(root,{f'schedule-{seed}.jsonl':cycle(kept,seed,1280)
+                                   for seed in CR_SEEDS},exclusions,metadata)
     m3_train.schedules_job(args(cfg,{},out,'schedules'))
     seal(out/'pre-data-freeze.json',dict(binding=sha(out/'confirmation-binding.json'),code=bound['code'],
-        schedules={str(p.relative_to(out)):sha(p) for p in out.glob('schedules-coverage/*/manifest.json')},seeds=list(CR_SEEDS)))
+        schedules={str(p.relative_to(out)):sha(p) for p in out.glob('schedules-coverage/*/manifest.json')},
+        task_manifests={stage:sha(out/('targets-'+stage)/'manifest.json') for stage in STAGES},seeds=list(CR_SEEDS)))
 
 
 def operation(cfg,row,attempt,out):
@@ -383,10 +382,17 @@ def read_result(cfg,out):
     from kit.cr_confirmation import analyse
     verify_standin(cfg)
     warnings=[]
-    if (out/'targets-finqa/manifest.json').is_file():
-        from kit.cr_confirmation import task_binding
-        try:task_binding(out,'finqa',out/'targets-finqa')
-        except Pending:pass  # Its failure proof is retained and printed below.
+    task_failures=[]
+    from kit.cr_confirmation import task_binding
+    for stage in STAGES:
+        root=out/('targets-'+stage)
+        # Every stage's filtered task seal is required evidence; absent means PENDING.
+        if not (root/'manifest.json').is_file():
+            task_failures.append(stage+': filtered task manifest missing: '+str(root/'manifest.json'))
+            continue
+        try:task_binding(out,stage,root)
+        except Pending as error:
+            task_failures.append(stage+': '+str(error))  # FinQA also retains its failure proof.
     proof=finqa_proof(out)
     proof_fields=dict(finqa_reproduction=proof)
     operator=verify_operator(cfg,warnings)
@@ -438,6 +444,7 @@ def read_result(cfg,out):
             observed=bind_inputs(cfg,out/'read-input-checks'/__import__('uuid').uuid4().hex)
             ready(observed==bound,'realised inputs changed; owner escalation')
             ready(proof.get('status')=='COMPLETE' and not proof.get('errors'),FINQA_PENDING)
+            ready(not task_failures,'CR task exclusions PENDING: '+'; '.join(task_failures))
             ready(bound.get('code')==__import__('kit.cr_confirmation',fromlist=['code_seal']).code_seal(),'code changed after pre-data freeze; owner escalation')
             for seed in CR_SEEDS:
                 for lane in ('native','reference'):
